@@ -1,0 +1,84 @@
+<UserControl x:Class="QuanLyHangHoa.Views.InvoiceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             mc:Ignorable="d" 
+             d:DesignHeight="700" d:DesignWidth="1000" Background="White">
+    <Grid Margin="20">
+        <Grid.ColumnDefinitions>
+            <!-- Cột trái: Chọn hàng -->
+            <ColumnDefinition Width="6*"/>
+            <!-- Cột phải: Giỏ hàng & Thanh toán -->
+            <ColumnDefinition Width="4*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- KHIẾU BÊN TRÁI: DANH SÁCH MẶT HÀNG -->
+        <Border Grid.Column="0" Margin="0,0,10,0" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="8" Padding="15">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                
+                <TextBlock Text="MENU SẢN PHẨM" FontWeight="Bold" FontSize="18" Foreground="Indigo" Margin="0,0,0,15"/>
+                
+                <DataGrid Grid.Row="1" ItemsSource="{Binding AvailableProducts}" SelectedItem="{Binding SelectedProduct, Mode=TwoWay}"
+                          AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                          Style="{StaticResource MaterialDesignDataGrid}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Tên Máy / LK" Binding="{Binding Name}" Width="*"/>
+                        <DataGridTextColumn Header="Kho" Binding="{Binding Quantity}" />
+                        <DataGridTextColumn Header="Giá" Binding="{Binding UnitPrice, StringFormat='N0'}" />
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <Button Grid.Row="2" Margin="0,15,0,0" Content="THÊM VÀO GIỎ HÀNG ➡" 
+                        Command="{Binding AddToCartCommand}" 
+                        Style="{StaticResource MaterialDesignRaisedButton}" />
+            </Grid>
+        </Border>
+
+        <!-- KHU BÊN PHẢI: GIỎ HÀNG (HOÁ ĐƠN) -->
+        <Border Grid.Column="1" Margin="10,0,0,0" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="8" Padding="15" Background="#FAFAFA">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Text="CHI TIẾT HOÁ ĐƠN" FontWeight="Bold" FontSize="18" Foreground="Indigo" Margin="0,0,0,15"/>
+                
+                <TextBox Grid.Row="1" Style="{StaticResource MaterialDesignFloatingHintTextBox}" 
+                         materialDesign:HintAssist.Hint="Tên khách hàng" 
+                         Text="{Binding CustomerName}" Margin="0,0,0,15" FontSize="16"/>
+
+                <DataGrid Grid.Row="2" ItemsSource="{Binding CartItems}"
+                          AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="False"
+                          Style="{StaticResource MaterialDesignDataGrid}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Sản phẩm" Binding="{Binding Product.Name}" IsReadOnly="True" Width="*"/>
+                        <DataGridTextColumn Header="SL" Binding="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" />
+                        <DataGridTextColumn Header="Đơn giá" Binding="{Binding UnitPrice, StringFormat='N0'}" IsReadOnly="True"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <!-- Tổng tiền & Thanh toán -->
+                <StackPanel Grid.Row="3" Margin="0,20,0,0">
+                    <Separator Margin="0,0,0,10"/>
+                    <Grid>
+                        <TextBlock Text="TỔNG TIỀN PHẢI THU:" FontWeight="Bold" FontSize="16"/>
+                        <TextBlock Text="{Binding TotalCartAmount, StringFormat='{}{0:N0} VNĐ'}" FontWeight="Bold" FontSize="20" Foreground="Red" HorizontalAlignment="Right"/>
+                    </Grid>
+                    <Button Content="THANH TOÁN (LƯU DB)" Height="60" FontSize="18" FontWeight="Bold" Margin="0,15,0,0"
+                            Command="{Binding CheckoutCommand}" 
+                            Style="{StaticResource MaterialDesignRaisedButton}" Background="#4CAF50" BorderBrush="#4CAF50"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

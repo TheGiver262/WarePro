@@ -1,0 +1,54 @@
+<Window x:Class="QuanLyHangHoa.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        mc:Ignorable="d"
+        Title="Phần Mềm Quản Lý Hàng Hoá" Height="768" Width="1024"
+        WindowStartupLocation="CenterScreen"
+        FontFamily="Segoe UI">
+
+    <Grid>
+        <!-- Cột 1 làm Sidebar, Cột 2 làm giao diện chính hiển thị tương ứng chức năng -->
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="250"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Sidebar Bên Trái: Nền tối màu (DeepPurple/Indigo) cho đẹp và mượt như app hiện đại -->
+        <Border Grid.Column="0" Background="{DynamicResource PrimaryHueDarkBrush}">
+            <StackPanel Margin="0,20,0,0">
+                <!-- Vùng logo phần mềm -->
+                <materialDesign:PackIcon Kind="Storefront" Width="80" Height="80" HorizontalAlignment="Center" Foreground="White"/>
+                <TextBlock Text="QUẢN LÝ HÀNG HOÁ" Foreground="White" FontWeight="Bold" FontSize="18" HorizontalAlignment="Center" Margin="0,10,0,30" />
+
+                <Separator Background="#55FFFFFF" Margin="20,0,20,20"/>
+
+                <!-- Menu Hàng hoá. Sử dụng Style của MaterialDesign -->
+                <Button Content="Hàng Hoá" Style="{StaticResource MaterialDesignFlatButton}" Foreground="White" FontSize="16" Height="50" HorizontalContentAlignment="Left" Padding="20,0,0,0" Command="{Binding OpenProductViewCommand}"/>
+                <Button Content="Hoá Đơn Xuất" Style="{StaticResource MaterialDesignFlatButton}" Foreground="White" FontSize="16" Height="50" HorizontalContentAlignment="Left" Padding="20,0,0,0" Command="{Binding OpenInvoiceViewCommand}" />
+                <Button Content="Phiếu Nhập Kho" Style="{StaticResource MaterialDesignFlatButton}" Foreground="White" FontSize="16" Height="50" HorizontalContentAlignment="Left" Padding="20,0,0,0" Command="{Binding OpenImportViewCommand}"/>
+                <Button Content="Bảo Hành" Style="{StaticResource MaterialDesignFlatButton}" Foreground="White" FontSize="16" Height="50" HorizontalContentAlignment="Left" Padding="20,0,0,0" Command="{Binding OpenWarrantyViewCommand}"/>
+                
+                <!-- Chỉ những user có quyền Admin mới thấy và click được mục này. 
+                     Với WPF cơ bản, ta có thể bind Visibility với 1 Converter, 
+                     hoặc để đơn giản xử lý ở Code-behind nếu chưa tạo Converter MVVM. -->
+                <Button Content="Nhân Viên (Admin)" Style="{StaticResource MaterialDesignFlatButton}" Foreground="White" FontSize="16" Height="50" Margin="0,50,0,0" HorizontalContentAlignment="Left" Padding="20,0,0,0" Command="{Binding OpenEmployeeViewCommand}"/>
+
+                <!-- Khu vực thông tin người dùng / Nút đăng xuất ở dưới cùng -->
+                <StackPanel VerticalAlignment="Bottom" Margin="20,100,20,20">
+                    <TextBlock Text="{Binding CurrentUser.FullName, StringFormat='Xin chào: {0}'}" Foreground="White" Margin="0,0,0,10"/>
+                    <Button Content="Đăng Xuất" Style="{StaticResource MaterialDesignOutlinedButton}" Background="Transparent" Foreground="White" BorderBrush="White" Command="{Binding LogoutCommand}"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Khung làm việc (Khu vực chiếm màn lớn nhất) -->
+        <Border Grid.Column="1" Background="#F1F3F5">
+            <!-- Data binding tới View hiện tại trong Command (UserControl) -->
+            <ContentControl Content="{Binding CurrentView}" Margin="20"/>
+        </Border>
+
+    </Grid>
+</Window>

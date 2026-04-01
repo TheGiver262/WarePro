@@ -1,0 +1,75 @@
+<UserControl x:Class="QuanLyHangHoa.Views.ProductView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:vm="clr-namespace:QuanLyHangHoa.ViewModels"
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="800" Background="White">
+    
+    <!-- Liên kết Component với ViewModel -->
+    <UserControl.DataContext>
+        <vm:ProductViewModel />
+    </UserControl.DataContext>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <!-- Phần ToolBar: Textbox Nhập Liệu -->
+            <RowDefinition Height="Auto"/>
+            <!-- Các nút bấm -->
+            <RowDefinition Height="Auto"/>
+            <!-- Phần Danh sách DataGrid -->
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="QUẢN LÝ DANH MỤC HÀNG HOÁ" FontSize="24" FontWeight="Bold" Margin="0,0,0,20" Foreground="#2C3E50"/>
+        
+        <!-- Form nhập -->
+        <WrapPanel Grid.Row="0" Margin="0,40,0,20">
+            <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}" Width="250" Margin="10" 
+                     materialDesign:HintAssist.Hint="Tên Hàng Hoá"
+                     Text="{Binding CurrentInputProduct.Name}"/>
+            <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}" Width="150" Margin="10" 
+                     materialDesign:HintAssist.Hint="Danh mục"
+                     Text="{Binding CurrentInputProduct.Category}"/>
+            <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}" Width="150" Margin="10" 
+                     materialDesign:HintAssist.Hint="Giá bán (VNĐ)"
+                     Text="{Binding CurrentInputProduct.UnitPrice}"/>
+            <!-- Số lượng ẩn/chỉ đọc vì số lượng quản lý tự động qua Phiếu Nhập/Xuất -->
+            <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}" Width="100" Margin="10" 
+                     materialDesign:HintAssist.Hint="SL Tồn" IsEnabled="False"
+                     Text="{Binding CurrentInputProduct.Quantity}"/>
+            <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}" Width="150" Margin="10" 
+                     materialDesign:HintAssist.Hint="Nguồn Gốc"
+                     Text="{Binding CurrentInputProduct.Origin}"/>
+            <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}" Width="150" Margin="10" 
+                     materialDesign:HintAssist.Hint="Bảo hành (tháng)"
+                     Text="{Binding CurrentInputProduct.WarrantyMonths}"/>
+        </WrapPanel>
+
+        <!-- Thanh nút công cụ Control Bar -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="10,0,0,20">
+            <!-- Save command xử lý cho cả thêm mới (Nếu ID=0) và cập nhật -->
+            <Button Content="LƯU THÔNG TIN" Command="{Binding SaveProductCommand}" Style="{StaticResource MaterialDesignRaisedButton}" Width="150" Margin="0,0,10,0"/>
+            <Button Content="TẠO MỚI (CLEAR)" Command="{Binding ClearInputCommand}" Style="{StaticResource MaterialDesignOutlinedButton}" Width="150" Margin="0,0,10,0"/>
+            <!-- Xoá thì bind màu chữ đỏ -->
+            <Button Content="XOÁ MẶT HÀNG" Command="{Binding DeleteProductCommand}" Style="{StaticResource MaterialDesignOutlinedButton}" Background="#FFF0F0" BorderBrush="Red" Foreground="Red" Width="150"/>
+        </StackPanel>
+
+        <!-- Hiển thị bảng data -->
+        <DataGrid Grid.Row="2" Margin="10,0,10,0" ItemsSource="{Binding Products}" SelectedItem="{Binding SelectedProduct, Mode=TwoWay}"
+                  AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                  Style="{StaticResource MaterialDesignDataGrid}">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Mã" Binding="{Binding Id}" />
+                <DataGridTextColumn Header="Tên SP" Binding="{Binding Name}" Width="*"/>
+                <DataGridTextColumn Header="Loại SP" Binding="{Binding Category}" />
+                <DataGridTextColumn Header="Tồn kho" Binding="{Binding Quantity}" />
+                <DataGridTextColumn Header="Đơn giá" Binding="{Binding UnitPrice, StringFormat='N0'}" />
+                <DataGridTextColumn Header="Xuất xứ" Binding="{Binding Origin}" />
+                <DataGridTextColumn Header="TG Bảo hành" Binding="{Binding WarrantyMonths, StringFormat='{}{0} tháng'}" />
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</UserControl>

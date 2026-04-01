@@ -1,0 +1,17 @@
+Thiết kế phần mềm quản lý hàng hoá
+
+1. Use-case
+	1.1 Đăng nhập, đăng xuất, đăng ký, đổi mật khẩu
+	1.2 Quản lý hàng hoá: Thêm, sửa, xoá hàng hoá
+ 	1.3 Quản lý người dùng: Thêm, sửa, xoá tài khoản (Chỉ quản lý mới có quyền)
+	1.4 Quản lý hoá đơn: Thêm, sửa, xoá hoá đơn
+	1.5 Thống kê: Tạo biểu đồ doanh thu
+	1.6 Tìm kiếm: Tìm kiếm hàng hoá, hoá đơn, tài khoản; tìm kiếm theo tên, id, ngày xuất/nhập, ..	
+Tất cả các use-case trên đều có tác nhân là nhân viên công ty và quản lý, trừ 1.3 là chỉ quản lý cấp cao (quản trị hệ thống và ban giám đốc) mới có quyền sử dụng.
+2. Thuộc tính thực thể:
+	2.1 Hàng hoá: ID, tên hàng hoá, loại hàng hoá, số lượng, đơn giá, nguồn gốc, thời gian bảo hành, ghi chú
+	2.2 Nhân viên: ID, tên, ngày tháng năm sinh, chức vụ, 
+	2.3 Hoá đơn: Mã hoá đơn, ngày xuất, danh sách hàng hoá(ID, tên hàng hoá,...), tổng tiền, người bán
+	2.4 Bảo hành: Mã đơn bảo hành, Danh sách sản phẩm, ID sản phẩm, hãng sản xuất, ngày mua, người mua, thời gian bảo hành, trạng thái bảo hành, hình ảnh nhận hàng. 
+	2.5 Nhập kho: ID phiếu nhập, ngày nhập, giá nhập, danh sách hàng hoá, tình trạng hàng hoá, người nhập
+3. Sử dụng C#, Winform hoặc WPF, MVVM, giao diện dễ sử dụng, làm app/ứng dụng desktop, có khả năng mở rộng.
