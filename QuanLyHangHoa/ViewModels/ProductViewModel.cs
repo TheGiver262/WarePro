@@ -6,39 +6,35 @@ using QuanLyHangHoa.Services;
 
 namespace QuanLyHangHoa.ViewModels
 {
-    // ViewModel liên kết giao diện Danh sách Hàng Hoá với Source Code
     public partial class ProductViewModel : ObservableObject
     {
-        private readonly ProductService _productService;
+        private readonly ProductService _productService = new();
+        private readonly ReferenceDataService _refService = new();
 
-        // Collection quan sát được giúp UI tự update khi Thêm/Sửa/Xoá List
-        [ObservableProperty]
-        private ObservableCollection<Product> _products;
+        [ObservableProperty] private ObservableCollection<Product>  _products  = new();
+        [ObservableProperty] private ObservableCollection<Category> _categories = new();
+        [ObservableProperty] private ObservableCollection<Brand>    _brands     = new();
+        [ObservableProperty] private ObservableCollection<Unit>     _units      = new();
 
-        // Hàng hoá đang được chọn trên Bảng (DataGrid) => 
-        // Biến này được bind thẳng vô SelectedItem của DataGrid ngoài UI
-        [ObservableProperty]
-        private Product? _selectedProduct;
-
-        // Chứa thông tin Input Thêm Mới hoặc Sửa
-        [ObservableProperty]
-        private Product _currentInputProduct;
+        [ObservableProperty] private Product? _selectedProduct;
+        [ObservableProperty] private Product _currentInputProduct = new();
 
         public ProductViewModel()
         {
-            _productService = new ProductService();
-            _currentInputProduct = new Product();
-            LoadData(); // Gọi hàm lấy data lúc đầu khởi tạo
+            LoadRefData();
+            LoadData();
+        }
+
+        private void LoadRefData()
+        {
+            Categories = new ObservableCollection<Category>(_refService.GetAllCategories());
+            Brands     = new ObservableCollection<Brand>(_refService.GetAllBrands());
+            Units      = new ObservableCollection<Unit>(_refService.GetAllUnits());
         }
 
         private void LoadData()
-        {
-            // Lấy từ DB rồi nhét vào ObservableCollection để bind lên giao diện WPF
-            var list = _productService.GetAllProducts();
-            Products = new ObservableCollection<Product>(list);
-        }
+            => Products = new ObservableCollection<Product>(_productService.GetAllProducts());
 
-        // Hàm Reset Trắng các ô Nhập liệu
         [RelayCommand]
         private void ClearInput()
         {
@@ -46,22 +42,21 @@ namespace QuanLyHangHoa.ViewModels
             SelectedProduct = null;
         }
 
-        // Hàm gọi Database lưu hàng hoá
         [RelayCommand]
         private void SaveProduct()
         {
             if (string.IsNullOrWhiteSpace(CurrentInputProduct.Name)) return;
+            if (CurrentInputProduct.CategoryId == 0 || CurrentInputProduct.BrandId == 0 || CurrentInputProduct.UnitId == 0)
+            {
+                System.Windows.MessageBox.Show("Vui lòng chọn Danh mục, Thương hiệu và Đơn vị tính.", "Thiếu thông tin", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                return;
+            }
 
-            // Nếu ID == 0 thì là tạo mới. Còn > 0 là sửa món hàng đã chọn
             if (CurrentInputProduct.Id == 0)
-            {
                 _productService.AddProduct(CurrentInputProduct);
-            }
             else
-            {
                 _productService.UpdateProduct(CurrentInputProduct);
-            }
-            // Load lại Data Grid báo thành công
+
             LoadData();
             ClearInput();
         }
@@ -69,30 +64,28 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void DeleteProduct()
         {
-            if (SelectedProduct != null && SelectedProduct.Id > 0)
-            {
-                _productService.DeleteProduct(SelectedProduct.Id);
-                LoadData();
-                ClearInput();
-            }
+            if (SelectedProduct == null || SelectedProduct.Id == 0) return;
+            _productService.DeleteProduct(SelectedProduct.Id);
+            LoadData();
+            ClearInput();
         }
 
-        // Khi click vào 1 dòng trong DataGrid, load data lên CurrentInput
         partial void OnSelectedProductChanged(Product? value)
         {
             if (value != null)
             {
-                // Copy giá trị sang Input (không bind thẳng tránh làm hỏng list gốc khi chưa Save)
-                CurrentInputProduct = new Product 
+                CurrentInputProduct = new Product
                 {
-                    Id = value.Id,
-                    Name = value.Name,
-                    Category = value.Category,
-                    Quantity = value.Quantity,
-                    UnitPrice = value.UnitPrice,
-                    Origin = value.Origin,
+                    Id           = value.Id,
+                    Name         = value.Name,
+                    CategoryId   = value.CategoryId,
+                    BrandId      = value.BrandId,
+                    UnitId       = value.UnitId,
+                    Quantity     = value.Quantity,
+                    UnitPrice    = value.UnitPrice,
+                    Origin       = value.Origin,
                     WarrantyMonths = value.WarrantyMonths,
-                    Notes = value.Notes
+                    Notes        = value.Notes
                 };
             }
         }

@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Blend for Visual Studio Version 17
+VisualStudioVersion = 17.14.37111.16 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuanLyHangHoa", "QuanLyHangHoa.csproj", "{15A7DF52-411E-D953-398B-4A5CDC83981E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{15A7DF52-411E-D953-398B-4A5CDC83981E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{15A7DF52-411E-D953-398B-4A5CDC83981E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{15A7DF52-411E-D953-398B-4A5CDC83981E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{15A7DF52-411E-D953-398B-4A5CDC83981E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {DFA65416-990B-4CEA-8036-08C6F01BCD0F}
+	EndGlobalSection
+EndGlobal

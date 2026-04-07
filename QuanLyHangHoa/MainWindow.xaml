@@ -26,18 +26,29 @@
                 <Separator Background="#55FFFFFF" Margin="20,0,20,20"/>
 
                 <!-- Menu Hàng hoá. Sử dụng Style của MaterialDesign -->
-                <Button Content="Hàng Hoá" Style="{StaticResource MaterialDesignFlatButton}" Foreground="White" FontSize="16" Height="50" HorizontalContentAlignment="Left" Padding="20,0,0,0" Command="{Binding OpenProductViewCommand}"/>
-                <Button Content="Hoá Đơn Xuất" Style="{StaticResource MaterialDesignFlatButton}" Foreground="White" FontSize="16" Height="50" HorizontalContentAlignment="Left" Padding="20,0,0,0" Command="{Binding OpenInvoiceViewCommand}" />
-                <Button Content="Phiếu Nhập Kho" Style="{StaticResource MaterialDesignFlatButton}" Foreground="White" FontSize="16" Height="50" HorizontalContentAlignment="Left" Padding="20,0,0,0" Command="{Binding OpenImportViewCommand}"/>
-                <Button Content="Bảo Hành" Style="{StaticResource MaterialDesignFlatButton}" Foreground="White" FontSize="16" Height="50" HorizontalContentAlignment="Left" Padding="20,0,0,0" Command="{Binding OpenWarrantyViewCommand}"/>
-                
-                <!-- Chỉ những user có quyền Admin mới thấy và click được mục này. 
-                     Với WPF cơ bản, ta có thể bind Visibility với 1 Converter, 
-                     hoặc để đơn giản xử lý ở Code-behind nếu chưa tạo Converter MVVM. -->
-                <Button Content="Nhân Viên (Admin)" Style="{StaticResource MaterialDesignFlatButton}" Foreground="White" FontSize="16" Height="50" Margin="0,50,0,0" HorizontalContentAlignment="Left" Padding="20,0,0,0" Command="{Binding OpenEmployeeViewCommand}"/>
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Height="400">
+                    <StackPanel>
+                        <Button Content="Hàng Hoá" Style="{StaticResource MaterialDesignFlatButton}" Foreground="White" FontSize="16" Height="50" HorizontalContentAlignment="Left" Padding="20,0,0,0" Command="{Binding OpenProductViewCommand}"/>
+                        <Button Content="Phiếu Xuất Kho" Style="{StaticResource MaterialDesignFlatButton}" Foreground="White" FontSize="16" Height="50" HorizontalContentAlignment="Left" Padding="20,0,0,0" Command="{Binding OpenStockOutViewCommand}" />
+                        <Button Content="Phiếu Nhập Kho" Style="{StaticResource MaterialDesignFlatButton}" Foreground="White" FontSize="16" Height="50" HorizontalContentAlignment="Left" Padding="20,0,0,0" Command="{Binding OpenStockInViewCommand}"/>
+                        <Button Content="Bảo Hành" Style="{StaticResource MaterialDesignFlatButton}" Foreground="White" FontSize="16" Height="50" HorizontalContentAlignment="Left" Padding="20,0,0,0" Command="{Binding OpenWarrantyViewCommand}"/>
+                        
+                        <Separator Background="#55FFFFFF" Margin="20,10,20,10"/>
+                        
+                        <Button Content="Danh Mục" Style="{StaticResource MaterialDesignFlatButton}" Foreground="#9CA3AF" FontSize="14" Height="40" HorizontalContentAlignment="Left" Padding="30,0,0,0" Command="{Binding OpenCategoryViewCommand}"/>
+                        <Button Content="Thương Hiệu" Style="{StaticResource MaterialDesignFlatButton}" Foreground="#9CA3AF" FontSize="14" Height="40" HorizontalContentAlignment="Left" Padding="30,0,0,0" Command="{Binding OpenBrandViewCommand}"/>
+                        <Button Content="Đơn Vị Tính" Style="{StaticResource MaterialDesignFlatButton}" Foreground="#9CA3AF" FontSize="14" Height="40" HorizontalContentAlignment="Left" Padding="30,0,0,0" Command="{Binding OpenUnitViewCommand}"/>
+                        <Button Content="Nhà Cung Cấp" Style="{StaticResource MaterialDesignFlatButton}" Foreground="#9CA3AF" FontSize="14" Height="40" HorizontalContentAlignment="Left" Padding="30,0,0,0" Command="{Binding OpenSupplierViewCommand}"/>
+                        <Button Content="Khách Hàng" Style="{StaticResource MaterialDesignFlatButton}" Foreground="#9CA3AF" FontSize="14" Height="40" HorizontalContentAlignment="Left" Padding="30,0,0,0" Command="{Binding OpenCustomerViewCommand}"/>
+
+                        <Separator Background="#55FFFFFF" Margin="20,10,20,10"/>
+
+                        <Button Content="Nhân Viên (Admin)" Style="{StaticResource MaterialDesignFlatButton}" Foreground="White" FontSize="16" Height="50" HorizontalContentAlignment="Left" Padding="20,0,0,0" Command="{Binding OpenEmployeeViewCommand}"/>
+                    </StackPanel>
+                </ScrollViewer>
 
                 <!-- Khu vực thông tin người dùng / Nút đăng xuất ở dưới cùng -->
-                <StackPanel VerticalAlignment="Bottom" Margin="20,100,20,20">
+                <StackPanel VerticalAlignment="Bottom" Margin="20,20,20,20">
                     <TextBlock Text="{Binding CurrentUser.FullName, StringFormat='Xin chào: {0}'}" Foreground="White" Margin="0,0,0,10"/>
                     <Button Content="Đăng Xuất" Style="{StaticResource MaterialDesignOutlinedButton}" Background="Transparent" Foreground="White" BorderBrush="White" Command="{Binding LogoutCommand}"/>
                 </StackPanel>

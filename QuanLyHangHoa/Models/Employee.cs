@@ -18,7 +18,7 @@ namespace QuanLyHangHoa.Models
         public string Role { get; set; } = "Staff";
 
         // Navigation properties
-        public virtual ICollection<Invoice>? Invoices { get; set; }
-        public virtual ICollection<ImportReceipt>? ImportReceipts { get; set; }
+        public virtual ICollection<StockOut>? StockOuts { get; set; }
+        public virtual ICollection<StockIn>? StockIns { get; set; }
     }
 }

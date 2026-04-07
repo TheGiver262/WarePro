@@ -1,67 +1,55 @@
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
 
 namespace QuanLyHangHoa.Services
 {
-    // Dịch vụ quản lý Hàng hoá: Chịu trách nhiệm tương tác với SQL Server
     public class ProductService
     {
-        // Lấy danh sách toàn bộ hàng hoá
         public List<Product> GetAllProducts()
         {
-            using (var db = new AppDbContext())
-            {
-                // Truy vấn và trả về List
-                return db.Products.ToList();
-            }
+            using var db = new AppDbContext();
+            return db.Products
+                .Where(p => !p.IsDeleted)
+                .Include(p => p.Category)
+                .Include(p => p.Brand)
+                .Include(p => p.Unit)
+                .ToList();
         }
 
-        // Thêm hàng hoá mới vào Database
         public void AddProduct(Product p)
         {
-            using (var db = new AppDbContext())
-            {
-                db.Products.Add(p);
-                db.SaveChanges(); // Lệnh này sẽ thực thi (commit) lên SQL Server
-            }
+            using var db = new AppDbContext();
+            db.Products.Add(p);
+            db.SaveChanges();
         }
 
-        // Cập nhật thông tin hàng hoá
-        public void UpdateProduct(Product updatedProduct)
+        public void UpdateProduct(Product updated)
         {
-            using (var db = new AppDbContext())
-            {
-                var p = db.Products.Find(updatedProduct.Id);
-                if (p != null)
-                {
-                    // Copy dữ liệu mới đè lên cái cũ
-                    p.Name = updatedProduct.Name;
-                    p.Category = updatedProduct.Category;
-                    p.Quantity = updatedProduct.Quantity;
-                    p.UnitPrice = updatedProduct.UnitPrice;
-                    p.Origin = updatedProduct.Origin;
-                    p.WarrantyMonths = updatedProduct.WarrantyMonths;
-                    p.Notes = updatedProduct.Notes;
-                    
-                    db.SaveChanges();
-                }
-            }
+            using var db = new AppDbContext();
+            var p = db.Products.Find(updated.Id);
+            if (p == null) return;
+            p.Name          = updated.Name;
+            p.CategoryId    = updated.CategoryId;
+            p.BrandId       = updated.BrandId;
+            p.UnitId        = updated.UnitId;
+            p.Quantity      = updated.Quantity;
+            p.UnitPrice     = updated.UnitPrice;
+            p.Origin        = updated.Origin;
+            p.WarrantyMonths = updated.WarrantyMonths;
+            p.Notes         = updated.Notes;
+            db.SaveChanges();
         }
 
-        // Xoá hàng hoá
         public void DeleteProduct(int id)
         {
-            using (var db = new AppDbContext())
-            {
-                var p = db.Products.Find(id);
-                if (p != null)
-                {
-                    db.Products.Remove(p);
-                    db.SaveChanges();
-                }
-            }
+            using var db = new AppDbContext();
+            var p = db.Products.Find(id);
+            if (p == null) return;
+            p.IsDeleted = true; // Soft delete
+            db.SaveChanges();
         }
     }
 }

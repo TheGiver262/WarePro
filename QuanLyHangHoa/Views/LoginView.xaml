@@ -6,7 +6,7 @@
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:vm="clr-namespace:QuanLyHangHoa.ViewModels"
         mc:Ignorable="d"
-        Title="Đăng Nhập Khai Báo" Height="450" Width="400"
+        Title="Đăng Nhập Khai Báo" Height="500" Width="400"
         WindowStartupLocation="CenterScreen" 
         WindowStyle="None" 
         AllowsTransparency="True" 
