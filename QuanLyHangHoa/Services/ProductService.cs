@@ -51,5 +51,28 @@ namespace QuanLyHangHoa.Services
             p.IsDeleted = true; // Soft delete
             db.SaveChanges();
         }
+
+        public void AddInitialStock(int productId, List<string> serialNumbers)
+        {
+            using var db = new AppDbContext();
+            var product = db.Products.Find(productId);
+            if (product == null) return;
+
+            foreach (var sn in serialNumbers)
+            {
+                // Check if serial already exists
+                if (db.ProductSerials.Any(ps => ps.SerialNumber == sn)) continue;
+
+                db.ProductSerials.Add(new ProductSerial
+                {
+                    ProductId = productId,
+                    SerialNumber = sn,
+                    Status = "InStock"
+                });
+            }
+
+            product.Quantity += serialNumbers.Count;
+            db.SaveChanges();
+        }
     }
 }

@@ -53,6 +53,10 @@
             <!-- Save command xử lý cho cả thêm mới (Nếu ID=0) và cập nhật -->
             <Button Content="LƯU THÔNG TIN" Command="{Binding SaveProductCommand}" Style="{StaticResource MaterialDesignRaisedButton}" Width="150" Margin="0,0,10,0"/>
             <Button Content="TẠO MỚI (CLEAR)" Command="{Binding ClearInputCommand}" Style="{StaticResource MaterialDesignOutlinedButton}" Width="150" Margin="0,0,10,0"/>
+            
+            <Button Content="NHẬP TỒN ĐẦU KỲ" Command="{Binding AddInitialStockCommand}" Background="#E8F5E9" Foreground="#2E7D32" BorderBrush="#2E7D32" 
+                    Style="{StaticResource MaterialDesignOutlinedButton}" Width="150" Margin="0,0,10,0"/>
+
             <!-- Xoá thì bind màu chữ đỏ -->
             <Button Content="XOÁ MẶT HÀNG" Command="{Binding DeleteProductCommand}" Style="{StaticResource MaterialDesignOutlinedButton}" Background="#FFF0F0" BorderBrush="Red" Foreground="Red" Width="150"/>
         </StackPanel>

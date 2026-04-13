@@ -4,3 +4,6 @@
 *.user
 *.suo
 *.db
+.graphify*
+graphify-out/
+*.log

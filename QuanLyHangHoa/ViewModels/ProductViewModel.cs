@@ -1,8 +1,11 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using System.Collections.Generic;
+using System.Linq;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
+using QuanLyHangHoa.Views;
 
 namespace QuanLyHangHoa.ViewModels
 {
@@ -68,6 +71,28 @@ namespace QuanLyHangHoa.ViewModels
             _productService.DeleteProduct(SelectedProduct.Id);
             LoadData();
             ClearInput();
+        }
+
+        [RelayCommand]
+        private void AddInitialStock()
+        {
+            if (SelectedProduct == null)
+            {
+                System.Windows.MessageBox.Show("Vui lòng chọn một mặt hàng để thêm tồn kho đầu kỳ.", "Thông báo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                return;
+            }
+
+            var win = new SerialInputWindow();
+            if (win.ShowDialog() == true)
+            {
+                var serials = StockInService.ParseSerialRange(win.SerialInput);
+                if (serials.Count > 0)
+                {
+                    _productService.AddInitialStock(SelectedProduct.Id, serials);
+                    LoadData();
+                    System.Windows.MessageBox.Show($"Đã thêm {serials.Count} serial vào tồn kho cho {SelectedProduct.Name}.", "Thành công", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                }
+            }
         }
 
         partial void OnSelectedProductChanged(Product? value)
