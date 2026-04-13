@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-
+using QuanLyHangHoa.Services.DataImport;
 namespace QuanLyHangHoa.Models
 {
     // Bảng Nhân viên
@@ -12,6 +12,7 @@ namespace QuanLyHangHoa.Models
         public string Position { get; set; } = string.Empty;
 
         // Thuộc tính phục vụ đăng nhập
+        [ImportKey]
         public string Username { get; set; } = string.Empty;
         public string PasswordHash { get; set; } = string.Empty;
         // Role: "Admin" hoặc "Staff"

@@ -30,13 +30,26 @@
             <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}" Width="250" Margin="10" 
                      materialDesign:HintAssist.Hint="Tên Hàng Hoá"
                      Text="{Binding CurrentInputProduct.Name}"/>
-            <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}" Width="150" Margin="10" 
-                     materialDesign:HintAssist.Hint="Danh mục"
-                     Text="{Binding CurrentInputProduct.Category}"/>
+
+            <ComboBox Style="{StaticResource MaterialDesignOutlinedComboBox}" Width="150" Margin="10" 
+                      materialDesign:HintAssist.Hint="Danh mục"
+                      ItemsSource="{Binding Categories}" DisplayMemberPath="Name" SelectedValuePath="Id"
+                      SelectedValue="{Binding CurrentInputProduct.CategoryId}"/>
+
+            <ComboBox Style="{StaticResource MaterialDesignOutlinedComboBox}" Width="150" Margin="10" 
+                      materialDesign:HintAssist.Hint="Thương hiệu"
+                      ItemsSource="{Binding Brands}" DisplayMemberPath="Name" SelectedValuePath="Id"
+                      SelectedValue="{Binding CurrentInputProduct.BrandId}"/>
+
+            <ComboBox Style="{StaticResource MaterialDesignOutlinedComboBox}" Width="120" Margin="10" 
+                      materialDesign:HintAssist.Hint="Đơn vị"
+                      ItemsSource="{Binding Units}" DisplayMemberPath="Name" SelectedValuePath="Id"
+                      SelectedValue="{Binding CurrentInputProduct.UnitId}"/>
+
             <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}" Width="150" Margin="10" 
                      materialDesign:HintAssist.Hint="Giá bán (VNĐ)"
                      Text="{Binding CurrentInputProduct.UnitPrice}"/>
-            <!-- Số lượng ẩn/chỉ đọc vì số lượng quản lý tự động qua Phiếu Nhập/Xuất -->
+            
             <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}" Width="100" Margin="10" 
                      materialDesign:HintAssist.Hint="SL Tồn" IsEnabled="False"
                      Text="{Binding CurrentInputProduct.Quantity}"/>
@@ -57,6 +70,9 @@
             <Button Content="NHẬP TỒN ĐẦU KỲ" Command="{Binding AddInitialStockCommand}" Background="#E8F5E9" Foreground="#2E7D32" BorderBrush="#2E7D32" 
                     Style="{StaticResource MaterialDesignOutlinedButton}" Width="150" Margin="0,0,10,0"/>
 
+            <Button Content="IMPORT FILE" Command="{Binding ImportDataCommand}" Style="{StaticResource MaterialDesignRaisedButton}" 
+                    Background="#607D8B" BorderBrush="#607D8B" Width="120" Margin="0,0,10,0"/>
+
             <!-- Xoá thì bind màu chữ đỏ -->
             <Button Content="XOÁ MẶT HÀNG" Command="{Binding DeleteProductCommand}" Style="{StaticResource MaterialDesignOutlinedButton}" Background="#FFF0F0" BorderBrush="Red" Foreground="Red" Width="150"/>
         </StackPanel>
@@ -68,9 +84,11 @@
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Mã" Binding="{Binding Id}" />
                 <DataGridTextColumn Header="Tên SP" Binding="{Binding Name}" Width="*"/>
-                <DataGridTextColumn Header="Loại SP" Binding="{Binding Category}" />
+                <DataGridTextColumn Header="Loại SP" Binding="{Binding Category.Name}" />
+                <DataGridTextColumn Header="Thương hiệu" Binding="{Binding Brand.Name}" />
                 <DataGridTextColumn Header="Tồn kho" Binding="{Binding Quantity}" />
                 <DataGridTextColumn Header="Đơn giá" Binding="{Binding UnitPrice, StringFormat='N0'}" />
+                <DataGridTextColumn Header="ĐVT" Binding="{Binding Unit.Name}" />
                 <DataGridTextColumn Header="Xuất xứ" Binding="{Binding Origin}" />
                 <DataGridTextColumn Header="TG Bảo hành" Binding="{Binding WarrantyMonths, StringFormat='{}{0} tháng'}" />
             </DataGrid.Columns>

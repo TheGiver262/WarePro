@@ -1,0 +1,33 @@
+<Window x:Class="QuanLyHangHoa.Views.ImportResultWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        mc:Ignorable="d"
+        Title="Kết quả Import" Height="400" Width="600" WindowStartupLocation="CenterScreen">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,10">
+            <TextBlock Text="KẾT QUẢ IMPORT" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource PrimaryHueMidBrush}"/>
+            <TextBlock x:Name="TxtSummary" Text="Thành công: 0 dòng. Thất bại: 0 dòng." Margin="0,5,0,0"/>
+        </StackPanel>
+
+        <DataGrid Grid.Row="1" x:Name="DgErrors" AutoGenerateColumns="False" IsReadOnly="True" 
+                  ItemsSource="{Binding Errors}" materialDesign:DataGridAssist.CellPadding="4 2 2 2">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Dòng" Binding="{Binding RowNumber}" Width="60"/>
+                <DataGridTextColumn Header="Dữ liệu" Binding="{Binding Data}" Width="150"/>
+                <DataGridTextColumn Header="Thông báo lỗi" Binding="{Binding ErrorMessage}" Width="*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <Button Grid.Row="2" Content="ĐÓNG" HorizontalAlignment="Right" Margin="0,10,0,0" 
+                IsDefault="True" Click="Close_Click" Style="{StaticResource MaterialDesignFlatButton}"/>
+    </Grid>
+</Window>

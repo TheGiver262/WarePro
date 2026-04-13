@@ -3,9 +3,11 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.Generic;
 using System.Linq;
+using System;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
 using QuanLyHangHoa.Views;
+using QuanLyHangHoa.Services.DataImport;
 
 namespace QuanLyHangHoa.ViewModels
 {
@@ -13,6 +15,7 @@ namespace QuanLyHangHoa.ViewModels
     {
         private readonly ProductService _productService = new();
         private readonly ReferenceDataService _refService = new();
+        private readonly DataImportManager _importManager = new();
 
         [ObservableProperty] private ObservableCollection<Product>  _products  = new();
         [ObservableProperty] private ObservableCollection<Category> _categories = new();
@@ -91,6 +94,31 @@ namespace QuanLyHangHoa.ViewModels
                     _productService.AddInitialStock(SelectedProduct.Id, serials);
                     LoadData();
                     System.Windows.MessageBox.Show($"Đã thêm {serials.Count} serial vào tồn kho cho {SelectedProduct.Name}.", "Thành công", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                }
+            }
+        }
+
+        [RelayCommand]
+        private void ImportData()
+        {
+            var dialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Filter = "Excel Files|*.xlsx;*.xls|CSV Files|*.csv|All Files|*.*"
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                try
+                {
+                    var result = _importManager.ProcessFile<Product>(dialog.FileName);
+                    LoadData();
+                    
+                    var reportWin = new ImportResultWindow(result.SuccessCount, result.Errors);
+                    reportWin.ShowDialog();
+                }
+                catch (Exception ex)
+                {
+                    System.Windows.MessageBox.Show(ex.Message, "Lỗi Import", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
                 }
             }
         }

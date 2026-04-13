@@ -63,6 +63,10 @@
             <!-- Nút Save bao trọn gói Add hoặc Update -->
             <Button Content="PHÊ DUYỆT BỔ NHIỆM" Command="{Binding SaveEmployeeCommand}" Style="{StaticResource MaterialDesignRaisedButton}" Background="#C0392B" BorderBrush="#C0392B" Width="200" Margin="0,0,10,0"/>
             <Button Content="LÀM TRỐNG LỆNH" Command="{Binding ClearInputCommand}" Style="{StaticResource MaterialDesignOutlinedButton}" Width="150" Margin="0,0,10,0"/>
+            
+            <Button Content="IMPORT EMPLOYEE" Command="{Binding ImportDataCommand}" Style="{StaticResource MaterialDesignRaisedButton}" 
+                    Background="#607D8B" BorderBrush="#607D8B" Width="180" Margin="0,0,10,0"/>
+
             <!-- Nút sa thải, đỏ như máu -->
             <Button Content="KHÓA TÀI KHOẢN KẺ NÀY" Command="{Binding DeleteEmployeeCommand}" Style="{StaticResource MaterialDesignOutlinedButton}" Background="#F9EBEA" BorderBrush="Red" Foreground="Red" Width="200"/>
         </StackPanel>

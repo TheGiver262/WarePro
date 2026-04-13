@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
+using QuanLyHangHoa.Services.DataImport;
 
 namespace QuanLyHangHoa.Models
 {
     public class Category
     {
         public int Id { get; set; }
+        [ImportKey]
         public string Name { get; set; } = string.Empty;
         public bool IsDeleted { get; set; } = false;
         
