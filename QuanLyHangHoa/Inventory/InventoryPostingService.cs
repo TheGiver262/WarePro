@@ -122,6 +122,11 @@ public sealed class InventoryPostingService
         }
 
         var balance = _unitOfWork.GetOrCreateBalance(command.ProductId, warehouseId);
+        if (balance.AvailableQuantity < command.Quantity)
+        {
+            throw new InventoryDomainException("Insufficient available stock.");
+        }
+
         foreach (var serialNumber in serialNumbers)
         {
             _unitOfWork.GetSerial(serialNumber);
