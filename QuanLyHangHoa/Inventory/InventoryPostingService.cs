@@ -89,6 +89,11 @@ public sealed class InventoryPostingService
 
     public void PostStockOut(PostStockOutCommand command)
     {
+        if (command.Kind != StockOutKind.Sale)
+        {
+            throw new InventoryDomainException("Only sale stock-out can be posted by this service.");
+        }
+
         if (command.Status != StockDocumentStatus.Approved)
         {
             throw new InventoryDomainException("Only approved stock-out documents can be posted.");
