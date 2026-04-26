@@ -124,6 +124,54 @@ public class PostStockInTests
     }
 
     [Fact]
+    public void PostStockIn_for_serial_product_requires_serial_count_to_match_quantity()
+    {
+        var store = new InMemoryInventoryStore();
+        store.Products[20] = new ProductSnapshot(20, true);
+        var service = new InventoryPostingService(store, new FixedWarehouseProvider(1), new FixedClock(new DateTime(2026, 4, 26, 9, 0, 0)));
+        var command = new PostStockInCommand(
+            DocumentId: Guid.Parse("22222222-2222-2222-2222-222222222222"),
+            Kind: StockInKind.OpeningBalance,
+            Status: StockDocumentStatus.Approved,
+            ProductId: 20,
+            Quantity: 2,
+            SerialNumbers: new[] { "SN-001" },
+            PostedByUserId: 7);
+
+        var ex = Assert.Throws<InventoryDomainException>(() => service.PostStockIn(command));
+
+        Assert.Equal("Serial count must match stock-in quantity.", ex.Message);
+        Assert.Empty(store.Serials);
+        Assert.Empty(store.Ledgers);
+        Assert.Empty(store.Audits);
+        Assert.False(store.WasCommitted);
+    }
+
+    [Fact]
+    public void PostStockIn_for_serial_product_creates_in_stock_serials()
+    {
+        var store = new InMemoryInventoryStore();
+        store.Products[21] = new ProductSnapshot(21, true);
+        var service = new InventoryPostingService(store, new FixedWarehouseProvider(1), new FixedClock(new DateTime(2026, 4, 26, 9, 15, 0)));
+        var command = new PostStockInCommand(
+            DocumentId: Guid.Parse("33333333-3333-3333-3333-333333333333"),
+            Kind: StockInKind.OpeningBalance,
+            Status: StockDocumentStatus.Approved,
+            ProductId: 21,
+            Quantity: 2,
+            SerialNumbers: new[] { "SN-101", "SN-102" },
+            PostedByUserId: 7);
+
+        service.PostStockIn(command);
+
+        Assert.Equal(2, store.Serials.Count);
+        Assert.Equal(SerialStatus.InStock, store.Serials["SN-101"].Status);
+        Assert.Equal(1, store.Serials["SN-101"].CurrentWarehouseId);
+        Assert.Equal(SerialStatus.InStock, store.Serials["SN-102"].Status);
+        Assert.Equal(1, store.Serials["SN-102"].CurrentWarehouseId);
+    }
+
+    [Fact]
     public void PostApprovedOpeningBalance_preserves_reserved_quantity_on_existing_balance()
     {
         var store = new InMemoryInventoryStore();

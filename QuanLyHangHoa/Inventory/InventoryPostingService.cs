@@ -37,8 +37,17 @@ public sealed class InventoryPostingService
 
         var warehouseId = _warehouseProvider.GetDefaultWarehouseId();
         var product = _unitOfWork.GetProduct(command.ProductId);
+        var serialNumbers = command.SerialNumbers
+            .Select(s => s.Trim())
+            .Where(s => s.Length > 0)
+            .ToArray();
 
-        if (!product.IsSerialManaged && command.SerialNumbers.Any())
+        if (product.IsSerialManaged && serialNumbers.Length != command.Quantity)
+        {
+            throw new InventoryDomainException("Serial count must match stock-in quantity.");
+        }
+
+        if (!product.IsSerialManaged && serialNumbers.Length > 0)
         {
             throw new InventoryDomainException("Non-serial products cannot receive serial numbers.");
         }
@@ -49,6 +58,15 @@ public sealed class InventoryPostingService
             OnHandQuantity = balance.OnHandQuantity + command.Quantity,
             AvailableQuantity = balance.AvailableQuantity + command.Quantity
         });
+
+        foreach (var serialNumber in serialNumbers)
+        {
+            _unitOfWork.SaveSerial(new ProductSerialSnapshot(
+                serialNumber,
+                command.ProductId,
+                warehouseId,
+                SerialStatus.InStock));
+        }
 
         _unitOfWork.AddLedger(new StockLedgerEntry(
             command.DocumentId,
