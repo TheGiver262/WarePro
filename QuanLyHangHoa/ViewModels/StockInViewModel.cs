@@ -119,23 +119,11 @@ namespace QuanLyHangHoa.ViewModels
                     ImportPrice = detailWrapper.ImportPrice
                 };
 
-                // Generate ProductSerials based on the input string
-                var parsedSerials = StockInService.ParseSerialRange(detailWrapper.SerialInputString);
-                
-                // If serials were provided, use them. Otherwise, generate dummy serials if quantity is provided but no exact serial string
-                if (parsedSerials.Count > 0)
+                foreach (var serial in StockInDetailSerialFactory.CreateSerials(
+                    detailWrapper.SelectedProduct!,
+                    detailWrapper.SerialInputString))
                 {
-                    foreach (var s in parsedSerials)
-                    {
-                        detail.ProductSerials.Add(new ProductSerial { SerialNumber = s, ProductId = detail.ProductId, Status = "InStock" });
-                    }
-                }
-                else
-                {
-                    for (int i = 0; i < detail.Quantity; i++)
-                    {
-                        detail.ProductSerials.Add(new ProductSerial { SerialNumber = $"AUTO-{DateTime.Now.Ticks}-{i}", ProductId = detail.ProductId, Status = "InStock" });
-                    }
+                    detail.ProductSerials.Add(serial);
                 }
 
                 stockIn.StockInDetails.Add(detail);
