@@ -30,6 +30,8 @@ namespace QuanLyHangHoa.Data
         public DbSet<StockBalance> StockBalances { get; set; }
         public DbSet<StockLedger> StockLedgers { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<StockAdjustment> StockAdjustments { get; set; }
+        public DbSet<StockAdjustmentLine> StockAdjustmentLines { get; set; }
 
         // Stock In
         public DbSet<StockIn> StockIns { get; set; }
@@ -141,6 +143,34 @@ namespace QuanLyHangHoa.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             // ── StockIn → Employee (restrict)
+            modelBuilder.Entity<StockAdjustment>()
+                .HasIndex(sa => sa.DocumentCode)
+                .IsUnique();
+
+            modelBuilder.Entity<StockAdjustment>()
+                .HasOne(sa => sa.Warehouse)
+                .WithMany()
+                .HasForeignKey(sa => sa.WarehouseId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<StockAdjustmentLine>()
+                .HasOne(line => line.StockAdjustment)
+                .WithMany(adjustment => adjustment.Lines)
+                .HasForeignKey(line => line.StockAdjustmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<StockAdjustmentLine>()
+                .HasOne(line => line.Product)
+                .WithMany()
+                .HasForeignKey(line => line.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<StockAdjustmentLine>()
+                .HasOne(line => line.ProductSerial)
+                .WithMany()
+                .HasForeignKey(line => line.ProductSerialId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             modelBuilder.Entity<StockIn>()
                 .HasOne(s => s.Employee)
                 .WithMany(e => e.StockIns)
