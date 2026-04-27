@@ -1,0 +1,1937 @@
+@startuml Architecture_MVVM_WPF_SQLServer
+title Kiến trúc WPF / MVVM / SQL Server
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam linetype ortho
+
+package "Presentation" {
+  [Views\nWPF XAML] as View
+  [ViewModels\nCommands + Validation UI] as VM
+}
+
+package "Application" {
+  [AuthService] as Auth
+  [AuthorizationService] as Authorization
+  [ApprovalService] as Approval
+  [Catalog Service] as Catalog
+  [Inventory Service] as Inventory
+  [Sales Service] as Sales
+  [Warranty Service] as Warranty
+  [Reporting Service] as Report
+}
+
+package "Domain" {
+  [Entities\nAppUser, Warehouse, Product,\nStockBalance, ProductSerial,\nWarrantyCoverage, WarrantyClaim] as EntitiesComp
+  [Business Rules\nPosting, Approval,\nStock Locking,\nWarranty Eligibility] as Rules
+}
+
+package "Infrastructure" {
+  [Repositories] as Repo
+  [Transactions + Row Locking] as Tx
+  [AuditLog + StockLedger] as Audit
+  database "SQL Server" as DB
+}
+
+View --> VM
+VM --> Auth
+VM --> Authorization
+VM --> Approval
+VM --> Catalog
+VM --> Inventory
+VM --> Sales
+VM --> Warranty
+VM --> Report
+
+Auth --> EntitiesComp
+Authorization --> Rules
+Approval --> Rules
+Catalog --> EntitiesComp
+Inventory --> EntitiesComp
+Sales --> EntitiesComp
+Warranty --> EntitiesComp
+EntitiesComp --> Rules
+
+Auth --> Repo
+Authorization --> Repo
+Approval --> Repo
+Catalog --> Repo
+Inventory --> Repo
+Sales --> Repo
+Warranty --> Repo
+Report --> Repo
+Repo --> Tx
+Tx --> Audit
+Audit --> DB
+@enduml
+
+
+@startuml UseCase_TongThe
+title Use Case Tổng Thể Chi Tiết
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam shadowing false
+
+actor "Quản trị viên" as Admin
+actor "Quản lý" as Manager
+actor "Nhân viên kho" as Storekeeper
+actor "Nhân viên bán hàng" as Salesman
+actor "Nhân viên bảo hành" as Technician
+
+Manager <|-- Admin
+Storekeeper <|-- Manager
+Salesman <|-- Manager
+Technician <|-- Manager
+
+rectangle "Hệ thống quản lý hàng hóa và bảo hành" {
+  usecase "Đăng nhập /\nđổi mật khẩu" as UC1
+  usecase "Quản lý xuất kho" as UC6
+  usecase "Quản lý bảo hành" as UC10
+  usecase "Quản lý sản phẩm\nvà đơn vị" as UC4A
+  usecase "Tra cứu sản phẩm\nvà quản lý serial\nnghiệp vụ kho" as UC4B
+  usecase "Quản lý nhập kho" as UC5
+  usecase "Nhập tồn đầu kỳ\ntừ Excel/CSV" as UC5A
+  usecase "Quản lý hóa đơn mua" as UC7
+  usecase "Quản lý hóa đơn bán" as UC8
+  usecase "Kiểm kê, điều chỉnh tồn\nvà đảo nghiệp vụ" as UC9
+  usecase "Tra cứu tồn kho\nvà lịch sử kho" as UC11
+  usecase "Tạo báo cáo\nthống kê" as UC14
+  usecase "Quản lý người dùng,\nmật khẩu tạm\nvà gán RoleCode" as UC2
+  usecase "Quản lý danh mục nền" as UC3
+}
+
+Admin --> UC2
+Admin --> UC3
+Admin --> UC1
+Admin --> UC4A
+Admin --> UC4B
+Admin --> UC5
+Admin --> UC5A
+Admin --> UC6
+Admin --> UC7
+Admin --> UC8
+Admin --> UC9
+Admin --> UC10
+Admin --> UC11
+Admin --> UC14
+Manager --> UC1
+Manager --> UC2
+Manager --> UC4B
+Manager --> UC5
+Manager --> UC5A
+Manager --> UC6
+Manager --> UC7
+Manager --> UC8
+Manager --> UC9
+Manager --> UC10
+Manager --> UC11
+Manager --> UC14
+Storekeeper --> UC1
+Storekeeper --> UC4B
+Storekeeper --> UC5
+Storekeeper --> UC5A
+Storekeeper --> UC6
+Storekeeper --> UC7
+Storekeeper --> UC9
+Storekeeper --> UC11
+Salesman --> UC1
+Salesman --> UC6
+Salesman --> UC8
+Technician --> UC1
+Technician --> UC10
+@enduml
+
+
+@startuml UseCase_TraCuu_BaoCao
+title Use Case Tra Cứu, Tìm Kiếm, Sắp Xếp và Báo Cáo
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam shadowing false
+
+actor "Quản trị viên" as Admin
+actor "Quản lý" as Manager
+actor "Nhân viên kho" as Storekeeper
+actor "Nhân viên bán hàng" as Salesman
+actor "Nhân viên bảo hành" as Technician
+
+Manager <|-- Admin
+Storekeeper <|-- Manager
+Salesman <|-- Manager
+Technician <|-- Manager
+
+rectangle "Phân hệ tra cứu và báo cáo" {
+  usecase "Tìm kiếm theo mã,\ntên, serial" as UC1
+  usecase "Lọc theo trạng thái,\nngày, đối tượng" as UC2
+  usecase "Sắp xếp tăng / giảm\ntheo cột" as UC3
+  usecase "Xem tồn theo sản phẩm\nvà serial" as UC4
+  usecase "Xem lịch sử kho" as UC5
+  usecase "Tra cứu serial đã bán\nvà tình trạng bảo hành" as UC6
+  usecase "Tra cứu coverage,\nclaim và lịch sử bảo hành" as UC7
+  usecase "Xem audit log và\nnhật ký thay đổi" as UC8
+  usecase "Tạo báo cáo tồn kho\nvà nhập xuất tồn" as UC9
+  usecase "Tạo báo cáo doanh thu,\ncông nợ, bảo hành" as UC10
+}
+
+Admin --> UC8
+Manager --> UC8
+Manager --> UC9
+Manager --> UC10
+Storekeeper --> UC1
+Storekeeper --> UC2
+Storekeeper --> UC3
+Storekeeper --> UC4
+Storekeeper --> UC5
+Salesman --> UC1
+Salesman --> UC2
+Salesman --> UC3
+Salesman --> UC6
+Technician --> UC1
+Technician --> UC2
+Technician --> UC3
+Technician --> UC7
+@enduml
+
+
+@startuml UseCase_NhapKho_HoaDonMua
+title Use Case Nhập Kho và Hóa Đơn Mua
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam shadowing false
+
+actor "Quản trị viên" as Admin
+actor "Quản lý" as Manager
+actor "Nhân viên kho" as Storekeeper
+
+Manager <|-- Admin
+Storekeeper <|-- Manager
+
+rectangle "Phân hệ nhập kho" {
+  usecase "Lập phiếu nhập kho" as UC1
+  usecase "Quét / nhập serial" as UC2
+  usecase "Gửi duyệt phiếu nhập" as UC3
+  usecase "Duyệt phiếu nhập" as UC4
+  usecase "Ghi sổ phiếu nhập" as UC5
+  usecase "Lập hóa đơn mua\ntừ phiếu nhập đã ghi sổ" as UC6
+  usecase "Nhập chi tiết hóa đơn mua\ntheo sản phẩm / đơn giá / số lượng / thuế" as UC7
+  usecase "Nhập tồn đầu kỳ\ntừ Excel/CSV" as UC8
+}
+
+Storekeeper --> UC1
+Storekeeper --> UC2
+Storekeeper --> UC3
+Storekeeper --> UC5
+Storekeeper --> UC6
+Storekeeper --> UC7
+Storekeeper --> UC8
+Manager --> UC4
+UC2 .> UC1 : <<extend>>
+UC6 .> UC7 : <<include>>
+@enduml
+
+
+@startuml UseCase_XuatKho_HoaDonBan
+title Use Case Xuất Kho và Hóa Đơn Bán
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam shadowing false
+
+actor "Quản trị viên" as Admin
+actor "Quản lý" as Manager
+actor "Nhân viên kho" as Storekeeper
+actor "Nhân viên bán hàng" as Salesman
+
+Manager <|-- Admin
+Storekeeper <|-- Manager
+Salesman <|-- Manager
+
+rectangle "Phân hệ xuất kho" {
+  usecase "Lập phiếu xuất kho" as UC1
+  usecase "Chọn / quét serial\nxuất kho" as UC2
+  usecase "Gửi duyệt phiếu xuất" as UC3
+  usecase "Duyệt phiếu xuất" as UC4
+  usecase "Ghi sổ phiếu xuất" as UC5
+  usecase "Lập hóa đơn bán\ntừ phiếu xuất đã ghi sổ" as UC6
+  usecase "Nhập chi tiết hóa đơn bán\ntheo sản phẩm / đơn giá / số lượng / thuế" as UC7
+}
+
+Storekeeper --> UC1
+Storekeeper --> UC2
+Storekeeper --> UC3
+Storekeeper --> UC5
+Salesman --> UC1
+Salesman --> UC3
+Salesman --> UC6
+Salesman --> UC7
+Manager --> UC4
+UC2 .> UC1 : <<extend>>
+UC6 .> UC7 : <<include>>
+@enduml
+
+
+@startuml UseCase_KiemKe_DieuChinh
+title Use Case Kiểm Kê, Điều Chỉnh Tồn và Đảo Nghiệp Vụ
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam shadowing false
+
+actor "Quản trị viên" as Admin
+actor "Quản lý" as Manager
+actor "Nhân viên kho" as Storekeeper
+
+Manager <|-- Admin
+Storekeeper <|-- Manager
+
+rectangle "Phân hệ kiểm kê và điều chỉnh" {
+  usecase "Khởi tạo phiên kiểm kê" as UC1
+  usecase "Nhập số lượng đếm thực tế\ntheo sản phẩm / nhóm hàng / serial" as UC2
+  usecase "Duyệt kết quả kiểm kê" as UC3
+  usecase "Lập chứng từ điều chỉnh tồn" as UC4
+  usecase "Tham chiếu chứng từ nguồn\nđể đảo hoặc sửa nghiệp vụ" as UC5
+  usecase "Duyệt chứng từ điều chỉnh" as UC6
+  usecase "Ghi sổ điều chỉnh tồn" as UC7
+}
+
+Storekeeper --> UC1
+Storekeeper --> UC2
+Storekeeper --> UC4
+Storekeeper --> UC7
+Manager --> UC3
+Manager --> UC6
+UC1 .> UC2 : <<include>>
+UC4 .> UC5 : <<include>>
+@enduml
+
+
+@startuml UseCase_BaoHanh
+title Use Case Bảo Hành
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam shadowing false
+
+actor "Quản trị viên" as Admin
+actor "Quản lý" as Manager
+actor "Nhân viên bảo hành" as Technician
+actor "Nhân viên kho" as Storekeeper
+actor "Nhân viên bán hàng" as Salesman
+
+Manager <|-- Admin
+Technician <|-- Manager
+Storekeeper <|-- Manager
+Salesman <|-- Manager
+
+rectangle "Phân hệ bảo hành" {
+  usecase "Tra cứu serial đã bán\nvà tình trạng bảo hành" as UC1
+  usecase "Kiểm tra quyền bảo hành\nvà claim đang mở" as UC2
+  usecase "Tạo hồ sơ bảo hành" as UC3
+  usecase "Ghi nhận kết quả\nkiểm tra kỹ thuật" as UC4
+  usecase "Phê duyệt quyết định đặc biệt\nđổi mới hoặc từ chối" as UC5
+  usecase "Gửi hãng và ghi nhận\nkết quả từ hãng" as UC6
+  usecase "Xuất serial thay thế" as UC7
+  usecase "Trả khách và đóng hồ sơ" as UC8
+}
+
+Technician --> UC1
+Technician --> UC2
+Technician --> UC3
+Technician --> UC4
+Technician --> UC6
+Technician --> UC8
+Storekeeper --> UC7
+Salesman --> UC1
+Manager --> UC5
+UC3 .> UC1 : <<include>>
+UC3 .> UC2 : <<include>>
+@enduml
+
+
+@startuml Activity_NhapKho_GhiSo
+title Activity Ghi Sổ Phiếu Nhập
+start
+
+partition "User" {
+  :Lập phiếu nhập kho ở trạng thái Draft;
+  :Chọn PurposeCode = Purchase hoặc OpeningBalance;
+  :Nhập nhà cung cấp nếu là Purchase,\nsản phẩm, đơn vị, số lượng, đơn giá;
+}
+partition "ViewModel / UI" {
+  :Gán WarehouseId = kho mặc định\nđang bị ẩn trên UI phase này;
+  :Kiểm tra dữ liệu bắt buộc;
+}
+
+if (Dữ liệu hợp lệ?) then (Có)
+  partition "User" {
+    :Gửi duyệt phiếu nhập;
+  }
+  partition "Application Service" {
+    :Chuyển trạng thái = PendingApproval;
+  }
+  partition "Manager" {
+    :Quản lý duyệt phiếu;
+  }
+
+  if (Được duyệt?) then (Có)
+    partition "Application Service" {
+      :Bắt đầu transaction;
+      :Sắp xếp dòng theo ProductId tăng dần;
+      note right
+        Giữ thứ tự khóa cố định theo ProductId
+        để giảm nguy cơ deadlock.
+      end note
+      :Khóa StockBalance theo đúng thứ tự ProductId\ntrong Warehouse mặc định;
+      :Quy đổi số lượng về đơn vị cơ sở;
+    }
+
+    if (Có dòng hàng quản lý serial?) then (Có)
+      partition "User" {
+        :Quét / nhập danh sách serial;
+      }
+      partition "Application Service" {
+        :Kiểm tra serial không trùng và chưa tồn tại;
+      }
+      if (Serial hợp lệ?) then (Có)
+      else (Không)
+        partition "Application Service" {
+          :Rollback transaction;
+        }
+        partition "ViewModel / UI" {
+          :Giữ trạng thái = Approved và báo lỗi;
+        }
+        stop
+      endif
+    endif
+
+    partition "Repository / Database" {
+      :Lưu phiếu nhập và chi tiết;
+    }
+    partition "Application Service" {
+      :Áp dụng biến động nhập tại Warehouse mặc định:\ntăng OnHandQuantity và AvailableQuantity;
+    }
+
+    if (Có dòng hàng quản lý serial?) then (Có)
+      partition "Repository / Database" {
+        :Tạo ProductSerial trạng thái InStock\nvà gán CurrentWarehouseId;
+      }
+    endif
+
+    partition "Repository / Database" {
+      :Ghi StockLedger và AuditLog;
+      :Commit transaction;
+    }
+    partition "Application Service" {
+      :Cập nhật trạng thái phiếu = Posted;
+    }
+    partition "ViewModel / UI" {
+      :Thông báo thành công;
+    }
+  else (Không)
+    partition "Manager" {
+      :Trả phiếu về Draft để chỉnh sửa;
+    }
+  endif
+else (Không)
+  partition "ViewModel / UI" {
+    :Hiển thị lỗi dữ liệu nhập;
+  }
+endif
+
+stop
+@enduml
+
+
+@startuml Activity_ImportTonDauKy_ExcelCsv
+title Activity Nhập Tồn Đầu Kỳ Từ Excel/CSV
+start
+
+partition "User" {
+  :Chọn file Excel/CSV theo template tồn đầu kỳ;
+}
+partition "Import Service" {
+  :Đọc file và map dữ liệu import;
+  :Kiểm tra ProductCode, UnitCode,\nQuantity và SerialNumber;
+}
+
+if (Dữ liệu hợp lệ?) then (Có)
+  partition "Application Service" {
+    :Gán WarehouseId = kho mặc định;
+    :Bắt đầu transaction;
+  }
+  partition "Repository / Database" {
+    :Sinh StockIn loại OpeningBalance;
+    :Sinh StockInLine theo từng dòng sản phẩm;
+  }
+  if (Có dòng quản lý serial?) then (Có)
+    partition "Repository / Database" {
+      :Tạo ProductSerial trạng thái InStock\nvà gán CurrentWarehouseId;
+    }
+  endif
+  partition "Repository / Database" {
+    :Cập nhật StockBalance theo ProductId + WarehouseId;
+    :Ghi StockLedger và AuditLog;
+    :Commit transaction;
+  }
+  partition "ViewModel / UI" {
+    :Thông báo import thành công;
+  }
+else (Không)
+  partition "ViewModel / UI" {
+    :Hiển thị preview lỗi theo dòng\nvà yêu cầu sửa file;
+  }
+endif
+
+stop
+@enduml
+
+
+@startuml Activity_XuatKho_GhiSo
+title Activity Ghi Sổ Phiếu Xuất
+start
+
+partition "User" {
+  :Lập phiếu xuất kho ở trạng thái Draft;
+  :Nhập PurposeCode, khách hàng,\nsản phẩm, đơn vị, số lượng, đơn giá;
+}
+partition "ViewModel / UI" {
+  :Gán WarehouseId = kho mặc định\nđang bị ẩn trên UI phase này;
+  :Kiểm tra dữ liệu bắt buộc;
+}
+
+if (Dữ liệu hợp lệ?) then (Có)
+  partition "User" {
+    :Gửi duyệt phiếu xuất;
+  }
+  partition "Application Service" {
+    :Chuyển trạng thái = PendingApproval;
+  }
+  partition "Manager" {
+    :Quản lý duyệt phiếu;
+  }
+
+  if (Được duyệt?) then (Có)
+    partition "Application Service" {
+      :Bắt đầu transaction;
+      :Sắp xếp dòng theo ProductId tăng dần;
+      note right
+        Giữ thứ tự khóa cố định theo ProductId
+        để giảm nguy cơ deadlock.
+      end note
+      :Khóa StockBalance theo đúng thứ tự ProductId\ntrong Warehouse mặc định;
+      :Quy đổi số lượng về đơn vị cơ sở;
+    }
+
+    if (Có dòng hàng quản lý serial?) then (Có)
+      partition "Application Service" {
+        :Khóa và chọn serial trạng thái InStock\n theo thứ tự ProductSerialId tăng dần;
+        note right
+          Khóa serial theo ProductSerialId tăng dần
+          để tránh deadlock khi nhiều người xuất cùng lúc.
+        end note
+        :Kiểm tra số serial khớp số lượng quy đổi;
+      }
+      if (Serial hợp lệ?) then (Có)
+      else (Không)
+        partition "Application Service" {
+          :Rollback transaction;
+        }
+        partition "ViewModel / UI" {
+          :Giữ trạng thái = Approved và báo lỗi;
+        }
+        stop
+      endif
+    endif
+
+    partition "Application Service" {
+      :Kiểm tra tồn khả dụng hiện tại\ntrong Warehouse mặc định;
+    }
+    if (Đủ tồn?) then (Có)
+      partition "Repository / Database" {
+        :Lưu phiếu xuất và chi tiết;
+      }
+      partition "Application Service" {
+        :Áp dụng biến động xuất: giảm OnHandQuantity\nvà AvailableQuantity;
+      }
+
+      if (Có dòng hàng quản lý serial?) then (Có)
+        if (PurposeCode = Sale?) then (Có)
+          partition "Repository / Database" {
+            :Cập nhật ProductSerial = Sold\nđối với phiếu xuất bán;
+          }
+          if (Có WarrantyPeriodMonths > 0?) then (Có)
+            partition "Repository / Database" {
+              :Tạo WarrantyCoverage = Active\n(StartDate = PostedAt,\nEndDate = PostedAt + WarrantyPeriodMonths,\ngắn CustomerId và SalesInvoiceId nếu có);
+            }
+          endif
+        else (Không)
+          partition "Application Service" {
+            :Không cập nhật serial theo luồng\nxuất bán chung; WarrantyReplacement\nxử lý riêng ở AC-04 / SEQ-03;
+          }
+        endif
+      endif
+
+      partition "Repository / Database" {
+        :Ghi StockLedger và AuditLog;
+        :Commit transaction;
+      }
+      partition "Application Service" {
+        :Cập nhật trạng thái phiếu = Posted;
+      }
+      partition "ViewModel / UI" {
+        :Thông báo thành công;
+      }
+    else (Không)
+      partition "Application Service" {
+        :Rollback transaction;
+      }
+      partition "ViewModel / UI" {
+        :Giữ trạng thái = Approved và báo lỗi không đủ tồn;
+      }
+    endif
+  else (Không)
+    partition "Manager" {
+      :Trả phiếu về Draft để chỉnh sửa;
+    }
+  endif
+else (Không)
+  partition "ViewModel / UI" {
+    :Hiển thị lỗi dữ liệu nhập;
+  }
+endif
+
+stop
+@enduml
+
+
+@startuml Activity_KiemKe_DieuChinh
+title Activity Kiểm Kê và Điều Chỉnh Tồn
+start
+
+partition "User" {
+  :Khởi tạo phiên kiểm kê;
+  :Chọn phạm vi kiểm kê theo sản phẩm / nhóm hàng / serial;
+  :Nhập số lượng hệ thống và số lượng đếm thực tế;
+}
+partition "ViewModel / UI" {
+  :Gán WarehouseId = kho mặc định;
+}
+partition "Application Service" {
+  :Tính chênh lệch;
+}
+
+if (Có chênh lệch?) then (Có)
+  partition "User" {
+    :Lập chứng từ điều chỉnh hoặc đảo nghiệp vụ;
+    :Ghi rõ chứng từ nguồn và lý do điều chỉnh;
+    :Gửi duyệt chứng từ điều chỉnh;
+  }
+  partition "Manager" {
+    :Quản lý duyệt;
+  }
+
+  if (Được duyệt?) then (Có)
+    partition "Application Service" {
+      :Bắt đầu transaction;
+      :Sắp xếp dòng theo ProductId tăng dần;
+      note right
+        Giữ thứ tự khóa cố định theo ProductId
+        để giảm nguy cơ deadlock.
+      end note
+      :Khóa StockBalance theo đúng thứ tự ProductId\ntrong Warehouse mặc định;
+      :Cập nhật StockBalance tăng hoặc giảm theo chênh lệch;
+    }
+
+    if (Có serial cần điều chỉnh?) then (Có)
+      partition "Repository / Database" {
+        :Cập nhật ProductSerial theo trạng thái nghiệp vụ mới;
+      }
+    endif
+
+    partition "Repository / Database" {
+      :Ghi StockLedger và AuditLog;
+      :Commit transaction;
+    }
+    partition "Application Service" {
+      :Cập nhật trạng thái chứng từ = Posted;
+    }
+    partition "ViewModel / UI" {
+      :Thông báo thành công;
+    }
+  else (Không)
+    partition "Manager" {
+      :Trả chứng từ về Draft để chỉnh sửa;
+    }
+  endif
+else (Không)
+  partition "ViewModel / UI" {
+    :Đóng phiên kiểm kê không phát sinh điều chỉnh;
+  }
+endif
+
+stop
+@enduml
+
+
+@startuml Activity_BaoHanh_DoiMoi
+title Activity Xử Lý Bảo Hành và Đổi Mới
+start
+
+partition "Technician" {
+  :Tiếp nhận sản phẩm bảo hành;
+  :Nhập serial và mô tả lỗi;
+}
+partition "Warranty Service" {
+  :Tra cứu serial đã bán;
+}
+
+if (Tìm thấy serial hợp lệ?) then (Có)
+  partition "Warranty Service" {
+    :Kiểm tra quyền bảo hành còn hiệu lực;
+  }
+  if (Còn hạn bảo hành?) then (Có)
+    partition "Warranty Service" {
+      :Kiểm tra serial chưa có WarrantyClaim đang mở;
+    }
+    if (Đã có claim đang mở?) then (Có)
+      partition "ViewModel / UI" {
+        :Thông báo claim đang mở và dừng tạo hồ sơ;
+      }
+      stop
+    endif
+    partition "Repository / Database" {
+      :Tạo WarrantyClaim;
+    }
+    partition "Warranty Service" {
+      :Chuyển trạng thái = Checking;
+      :Cập nhật ProductSerial = InWarrantyProcess;
+    }
+    partition "Technician" {
+      :Ghi nhận kết quả kiểm tra kỹ thuật;
+    }
+
+    if (Quyết định xử lý ban đầu?) then (Sửa nội bộ được)
+      partition "Warranty Service" {
+        :Cập nhật trạng thái = WaitingDecision;
+        :Cập nhật trạng thái = Repairing\nvà ProductSerial = WarrantyDefective;
+      }
+      partition "Technician" {
+        :Hoàn tất sửa và cập nhật = Repaired;
+        :Trả khách;
+      }
+      partition "Repository / Database" {
+        :Cập nhật WarrantyClaim = ReturnedToCustomer;
+        :Cập nhật ProductSerial = Sold;
+        :Cập nhật WarrantyClaim = Closed;
+      }
+      partition "Technician" {
+        :Đóng hồ sơ;
+      }
+    elseif (Cần gửi hãng)
+      partition "Technician" {
+        :Gửi hãng và cập nhật = SentToManufacturer\nvà ProductSerial = WarrantyDefective;
+      }
+      partition "Warranty Service" {
+        :Cập nhật trạng thái = WaitingManufacturerResult;
+      }
+      partition "Technician" {
+        :Nhận kết quả từ hãng;
+      }
+      partition "Warranty Service" {
+        :Cập nhật trạng thái = WaitingDecision;
+      }
+
+      if (Kết luận từ hãng / quyết định nghiệp vụ?) then (Hãng sửa được)
+        partition "Technician" {
+          :Nhận máy đã sửa từ hãng\nvà cập nhật = Repaired;
+          :Trả khách;
+        }
+        partition "Repository / Database" {
+          :Cập nhật WarrantyClaim = ReturnedToCustomer;
+          :Cập nhật ProductSerial = Sold;
+          :Cập nhật WarrantyClaim = Closed;
+        }
+        partition "Technician" {
+          :Đóng hồ sơ;
+        }
+      elseif (Hãng không sửa được, đổi mới)
+        partition "Technician" {
+          :Ghi nhận kết luận không sửa được\nvà hãng chấp nhận đổi mới cho doanh nghiệp;
+        }
+        partition "Manager" {
+          :Quản lý phê duyệt đổi mới cho khách;
+        }
+        partition "Warranty / Inventory Service" {
+          :Bắt đầu transaction;
+          :Khóa WarrantyClaim, WarrantyCoverage,\nStockBalance và serial liên quan;
+          note right
+            Luồng đổi mới giữ thứ tự khóa
+            ProductId rồi ProductSerialId tăng dần
+            để giảm nguy cơ deadlock.
+          end note
+          :Kiểm tra tồn khả dụng cho serial thay thế\ntrong Warehouse mặc định;
+        }
+        if (Đủ serial thay thế?) then (Có)
+          partition "Repository / Database" {
+            :Cập nhật serial cũ = ReturnedToManufacturer\nvà ghi nhận gửi hãng đổi mới;
+            :Đóng WarrantyCoverage cũ,\nCoverageStatus = Replaced hoặc Inactive;
+            :Sinh StockOut WarrantyReplacement\nở trạng thái Approved\nWarehouseId = kho mặc định\nApprovedBy = Manager;
+            :Ghi sổ StockOut WarrantyReplacement\nPostedBy = SystemServiceAccount;
+          }
+          partition "Warranty / Inventory Service" {
+            :Ngoại lệ hợp lệ của rule\ntách approver/poster;
+          }
+          partition "Repository / Database" {
+            :Cập nhật serial mới = Replaced;
+            :Tạo hoặc cập nhật WarrantyCoverage\ncho serial mới theo thời hạn còn lại;
+            :Ghi StockLedger và AuditLog;
+            :Cập nhật WarrantyClaim = Replaced\nvà lưu ReplacementSerialId + ReplacementStockOutId;
+            :Commit transaction đổi mới;
+          }
+          partition "Technician" {
+            :Trả serial thay thế cho khách;
+          }
+          partition "Repository / Database" {
+            :BEGIN transaction nhỏ xác nhận giao nhận;
+            :Cập nhật WarrantyClaim = ReturnedToCustomer;
+            :Cập nhật serial thay thế = Sold;
+            :Cập nhật WarrantyClaim = Closed;
+            :COMMIT transaction nhỏ xác nhận giao nhận;
+          }
+          partition "Technician" {
+            :Đóng hồ sơ;
+          }
+        else (Không)
+          partition "Warranty / Inventory Service" {
+            :Rollback transaction đổi mới;
+          }
+          partition "Repository / Database" {
+            :BEGIN transaction nhỏ cập nhật claim;
+            :Cập nhật claim = WaitingDecision\nvà ghi chú thiếu hàng thay thế;
+            :COMMIT transaction nhỏ cập nhật claim;
+          }
+          partition "ViewModel / UI" {
+            :Hồ sơ vẫn mở để chờ nhập thêm hàng\nhoặc quyết định nghiệp vụ khác;
+          }
+        endif
+      else (Từ chối)
+        partition "Warranty Service" {
+          :Cập nhật trạng thái = WaitingDecision;
+        }
+        partition "Manager" {
+          :Quản lý phê duyệt từ chối;
+        }
+        partition "Repository / Database" {
+          :Cập nhật trạng thái = Rejected;
+          :Lưu lý do từ chối;
+        }
+        partition "Technician" {
+          :Trả lại máy cho khách;
+        }
+        partition "Repository / Database" {
+          :Cập nhật WarrantyClaim = ReturnedToCustomer;
+          :Cập nhật ProductSerial = Sold;
+          :Cập nhật WarrantyClaim = Closed;
+        }
+        partition "Technician" {
+          :Đóng hồ sơ;
+        }
+      endif
+    else (Từ chối)
+      partition "Warranty Service" {
+        :Cập nhật trạng thái = WaitingDecision;
+      }
+      partition "Manager" {
+        :Quản lý phê duyệt từ chối;
+      }
+      partition "Repository / Database" {
+        :Cập nhật trạng thái = Rejected;
+        :Lưu lý do từ chối;
+      }
+      partition "Technician" {
+        :Trả lại máy cho khách;
+      }
+      partition "Repository / Database" {
+        :Cập nhật WarrantyClaim = ReturnedToCustomer;
+        :Cập nhật ProductSerial = Sold;
+        :Cập nhật WarrantyClaim = Closed;
+      }
+      partition "Technician" {
+        :Đóng hồ sơ;
+      }
+    endif
+  else (Không)
+    partition "ViewModel / UI" {
+      :Thông báo ngoài bảo hành và trả lại máy;
+    }
+  endif
+else (Không)
+  partition "ViewModel / UI" {
+    :Thông báo không tìm thấy serial đã bán;
+  }
+endif
+
+stop
+@enduml
+
+
+@startuml Sequence_DangNhap
+title Sequence Đăng Nhập
+actor "Người dùng" as User
+boundary "LoginView" as UI
+control "LoginViewModel" as VM
+control "AuthService" as Auth
+entity "AppUserRepository" as UserRepo
+entity "AuditLogRepository" as AuditRepo
+database "SQL Server" as DB
+
+User -> UI : Nhập username và password
+UI -> VM : Login(request)
+VM -> VM : Validate required fields
+
+alt Thiếu username hoặc password
+  VM --> UI : Hiển thị lỗi bắt buộc nhập đủ 2 trường
+else Đủ dữ liệu
+  VM -> Auth : Login(request)
+  Auth -> UserRepo : FindByUsername(username)
+  UserRepo -> DB : SELECT AppUser by Username
+  DB --> UserRepo : User or null
+  UserRepo --> Auth : User data
+
+  alt Username không tồn tại
+    Auth -> AuditRepo : WriteAuditLog(LoginFailedUnknownUser, performedBy = SystemServiceAccount)
+    AuditRepo -> DB : INSERT AuditLog
+    DB --> AuditRepo : Success
+    Auth --> VM : Generic failure
+    VM --> UI : Hiển thị "Sai tài khoản hoặc mật khẩu"
+  else Tài khoản bị vô hiệu hóa
+    Auth -> AuditRepo : WriteAuditLog(LoginFailed)
+    AuditRepo -> DB : INSERT AuditLog
+    DB --> AuditRepo : Success
+    Auth --> VM : Generic failure
+    VM --> UI : Hiển thị "Sai tài khoản hoặc mật khẩu"
+  else Tài khoản đang bị khóa
+    Auth --> VM : Locked until LockoutUntil
+    VM --> UI : Hiển thị thời gian còn bị khóa
+  else Mật khẩu không đúng
+    Auth -> UserRepo : Increment FailedLoginCount + update LastFailedLoginAt
+    UserRepo -> DB : UPDATE AppUser
+    DB --> UserRepo : Success
+
+    opt FailedLoginCount > 3 và < 5
+      Auth --> VM : Show soft lockout warning
+      VM --> UI : Hiển thị cảnh báo nhỏ "Nhập sai tên đăng nhập/mật khẩu liên tiếp sẽ bị khóa tài khoản tạm thời"
+    end
+
+    alt FailedLoginCount >= 10
+      Auth -> UserRepo : Set LockoutUntil = now + 15 minutes
+      UserRepo -> DB : UPDATE AppUser
+      DB --> UserRepo : Success
+      Auth -> AuditRepo : WriteAuditLog(SuspiciousLoginAttempt)
+      AuditRepo -> DB : INSERT AuditLog
+      DB --> AuditRepo : Success
+      note over Auth,AuditRepo
+        Quản trị viên xem cảnh báo qua AuditLog hoặc audit viewer.
+      end note
+      Auth --> VM : Locked 15 minutes
+      VM --> UI : Hiển thị thời gian bị khóa
+    else FailedLoginCount >= 5
+      Auth -> UserRepo : Set LockoutUntil = now + 5 minutes
+      UserRepo -> DB : UPDATE AppUser
+      DB --> UserRepo : Success
+      Auth -> AuditRepo : WriteAuditLog(LoginLocked)
+      AuditRepo -> DB : INSERT AuditLog
+      DB --> AuditRepo : Success
+      Auth --> VM : Locked 5 minutes
+      VM --> UI : Hiển thị thời gian bị khóa
+    else Chưa đạt ngưỡng khóa
+      Auth -> AuditRepo : WriteAuditLog(LoginFailed)
+      AuditRepo -> DB : INSERT AuditLog
+      DB --> AuditRepo : Success
+      Auth --> VM : Generic failure
+      VM --> UI : Hiển thị "Sai tài khoản hoặc mật khẩu"
+    end
+  else Đăng nhập thành công
+    Auth -> UserRepo : Reset FailedLoginCount = 0, LockoutUntil = null, update LastLoginAt
+    UserRepo -> DB : UPDATE AppUser
+    DB --> UserRepo : Success
+
+    alt MustChangePassword = true
+      Auth --> VM : Require password change
+      VM --> UI : Chuyển sang màn hình đổi mật khẩu bắt buộc
+    else Đăng nhập bình thường
+      Auth --> VM : Login success
+      VM --> UI : Mở màn hình chính
+    end
+  end
+end
+@enduml
+
+
+@startuml Sequence_NhapKho_GhiSo
+title Sequence Ghi Sổ Phiếu Nhập
+actor "Nhân viên kho" as Storekeeper
+boundary "StockInView" as UI
+control "StockInViewModel" as VM
+control "ApprovalService" as Approval
+control "AuthorizationService" as Authorization
+control "InventoryService" as Service
+entity "StockBalanceRepository" as BalanceRepo
+entity "StockInRepository" as StockRepo
+entity "SerialRepository" as SerialRepo
+entity "StockLedgerRepository" as LedgerRepo
+entity "AuditLogRepository" as AuditRepo
+database "SQL Server" as DB
+
+Storekeeper -> UI : Nhập phiếu nhập
+UI -> VM : SubmitStockIn(request)
+VM -> Service : PostStockIn(request)
+Service -> Approval : ValidateStatusTransition()
+Approval --> Service : OK
+Service -> Authorization : ValidatePostingPermission()
+Authorization --> Service : OK
+Service -> Approval : CheckApproverPosterSeparationIfEnabled()
+Approval --> Service : OK
+note over Service,Approval
+  Nếu validation hoặc policy fail thì dừng trước BEGIN TRAN
+  và trả lỗi nghiệp vụ cho UI
+end note
+Service -> Service : ResolveDefaultWarehouse()
+Service -> Service : SortLinesByProductId()
+Service -> DB : BEGIN TRAN
+Service -> BalanceRepo : LockProductBalances(order by ProductId asc, warehouseId = default)
+note over Service,BalanceRepo
+  Giữ thứ tự khóa ProductId tăng dần trong cùng Warehouse
+  để giảm nguy cơ deadlock khi nhiều transaction ghi sổ đồng thời.
+end note
+BalanceRepo -> DB : SELECT ... WITH (UPDLOCK)
+DB --> BalanceRepo : Current balance
+BalanceRepo --> Service : Locked
+Service -> Service : ConvertToBaseQuantity(lines)
+
+alt Có dòng quản lý serial
+  Service -> SerialRepo : ValidateIncomingSerials(serials)
+  SerialRepo -> DB : SELECT duplicate serials
+  DB --> SerialRepo : Result
+  SerialRepo --> Service : Serial valid
+end
+
+Service -> StockRepo : InsertHeaderAndLines(warehouseId, purposeCode)
+StockRepo -> DB : INSERT StockIn / StockInLine
+DB --> StockRepo : Success
+
+Service -> BalanceRepo : ApplyInboundBalanceChange(warehouseId)
+BalanceRepo -> DB : UPDATE StockBalance
+DB --> BalanceRepo : Success
+
+alt Có dòng quản lý serial
+  Service -> SerialRepo : InsertSerials(InStock, currentWarehouseId = default)
+  SerialRepo -> DB : INSERT ProductSerial
+  DB --> SerialRepo : Success
+end
+
+Service -> LedgerRepo : WriteInboundLedger(warehouseId)
+LedgerRepo -> DB : INSERT StockLedger
+DB --> LedgerRepo : Success
+
+Service -> AuditRepo : WriteAuditLog()
+AuditRepo -> DB : INSERT AuditLog
+DB --> AuditRepo : Success
+
+    Service -> DB : COMMIT
+    Service --> VM : Success
+    VM --> UI : Show success
+    note over Service,DB
+      On any exception -> ROLLBACK transaction
+end note
+@enduml
+
+
+@startuml Sequence_ImportTonDauKy_ExcelCsv
+title Sequence Nhập Tồn Đầu Kỳ Từ Excel/CSV
+actor "Nhân viên kho" as Storekeeper
+boundary "OpeningBalanceImportView" as UI
+control "OpeningBalanceImportViewModel" as VM
+control "InitialStockImportService" as Import
+entity "StockInRepository" as StockRepo
+entity "StockBalanceRepository" as BalanceRepo
+entity "SerialRepository" as SerialRepo
+entity "StockLedgerRepository" as LedgerRepo
+entity "AuditLogRepository" as AuditRepo
+database "SQL Server" as DB
+
+Storekeeper -> UI : Chọn file Excel/CSV
+UI -> VM : ImportOpeningBalance(file)
+VM -> Import : ParseAndValidate(file)
+Import -> Import : Validate ProductCode, UnitCode,\nQuantity, SerialNumber
+
+alt Dữ liệu không hợp lệ
+  Import --> VM : Validation errors by row
+  VM --> UI : Show preview errors
+else Dữ liệu hợp lệ
+  Import -> Import : ResolveDefaultWarehouse()
+  Import -> DB : BEGIN TRAN
+  Import -> StockRepo : Insert StockIn(warehouseId, purposeCode = OpeningBalance, status = Posted)
+  StockRepo -> DB : INSERT StockIn
+  DB --> StockRepo : stockInId
+  Import -> StockRepo : Insert StockInLine(stockInId, rows)
+  StockRepo -> DB : INSERT StockInLine
+  DB --> StockRepo : Success
+  alt Có dòng quản lý serial
+    Import -> SerialRepo : InsertSerials(InStock, currentWarehouseId = default)
+    SerialRepo -> DB : INSERT ProductSerial
+    DB --> SerialRepo : Success
+  end
+  Import -> BalanceRepo : ApplyInboundBalanceChange(warehouseId)
+  BalanceRepo -> DB : UPDATE StockBalance
+  DB --> BalanceRepo : Success
+  Import -> LedgerRepo : WriteOpeningBalanceLedger(warehouseId)
+  LedgerRepo -> DB : INSERT StockLedger
+  DB --> LedgerRepo : Success
+  Import -> AuditRepo : WriteAuditLog()
+  AuditRepo -> DB : INSERT AuditLog
+  DB --> AuditRepo : Success
+  Import -> DB : COMMIT
+  Import --> VM : Import success
+  VM --> UI : Show success
+end
+note over Import,DB
+  On any exception -> ROLLBACK transaction
+end note
+@enduml
+
+
+@startuml Sequence_XuatKho_GhiSo
+title Sequence Ghi Sổ Phiếu Xuất
+actor "Nhân viên kho" as Storekeeper
+boundary "StockOutView" as UI
+control "StockOutViewModel" as VM
+control "ApprovalService" as Approval
+control "AuthorizationService" as Authorization
+control "InventoryService" as Service
+entity "StockBalanceRepository" as BalanceRepo
+entity "StockOutRepository" as StockRepo
+entity "SerialRepository" as SerialRepo
+entity "WarrantyCoverageRepository" as CoverageRepo
+entity "StockLedgerRepository" as LedgerRepo
+entity "AuditLogRepository" as AuditRepo
+database "SQL Server" as DB
+
+Storekeeper -> UI : Nhập phiếu xuất
+UI -> VM : SubmitStockOut(request)
+VM -> Service : PostStockOut(request)
+Service -> Approval : ValidateStatusTransition()
+Approval --> Service : OK
+Service -> Authorization : ValidatePostingPermission()
+Authorization --> Service : OK
+Service -> Approval : CheckApproverPosterSeparationIfEnabled()
+Approval --> Service : OK
+note over Service,Approval
+  Nếu validation hoặc policy fail thì dừng trước BEGIN TRAN
+  và trả lỗi nghiệp vụ cho UI
+end note
+Service -> Service : ResolveDefaultWarehouse()
+Service -> Service : SortLinesByProductId()
+Service -> DB : BEGIN TRAN
+Service -> BalanceRepo : LockProductBalances(order by ProductId asc, warehouseId = default)
+note over Service,BalanceRepo
+  Luôn khóa StockBalance theo ProductId tăng dần trong cùng Warehouse
+  để giữ thứ tự cố định giữa các transaction.
+end note
+BalanceRepo -> DB : SELECT ... WITH (UPDLOCK)
+DB --> BalanceRepo : Current balance
+BalanceRepo --> Service : Locked
+Service -> Service : ConvertToBaseQuantity(lines)
+
+alt Có dòng quản lý serial
+  Service -> SerialRepo : LockAndValidateSelectedSerials(order by ProductSerialId asc)
+  note over Service,SerialRepo
+    Với serial, tiếp tục khóa theo ProductSerialId tăng dần
+    để tránh deadlock khi nhiều người xuất cùng lúc.
+  end note
+  SerialRepo -> DB : SELECT serials WHERE status = InStock
+  DB --> SerialRepo : Valid serials
+  SerialRepo --> Service : Serial valid
+end
+
+Service -> Service : CheckAvailableQuantity(warehouseId)
+
+alt Đủ tồn
+  Service -> StockRepo : InsertHeaderAndLines(warehouseId, purposeCode)
+  StockRepo -> DB : INSERT StockOut / StockOutLine
+  DB --> StockRepo : Success
+
+  Service -> BalanceRepo : ApplyOutboundBalanceChange(warehouseId)
+  BalanceRepo -> DB : UPDATE StockBalance
+  DB --> BalanceRepo : Success
+
+  alt Có dòng quản lý serial
+    alt PurposeCode = Sale
+      Service -> SerialRepo : UpdateSerialStatus(Sold)
+      SerialRepo -> DB : UPDATE ProductSerial
+      DB --> SerialRepo : Success
+
+      alt WarrantyPeriodMonths > 0
+        Service -> CoverageRepo : CreateCoverageForSoldSerials(start = PostedAt, end = PostedAt + WarrantyPeriodMonths, status = Active, salesInvoiceId?)
+        note over Service,CoverageRepo
+          Chỉ áp dụng cho xuất bán có serial.
+          Nếu chưa có SalesInvoice thì SalesInvoiceId để null.
+        end note
+        CoverageRepo -> DB : INSERT WarrantyCoverage
+        DB --> CoverageRepo : Success
+      end
+    else WarrantyReplacement hoặc purpose khác
+      note over Service,SerialRepo
+        Trạng thái serial của WarrantyReplacement
+        không xử lý ở SEQ-02 chung; xem SEQ-03.
+      end note
+    end
+  end
+
+  Service -> LedgerRepo : WriteOutboundLedger(warehouseId)
+  LedgerRepo -> DB : INSERT StockLedger
+  DB --> LedgerRepo : Success
+
+  Service -> AuditRepo : WriteAuditLog()
+  AuditRepo -> DB : INSERT AuditLog
+  DB --> AuditRepo : Success
+
+  Service -> DB : COMMIT
+  Service --> VM : Success
+  VM --> UI : Show success
+else Không đủ tồn
+  Service -> DB : ROLLBACK
+  Service --> VM : Error not enough stock
+  VM --> UI : Show error
+end
+note over Service,DB
+  On any exception -> ROLLBACK transaction
+end note
+@enduml
+
+
+@startuml Sequence_BaoHanh_DoiMoi
+title Sequence Bảo Hành Đổi Mới
+actor "Nhân viên bảo hành" as Technician
+actor "Quản lý" as Manager
+boundary "WarrantyView" as UI
+control "WarrantyViewModel" as VM
+control "WarrantyService" as Warranty
+control "ApprovalService" as Approval
+control "InventoryService" as Inventory
+entity "StockOutRepository" as StockRepo
+entity "StockBalanceRepository" as BalanceRepo
+entity "WarrantyCoverageRepository" as CoverageRepo
+entity "WarrantyClaimRepository" as ClaimRepo
+entity "SerialRepository" as SerialRepo
+entity "StockLedgerRepository" as LedgerRepo
+entity "AuditLogRepository" as AuditRepo
+database "SQL Server" as DB
+
+Technician -> UI : Nhập serial và mô tả lỗi
+UI -> VM : OpenWarrantyClaim(request)
+VM -> Warranty : OpenClaim(request)
+Warranty -> CoverageRepo : FindActiveCoverageBySerial()
+CoverageRepo -> DB : SELECT coverage by serial
+DB --> CoverageRepo : Coverage data
+CoverageRepo --> Warranty : Coverage found
+Warranty -> Warranty : CheckWarrantyEligibility()
+Warranty -> ClaimRepo : CheckOpenClaimBySerial()
+ClaimRepo -> DB : SELECT open claim by serial
+DB --> ClaimRepo : Open claim result
+
+alt Đủ điều kiện bảo hành
+  alt Chưa có claim đang mở
+    Warranty -> ClaimRepo : Insert claim(status = Checking)
+    ClaimRepo -> DB : INSERT WarrantyClaim
+    DB --> ClaimRepo : Success
+    Warranty -> SerialRepo : Update serial = InWarrantyProcess
+    SerialRepo -> DB : UPDATE ProductSerial
+    DB --> SerialRepo : Success
+
+    alt Sửa nội bộ được
+      Warranty -> ClaimRepo : Update claim = WaitingDecision
+      ClaimRepo -> DB : UPDATE WarrantyClaim
+      DB --> ClaimRepo : Success
+      Warranty -> ClaimRepo : Update claim = Repairing
+      ClaimRepo -> DB : UPDATE WarrantyClaim
+      DB --> ClaimRepo : Success
+      Warranty -> SerialRepo : Update serial = WarrantyDefective
+      SerialRepo -> DB : UPDATE ProductSerial
+      DB --> SerialRepo : Success
+      Warranty -> ClaimRepo : Update claim = Repaired
+      ClaimRepo -> DB : UPDATE WarrantyClaim
+      DB --> ClaimRepo : Success
+      Warranty -> Warranty : Confirm customer handover
+      Warranty -> ClaimRepo : Update claim = ReturnedToCustomer
+      ClaimRepo -> DB : UPDATE WarrantyClaim
+      DB --> ClaimRepo : Success
+      Warranty -> SerialRepo : Update serial = Sold
+      SerialRepo -> DB : UPDATE ProductSerial
+      DB --> SerialRepo : Success
+      Warranty -> ClaimRepo : Update claim = Closed
+      ClaimRepo -> DB : UPDATE WarrantyClaim
+      DB --> ClaimRepo : Success
+      Warranty --> VM : Success repaired
+    else Cần gửi hãng
+      Warranty -> ClaimRepo : Update claim = SentToManufacturer
+      ClaimRepo -> DB : UPDATE WarrantyClaim
+      DB --> ClaimRepo : Success
+      Warranty -> SerialRepo : Update serial = WarrantyDefective
+      SerialRepo -> DB : UPDATE ProductSerial
+      DB --> SerialRepo : Success
+      Warranty -> ClaimRepo : Update claim = WaitingManufacturerResult
+      ClaimRepo -> DB : UPDATE WarrantyClaim
+      DB --> ClaimRepo : Success
+      Warranty -> ClaimRepo : Save manufacturer result + update claim = WaitingDecision
+      ClaimRepo -> DB : UPDATE WarrantyClaim
+      DB --> ClaimRepo : Success
+
+      alt Hãng sửa được
+        Warranty -> ClaimRepo : Update claim = Repaired
+        ClaimRepo -> DB : UPDATE WarrantyClaim
+        DB --> ClaimRepo : Success
+        Warranty -> Warranty : Confirm customer handover
+        Warranty -> ClaimRepo : Update claim = ReturnedToCustomer
+        ClaimRepo -> DB : UPDATE WarrantyClaim
+        DB --> ClaimRepo : Success
+        Warranty -> SerialRepo : Update serial = Sold
+        SerialRepo -> DB : UPDATE ProductSerial
+        DB --> SerialRepo : Success
+        Warranty -> ClaimRepo : Update claim = Closed
+        ClaimRepo -> DB : UPDATE WarrantyClaim
+        DB --> ClaimRepo : Success
+        Warranty --> VM : Success repaired by manufacturer
+      else Hãng không sửa được, đổi mới
+        Warranty -> ClaimRepo : Record manufacturer result = Replace
+        ClaimRepo -> DB : UPDATE WarrantyClaim
+        DB --> ClaimRepo : Success
+        VM -> Manager : Trình quyết định đổi mới
+        Manager --> VM : Xác nhận phê duyệt
+        VM -> Warranty : RequestReplacementApproval(claimId, managerDecision)
+        Warranty -> Approval : Record replacement approval
+        Approval --> Warranty : Approved
+        Warranty -> DB : BEGIN TRAN
+        Warranty -> ClaimRepo : LockWarrantyClaim()
+        ClaimRepo -> DB : SELECT ... WITH (UPDLOCK)
+        DB --> ClaimRepo : Locked
+        Warranty -> CoverageRepo : LockWarrantyCoverage()
+        CoverageRepo -> DB : SELECT ... WITH (UPDLOCK)
+        DB --> CoverageRepo : Locked
+        Warranty -> Inventory : LockProductBalanceForReplacement(order by ProductId asc, warehouseId = default)
+        Inventory -> BalanceRepo : SELECT ... WITH (UPDLOCK)
+        DB --> BalanceRepo : Current balance
+        BalanceRepo --> Inventory : Locked
+        Warranty -> SerialRepo : Lock old serial and candidate replacement serials(order by ProductSerialId asc)
+        note over Warranty,SerialRepo
+          Luồng đổi mới cũng giữ thứ tự khóa
+          ProductId rồi ProductSerialId tăng dần
+          để giảm nguy cơ deadlock.
+        end note
+        SerialRepo -> DB : SELECT ... WITH (UPDLOCK)
+        DB --> SerialRepo : Locked
+        Warranty -> Inventory : CheckAvailableQuantity(warehouseId = default)
+
+        alt Đủ tồn thay thế
+          Warranty -> SerialRepo : Update old serial = ReturnedToManufacturer
+          SerialRepo -> DB : UPDATE ProductSerial old
+          DB --> SerialRepo : Success
+          Warranty -> CoverageRepo : Close old coverage = Replaced / Inactive
+          CoverageRepo -> DB : UPDATE WarrantyCoverage old
+          DB --> CoverageRepo : Success
+          Warranty -> ClaimRepo : Mark manufacturer replacement accepted
+          ClaimRepo -> DB : UPDATE WarrantyClaim
+          DB --> ClaimRepo : Success
+          Warranty -> StockRepo : Insert StockOut(Status=Approved, PurposeCode=WarrantyReplacement, WarehouseId=default, ApprovedBy=ManagerId)
+          StockRepo -> DB : INSERT StockOut / StockOutLine
+          DB --> StockRepo : Success
+          Warranty -> Inventory : PostWarrantyReplacementStockOut(stockOutId, PostedBy=SystemServiceAccount)
+          Inventory -> BalanceRepo : UPDATE StockBalance
+          BalanceRepo -> DB : UPDATE StockBalance
+          DB --> BalanceRepo : Success
+          note over StockRepo,Inventory
+            WarrantyReplacement là ngoại lệ hợp lệ của policy
+            tách approver/poster
+          end note
+          Inventory -> SerialRepo : Update replacement serial = Replaced
+          SerialRepo -> DB : UPDATE ProductSerial replacement
+          DB --> SerialRepo : Success
+          Warranty -> CoverageRepo : Create replacement coverage with remaining term
+          CoverageRepo -> DB : INSERT WarrantyCoverage replacement
+          DB --> CoverageRepo : Success
+          Warranty -> LedgerRepo : Write warranty replacement ledger
+          LedgerRepo -> DB : INSERT StockLedger
+          DB --> LedgerRepo : Success
+          Warranty -> AuditRepo : WriteAuditLog()
+          AuditRepo -> DB : INSERT AuditLog
+          DB --> AuditRepo : Success
+          Warranty -> ClaimRepo : Update claim = Replaced + ReplacementSerialId
+          ClaimRepo -> DB : UPDATE WarrantyClaim
+          DB --> ClaimRepo : Success
+          Warranty -> ClaimRepo : Update claim = ReplacementStockOutId = stockOutId
+          ClaimRepo -> DB : UPDATE WarrantyClaim
+          DB --> ClaimRepo : Success
+          Warranty -> DB : COMMIT
+          Warranty -> Warranty : Confirm replacement handover
+          Warranty -> DB : BEGIN TRAN
+          Warranty -> ClaimRepo : Update claim = ReturnedToCustomer
+          ClaimRepo -> DB : UPDATE WarrantyClaim
+          DB --> ClaimRepo : Success
+          Warranty -> SerialRepo : Update replacement serial = Sold
+          SerialRepo -> DB : UPDATE ProductSerial replacement
+          DB --> SerialRepo : Success
+          Warranty -> ClaimRepo : Update claim = Closed
+          ClaimRepo -> DB : UPDATE WarrantyClaim
+          DB --> ClaimRepo : Success
+          Warranty -> DB : COMMIT
+          Warranty --> VM : Success replaced
+        else Không đủ tồn thay thế
+          Warranty -> DB : ROLLBACK
+          note over Warranty,DB
+            Transaction đổi mới đã kết thúc
+          end note
+          Warranty -> DB : BEGIN TRAN
+          Warranty -> ClaimRepo : Update claim = WaitingDecision + insufficient replacement stock note
+          ClaimRepo -> DB : UPDATE WarrantyClaim
+          DB --> ClaimRepo : Success
+          Warranty -> DB : COMMIT
+          Warranty --> VM : Need replacement stock before customer exchange
+        end
+      end
+    else Từ chối
+      Warranty -> ClaimRepo : Update claim = WaitingDecision
+      ClaimRepo -> DB : UPDATE WarrantyClaim
+      DB --> ClaimRepo : Success
+      VM -> Manager : Trình quyết định từ chối
+      Manager --> VM : Xác nhận phê duyệt
+      VM -> Warranty : RequestRejectionApproval(claimId, managerDecision)
+      Warranty -> Approval : Record rejection approval
+      Approval --> Warranty : Approved
+      Warranty -> ClaimRepo : Update claim = Rejected + RejectionReason
+      ClaimRepo -> DB : UPDATE WarrantyClaim
+      DB --> ClaimRepo : Success
+      Warranty -> Warranty : Confirm customer handover
+      Warranty -> ClaimRepo : Update claim = ReturnedToCustomer
+      ClaimRepo -> DB : UPDATE WarrantyClaim
+      DB --> ClaimRepo : Success
+      Warranty -> SerialRepo : Update serial = Sold
+      SerialRepo -> DB : UPDATE ProductSerial
+      DB --> SerialRepo : Success
+      Warranty -> ClaimRepo : Update claim = Closed
+      ClaimRepo -> DB : UPDATE WarrantyClaim
+      DB --> ClaimRepo : Success
+      Warranty --> VM : Success rejected
+    end
+  else Đã có claim đang mở
+    Warranty --> VM : Reject because claim is already open
+  end
+else Không đủ điều kiện
+  Warranty --> VM : Reject by eligibility
+end
+@enduml
+
+
+@startuml State_VongDoi_ChungTuKho
+title State Vòng Đời Chứng Từ Kho
+hide empty description
+
+[*] --> Draft
+Draft --> PendingApproval : Gửi duyệt
+Draft --> Cancelled : Hủy nháp
+
+PendingApproval --> Draft : Từ chối / yêu cầu chỉnh sửa
+PendingApproval --> Approved : Duyệt
+
+Approved --> Posted : Ghi sổ
+Approved --> Cancelled : Hủy trước khi ghi sổ
+
+Posted --> Locked : Khóa chứng từ
+Locked --> [*]
+Cancelled --> [*]
+
+note right of PendingApproval
+Quản lý xử lý duyệt hoặc trả về chỉnh sửa.
+end note
+
+note right of Posted
+Ghi sổ do nhân viên kho
+hoặc vai trò ghi sổ được ủy quyền.
+end note
+@enduml
+
+
+@startuml State_VongDoi_HoSoBaoHanh
+title State Vòng Đời Hồ Sơ Bảo Hành
+hide empty description
+
+[*] --> Checking
+Checking --> WaitingDecision : Có kết luận kỹ thuật nội bộ
+Checking --> SentToManufacturer : Cần gửi hãng
+SentToManufacturer --> WaitingManufacturerResult : Hãng tiếp nhận
+WaitingManufacturerResult --> WaitingDecision : Có kết luận từ hãng
+WaitingDecision --> Repairing : Quyết định sửa nội bộ
+WaitingDecision --> Repaired : Chấp nhận máy đã được hãng sửa xong
+WaitingDecision --> Replaced : Quyết định đổi mới
+WaitingDecision --> Rejected : Quyết định từ chối
+Repairing --> Repaired : Sửa xong
+Repaired --> ReturnedToCustomer : Giao trả máy
+Replaced --> ReturnedToCustomer : Giao serial thay thế
+Rejected --> ReturnedToCustomer : Trả lại máy
+ReturnedToCustomer --> Closed : Hoàn tất
+Closed --> [*]
+@enduml
+
+
+@startuml ERD_QuanLyHangHoaBaoHanh_ChiTiet
+title ERD Chi Tiết Đầy Đủ Quản Lý Hàng Hóa và Bảo Hành
+hide circle
+skinparam linetype ortho
+
+entity "AppUser" as DAppUser {
+  * Id : int
+  --
+  Username : nvarchar
+  PasswordHash : nvarchar
+  FullName : nvarchar
+  RoleCode : nvarchar
+  MustChangePassword : bit
+  FailedLoginCount : int
+  CreatedBy : int?
+  CreatedAt : datetime
+  LockoutUntil : datetime?
+  LastFailedLoginAt : datetime?
+  LastPasswordChangedAt : datetime?
+  LastLoginAt : datetime?
+  IsActive : bit
+}
+
+entity "Category" as DCategory {
+  * Id : int
+  --
+  CategoryCode : nvarchar
+  DisplayName : nvarchar
+  IsActive : bit
+}
+
+entity "Brand" as DBrand {
+  * Id : int
+  --
+  BrandCode : nvarchar
+  DisplayName : nvarchar
+  OriginCountry : nvarchar
+  IsActive : bit
+}
+
+entity "Unit" as DUnit {
+  * Id : int
+  --
+  UnitCode : nvarchar
+  DisplayName : nvarchar
+  IsActive : bit
+}
+
+entity "Supplier" as DSupplier {
+  * Id : int
+  --
+  SupplierCode : nvarchar
+  DisplayName : nvarchar
+  Phone : nvarchar
+  Email : nvarchar
+  IsActive : bit
+}
+
+entity "Customer" as DCustomer {
+  * Id : int
+  --
+  CustomerCode : nvarchar
+  DisplayName : nvarchar
+  Phone : nvarchar
+  Email : nvarchar
+  IsActive : bit
+}
+
+entity "Warehouse" as DWarehouse {
+  * Id : int
+  --
+  WarehouseCode (UK) : nvarchar
+  DisplayName : nvarchar
+  IsDefault : bit
+  IsActive : bit
+}
+
+entity "Product" as DProduct {
+  * Id : int
+  --
+  ProductCode (UK) : nvarchar
+  DisplayName : nvarchar
+  CategoryId : int
+  BrandId : int
+  DefaultUnitId : int
+  DefaultPrice : decimal
+  OriginCountry : nvarchar
+  WarrantyPeriodMonths : int
+  IsSerialTracked : bit
+  IsActive : bit
+}
+
+entity "ProductUnit" as DProductUnit {
+  * Id : int
+  --
+  ProductId : int
+  UnitId : int
+  ConversionFactor : decimal
+  IsBaseUnit : bit
+  IsPurchaseUnit : bit
+  IsSalesUnit : bit
+  UQ_ProductUnit : UNIQUE (ProductId, UnitId)
+}
+
+entity "StockBalance" as DStockBalance {
+  * Id : int
+  --
+  WarehouseId : int
+  ProductId : int
+  OnHandQuantity : decimal
+  AvailableQuantity : decimal
+  ReservedQuantity : decimal
+  UQ_StockBalance : UNIQUE (WarehouseId, ProductId)
+}
+
+entity "StockIn" as DStockIn {
+  * Id : int
+  --
+  DocumentCode (UK) : nvarchar
+  SupplierId : int?
+  WarehouseId : int
+  PurposeCode : nvarchar
+  Status : nvarchar
+  CreatedBy : int
+  ApprovedBy : int?
+  PostedBy : int?
+  CreatedAt : datetime
+  ApprovedAt : datetime?
+  PostedAt : datetime?
+}
+
+entity "StockInLine" as DStockInLine {
+  * Id : int
+  --
+  StockInId : int
+  ProductId : int
+  UnitId : int
+  Quantity : decimal
+  BaseQuantity : decimal
+  UnitPrice : decimal
+}
+
+entity "StockOut" as DStockOut {
+  * Id : int
+  --
+  DocumentCode (UK) : nvarchar
+  CustomerId : int
+  WarehouseId : int
+  PurposeCode : nvarchar
+  Status : nvarchar
+  CreatedBy : int
+  ApprovedBy : int?
+  PostedBy : int?
+  CreatedAt : datetime
+  ApprovedAt : datetime?
+  PostedAt : datetime?
+}
+
+entity "StockOutLine" as DStockOutLine {
+  * Id : int
+  --
+  StockOutId : int
+  ProductId : int
+  UnitId : int
+  Quantity : decimal
+  BaseQuantity : decimal
+  UnitPrice : decimal
+}
+
+entity "StockCountSession" as DStockCountSession {
+  * Id : int
+  --
+  SessionCode (UK) : nvarchar
+  WarehouseId : int
+  Status : nvarchar
+  CreatedBy : int
+  ApprovedBy : int?
+  PostedBy : int?
+  CountDate : datetime
+  ApprovedAt : datetime?
+  PostedAt : datetime?
+}
+
+entity "StockCountLine" as DStockCountLine {
+  * Id : int
+  --
+  SessionId : int
+  ProductId : int
+  SystemQuantity : decimal
+  CountedQuantity : decimal
+  VarianceQuantity : decimal
+}
+
+entity "StockAdjustment" as DStockAdjustment {
+  * Id : int
+  --
+  DocumentCode (UK) : nvarchar
+  WarehouseId : int
+  AdjustmentType : nvarchar
+  Status : nvarchar
+  ReferenceDocumentType : nvarchar
+  ReferenceDocumentId : int
+  ReasonCode : nvarchar
+  CreatedBy : int
+  ApprovedBy : int?
+  PostedBy : int?
+  ApprovedAt : datetime?
+  PostedAt : datetime?
+}
+
+entity "StockAdjustmentLine" as DStockAdjustmentLine {
+  * Id : int
+  --
+  AdjustmentId : int
+  ProductId : int
+  ProductSerialId : int?
+  QuantityDelta : decimal
+  BaseQuantityDelta : decimal
+  Direction : nvarchar
+}
+
+entity "PurchaseInvoice" as DPurchaseInvoice {
+  * Id : int
+  --
+  InvoiceCode (UK) : nvarchar
+  SupplierId : int
+  StockInId : int?
+  InvoiceDate : datetime
+  SubTotal : decimal
+  TaxAmount : decimal
+  GrandTotal : decimal
+  PaidAmount : decimal
+  PaymentStatus : nvarchar
+  DueDate : datetime
+}
+
+entity "PurchaseInvoiceLine" as DPurchaseInvoiceLine {
+  * Id : int
+  --
+  PurchaseInvoiceId : int
+  ProductId : int
+  UnitId : int
+  StockInLineId : int?
+  Quantity : decimal
+  UnitPrice : decimal
+  SubTotal : decimal
+  TaxRate : decimal
+  TaxAmount : decimal
+  GrandTotal : decimal
+}
+
+entity "SalesInvoice" as DSalesInvoice {
+  * Id : int
+  --
+  InvoiceCode (UK) : nvarchar
+  CustomerId : int
+  StockOutId : int?
+  InvoiceDate : datetime
+  SubTotal : decimal
+  TaxAmount : decimal
+  GrandTotal : decimal
+  PaidAmount : decimal
+  PaymentStatus : nvarchar
+  DueDate : datetime
+}
+
+entity "SalesInvoiceLine" as DSalesInvoiceLine {
+  * Id : int
+  --
+  SalesInvoiceId : int
+  ProductId : int
+  UnitId : int
+  StockOutLineId : int?
+  Quantity : decimal
+  UnitPrice : decimal
+  SubTotal : decimal
+  TaxRate : decimal
+  TaxAmount : decimal
+  GrandTotal : decimal
+}
+
+entity "ProductSerial" as DProductSerial {
+  * Id : int
+  --
+  ProductId : int
+  SerialNumber (UK) : nvarchar
+  CurrentStatus : nvarchar
+  CurrentWarehouseId : int?
+  LastStockInLineId : int
+  LastStockOutLineId : int?
+}
+
+entity "WarrantyCoverage" as DWarrantyCoverage {
+  * Id : int
+  --
+  ProductSerialId : int
+  CustomerId : int
+  SalesInvoiceId : int?
+  WarrantyStartDate : datetime
+  WarrantyEndDate : datetime
+  CoverageStatus : nvarchar
+  UX_ActiveCoverage : FILTERED UNIQUE Active/ProductSerialId
+}
+
+entity "WarrantyClaim" as DWarrantyClaim {
+  * Id : int
+  --
+  ClaimCode (UK) : nvarchar
+  WarrantyCoverageId : int
+  ProductSerialId : int
+  ReplacementSerialId : int?
+  ReplacementStockOutId : int?
+  ReceivedDate : datetime
+  ProblemDescription : nvarchar
+  TechnicalConclusion : nvarchar
+  ManufacturerResult : nvarchar
+  RejectionReason : nvarchar
+  ProcessingNote : nvarchar
+  ResolutionType : nvarchar
+  Status : nvarchar
+  ApprovedBy : int?
+  ProcessedBy : int
+  ClosedDate : datetime?
+  UX_OpenClaim : FILTERED UNIQUE Open/ProductSerialId
+}
+
+entity "StockLedger" as DStockLedger {
+  * Id : int
+  --
+  WarehouseId : int
+  ProductId : int
+  ProductSerialId : int?
+  SourceDocumentType : nvarchar
+  SourceDocumentId : int
+  MovementType : nvarchar
+  Quantity : decimal
+  PostedBy : int
+  PostedAt : datetime
+}
+
+entity "AuditLog" as DAuditLog {
+  * Id : int
+  --
+  EntityName : nvarchar
+  EntityId : int
+  ActionCode : nvarchar
+  BeforeJson : nvarchar(max)
+  AfterJson : nvarchar(max)
+  PerformedBy : int
+  PerformedAt : datetime
+}
+
+DCategory ||--o{ DProduct : categoryId
+DBrand ||--o{ DProduct : brandId
+DUnit ||--o{ DProduct : defaultUnitId
+DProduct ||--o{ DProductUnit : productId
+DUnit ||--o{ DProductUnit : unitId
+
+DWarehouse ||--o{ DStockBalance : warehouseId
+DProduct ||--o{ DStockBalance : productId
+
+DSupplier |o--o{ DStockIn : supplierId
+DWarehouse ||--o{ DStockIn : warehouseId
+DStockIn ||--o{ DStockInLine : stockInId
+DProduct ||--o{ DStockInLine : productId
+DUnit ||--o{ DStockInLine : unitId
+
+DWarehouse ||--o{ DStockOut : warehouseId
+DCustomer ||--o{ DStockOut : customerId
+DStockOut ||--o{ DStockOutLine : stockOutId
+DProduct ||--o{ DStockOutLine : productId
+DUnit ||--o{ DStockOutLine : unitId
+
+DWarehouse ||--o{ DStockCountSession : warehouseId
+DStockCountSession ||--o{ DStockCountLine : sessionId
+DProduct ||--o{ DStockCountLine : productId
+
+DWarehouse ||--o{ DStockAdjustment : warehouseId
+DStockAdjustment ||--o{ DStockAdjustmentLine : adjustmentId
+DProduct ||--o{ DStockAdjustmentLine : productId
+DProductSerial |o--o{ DStockAdjustmentLine : productSerialId
+
+DSupplier ||--o{ DPurchaseInvoice : supplierId
+DStockIn |o--o| DPurchaseInvoice : stockInId
+DPurchaseInvoice ||--o{ DPurchaseInvoiceLine : purchaseInvoiceId
+DProduct ||--o{ DPurchaseInvoiceLine : productId
+DUnit ||--o{ DPurchaseInvoiceLine : unitId
+DStockInLine |o--o{ DPurchaseInvoiceLine : stockInLineId
+
+DCustomer ||--o{ DSalesInvoice : customerId
+DStockOut |o--o| DSalesInvoice : stockOutId
+DSalesInvoice ||--o{ DSalesInvoiceLine : salesInvoiceId
+DProduct ||--o{ DSalesInvoiceLine : productId
+DUnit ||--o{ DSalesInvoiceLine : unitId
+DStockOutLine |o--o{ DSalesInvoiceLine : stockOutLineId
+
+DWarehouse |o--o{ DProductSerial : currentWarehouseId
+DProduct ||--o{ DProductSerial : productId
+DStockInLine ||--o{ DProductSerial : lastStockInLineId
+DStockOutLine |o--o{ DProductSerial : lastStockOutLineId
+
+DWarehouse ||--o{ DStockLedger : warehouseId
+DProduct ||--o{ DStockLedger : productId
+DProductSerial |o--o{ DStockLedger : productSerialId
+
+DProductSerial ||--o{ DWarrantyCoverage : productSerialId
+DCustomer ||--o{ DWarrantyCoverage : customerId
+DSalesInvoice |o--o{ DWarrantyCoverage : salesInvoiceId
+DWarrantyCoverage ||--o{ DWarrantyClaim : warrantyCoverageId
+DProductSerial ||--o{ DWarrantyClaim : productSerialId
+DProductSerial |o--o{ DWarrantyClaim : replacementSerialId
+DStockOut |o--o| DWarrantyClaim : replacementStockOutId
+
+DAppUser ||--o{ DStockIn : createdBy
+DAppUser |o--o{ DAppUser : createdBy
+DAppUser |o--o{ DStockIn : approvedBy
+DAppUser |o--o{ DStockIn : postedBy
+DAppUser ||--o{ DStockOut : createdBy
+DAppUser |o--o{ DStockOut : approvedBy
+DAppUser |o--o{ DStockOut : postedBy
+DAppUser ||--o{ DStockCountSession : createdBy
+DAppUser |o--o{ DStockCountSession : approvedBy
+DAppUser |o--o{ DStockCountSession : postedBy
+DAppUser ||--o{ DStockAdjustment : createdBy
+DAppUser |o--o{ DStockAdjustment : approvedBy
+DAppUser |o--o{ DStockAdjustment : postedBy
+DAppUser ||--o{ DStockLedger : postedBy
+DAppUser |o--o{ DWarrantyClaim : approvedBy
+DAppUser ||--o{ DWarrantyClaim : processedBy
+DAppUser ||--o{ DAuditLog : performedBy
+
+legend left
+Ràng buộc DB khuyến nghị:
+- UQ_Warehouse(WarehouseCode)
+- Chỉ một Warehouse có IsDefault = true tại một thời điểm
+- UQ_StockBalance(ProductId, WarehouseId)
+- UQ_ProductUnit(ProductId, UnitId)
+- Mỗi Product chỉ có một IsBaseUnit = true
+- Một WarrantyClaim mở cho mỗi ProductSerialId
+- Một WarrantyCoverage active cho mỗi ProductSerialId
+Nullability cần khóa rõ:
+- StockIn.SupplierId, ProductSerial.CurrentWarehouseId
+- PurchaseInvoice.StockInId, SalesInvoice.StockOutId, WarrantyCoverage.SalesInvoiceId
+- WarrantyClaim.ReplacementSerialId, WarrantyClaim.ReplacementStockOutId
+- ApprovedBy, PostedBy, ApprovedAt, PostedAt, ClosedDate
+endlegend
+@enduml
+
+
+
+

@@ -1,0 +1,88 @@
+﻿sequenceDiagram
+    actor User as Người dùng
+    participant UI as LoginView
+    participant VM as LoginViewModel
+    participant Auth as AuthService
+    participant UserRepo as AppUserRepository
+    participant AuditRepo as AuditLogRepository
+    participant DB as SQL Server
+
+    User->>UI: Nhập username và password
+    UI->>VM: Login(request)
+    VM->>VM: Validate required fields
+
+    alt Thiếu username hoặc password
+        VM-->>UI: Hiển thị lỗi bắt buộc nhập đủ 2 trường
+    else Đủ dữ liệu
+        VM->>Auth: Login(request)
+        Auth->>UserRepo: FindByUsername(username)
+        UserRepo->>DB: SELECT AppUser by Username
+        DB-->>UserRepo: User or null
+        UserRepo-->>Auth: User data
+
+        alt Username không tồn tại
+            Auth->>AuditRepo: WriteAuditLog(LoginFailedUnknownUser, performedBy = SystemServiceAccount)
+            AuditRepo->>DB: INSERT AuditLog
+            DB-->>AuditRepo: Success
+            Auth-->>VM: Generic failure
+            VM-->>UI: Hiển thị "Sai tài khoản hoặc mật khẩu"
+        else Tài khoản bị vô hiệu hóa
+            Auth->>AuditRepo: WriteAuditLog(LoginFailed)
+            AuditRepo->>DB: INSERT AuditLog
+            DB-->>AuditRepo: Success
+            Auth-->>VM: Generic failure
+            VM-->>UI: Hiển thị "Sai tài khoản hoặc mật khẩu"
+        else Tài khoản đang bị khóa
+            Auth-->>VM: Locked until LockoutUntil
+            VM-->>UI: Hiển thị thời gian còn bị khóa
+        else Mật khẩu không đúng
+            Auth->>UserRepo: Increment FailedLoginCount + update LastFailedLoginAt
+            UserRepo->>DB: UPDATE AppUser
+            DB-->>UserRepo: Success
+
+            opt FailedLoginCount > 3 và < 5
+                Auth-->>VM: Show soft lockout warning
+                VM-->>UI: Hiển thị cảnh báo nhỏ "Nhập sai tên đăng nhập/mật khẩu liên tiếp sẽ bị khóa tài khoản tạm thời"
+            end
+
+            alt FailedLoginCount >= 10
+                Auth->>UserRepo: Set LockoutUntil = now + 15 minutes
+                UserRepo->>DB: UPDATE AppUser
+                DB-->>UserRepo: Success
+                Auth->>AuditRepo: WriteAuditLog(SuspiciousLoginAttempt)
+                AuditRepo->>DB: INSERT AuditLog
+                DB-->>AuditRepo: Success
+                Note over Auth,AuditRepo: Quản trị viên xem cảnh báo qua AuditLog hoặc audit viewer
+                Auth-->>VM: Locked 15 minutes
+                VM-->>UI: Hiển thị thời gian bị khóa
+            else FailedLoginCount >= 5
+                Auth->>UserRepo: Set LockoutUntil = now + 5 minutes
+                UserRepo->>DB: UPDATE AppUser
+                DB-->>UserRepo: Success
+                Auth->>AuditRepo: WriteAuditLog(LoginLocked)
+                AuditRepo->>DB: INSERT AuditLog
+                DB-->>AuditRepo: Success
+                Auth-->>VM: Locked 5 minutes
+                VM-->>UI: Hiển thị thời gian bị khóa
+            else Chưa đạt ngưỡng khóa
+                Auth->>AuditRepo: WriteAuditLog(LoginFailed)
+                AuditRepo->>DB: INSERT AuditLog
+                DB-->>AuditRepo: Success
+                Auth-->>VM: Generic failure
+                VM-->>UI: Hiển thị "Sai tài khoản hoặc mật khẩu"
+            end
+        else Đăng nhập thành công
+            Auth->>UserRepo: Reset FailedLoginCount = 0, LockoutUntil = null, update LastLoginAt
+            UserRepo->>DB: UPDATE AppUser
+            DB-->>UserRepo: Success
+
+            alt MustChangePassword = true
+                Auth-->>VM: Require password change
+                VM-->>UI: Chuyển sang màn hình đổi mật khẩu bắt buộc
+            else Đăng nhập bình thường
+                Auth-->>VM: Login success
+                VM-->>UI: Mở màn hình chính
+            end
+        end
+    end
+
