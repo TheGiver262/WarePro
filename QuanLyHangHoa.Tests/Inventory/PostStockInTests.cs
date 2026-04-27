@@ -37,7 +37,7 @@ public class PostStockInTests
     }
 
     [Fact]
-    public void PostStockIn_rejects_purchase_kind_until_purchase_posting_is_implemented()
+    public void PostApprovedPurchase_creates_balance_ledger_and_audit()
     {
         var store = new InMemoryInventoryStore();
         store.Products[10] = new ProductSnapshot(10, false);
@@ -51,14 +51,17 @@ public class PostStockInTests
             SerialNumbers: Array.Empty<string>(),
             PostedByUserId: 7);
 
-        var ex = Assert.Throws<InventoryDomainException>(() => service.PostStockIn(command));
+        service.PostStockIn(command);
 
-        Assert.Equal("Only opening balance stock-in can be posted by this service.", ex.Message);
-        Assert.Empty(store.Balances);
-        Assert.Empty(store.Ledgers);
-        Assert.Empty(store.Audits);
-        Assert.Empty(store.DocumentStatuses);
-        Assert.False(store.WasCommitted);
+        var balance = store.Balances[(10, 1)];
+        Assert.Equal(1, balance.OnHandQuantity);
+        Assert.Equal(1, balance.AvailableQuantity);
+        Assert.Single(store.Ledgers);
+        Assert.Equal(StockLedgerDirection.In, store.Ledgers[0].Direction);
+        Assert.Single(store.Audits);
+        Assert.Equal(AuditActionCode.PostStockIn, store.Audits[0].ActionCode);
+        Assert.Equal(StockDocumentStatus.Posted, store.DocumentStatuses[command.DocumentId]);
+        Assert.True(store.WasCommitted);
     }
 
     [Fact]

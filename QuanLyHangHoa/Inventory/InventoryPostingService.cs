@@ -20,11 +20,6 @@ public sealed class InventoryPostingService
 
     public void PostStockIn(PostStockInCommand command)
     {
-        if (command.Kind != StockInKind.OpeningBalance)
-        {
-            throw new InventoryDomainException("Only opening balance stock-in can be posted by this service.");
-        }
-
         if (command.Status != StockDocumentStatus.Approved)
         {
             throw new InventoryDomainException("Only approved stock-in documents can be posted.");
