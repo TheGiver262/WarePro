@@ -121,8 +121,8 @@ public sealed class InventoryPostingService
             throw new InventoryDomainException("Non-serial products cannot be issued with serial numbers.");
         }
 
-        var balance = _unitOfWork.GetOrCreateBalance(command.ProductId, warehouseId);
-        if (balance.AvailableQuantity < command.Quantity)
+        var balance = _unitOfWork.FindBalance(command.ProductId, warehouseId);
+        if (balance is null || balance.AvailableQuantity < command.Quantity)
         {
             throw new InventoryDomainException("Insufficient available stock.");
         }

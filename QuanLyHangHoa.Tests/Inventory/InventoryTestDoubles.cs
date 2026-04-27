@@ -20,6 +20,13 @@ internal sealed class InMemoryInventoryStore : IInventoryUnitOfWork
             : throw new InventoryDomainException($"Product {productId} does not exist.");
     }
 
+    public StockBalanceSnapshot? FindBalance(int productId, int warehouseId)
+    {
+        return Balances.TryGetValue((productId, warehouseId), out var balance)
+            ? balance
+            : null;
+    }
+
     public StockBalanceSnapshot GetOrCreateBalance(int productId, int warehouseId)
     {
         var key = (productId, warehouseId);

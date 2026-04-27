@@ -5,6 +5,7 @@ namespace QuanLyHangHoa.Inventory;
 public interface IInventoryUnitOfWork
 {
     ProductSnapshot GetProduct(int productId);
+    StockBalanceSnapshot? FindBalance(int productId, int warehouseId);
     StockBalanceSnapshot GetOrCreateBalance(int productId, int warehouseId);
     void SaveBalance(StockBalanceSnapshot balance);
     bool SerialExists(string serialNumber);

@@ -103,4 +103,29 @@ public class PostStockOutTests
         Assert.False(store.DocumentStatuses.ContainsKey(command.DocumentId));
         Assert.False(store.WasCommitted);
     }
+
+    [Fact]
+    public void PostStockOut_with_no_balance_does_not_create_balance_or_commit_changes()
+    {
+        var store = new InMemoryInventoryStore();
+        store.Products[41] = new ProductSnapshot(41, false);
+        var service = new InventoryPostingService(store, new FixedWarehouseProvider(1), new FixedClock(new DateTime(2026, 4, 26, 10, 45, 0)));
+        var command = new PostStockOutCommand(
+            DocumentId: Guid.Parse("99999999-9999-9999-9999-999999999999"),
+            Kind: StockOutKind.Sale,
+            Status: StockDocumentStatus.Approved,
+            ProductId: 41,
+            Quantity: 1,
+            SerialNumbers: Array.Empty<string>(),
+            PostedByUserId: 8);
+
+        var ex = Assert.Throws<InventoryDomainException>(() => service.PostStockOut(command));
+
+        Assert.Equal("Insufficient available stock.", ex.Message);
+        Assert.Empty(store.Balances);
+        Assert.Empty(store.Ledgers);
+        Assert.Empty(store.Audits);
+        Assert.False(store.DocumentStatuses.ContainsKey(command.DocumentId));
+        Assert.False(store.WasCommitted);
+    }
 }
