@@ -42,6 +42,8 @@ public sealed class InventoryPostingService
             .Where(s => s.Length > 0)
             .ToArray();
 
+        EnsureNoDuplicateSerials(serialNumbers);
+
         if (product.IsSerialManaged && serialNumbers.Length != command.Quantity)
         {
             throw new InventoryDomainException("Serial count must match stock-in quantity.");
@@ -50,6 +52,14 @@ public sealed class InventoryPostingService
         if (!product.IsSerialManaged && serialNumbers.Length > 0)
         {
             throw new InventoryDomainException("Non-serial products cannot receive serial numbers.");
+        }
+
+        foreach (var serialNumber in serialNumbers)
+        {
+            if (_unitOfWork.SerialExists(serialNumber))
+            {
+                throw new InventoryDomainException($"Serial {serialNumber} already exists.");
+            }
         }
 
         var balance = _unitOfWork.GetOrCreateBalance(command.ProductId, warehouseId);
@@ -111,6 +121,8 @@ public sealed class InventoryPostingService
             .Where(s => s.Length > 0)
             .ToArray();
 
+        EnsureNoDuplicateSerials(serialNumbers);
+
         if (product.IsSerialManaged && serialNumbers.Length != command.Quantity)
         {
             throw new InventoryDomainException("Serial count must match stock-out quantity.");
@@ -129,7 +141,21 @@ public sealed class InventoryPostingService
 
         foreach (var serialNumber in serialNumbers)
         {
-            _unitOfWork.GetSerial(serialNumber);
+            var serial = _unitOfWork.GetSerial(serialNumber);
+            if (serial.ProductId != command.ProductId)
+            {
+                throw new InventoryDomainException($"Serial {serialNumber} does not belong to product {command.ProductId}.");
+            }
+
+            if (serial.CurrentWarehouseId != warehouseId)
+            {
+                throw new InventoryDomainException($"Serial {serialNumber} is not in the default warehouse.");
+            }
+
+            if (serial.Status != SerialStatus.InStock)
+            {
+                throw new InventoryDomainException($"Serial {serialNumber} is not available.");
+            }
         }
 
         _unitOfWork.SaveBalance(balance with
@@ -165,5 +191,13 @@ public sealed class InventoryPostingService
 
         _unitOfWork.MarkDocumentPosted(command.DocumentId);
         _unitOfWork.Commit();
+    }
+
+    private static void EnsureNoDuplicateSerials(string[] serialNumbers)
+    {
+        if (serialNumbers.Length != serialNumbers.Distinct(System.StringComparer.OrdinalIgnoreCase).Count())
+        {
+            throw new InventoryDomainException("Duplicate serials are not allowed.");
+        }
     }
 }
