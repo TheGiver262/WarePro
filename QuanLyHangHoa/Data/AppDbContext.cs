@@ -6,6 +6,15 @@ namespace QuanLyHangHoa.Data
 {
     public class AppDbContext : DbContext
     {
+        public AppDbContext()
+        {
+        }
+
+        public AppDbContext(DbContextOptions<AppDbContext> options)
+            : base(options)
+        {
+        }
+
         // Reference / Master Tables
         public DbSet<Unit> Units { get; set; }
         public DbSet<Category> Categories { get; set; }
@@ -17,6 +26,10 @@ namespace QuanLyHangHoa.Data
         public DbSet<Employee> Employees { get; set; }
         public DbSet<Product> Products { get; set; }
         public DbSet<ProductSerial> ProductSerials { get; set; }
+        public DbSet<Warehouse> Warehouses { get; set; }
+        public DbSet<StockBalance> StockBalances { get; set; }
+        public DbSet<StockLedger> StockLedgers { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
 
         // Stock In
         public DbSet<StockIn> StockIns { get; set; }
@@ -31,6 +44,11 @@ namespace QuanLyHangHoa.Data
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
+            if (optionsBuilder.IsConfigured)
+            {
+                return;
+            }
+
             string dbPath = System.IO.Path.Combine(
                 System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData),
                 "QuanLyHangHoa_v2.db");
@@ -72,6 +90,12 @@ namespace QuanLyHangHoa.Data
                 .HasForeignKey(ps => ps.StockOutDetailId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            modelBuilder.Entity<ProductSerial>()
+                .HasOne(ps => ps.CurrentWarehouse)
+                .WithMany(w => w.ProductSerials)
+                .HasForeignKey(ps => ps.CurrentWarehouseId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             // ── Warranty ↔ ProductSerial (1-to-1)
             modelBuilder.Entity<Warranty>()
                 .HasOne(w => w.ProductSerial)
@@ -83,6 +107,38 @@ namespace QuanLyHangHoa.Data
             modelBuilder.Entity<ProductSerial>()
                 .HasIndex(ps => ps.SerialNumber)
                 .IsUnique();
+
+            modelBuilder.Entity<Warehouse>()
+                .HasIndex(w => w.Code)
+                .IsUnique();
+
+            modelBuilder.Entity<StockBalance>()
+                .HasIndex(sb => new { sb.ProductId, sb.WarehouseId })
+                .IsUnique();
+
+            modelBuilder.Entity<StockBalance>()
+                .HasOne(sb => sb.Product)
+                .WithMany(p => p.StockBalances)
+                .HasForeignKey(sb => sb.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<StockBalance>()
+                .HasOne(sb => sb.Warehouse)
+                .WithMany(w => w.StockBalances)
+                .HasForeignKey(sb => sb.WarehouseId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<StockLedger>()
+                .HasOne(sl => sl.Product)
+                .WithMany(p => p.StockLedgers)
+                .HasForeignKey(sl => sl.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<StockLedger>()
+                .HasOne(sl => sl.Warehouse)
+                .WithMany()
+                .HasForeignKey(sl => sl.WarehouseId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             // ── StockIn → Employee (restrict)
             modelBuilder.Entity<StockIn>()
@@ -135,6 +191,10 @@ namespace QuanLyHangHoa.Data
             // Customers
             modelBuilder.Entity<Customer>().HasData(
                 new Customer { Id = 1, Name = "Khách lẻ", Address = "", Phone = "" }
+            );
+
+            modelBuilder.Entity<Warehouse>().HasData(
+                new Warehouse { Id = 1, Code = "MAIN", Name = "Main warehouse", IsDefault = true, IsActive = true }
             );
 
             // Employees

@@ -24,10 +24,13 @@ namespace QuanLyHangHoa.Models
         public decimal UnitPrice { get; set; }
         public string Origin { get; set; } = string.Empty;
         public int WarrantyMonths { get; set; }
+        public bool IsSerialManaged { get; set; }
         public string Notes { get; set; } = string.Empty;
 
         public bool IsDeleted { get; set; } = false;
 
         public virtual ICollection<ProductSerial> ProductSerials { get; set; } = new List<ProductSerial>();
+        public virtual ICollection<StockBalance> StockBalances { get; set; } = new List<StockBalance>();
+        public virtual ICollection<StockLedger> StockLedgers { get; set; } = new List<StockLedger>();
     }
 }

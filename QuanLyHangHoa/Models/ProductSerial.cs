@@ -9,6 +9,8 @@ namespace QuanLyHangHoa.Models
         
         // Status: "InStock", "Sold", "Defective"
         public string Status { get; set; } = "InStock";
+        public int? CurrentWarehouseId { get; set; }
+        public virtual Warehouse? CurrentWarehouse { get; set; }
         public bool IsDeleted { get; set; } = false;
 
         public int ProductId { get; set; }
