@@ -32,6 +32,8 @@ namespace QuanLyHangHoa.Data
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<StockAdjustment> StockAdjustments { get; set; }
         public DbSet<StockAdjustmentLine> StockAdjustmentLines { get; set; }
+        public DbSet<StockCountSession> StockCountSessions { get; set; }
+        public DbSet<StockCountLine> StockCountLines { get; set; }
 
         // Stock In
         public DbSet<StockIn> StockIns { get; set; }
@@ -170,6 +172,28 @@ namespace QuanLyHangHoa.Data
                 .WithMany()
                 .HasForeignKey(line => line.ProductSerialId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<StockCountSession>()
+                .HasIndex(session => session.SessionCode)
+                .IsUnique();
+
+            modelBuilder.Entity<StockCountSession>()
+                .HasOne(session => session.Warehouse)
+                .WithMany()
+                .HasForeignKey(session => session.WarehouseId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<StockCountLine>()
+                .HasOne(line => line.StockCountSession)
+                .WithMany(session => session.Lines)
+                .HasForeignKey(line => line.StockCountSessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<StockCountLine>()
+                .HasOne(line => line.Product)
+                .WithMany()
+                .HasForeignKey(line => line.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<StockIn>()
                 .HasOne(s => s.Employee)
