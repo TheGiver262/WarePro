@@ -43,5 +43,6 @@ public enum StockLedgerDirection
 public enum AuditActionCode
 {
     PostStockIn,
-    PostStockOut
+    PostStockOut,
+    PostStockAdjustment
 }

@@ -50,3 +50,17 @@ public sealed record PostStockOutCommand(
     int Quantity,
     IReadOnlyCollection<string> SerialNumbers,
     int PostedByUserId);
+
+public sealed record StockAdjustmentLineCommand(
+    int ProductId,
+    StockLedgerDirection Direction,
+    int Quantity,
+    IReadOnlyCollection<string> SerialNumbers);
+
+public sealed record PostStockAdjustmentCommand(
+    Guid DocumentId,
+    StockDocumentStatus Status,
+    string ReferenceDocumentCode,
+    string Reason,
+    IReadOnlyCollection<StockAdjustmentLineCommand> Lines,
+    int PostedByUserId);
