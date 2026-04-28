@@ -51,6 +51,8 @@ namespace QuanLyHangHoa.Data
 
         // Warranty
         public DbSet<Warranty> Warranties { get; set; }
+        public DbSet<WarrantyCoverage> WarrantyCoverages { get; set; }
+        public DbSet<WarrantyClaim> WarrantyClaims { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -296,6 +298,52 @@ namespace QuanLyHangHoa.Data
                 .HasOne(line => line.StockOutDetail)
                 .WithMany()
                 .HasForeignKey(line => line.StockOutDetailId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<WarrantyCoverage>()
+                .HasOne(coverage => coverage.ProductSerial)
+                .WithMany()
+                .HasForeignKey(coverage => coverage.ProductSerialId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<WarrantyCoverage>()
+                .HasOne(coverage => coverage.Customer)
+                .WithMany()
+                .HasForeignKey(coverage => coverage.CustomerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<WarrantyCoverage>()
+                .HasOne(coverage => coverage.SalesInvoice)
+                .WithMany()
+                .HasForeignKey(coverage => coverage.SalesInvoiceId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<WarrantyClaim>()
+                .HasIndex(claim => claim.ClaimCode)
+                .IsUnique();
+
+            modelBuilder.Entity<WarrantyClaim>()
+                .HasOne(claim => claim.WarrantyCoverage)
+                .WithMany(coverage => coverage.Claims)
+                .HasForeignKey(claim => claim.WarrantyCoverageId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<WarrantyClaim>()
+                .HasOne(claim => claim.ProductSerial)
+                .WithMany()
+                .HasForeignKey(claim => claim.ProductSerialId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<WarrantyClaim>()
+                .HasOne(claim => claim.ReplacementSerial)
+                .WithMany()
+                .HasForeignKey(claim => claim.ReplacementSerialId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<WarrantyClaim>()
+                .HasOne(claim => claim.ReplacementStockOut)
+                .WithMany()
+                .HasForeignKey(claim => claim.ReplacementStockOutId)
                 .OnDelete(DeleteBehavior.SetNull);
 
             // Units
