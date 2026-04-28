@@ -16,7 +16,7 @@ namespace QuanLyHangHoa.Services.DataImport
             var result = new ImportResult<T>();
             var config = new CsvConfiguration(CultureInfo.InvariantCulture)
             {
-                PrepareHeaderForMatch = args => args.Header.ToLower(),
+                PrepareHeaderForMatch = args => args.Header?.ToLowerInvariant() ?? string.Empty,
                 HeaderValidated = null,
                 MissingFieldFound = null,
             };
@@ -43,7 +43,7 @@ namespace QuanLyHangHoa.Services.DataImport
                         result.Errors.Add(new RowError 
                         { 
                             RowNumber = rowNum, 
-                            Data = csv.Context.Parser.RawRecord, 
+                            Data = csv.Context.Parser?.RawRecord ?? string.Empty, 
                             ErrorMessage = $"Lỗi phân tích: {ex.Message}" 
                         });
                     }

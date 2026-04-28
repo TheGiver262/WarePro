@@ -16,7 +16,7 @@ namespace QuanLyHangHoa.ViewModels
 
         public MainViewModel(Employee user)
         {
-            _currentUser = user;
+            CurrentUser = user;
             CurrentView = new ProductView();
         }
 
@@ -26,28 +26,28 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand] 
         private void OpenStockOutView()
         {
-            var view = new StockOutView { DataContext = new StockOutViewModel(_currentUser) };
+            var view = new StockOutView { DataContext = new StockOutViewModel(CurrentUser) };
             CurrentView = view;
         }
 
         [RelayCommand]
         private void OpenStockInView()
         {
-            var view = new StockInView { DataContext = new StockInViewModel(_currentUser) };
+            var view = new StockInView { DataContext = new StockInViewModel(CurrentUser) };
             CurrentView = view;
         }
 
         [RelayCommand]
         private void OpenStockAdjustmentView()
         {
-            var view = new StockAdjustmentView { DataContext = new StockAdjustmentViewModel(_currentUser) };
+            var view = new StockAdjustmentView { DataContext = new StockAdjustmentViewModel(CurrentUser) };
             CurrentView = view;
         }
 
         [RelayCommand]
         private void OpenStockCountView()
         {
-            var view = new StockCountView { DataContext = new StockCountViewModel(_currentUser) };
+            var view = new StockCountView { DataContext = new StockCountViewModel(CurrentUser) };
             CurrentView = view;
         }
 
@@ -75,14 +75,14 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void OpenStockReversalView()
         {
-            var view = new StockReversalView { DataContext = new StockReversalViewModel(_currentUser) };
+            var view = new StockReversalView { DataContext = new StockReversalViewModel(CurrentUser) };
             CurrentView = view;
         }
 
         [RelayCommand]
         private void OpenWarrantyView()
         {
-            var view = new WarrantyView { DataContext = new WarrantyViewModel(_currentUser) };
+            var view = new WarrantyView { DataContext = new WarrantyViewModel(CurrentUser) };
             CurrentView = view;
         }
 
@@ -97,7 +97,7 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void OpenEmployeeView()
         {
-            if (_currentUser.Role == "Admin")
+            if (CurrentUser.Role == "Admin")
                 CurrentView = new EmployeeView();
             else
                 System.Windows.MessageBox.Show("Bạn không phải Admin!", "Cảnh Báo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);

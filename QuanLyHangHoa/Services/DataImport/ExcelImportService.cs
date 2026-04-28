@@ -17,7 +17,13 @@ namespace QuanLyHangHoa.Services.DataImport
             {
                 using var workbook = new XLWorkbook(filePath);
                 var worksheet = workbook.Worksheet(1);
-                var rows = worksheet.RangeUsed().RowsUsed().Skip(1); // Skip header row
+                var usedRange = worksheet.RangeUsed();
+                if (usedRange == null)
+                {
+                    return result;
+                }
+
+                var rows = usedRange.RowsUsed().Skip(1); // Skip header row
                 var headers = worksheet.Row(1).CellsUsed().ToDictionary(c => c.Address.ColumnNumber, c => c.Value.ToString().Trim());
 
                 var properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
