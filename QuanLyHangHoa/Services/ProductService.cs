@@ -1,16 +1,30 @@
 using System.Collections.Generic;
+using System;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
+using QuanLyHangHoa.Inventory;
 using QuanLyHangHoa.Models;
 
 namespace QuanLyHangHoa.Services
 {
     public class ProductService
     {
+        private readonly Func<AppDbContext> _contextFactory;
+
+        public ProductService()
+            : this(() => new AppDbContext())
+        {
+        }
+
+        public ProductService(Func<AppDbContext> contextFactory)
+        {
+            _contextFactory = contextFactory;
+        }
+
         public List<Product> GetAllProducts()
         {
-            using var db = new AppDbContext();
+            using var db = _contextFactory();
             return db.Products
                 .Where(p => !p.IsDeleted)
                 .Include(p => p.Category)
@@ -21,14 +35,14 @@ namespace QuanLyHangHoa.Services
 
         public void AddProduct(Product p)
         {
-            using var db = new AppDbContext();
+            using var db = _contextFactory();
             db.Products.Add(p);
             db.SaveChanges();
         }
 
         public void UpdateProduct(Product updated)
         {
-            using var db = new AppDbContext();
+            using var db = _contextFactory();
             var p = db.Products.Find(updated.Id);
             if (p == null) return;
             p.Name          = updated.Name;
@@ -45,7 +59,7 @@ namespace QuanLyHangHoa.Services
 
         public void DeleteProduct(int id)
         {
-            using var db = new AppDbContext();
+            using var db = _contextFactory();
             var p = db.Products.Find(id);
             if (p == null) return;
             p.IsDeleted = true; // Soft delete
@@ -54,25 +68,48 @@ namespace QuanLyHangHoa.Services
 
         public void AddInitialStock(int productId, List<string> serialNumbers)
         {
-            using var db = new AppDbContext();
+            using var db = _contextFactory();
             var product = db.Products.Find(productId);
             if (product == null) return;
 
-            foreach (var sn in serialNumbers)
-            {
-                // Check if serial already exists
-                if (db.ProductSerials.Any(ps => ps.SerialNumber == sn)) continue;
+            var service = new InventoryPostingService(
+                new EfInventoryUnitOfWork(db),
+                new DbDefaultWarehouseProvider(db),
+                new SystemClock());
 
-                db.ProductSerials.Add(new ProductSerial
-                {
-                    ProductId = productId,
-                    SerialNumber = sn,
-                    Status = "InStock"
-                });
+            service.PostStockIn(new PostStockInCommand(
+                Guid.NewGuid(),
+                StockInKind.OpeningBalance,
+                StockDocumentStatus.Approved,
+                productId,
+                serialNumbers.Count,
+                serialNumbers,
+                PostedByUserId: 1));
+        }
+
+        private sealed class DbDefaultWarehouseProvider : IDefaultWarehouseProvider
+        {
+            private readonly AppDbContext _context;
+
+            public DbDefaultWarehouseProvider(AppDbContext context)
+            {
+                _context = context;
             }
 
-            product.Quantity += serialNumbers.Count;
-            db.SaveChanges();
+            public int GetDefaultWarehouseId()
+            {
+                var warehouseId = _context.Warehouses
+                    .Where(warehouse => warehouse.IsDefault && warehouse.IsActive)
+                    .Select(warehouse => warehouse.Id)
+                    .FirstOrDefault();
+
+                return warehouseId == 0 ? 1 : warehouseId;
+            }
+        }
+
+        private sealed class SystemClock : IClock
+        {
+            public DateTime Now => DateTime.Now;
         }
     }
 }
