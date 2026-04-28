@@ -36,6 +36,7 @@
                         <Button Content="Hóa Đơn" Style="{StaticResource MaterialDesignFlatButton}" Foreground="White" FontSize="16" Height="50" HorizontalContentAlignment="Left" Padding="20,0,0,0" Command="{Binding OpenInvoiceViewCommand}"/>
                         <Button Content="Công Nợ" Style="{StaticResource MaterialDesignFlatButton}" Foreground="White" FontSize="16" Height="50" HorizontalContentAlignment="Left" Padding="20,0,0,0" Command="{Binding OpenDebtReportViewCommand}"/>
                         <Button Content="Audit Kho" Style="{StaticResource MaterialDesignFlatButton}" Foreground="White" FontSize="16" Height="50" HorizontalContentAlignment="Left" Padding="20,0,0,0" Command="{Binding OpenAuditQueryViewCommand}"/>
+                        <Button Content="Đảo Chứng Từ Kho" Style="{StaticResource MaterialDesignFlatButton}" Foreground="White" FontSize="16" Height="50" HorizontalContentAlignment="Left" Padding="20,0,0,0" Command="{Binding OpenStockReversalViewCommand}"/>
                         <Button Content="Bảo Hành" Style="{StaticResource MaterialDesignFlatButton}" Foreground="White" FontSize="16" Height="50" HorizontalContentAlignment="Left" Padding="20,0,0,0" Command="{Binding OpenWarrantyViewCommand}"/>
                         
                         <Separator Background="#55FFFFFF" Margin="20,10,20,10"/>

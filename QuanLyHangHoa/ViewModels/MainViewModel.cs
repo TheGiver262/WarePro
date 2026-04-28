@@ -73,6 +73,13 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        private void OpenStockReversalView()
+        {
+            var view = new StockReversalView { DataContext = new StockReversalViewModel(_currentUser) };
+            CurrentView = view;
+        }
+
+        [RelayCommand]
         private void OpenWarrantyView()
         {
             var view = new WarrantyView { DataContext = new WarrantyViewModel(_currentUser) };
