@@ -65,7 +65,12 @@ namespace QuanLyHangHoa.ViewModels
             CurrentView = view;
         }
 
-        [RelayCommand] private void OpenWarrantyView() => CurrentView = new WarrantyView();
+        [RelayCommand]
+        private void OpenWarrantyView()
+        {
+            var view = new WarrantyView { DataContext = new WarrantyViewModel(_currentUser) };
+            CurrentView = view;
+        }
 
         // ── Reference Data ─────────────────────────────────────────────────────
         [RelayCommand] private void OpenUnitView()     => CurrentView = new UnitView();
