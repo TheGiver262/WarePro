@@ -1,0 +1,95 @@
+<UserControl x:Class="QuanLyHangHoa.Views.StockAdjustmentView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="#111827">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="Dieu chinh ton kho" FontSize="24" FontWeight="Bold" Foreground="White" Margin="0,0,0,20"/>
+
+        <Border Grid.Row="1" Background="#1F2937" CornerRadius="8" Padding="18" Margin="0,0,0,16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.2*"/>
+                    <ColumnDefinition Width="0.8*"/>
+                    <ColumnDefinition Width="1.2*"/>
+                    <ColumnDefinition Width="1.2*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Margin="0,0,14,0">
+                    <TextBlock Text="Ma chung tu" Foreground="White" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding DocumentCode, UpdateSourceTrigger=PropertyChanged}" Background="#374151" Foreground="White" Padding="8"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Margin="0,0,14,0">
+                    <TextBlock Text="Kho" Foreground="White" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding WarehouseId, UpdateSourceTrigger=PropertyChanged}" Background="#374151" Foreground="White" Padding="8"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Margin="0,0,14,0">
+                    <TextBlock Text="Chung tu tham chieu" Foreground="White" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding ReferenceDocumentCode, UpdateSourceTrigger=PropertyChanged}" Background="#374151" Foreground="White" Padding="8"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="3" Margin="0,0,14,0">
+                    <TextBlock Text="Ly do" Foreground="White" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding ReasonCode, UpdateSourceTrigger=PropertyChanged}" Background="#374151" Foreground="White" Padding="8"/>
+                </StackPanel>
+
+                <Button Grid.Column="4" Content="+ Them dong" Command="{Binding AddLineCommand}" Background="#10B981" Foreground="White" Padding="14,9" BorderThickness="0" VerticalAlignment="Bottom"/>
+            </Grid>
+        </Border>
+
+        <DataGrid Grid.Row="2"
+                  ItemsSource="{Binding Lines}"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  Background="#1F2937"
+                  Foreground="Black"
+                  RowBackground="#374151"
+                  AlternatingRowBackground="#1F2937">
+            <DataGrid.Columns>
+                <DataGridTemplateColumn Header="San pham" Width="2*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <ComboBox ItemsSource="{Binding DataContext.AvailableProducts, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                      SelectedItem="{Binding SelectedProduct, UpdateSourceTrigger=PropertyChanged}"
+                                      DisplayMemberPath="Name"
+                                      Foreground="Black"
+                                      MinWidth="220"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Chenhlech (+/-)" Binding="{Binding QuantityDelta, UpdateSourceTrigger=PropertyChanged}" Width="1*"/>
+                <DataGridTextColumn Header="Huong" Binding="{Binding Direction}" IsReadOnly="True" Width="0.8*"/>
+                <DataGridTemplateColumn Header="Xoa" Width="Auto">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Content="X"
+                                    Command="{Binding DataContext.RemoveLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    CommandParameter="{Binding}"
+                                    Background="#EF4444"
+                                    Foreground="White"
+                                    Padding="6,0"
+                                    Margin="5"
+                                    BorderThickness="0"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <Border Grid.Row="3" Background="#1F2937" CornerRadius="8" Padding="16" Margin="0,16,0,0">
+            <DockPanel>
+                <TextBlock Text="So luong duong se nhap tang, so luong am se xuat giam." Foreground="#D1D5DB" VerticalAlignment="Center" DockPanel.Dock="Left"/>
+                <Button Content="Post dieu chinh" Command="{Binding SaveAdjustmentCommand}" Background="#6366F1" Foreground="White" Padding="18,10" FontSize="15" FontWeight="Bold" BorderThickness="0" HorizontalAlignment="Right"/>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>
