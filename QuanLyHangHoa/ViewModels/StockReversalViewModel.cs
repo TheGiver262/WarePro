@@ -42,14 +42,14 @@ namespace QuanLyHangHoa.ViewModels
             if (!Guid.TryParse(DocumentIdText, out var documentId))
             {
                 StatusMessage = "DocumentId khong hop le.";
-                MessageBox.Show(StatusMessage, "Canh bao", MessageBoxButton.OK, MessageBoxImage.Warning);
+                _showMessage(StatusMessage, "Canh bao");
                 return;
             }
 
             if (string.IsNullOrWhiteSpace(Reason))
             {
                 StatusMessage = "Vui long nhap ly do dao chung tu.";
-                MessageBox.Show(StatusMessage, "Canh bao", MessageBoxButton.OK, MessageBoxImage.Warning);
+                _showMessage(StatusMessage, "Canh bao");
                 return;
             }
 
@@ -62,7 +62,7 @@ namespace QuanLyHangHoa.ViewModels
             catch (InventoryDomainException ex)
             {
                 StatusMessage = ex.Message;
-                MessageBox.Show(ex.Message, "Loi dao chung tu", MessageBoxButton.OK, MessageBoxImage.Warning);
+                _showMessage(ex.Message, "Loi dao chung tu");
             }
         }
     }
