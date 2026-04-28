@@ -43,6 +43,12 @@ namespace QuanLyHangHoa.Data
         public DbSet<StockOut> StockOuts { get; set; }
         public DbSet<StockOutDetail> StockOutDetails { get; set; }
 
+        // Invoices
+        public DbSet<PurchaseInvoice> PurchaseInvoices { get; set; }
+        public DbSet<PurchaseInvoiceLine> PurchaseInvoiceLines { get; set; }
+        public DbSet<SalesInvoice> SalesInvoices { get; set; }
+        public DbSet<SalesInvoiceLine> SalesInvoiceLines { get; set; }
+
         // Warranty
         public DbSet<Warranty> Warranties { get; set; }
 
@@ -211,6 +217,86 @@ namespace QuanLyHangHoa.Data
             // ──────────────────────────────────────────────────────────────────
             // SEED DATA
             // ──────────────────────────────────────────────────────────────────
+
+            modelBuilder.Entity<PurchaseInvoice>()
+                .HasIndex(invoice => invoice.InvoiceCode)
+                .IsUnique();
+
+            modelBuilder.Entity<PurchaseInvoice>()
+                .HasOne(invoice => invoice.Supplier)
+                .WithMany()
+                .HasForeignKey(invoice => invoice.SupplierId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<PurchaseInvoice>()
+                .HasOne(invoice => invoice.StockIn)
+                .WithMany()
+                .HasForeignKey(invoice => invoice.StockInId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<PurchaseInvoiceLine>()
+                .HasOne(line => line.PurchaseInvoice)
+                .WithMany(invoice => invoice.Lines)
+                .HasForeignKey(line => line.PurchaseInvoiceId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PurchaseInvoiceLine>()
+                .HasOne(line => line.Product)
+                .WithMany()
+                .HasForeignKey(line => line.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<PurchaseInvoiceLine>()
+                .HasOne(line => line.Unit)
+                .WithMany()
+                .HasForeignKey(line => line.UnitId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<PurchaseInvoiceLine>()
+                .HasOne(line => line.StockInDetail)
+                .WithMany()
+                .HasForeignKey(line => line.StockInDetailId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<SalesInvoice>()
+                .HasIndex(invoice => invoice.InvoiceCode)
+                .IsUnique();
+
+            modelBuilder.Entity<SalesInvoice>()
+                .HasOne(invoice => invoice.Customer)
+                .WithMany()
+                .HasForeignKey(invoice => invoice.CustomerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<SalesInvoice>()
+                .HasOne(invoice => invoice.StockOut)
+                .WithMany()
+                .HasForeignKey(invoice => invoice.StockOutId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<SalesInvoiceLine>()
+                .HasOne(line => line.SalesInvoice)
+                .WithMany(invoice => invoice.Lines)
+                .HasForeignKey(line => line.SalesInvoiceId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<SalesInvoiceLine>()
+                .HasOne(line => line.Product)
+                .WithMany()
+                .HasForeignKey(line => line.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<SalesInvoiceLine>()
+                .HasOne(line => line.Unit)
+                .WithMany()
+                .HasForeignKey(line => line.UnitId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<SalesInvoiceLine>()
+                .HasOne(line => line.StockOutDetail)
+                .WithMany()
+                .HasForeignKey(line => line.StockOutDetailId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             // Units
             modelBuilder.Entity<Unit>().HasData(
