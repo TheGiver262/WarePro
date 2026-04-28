@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
@@ -7,18 +8,79 @@ using QuanLyHangHoa.Models;
 
 namespace QuanLyHangHoa.Services
 {
+    public sealed record StockCountInput(int ProductId, decimal CountedQuantity);
+
     public class StockCountService
     {
         private readonly Func<AppDbContext> _contextFactory;
+        private readonly Func<DateTime> _clock;
 
         public StockCountService()
-            : this(() => new AppDbContext())
+            : this(() => new AppDbContext(), () => DateTime.Now)
         {
         }
 
         public StockCountService(Func<AppDbContext> contextFactory)
+            : this(contextFactory, () => DateTime.Now)
+        {
+        }
+
+        public StockCountService(Func<AppDbContext> contextFactory, Func<DateTime> clock)
         {
             _contextFactory = contextFactory;
+            _clock = clock;
+        }
+
+        public int CreateApprovedSession(
+            string sessionCode,
+            int warehouseId,
+            DateTime countDate,
+            int createdBy,
+            IEnumerable<StockCountInput> inputs)
+        {
+            var inputList = inputs.ToList();
+            if (inputList.Count == 0)
+            {
+                throw new InventoryDomainException("Stock count session must have at least one line.");
+            }
+
+            if (inputList.Any(input => input.CountedQuantity < 0))
+            {
+                throw new InventoryDomainException("Counted quantity cannot be negative.");
+            }
+
+            using var db = _contextFactory();
+            var now = _clock();
+            var session = new StockCountSession
+            {
+                SessionCode = sessionCode,
+                WarehouseId = warehouseId,
+                Status = StockDocumentStatus.Approved.ToString(),
+                CountDate = countDate,
+                CreatedBy = createdBy,
+                ApprovedBy = createdBy,
+                ApprovedAt = now
+            };
+
+            foreach (var input in inputList)
+            {
+                var systemQuantity = db.StockBalances
+                    .Where(balance => balance.ProductId == input.ProductId && balance.WarehouseId == warehouseId)
+                    .Select(balance => (decimal)balance.OnHandQuantity)
+                    .SingleOrDefault();
+
+                session.Lines.Add(new StockCountLine
+                {
+                    ProductId = input.ProductId,
+                    SystemQuantity = systemQuantity,
+                    CountedQuantity = input.CountedQuantity,
+                    DifferenceQuantity = input.CountedQuantity - systemQuantity
+                });
+            }
+
+            db.StockCountSessions.Add(session);
+            db.SaveChanges();
+            return session.Id;
         }
 
         public int CreateAdjustmentForDifferences(int sessionId, int createdBy)

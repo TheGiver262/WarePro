@@ -45,6 +45,13 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        private void OpenStockCountView()
+        {
+            var view = new StockCountView { DataContext = new StockCountViewModel(_currentUser) };
+            CurrentView = view;
+        }
+
+        [RelayCommand]
         private void OpenInvoiceView()
         {
             var view = new InvoiceView { DataContext = new InvoiceViewModel() };
