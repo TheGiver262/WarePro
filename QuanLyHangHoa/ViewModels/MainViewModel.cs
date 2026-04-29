@@ -59,6 +59,13 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        private void OpenInvoicePaymentView()
+        {
+            var view = new InvoicePaymentView { DataContext = new InvoicePaymentViewModel(CurrentUser) };
+            CurrentView = view;
+        }
+
+        [RelayCommand]
         private void OpenDebtReportView()
         {
             var view = new DebtReportView { DataContext = new DebtReportViewModel() };

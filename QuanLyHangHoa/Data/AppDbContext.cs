@@ -48,6 +48,7 @@ namespace QuanLyHangHoa.Data
         public DbSet<PurchaseInvoiceLine> PurchaseInvoiceLines { get; set; }
         public DbSet<SalesInvoice> SalesInvoices { get; set; }
         public DbSet<SalesInvoiceLine> SalesInvoiceLines { get; set; }
+        public DbSet<InvoicePayment> InvoicePayments { get; set; }
 
         // Warranty
         public DbSet<Warranty> Warranties { get; set; }
@@ -299,6 +300,18 @@ namespace QuanLyHangHoa.Data
                 .WithMany()
                 .HasForeignKey(line => line.StockOutDetailId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<InvoicePayment>()
+                .HasOne(payment => payment.SalesInvoice)
+                .WithMany()
+                .HasForeignKey(payment => payment.SalesInvoiceId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<InvoicePayment>()
+                .HasOne(payment => payment.PurchaseInvoice)
+                .WithMany()
+                .HasForeignKey(payment => payment.PurchaseInvoiceId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<WarrantyCoverage>()
                 .HasOne(coverage => coverage.ProductSerial)
