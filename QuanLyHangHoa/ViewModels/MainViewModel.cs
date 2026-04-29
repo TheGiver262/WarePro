@@ -105,7 +105,7 @@ namespace QuanLyHangHoa.ViewModels
         private void OpenEmployeeView()
         {
             if (CurrentUser.Role == "Admin")
-                CurrentView = new EmployeeView();
+                CurrentView = new EmployeeView { DataContext = new EmployeeViewModel(CurrentUser) };
             else
                 System.Windows.MessageBox.Show("Bạn không phải Admin!", "Cảnh Báo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
         }

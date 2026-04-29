@@ -14,6 +14,7 @@ namespace QuanLyHangHoa.ViewModels
     {
         private readonly EmployeeService _employeeService;
         private readonly DataImportManager _importManager = new();
+        private readonly Employee? _currentUser;
 
         // Bảng dữ liệu người lao động hiển thị trực tiếp lên DataGrid WPF
         [ObservableProperty]
@@ -28,7 +29,13 @@ namespace QuanLyHangHoa.ViewModels
         private Employee _currentInputEmployee;
 
         public EmployeeViewModel()
+            : this(null)
         {
+        }
+
+        public EmployeeViewModel(Employee? currentUser)
+        {
+            _currentUser = currentUser;
             _employeeService = new EmployeeService();
             CurrentInputEmployee = new Employee();
             LoadData();
@@ -61,11 +68,11 @@ namespace QuanLyHangHoa.ViewModels
             // Dấu hiệu ID=0 nghĩa là tài khoản MỚI. Khác 0 nghĩa là đang CẬP NHẬT 
             if (CurrentInputEmployee.Id == 0)
             {
-                _employeeService.AddEmployee(CurrentInputEmployee);
+                _employeeService.AddEmployee(CurrentInputEmployee, _currentUser?.Id);
             }
             else
             {
-                _employeeService.UpdateEmployee(CurrentInputEmployee);
+                _employeeService.UpdateEmployee(CurrentInputEmployee, _currentUser?.Id);
             }
 
             LoadData(); // Re render mượt mà
@@ -85,7 +92,7 @@ namespace QuanLyHangHoa.ViewModels
                     return;
                 }
 
-                _employeeService.DeleteEmployee(SelectedEmployee.Id);
+                _employeeService.DeleteEmployee(SelectedEmployee.Id, _currentUser?.Id);
                 LoadData();
                 ClearInput();
             }

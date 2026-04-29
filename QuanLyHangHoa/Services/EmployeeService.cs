@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using QuanLyHangHoa.Data;
@@ -5,73 +6,112 @@ using QuanLyHangHoa.Models;
 
 namespace QuanLyHangHoa.Services
 {
-    // Dịch vụ quản lý thông tin Nhân sự / Tài khoản đăng nhập
     public class EmployeeService
     {
-        // Lấy danh sách toàn bộ nhân viên/tài khoản
+        private readonly Func<AppDbContext> _contextFactory;
+        private readonly Func<DateTime> _clock;
+
+        public EmployeeService()
+            : this(() => new AppDbContext(), () => DateTime.Now)
+        {
+        }
+
+        public EmployeeService(Func<AppDbContext> contextFactory, Func<DateTime> clock)
+        {
+            _contextFactory = contextFactory;
+            _clock = clock;
+        }
+
         public List<Employee> GetAllEmployees()
         {
-            using (var db = new AppDbContext())
-            {
-                return db.Employees.ToList();
-            }
+            using var db = _contextFactory();
+            return db.Employees.ToList();
         }
 
-        // Tạo tài khoản mới, phân quyền chức vụ
         public void AddEmployee(Employee emp)
         {
-            using (var db = new AppDbContext())
-            {
-                // Mặc định gán mật khẩu an toàn theo Username để hệ thống demo chạy dễ dàng
-                if (string.IsNullOrWhiteSpace(emp.PasswordHash))
-                {
-                    emp.PasswordHash = emp.Username; 
-                }
-                
-                db.Employees.Add(emp);
-                db.SaveChanges(); // Lệnh này giúp đẩy tài khoản lên server để họ đăng nhập
-            }
+            AddEmployee(emp, performedByUserId: null);
         }
 
-        // Cập nhật thông tin nhân viên hoặc đổi mật khẩu/quyền nếu Admin muốn
+        public void AddEmployee(Employee emp, int? performedByUserId)
+        {
+            using var db = _contextFactory();
+            if (string.IsNullOrWhiteSpace(emp.PasswordHash))
+            {
+                emp.PasswordHash = emp.Username;
+            }
+
+            db.Employees.Add(emp);
+            AddAuditIfNeeded(db, "CreateEmployee", performedByUserId);
+            db.SaveChanges();
+        }
+
         public void UpdateEmployee(Employee updatedEmp)
         {
-            using (var db = new AppDbContext())
-            {
-                var p = db.Employees.Find(updatedEmp.Id);
-                if (p != null)
-                {
-                    p.FullName = updatedEmp.FullName;
-                    p.DateOfBirth = updatedEmp.DateOfBirth;
-                    p.Position = updatedEmp.Position;
-                    p.Role = updatedEmp.Role;
-                    // Không cần đổi Mật khẩu nếu ô này trống, chỉ đổi nếu chủ đích cấp mật khẩu mới
-                    if (!string.IsNullOrWhiteSpace(updatedEmp.PasswordHash))
-                    {
-                        p.PasswordHash = updatedEmp.PasswordHash;
-                        p.Username = updatedEmp.Username;
-                    }
-
-                    db.SaveChanges();
-                }
-            }
+            UpdateEmployee(updatedEmp, performedByUserId: null);
         }
 
-        // Sa thải nhân viên / Khoá tài khoản
+        public void UpdateEmployee(Employee updatedEmp, int? performedByUserId)
+        {
+            using var db = _contextFactory();
+            var employee = db.Employees.Find(updatedEmp.Id);
+            if (employee == null)
+            {
+                return;
+            }
+
+            employee.FullName = updatedEmp.FullName;
+            employee.DateOfBirth = updatedEmp.DateOfBirth;
+            employee.Position = updatedEmp.Position;
+            employee.Role = updatedEmp.Role;
+            if (!string.IsNullOrWhiteSpace(updatedEmp.PasswordHash))
+            {
+                employee.PasswordHash = updatedEmp.PasswordHash;
+                employee.Username = updatedEmp.Username;
+            }
+
+            AddAuditIfNeeded(db, "UpdateEmployee", performedByUserId);
+            db.SaveChanges();
+        }
+
         public void DeleteEmployee(int id)
         {
-            using (var db = new AppDbContext())
-            {
-                // Tuyệt đối không xóa tài khoản Admin cao cấp nhất tránh hệ thống vô chủ
-                if (id == 1) return; 
+            DeleteEmployee(id, performedByUserId: null);
+        }
 
-                var emp = db.Employees.Find(id);
-                if (emp != null)
-                {
-                    db.Employees.Remove(emp);
-                    db.SaveChanges();
-                }
+        public void DeleteEmployee(int id, int? performedByUserId)
+        {
+            if (id == 1)
+            {
+                return;
             }
+
+            using var db = _contextFactory();
+            var employee = db.Employees.Find(id);
+            if (employee == null)
+            {
+                return;
+            }
+
+            db.Employees.Remove(employee);
+            AddAuditIfNeeded(db, "DeleteEmployee", performedByUserId);
+            db.SaveChanges();
+        }
+
+        private void AddAuditIfNeeded(AppDbContext db, string actionCode, int? performedByUserId)
+        {
+            if (!performedByUserId.HasValue)
+            {
+                return;
+            }
+
+            db.AuditLogs.Add(new AuditLog
+            {
+                DocumentId = Guid.NewGuid(),
+                ActionCode = actionCode,
+                PerformedAt = _clock(),
+                PerformedByUserId = performedByUserId.Value
+            });
         }
     }
 }
