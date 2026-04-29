@@ -13,5 +13,6 @@ namespace QuanLyHangHoa.Models
         public bool IsDeleted { get; set; } = false;
         
         public virtual ICollection<Product> Products { get; set; } = new List<Product>();
+        public virtual ICollection<ProductUnit> ProductUnits { get; set; } = new List<ProductUnit>();
     }
 }

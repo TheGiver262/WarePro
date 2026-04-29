@@ -45,6 +45,7 @@
                         <Button Content="Danh Mục" Style="{StaticResource MaterialDesignFlatButton}" Foreground="#9CA3AF" FontSize="14" Height="40" HorizontalContentAlignment="Left" Padding="30,0,0,0" Command="{Binding OpenCategoryViewCommand}"/>
                         <Button Content="Thương Hiệu" Style="{StaticResource MaterialDesignFlatButton}" Foreground="#9CA3AF" FontSize="14" Height="40" HorizontalContentAlignment="Left" Padding="30,0,0,0" Command="{Binding OpenBrandViewCommand}"/>
                         <Button Content="Đơn Vị Tính" Style="{StaticResource MaterialDesignFlatButton}" Foreground="#9CA3AF" FontSize="14" Height="40" HorizontalContentAlignment="Left" Padding="30,0,0,0" Command="{Binding OpenUnitViewCommand}"/>
+                        <Button Content="Đơn Vị Sản Phẩm" Style="{StaticResource MaterialDesignFlatButton}" Foreground="#9CA3AF" FontSize="14" Height="40" HorizontalContentAlignment="Left" Padding="30,0,0,0" Command="{Binding OpenProductUnitViewCommand}"/>
                         <Button Content="Nhà Cung Cấp" Style="{StaticResource MaterialDesignFlatButton}" Foreground="#9CA3AF" FontSize="14" Height="40" HorizontalContentAlignment="Left" Padding="30,0,0,0" Command="{Binding OpenSupplierViewCommand}"/>
                         <Button Content="Khách Hàng" Style="{StaticResource MaterialDesignFlatButton}" Foreground="#9CA3AF" FontSize="14" Height="40" HorizontalContentAlignment="Left" Padding="30,0,0,0" Command="{Binding OpenCustomerViewCommand}"/>
 

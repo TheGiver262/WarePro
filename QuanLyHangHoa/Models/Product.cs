@@ -32,5 +32,6 @@ namespace QuanLyHangHoa.Models
         public virtual ICollection<ProductSerial> ProductSerials { get; set; } = new List<ProductSerial>();
         public virtual ICollection<StockBalance> StockBalances { get; set; } = new List<StockBalance>();
         public virtual ICollection<StockLedger> StockLedgers { get; set; } = new List<StockLedger>();
+        public virtual ICollection<ProductUnit> ProductUnits { get; set; } = new List<ProductUnit>();
     }
 }

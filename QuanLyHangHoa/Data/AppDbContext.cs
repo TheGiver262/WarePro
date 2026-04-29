@@ -25,6 +25,7 @@ namespace QuanLyHangHoa.Data
         // Core
         public DbSet<Employee> Employees { get; set; }
         public DbSet<Product> Products { get; set; }
+        public DbSet<ProductUnit> ProductUnits { get; set; }
         public DbSet<ProductSerial> ProductSerials { get; set; }
         public DbSet<Warehouse> Warehouses { get; set; }
         public DbSet<StockBalance> StockBalances { get; set; }
@@ -87,6 +88,22 @@ namespace QuanLyHangHoa.Data
                 .HasOne(p => p.Unit)
                 .WithMany(u => u.Products)
                 .HasForeignKey(p => p.UnitId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ProductUnit>()
+                .HasIndex(productUnit => new { productUnit.ProductId, productUnit.UnitId })
+                .IsUnique();
+
+            modelBuilder.Entity<ProductUnit>()
+                .HasOne(productUnit => productUnit.Product)
+                .WithMany(product => product.ProductUnits)
+                .HasForeignKey(productUnit => productUnit.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ProductUnit>()
+                .HasOne(productUnit => productUnit.Unit)
+                .WithMany(unit => unit.ProductUnits)
+                .HasForeignKey(productUnit => productUnit.UnitId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // ── ProductSerial → StockInDetail (nullable)
