@@ -38,6 +38,12 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        private void OpenOpeningBalanceImportView()
+        {
+            CurrentView = new OpeningBalanceImportView(CurrentUser.Id);
+        }
+
+        [RelayCommand]
         private void OpenStockAdjustmentView()
         {
             var view = new StockAdjustmentView { DataContext = new StockAdjustmentViewModel(CurrentUser) };
