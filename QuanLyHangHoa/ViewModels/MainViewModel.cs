@@ -95,6 +95,13 @@ namespace QuanLyHangHoa.ViewModels
 
         // ── Administration ─────────────────────────────────────────────────────
         [RelayCommand]
+        private void OpenChangePasswordView()
+        {
+            var view = new ChangePasswordView { DataContext = new ChangePasswordViewModel(CurrentUser) };
+            CurrentView = view;
+        }
+
+        [RelayCommand]
         private void OpenEmployeeView()
         {
             if (CurrentUser.Role == "Admin")
