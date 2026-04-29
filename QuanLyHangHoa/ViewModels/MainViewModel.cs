@@ -96,6 +96,7 @@ namespace QuanLyHangHoa.ViewModels
         // ── Reference Data ─────────────────────────────────────────────────────
         [RelayCommand] private void OpenUnitView()     => CurrentView = new UnitView();
         [RelayCommand] private void OpenProductUnitView() => CurrentView = new ProductUnitView();
+        [RelayCommand] private void OpenProductSerialView() => CurrentView = new ProductSerialView();
         [RelayCommand] private void OpenCategoryView() => CurrentView = new CategoryView();
         [RelayCommand] private void OpenBrandView()    => CurrentView = new BrandView();
         [RelayCommand] private void OpenSupplierView() => CurrentView = new SupplierView();
