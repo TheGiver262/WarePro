@@ -26,39 +26,48 @@ namespace QuanLyHangHoa.ViewModels
         private readonly AuthenticationService _authService;
 
         // Constructor khởi tạo AuthenticationService
+        private readonly Data.AppDbContext _dbContext;
         public LoginViewModel()
         {
-            _authService = new AuthenticationService();
+            _dbContext = new Data.AppDbContext();
+            _authService = new AuthenticationService(_dbContext);
         }
 
-        // Lệnh (Command) Đăng nhập được gọi khi người dùng ấn nút Login
         [RelayCommand]
         private void Login(Window currentWindow)
         {
-            // Kiểm tra rỗng
             if (string.IsNullOrWhiteSpace(Username) || string.IsNullOrWhiteSpace(Password))
             {
                 ErrorMessage = "Vui lòng nhập tên tài khoản và mật khẩu!";
                 return;
             }
 
-            // Gọi logic xác thực tới DB
-            var currentUser = _authService.Authenticate(Username, Password);
+            var result = _authService.Authenticate(Username, Password);
 
-            if (currentUser != null)
+            switch (result.Status)
             {
-                // Đăng nhập thành công, mở cửa sổ MainWindow
-                // Cửa sổ mới sẽ được cấp kèm theo currentUser để biết ai đang login
-                MainWindow main = new MainWindow(currentUser);
-                main.Show();
+                case LoginStatus.Success:
+                    if (result.User != null)
+                    {
+                        MainWindow main = new MainWindow(result.User, _dbContext);
+                        main.Show();
+                        currentWindow?.Close();
+                    }
+                    break;
 
-                // Đóng cửa sổ Login hiện tại
-                currentWindow?.Close();
-            }
-            else
-            {
-                // Thất bại
-                ErrorMessage = "Tên tài khoản hoặc mật khẩu không đúng!";
+                case LoginStatus.LockedOut:
+                    var localTime = result.LockoutUntil?.ToLocalTime().ToString("HH:mm:ss") ?? "n/a";
+                    ErrorMessage = $"Tài khoản bị khóa tạm thời đến {localTime} do nhập sai nhiều lần.";
+                    break;
+
+                case LoginStatus.Inactive:
+                    ErrorMessage = "Tài khoản bị vô hiệu hóa do vi phạm bảo mật. Vui lòng liên hệ Admin.";
+                    break;
+
+                case LoginStatus.InvalidCredentials:
+                default:
+                    ErrorMessage = "Tên tài khoản hoặc mật khẩu không đúng!";
+                    break;
             }
         }
     }

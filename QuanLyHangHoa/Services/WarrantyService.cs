@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
@@ -8,51 +9,88 @@ namespace QuanLyHangHoa.Services
 {
     public class WarrantyService
     {
-        public List<Warranty> GetAll()
+        private readonly Func<AppDbContext> _contextFactory;
+
+        public WarrantyService() : this(() => new AppDbContext()) { }
+        public WarrantyService(Func<AppDbContext> contextFactory)
         {
-            using var db = new AppDbContext();
-            return db.Warranties
-                .Where(w => !w.IsDeleted)
-                .Include(w => w.ProductSerial)
-                    .ThenInclude(ps => ps!.Product)
+            _contextFactory = contextFactory;
+        }
+
+        // --- Warranty Coverage (Policy/Period) ---
+
+        public List<WarrantyCoverage> GetAllCoverages()
+        {
+            using var db = _contextFactory();
+            return db.WarrantyCoverages
+                .Include(c => c.ProductSerial)
+                    .ThenInclude(s => s!.Product)
                 .ToList();
         }
 
-        public void Add(Warranty w)
+        public void AddCoverage(WarrantyCoverage coverage)
         {
-            using var db = new AppDbContext();
-            db.Warranties.Add(w);
+            using var db = _contextFactory();
+            db.WarrantyCoverages.Add(coverage);
             db.SaveChanges();
         }
 
-        public void Update(Warranty updated)
+        // --- Warranty Claims (Requests) ---
+
+        public List<WarrantyClaim> GetAllClaims()
         {
-            using var db = new AppDbContext();
-            var w = db.Warranties.Find(updated.Id);
-            if (w == null) return;
-            w.StartDate = updated.StartDate;
-            w.EndDate   = updated.EndDate;
-            w.Status    = updated.Status;
-            w.ImageUrl  = updated.ImageUrl;
+            using var db = _contextFactory();
+            return db.WarrantyClaims
+                .Include(c => c.ProductSerial)
+                    .ThenInclude(s => s!.Product)
+                .Include(c => c.WarrantyCoverage)
+                .ToList();
+        }
+
+        public void AddClaim(WarrantyClaim claim, int performedByUserId)
+        {
+            using var db = _contextFactory();
+            claim.ProcessedBy = performedByUserId;
+            claim.ReceivedDate = DateTime.UtcNow;
+            claim.Status = "Pending";
+
+            db.WarrantyClaims.Add(claim);
+            db.SaveChanges();
+
+            AddAudit(db, "WarrantyClaim", claim.Id, "Create", performedByUserId);
             db.SaveChanges();
         }
 
-        public void SoftDelete(int id)
+        public void UpdateClaimStatus(int claimId, string status, string? resolution, int performedByUserId)
         {
-            using var db = new AppDbContext();
-            var w = db.Warranties.Find(id);
-            if (w == null) return;
-            w.IsDeleted = true;
+            using var db = _contextFactory();
+            var claim = db.WarrantyClaims.Find(claimId);
+            if (claim == null) return;
+
+            claim.Status = status;
+            claim.ProcessingNote = resolution;
+            
+            if (status == "Completed" || status == "Rejected")
+            {
+                claim.ClosedDate = DateTime.UtcNow;
+                claim.ApprovedBy = performedByUserId;
+            }
+
+            db.SaveChanges();
+            AddAudit(db, "WarrantyClaim", claimId, $"StatusUpdate:{status}", performedByUserId);
             db.SaveChanges();
         }
 
-        public Warranty? GetBySerial(string serialNumber)
+        private void AddAudit(AppDbContext db, string entityName, int entityId, string action, int performedByUserId)
         {
-            using var db = new AppDbContext();
-            return db.Warranties
-                .Include(w => w.ProductSerial)
-                    .ThenInclude(ps => ps!.Product)
-                .FirstOrDefault(w => w.ProductSerial != null && w.ProductSerial.SerialNumber == serialNumber && !w.IsDeleted);
+            db.AuditLogs.Add(new AuditLog
+            {
+                EntityName = entityName,
+                EntityId = entityId,
+                ActionCode = action,
+                PerformedBy = performedByUserId,
+                PerformedAt = DateTime.UtcNow
+            });
         }
     }
 }

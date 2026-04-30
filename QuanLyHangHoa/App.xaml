@@ -11,6 +11,25 @@
                 <ResourceDictionary Source="pack://application:,,,/MaterialDesignColors;component/Themes/Recommended/Primary/MaterialDesignColor.DeepPurple.xaml" />
                 <ResourceDictionary Source="pack://application:,,,/MaterialDesignColors;component/Themes/Recommended/Accent/MaterialDesignColor.Indigo.xaml" />
             </ResourceDictionary.MergedDictionaries>
+
+            <!-- Custom Palette inspired by user's reference -->
+            <Color x:Key="SidebarBgColor">#3B1A6B</Color>
+            <Color x:Key="SidebarDarkColor">#2D1155</Color>
+            <Color x:Key="SidebarActiveColor">#7B3FB5</Color>
+            <Color x:Key="BodyBgColor">#F4F0FB</Color>
+            
+            <SolidColorBrush x:Key="SidebarBgBrush" Color="{StaticResource SidebarBgColor}" />
+            <SolidColorBrush x:Key="SidebarDarkBrush" Color="{StaticResource SidebarDarkColor}" />
+            <SolidColorBrush x:Key="SidebarActiveBrush" Color="{StaticResource SidebarActiveColor}" />
+            <SolidColorBrush x:Key="BodyBgBrush" Color="{StaticResource BodyBgColor}" />
+
+            <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+
+            <!-- Style for Centered DataGrid Columns -->
+            <Style x:Key="MaterialDesignDataGridTextColumnCenterElementStyle" TargetType="TextBlock" BasedOn="{StaticResource MaterialDesignDataGridTextColumnStyle}">
+                <Setter Property="HorizontalAlignment" Value="Center" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+            </Style>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

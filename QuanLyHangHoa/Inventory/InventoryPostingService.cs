@@ -1,4 +1,6 @@
 using System.Linq;
+using System;
+using System.Collections.Generic;
 
 namespace QuanLyHangHoa.Inventory;
 
@@ -20,9 +22,10 @@ public sealed class InventoryPostingService
 
     public void PostStockIn(PostStockInCommand command)
     {
-        if (command.Status != StockDocumentStatus.Approved)
+        // Allow Approved or Posted for transitionary states
+        if (command.Status != StockDocumentStatus.Approved && command.Status != StockDocumentStatus.Posted)
         {
-            throw new InventoryDomainException("Only approved stock-in documents can be posted.");
+            throw new InventoryDomainException("Only approved or ready-to-post stock-in documents can be posted.");
         }
 
         if (command.Quantity <= 0)
@@ -30,7 +33,7 @@ public sealed class InventoryPostingService
             throw new InventoryDomainException("Stock-in quantity must be greater than zero.");
         }
 
-        var warehouseId = _warehouseProvider.GetDefaultWarehouseId();
+        var warehouseId = command.WarehouseId;
         var product = _unitOfWork.GetProduct(command.ProductId);
         var serialNumbers = command.SerialNumbers
             .Select(s => s.Trim())
@@ -39,12 +42,12 @@ public sealed class InventoryPostingService
 
         EnsureNoDuplicateSerials(serialNumbers);
 
-        if (product.IsSerialManaged && serialNumbers.Length != command.Quantity)
+        if (product.IsSerialTracked && serialNumbers.Length != command.Quantity)
         {
             throw new InventoryDomainException("Serial count must match stock-in quantity.");
         }
 
-        if (!product.IsSerialManaged && serialNumbers.Length > 0)
+        if (!product.IsSerialTracked && serialNumbers.Length > 0)
         {
             throw new InventoryDomainException("Non-serial products cannot receive serial numbers.");
         }
@@ -60,8 +63,8 @@ public sealed class InventoryPostingService
         var balance = _unitOfWork.GetOrCreateBalance(command.ProductId, warehouseId);
         _unitOfWork.SaveBalance(balance with
         {
-            OnHandQuantity = balance.OnHandQuantity + command.Quantity,
-            AvailableQuantity = balance.AvailableQuantity + command.Quantity
+            OnHandQuantity = balance.OnHandQuantity + (int)command.Quantity,
+            AvailableQuantity = balance.AvailableQuantity + (int)command.Quantity
         });
 
         foreach (var serialNumber in serialNumbers)
@@ -78,7 +81,7 @@ public sealed class InventoryPostingService
             command.ProductId,
             warehouseId,
             StockLedgerDirection.In,
-            command.Quantity,
+            (int)command.Quantity,
             _clock.Now,
             command.PostedByUserId));
 
@@ -88,6 +91,8 @@ public sealed class InventoryPostingService
             _clock.Now,
             command.PostedByUserId));
 
+        // Note: Marking document posted should ideally be handled by the caller or a higher-level orchestration
+        // but we keep it here for now as part of the atomic posting action.
         _unitOfWork.MarkDocumentPosted(command.DocumentId);
         _unitOfWork.Commit();
     }
@@ -99,9 +104,9 @@ public sealed class InventoryPostingService
             throw new InventoryDomainException("Only sale stock-out can be posted by this service.");
         }
 
-        if (command.Status != StockDocumentStatus.Approved)
+        if (command.Status != StockDocumentStatus.Approved && command.Status != StockDocumentStatus.Posted)
         {
-            throw new InventoryDomainException("Only approved stock-out documents can be posted.");
+            throw new InventoryDomainException("Only approved or ready-to-post stock-out documents can be posted.");
         }
 
         if (command.Quantity <= 0)
@@ -109,7 +114,7 @@ public sealed class InventoryPostingService
             throw new InventoryDomainException("Stock-out quantity must be greater than zero.");
         }
 
-        var warehouseId = _warehouseProvider.GetDefaultWarehouseId();
+        var warehouseId = command.WarehouseId;
         var product = _unitOfWork.GetProduct(command.ProductId);
         var serialNumbers = command.SerialNumbers
             .Select(s => s.Trim())
@@ -118,12 +123,12 @@ public sealed class InventoryPostingService
 
         EnsureNoDuplicateSerials(serialNumbers);
 
-        if (product.IsSerialManaged && serialNumbers.Length != command.Quantity)
+        if (product.IsSerialTracked && serialNumbers.Length != command.Quantity)
         {
             throw new InventoryDomainException("Serial count must match stock-out quantity.");
         }
 
-        if (!product.IsSerialManaged && serialNumbers.Length > 0)
+        if (!product.IsSerialTracked && serialNumbers.Length > 0)
         {
             throw new InventoryDomainException("Non-serial products cannot be issued with serial numbers.");
         }
@@ -144,7 +149,7 @@ public sealed class InventoryPostingService
 
             if (serial.CurrentWarehouseId != warehouseId)
             {
-                throw new InventoryDomainException($"Serial {serialNumber} is not in the default warehouse.");
+                throw new InventoryDomainException($"Serial {serialNumber} is not in the specified warehouse.");
             }
 
             if (serial.Status != SerialStatus.InStock)
@@ -155,8 +160,8 @@ public sealed class InventoryPostingService
 
         _unitOfWork.SaveBalance(balance with
         {
-            OnHandQuantity = balance.OnHandQuantity - command.Quantity,
-            AvailableQuantity = balance.AvailableQuantity - command.Quantity
+            OnHandQuantity = balance.OnHandQuantity - (int)command.Quantity,
+            AvailableQuantity = balance.AvailableQuantity - (int)command.Quantity
         });
 
         foreach (var serialNumber in serialNumbers)
@@ -174,7 +179,7 @@ public sealed class InventoryPostingService
             command.ProductId,
             warehouseId,
             StockLedgerDirection.Out,
-            command.Quantity,
+            (int)command.Quantity,
             _clock.Now,
             command.PostedByUserId));
 

@@ -1,71 +1,77 @@
-using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
-using QuanLyHangHoa.Services.DataImport;
-using QuanLyHangHoa.Views;
 
 namespace QuanLyHangHoa.ViewModels
 {
     public partial class CategoryViewModel : ObservableObject
     {
-        private readonly ReferenceDataService _svc = new();
-        private readonly DataImportManager _importManager = new();
+        private readonly ReferenceDataService _service;
 
         [ObservableProperty] private ObservableCollection<Category> _categories = new();
         [ObservableProperty] private Category? _selectedCategory;
-        [ObservableProperty] private string _editName = string.Empty;
-        [ObservableProperty] private string _statusMessage = string.Empty;
+        [ObservableProperty] private string _categoryCode = string.Empty;
+        [ObservableProperty] private string _displayName = string.Empty;
 
-        public CategoryViewModel() => LoadData();
-        private void LoadData() => Categories = new ObservableCollection<Category>(_svc.GetAllCategories());
+        public CategoryViewModel()
+        {
+            _service = new ReferenceDataService();
+            LoadData();
+        }
+
+        private void LoadData()
+        {
+            Categories = new ObservableCollection<Category>(_service.GetAllCategories());
+        }
 
         [RelayCommand]
-        private void Add()
+        private void Save()
         {
-            if (string.IsNullOrWhiteSpace(EditName)) { StatusMessage = "Tên không được trống!"; return; }
-            _svc.AddCategory(new Category { Name = EditName.Trim() });
-            EditName = string.Empty; LoadData(); StatusMessage = "Thêm thành công.";
+            if (string.IsNullOrWhiteSpace(DisplayName) || string.IsNullOrWhiteSpace(CategoryCode)) return;
+
+            if (SelectedCategory == null)
+            {
+                var c = new Category { CategoryCode = CategoryCode, DisplayName = DisplayName, IsActive = true };
+                _service.AddCategory(c);
+            }
+            else
+            {
+                SelectedCategory.CategoryCode = CategoryCode;
+                SelectedCategory.DisplayName = DisplayName;
+                _service.UpdateCategory(SelectedCategory);
+            }
+            LoadData();
+            Clear();
         }
-        [RelayCommand]
-        private void SaveEdit()
-        {
-            if (SelectedCategory == null) { StatusMessage = "Chưa chọn mục!"; return; }
-            SelectedCategory.Name = EditName.Trim(); _svc.UpdateCategory(SelectedCategory); LoadData(); StatusMessage = "Cập nhật thành công.";
-        }
+
         [RelayCommand]
         private void Delete()
         {
-            if (SelectedCategory == null) { StatusMessage = "Chưa chọn mục!"; return; }
-            _svc.DeleteCategory(SelectedCategory.Id); LoadData(); StatusMessage = "Đã xoá.";
-        }
-
-        [RelayCommand]
-        private void ImportData()
-        {
-            var dialog = new Microsoft.Win32.OpenFileDialog
+            if (SelectedCategory != null)
             {
-                Filter = "Excel Files|*.xlsx;*.xls|CSV Files|*.csv|All Files|*.*"
-            };
-
-            if (dialog.ShowDialog() == true)
-            {
-                try
-                {
-                    var result = _importManager.ProcessFile<Category>(dialog.FileName);
-                    LoadData();
-                    var reportWin = new ImportResultWindow(result.SuccessCount, result.Errors);
-                    reportWin.ShowDialog();
-                }
-                catch (Exception ex)
-                {
-                    System.Windows.MessageBox.Show(ex.Message, "Lỗi Import", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
-                }
+                _service.DeactivateCategory(SelectedCategory.Id);
+                LoadData();
+                Clear();
             }
         }
 
-        partial void OnSelectedCategoryChanged(Category? value) => EditName = value?.Name ?? string.Empty;
+        private void Clear()
+        {
+            SelectedCategory = null;
+            CategoryCode = string.Empty;
+            DisplayName = string.Empty;
+        }
+
+        partial void OnSelectedCategoryChanged(Category? value)
+        {
+            if (value != null)
+            {
+                CategoryCode = value.CategoryCode;
+                DisplayName = value.DisplayName;
+            }
+        }
     }
 }

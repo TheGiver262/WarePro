@@ -9,8 +9,8 @@ namespace QuanLyHangHoa.ViewModels
 {
     public partial class ChangePasswordViewModel : ObservableObject
     {
-        private readonly Employee _currentUser;
-        private readonly Action<string, string, string> _changePassword;
+        private readonly AppUser _currentUser;
+        private readonly Action<int, string, string> _changePassword;
         private readonly Action<string, string> _showMessage;
 
         [ObservableProperty] private string _currentPassword = string.Empty;
@@ -18,7 +18,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _confirmPassword = string.Empty;
         [ObservableProperty] private string _statusMessage = string.Empty;
 
-        public ChangePasswordViewModel(Employee currentUser)
+        public ChangePasswordViewModel(AppUser currentUser)
             : this(
                 currentUser,
                 new AuthenticationService().ChangePassword,
@@ -27,8 +27,8 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         public ChangePasswordViewModel(
-            Employee currentUser,
-            Action<string, string, string> changePassword,
+            AppUser currentUser,
+            Action<int, string, string> changePassword,
             Action<string, string> showMessage)
         {
             _currentUser = currentUser;
@@ -43,30 +43,30 @@ namespace QuanLyHangHoa.ViewModels
         {
             if (string.IsNullOrWhiteSpace(CurrentPassword))
             {
-                StatusMessage = "Vui long nhap mat khau hien tai.";
-                _showMessage(StatusMessage, "Canh bao");
+                StatusMessage = "Vui lòng nhập mật khẩu hiện tại.";
+                _showMessage(StatusMessage, "Cảnh báo");
                 return;
             }
 
             if (string.IsNullOrWhiteSpace(NewPassword))
             {
-                StatusMessage = "Vui long nhap mat khau moi.";
-                _showMessage(StatusMessage, "Canh bao");
+                StatusMessage = "Vui lòng nhập mật khẩu mới.";
+                _showMessage(StatusMessage, "Cảnh báo");
                 return;
             }
 
             if (NewPassword != ConfirmPassword)
             {
-                StatusMessage = "Mat khau moi va xac nhan khong khop.";
-                _showMessage(StatusMessage, "Canh bao");
+                StatusMessage = "Mật khẩu mới và xác nhận không khớp.";
+                _showMessage(StatusMessage, "Cảnh báo");
                 return;
             }
 
             try
             {
-                _changePassword(_currentUser.Username, CurrentPassword, NewPassword);
-                StatusMessage = "Da doi mat khau.";
-                _showMessage(StatusMessage, "Thong bao");
+                _changePassword(_currentUser.Id, CurrentPassword, NewPassword);
+                StatusMessage = "Đã đổi mật khẩu thành công.";
+                _showMessage(StatusMessage, "Thông báo");
                 CurrentPassword = string.Empty;
                 NewPassword = string.Empty;
                 ConfirmPassword = string.Empty;
@@ -74,7 +74,7 @@ namespace QuanLyHangHoa.ViewModels
             catch (InvalidOperationException ex)
             {
                 StatusMessage = ex.Message;
-                _showMessage(ex.Message, "Loi doi mat khau");
+                _showMessage(ex.Message, "Lỗi đổi mật khẩu");
             }
         }
     }

@@ -16,6 +16,7 @@ namespace QuanLyHangHoa.ViewModels
 
         [ObservableProperty] private ObservableCollection<Supplier> _suppliers = new();
         [ObservableProperty] private Supplier? _selectedSupplier;
+        [ObservableProperty] private string _editCode    = string.Empty;
         [ObservableProperty] private string _editName    = string.Empty;
         [ObservableProperty] private string _editAddress = string.Empty;
         [ObservableProperty] private string _editPhone   = string.Empty;
@@ -28,21 +29,25 @@ namespace QuanLyHangHoa.ViewModels
         private void Add()
         {
             if (string.IsNullOrWhiteSpace(EditName)) { StatusMessage = "Tên không được trống!"; return; }
-            _svc.AddSupplier(new Supplier { Name = EditName.Trim(), Address = EditAddress, Phone = EditPhone });
+            if (string.IsNullOrWhiteSpace(EditCode)) { StatusMessage = "Mã không được trống!"; return; }
+            _svc.AddSupplier(new Supplier { SupplierCode = EditCode.Trim(), DisplayName = EditName.Trim(), Address = EditAddress, Phone = EditPhone });
             ClearInputs(); LoadData(); StatusMessage = "Thêm thành công.";
         }
         [RelayCommand]
         private void SaveEdit()
         {
             if (SelectedSupplier == null) { StatusMessage = "Chưa chọn mục!"; return; }
-            SelectedSupplier.Name = EditName.Trim(); SelectedSupplier.Address = EditAddress; SelectedSupplier.Phone = EditPhone;
+            SelectedSupplier.SupplierCode = EditCode.Trim();
+            SelectedSupplier.DisplayName = EditName.Trim(); 
+            SelectedSupplier.Address = EditAddress; 
+            SelectedSupplier.Phone = EditPhone;
             _svc.UpdateSupplier(SelectedSupplier); LoadData(); StatusMessage = "Cập nhật thành công.";
         }
         [RelayCommand]
         private void Delete()
         {
             if (SelectedSupplier == null) { StatusMessage = "Chưa chọn mục!"; return; }
-            _svc.DeleteSupplier(SelectedSupplier.Id); LoadData(); StatusMessage = "Đã xoá.";
+            _svc.DeactivateSupplier(SelectedSupplier.Id); LoadData(); StatusMessage = "Đã xoá.";
         }
 
         [RelayCommand]
@@ -69,11 +74,12 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
-        private void ClearInputs() { EditName = string.Empty; EditAddress = string.Empty; EditPhone = string.Empty; }
+        private void ClearInputs() { EditCode = string.Empty; EditName = string.Empty; EditAddress = string.Empty; EditPhone = string.Empty; }
 
         partial void OnSelectedSupplierChanged(Supplier? value)
         {
-            EditName    = value?.Name    ?? string.Empty;
+            EditCode    = value?.SupplierCode ?? string.Empty;
+            EditName    = value?.DisplayName    ?? string.Empty;
             EditAddress = value?.Address ?? string.Empty;
             EditPhone   = value?.Phone   ?? string.Empty;
         }

@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
+using QuanLyHangHoa.Data;
 
 namespace QuanLyHangHoa.ViewModels
 {
@@ -15,7 +16,7 @@ namespace QuanLyHangHoa.ViewModels
         private readonly Action<int, string, int> _rejectClaim;
         private readonly Action<int, string, string, int> _replaceSerial;
         private readonly Action<string, string> _showMessage;
-        private readonly Employee _currentUser;
+        private readonly AppUser _currentUser;
 
         [ObservableProperty] private string _claimCode = string.Empty;
         [ObservableProperty] private string _serialNumber = string.Empty;
@@ -27,20 +28,20 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _replacementSerialNumber = string.Empty;
         [ObservableProperty] private string _statusMessage = string.Empty;
 
-        public WarrantyViewModel(Employee currentUser)
+        public WarrantyViewModel(AppUser currentUser, AppDbContext dbContext)
             : this(
                 currentUser,
-                new WarrantyClaimService().CreateClaim,
-                new WarrantyClaimService().CompleteRepair,
-                new WarrantyClaimService().SendToManufacturer,
-                new WarrantyClaimService().RejectClaim,
-                new WarrantyClaimService().ReplaceSerial,
+                new WarrantyClaimService(() => dbContext).CreateClaim,
+                new WarrantyClaimService(() => dbContext).CompleteRepair,
+                new WarrantyClaimService(() => dbContext).SendToManufacturer,
+                new WarrantyClaimService(() => dbContext).RejectClaim,
+                new WarrantyClaimService(() => dbContext).ReplaceSerial,
                 (message, title) => MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information))
         {
         }
 
         public WarrantyViewModel(
-            Employee currentUser,
+            AppUser currentUser,
             Func<string, string, string, int, int> createClaim,
             Action<string, string> showMessage)
             : this(
@@ -55,7 +56,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         public WarrantyViewModel(
-            Employee currentUser,
+            AppUser currentUser,
             Func<string, string, string, int, int> createClaim,
             Action<int, string, int> completeRepair,
             Action<int, string, int> sendToManufacturer,
@@ -89,14 +90,14 @@ namespace QuanLyHangHoa.ViewModels
                     ProblemDescription.Trim(),
                     _currentUser.Id);
 
-                StatusMessage = $"Da tao phieu bao hanh #{claimId}.";
-                _showMessage(StatusMessage, "Thong bao");
+                StatusMessage = $"Đã tạo phiếu bảo hành #{claimId}.";
+                _showMessage(StatusMessage, "Thông báo");
                 ResetForm();
             }
             catch (InvalidOperationException ex)
             {
                 StatusMessage = ex.Message;
-                _showMessage(ex.Message, "Loi bao hanh");
+                _showMessage(ex.Message, "Lỗi bảo hành");
             }
         }
 
@@ -110,7 +111,7 @@ namespace QuanLyHangHoa.ViewModels
 
             RunWarrantyAction(
                 () => _sendToManufacturer(claimId, ManufacturerNote.Trim(), _currentUser.Id),
-                "Da gui claim sang hang.");
+                "Đã gửi claim sang hãng.");
         }
 
         [RelayCommand]
@@ -123,7 +124,7 @@ namespace QuanLyHangHoa.ViewModels
 
             RunWarrantyAction(
                 () => _completeRepair(claimId, TechnicalConclusion.Trim(), _currentUser.Id),
-                "Da hoan tat sua bao hanh.");
+                "Đã hoàn tất sửa bảo hành.");
         }
 
         [RelayCommand]
@@ -136,7 +137,7 @@ namespace QuanLyHangHoa.ViewModels
 
             RunWarrantyAction(
                 () => _rejectClaim(claimId, RejectionReason.Trim(), _currentUser.Id),
-                "Da tu choi va tra may cho khach.");
+                "Đã từ chối và trả máy cho khách.");
         }
 
         [RelayCommand]
@@ -153,29 +154,29 @@ namespace QuanLyHangHoa.ViewModels
                     ReplacementSerialNumber.Trim(),
                     TechnicalConclusion.Trim(),
                     _currentUser.Id),
-                "Da doi serial bao hanh.");
+                "Đã đổi serial bảo hành.");
         }
 
         private bool Validate()
         {
             if (string.IsNullOrWhiteSpace(ClaimCode))
             {
-                StatusMessage = "Vui long nhap ma phieu bao hanh.";
-                _showMessage(StatusMessage, "Canh bao");
+                StatusMessage = "Vui lòng nhập mã phiếu bảo hành.";
+                _showMessage(StatusMessage, "Cảnh báo");
                 return false;
             }
 
             if (string.IsNullOrWhiteSpace(SerialNumber))
             {
-                StatusMessage = "Vui long nhap serial.";
-                _showMessage(StatusMessage, "Canh bao");
+                StatusMessage = "Vui lòng nhập serial.";
+                _showMessage(StatusMessage, "Cảnh báo");
                 return false;
             }
 
             if (string.IsNullOrWhiteSpace(ProblemDescription))
             {
-                StatusMessage = "Vui long nhap mo ta loi.";
-                _showMessage(StatusMessage, "Canh bao");
+                StatusMessage = "Vui lòng nhập mô tả lỗi.";
+                _showMessage(StatusMessage, "Cảnh báo");
                 return false;
             }
 
@@ -193,8 +194,8 @@ namespace QuanLyHangHoa.ViewModels
         {
             if (!int.TryParse(ClaimIdText, out claimId) || claimId <= 0)
             {
-                StatusMessage = "ClaimId khong hop le.";
-                _showMessage(StatusMessage, "Canh bao");
+                StatusMessage = "ClaimId không hợp lệ.";
+                _showMessage(StatusMessage, "Cảnh báo");
                 return false;
             }
 
@@ -207,12 +208,12 @@ namespace QuanLyHangHoa.ViewModels
             {
                 action();
                 StatusMessage = successMessage;
-                _showMessage(StatusMessage, "Thong bao");
+                _showMessage(StatusMessage, "Thông báo");
             }
             catch (InvalidOperationException ex)
             {
                 StatusMessage = ex.Message;
-                _showMessage(ex.Message, "Loi bao hanh");
+                _showMessage(ex.Message, "Lỗi bảo hành");
             }
         }
 

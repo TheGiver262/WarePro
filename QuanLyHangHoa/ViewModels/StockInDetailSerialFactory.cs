@@ -1,22 +1,20 @@
-using System.Collections.Generic;
-using System.Linq;
+using System;
 using QuanLyHangHoa.Models;
-using QuanLyHangHoa.Services;
 
 namespace QuanLyHangHoa.ViewModels
 {
     public static class StockInDetailSerialFactory
     {
-        public static List<ProductSerial> CreateSerials(Product product, string serialInput)
+        public static ProductSerial Create(int productId, string serialNumber, int warehouseId, int stockInLineId)
         {
-            return StockInService.ParseSerialRange(serialInput)
-                .Select(serialNumber => new ProductSerial
-                {
-                    SerialNumber = serialNumber,
-                    ProductId = product.Id,
-                    Status = "InStock"
-                })
-                .ToList();
+            return new ProductSerial
+            {
+                ProductId = productId,
+                SerialNumber = serialNumber,
+                CurrentWarehouseId = warehouseId,
+                LastStockInLineId = stockInLineId,
+                CurrentStatus = "InStock"
+            };
         }
     }
 }

@@ -1,37 +1,50 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using QuanLyHangHoa.Services.DataImport;
+
 namespace QuanLyHangHoa.Models
 {
     public class Product
     {
         public int Id { get; set; }
+        
+        [Required]
+        [MaxLength(50)]
         [ImportKey]
-        public string Name { get; set; } = string.Empty;
+        public string ProductCode { get; set; } = string.Empty;
+        
+        [Required]
+        [MaxLength(200)]
+        public string DisplayName { get; set; } = string.Empty;
         
         public int CategoryId { get; set; }
+        [ForeignKey("CategoryId")]
         public virtual Category? Category { get; set; }
 
         public int BrandId { get; set; }
+        [ForeignKey("BrandId")]
         public virtual Brand? Brand { get; set; }
 
-        public int UnitId { get; set; }
-        public virtual Unit? Unit { get; set; }
+        public int DefaultUnitId { get; set; }
+        [ForeignKey("DefaultUnitId")]
+        public virtual Unit? DefaultUnit { get; set; }
         
-        // Stock level calculated from ProductSerial count in stock
-        public int Quantity { get; set; }
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal DefaultPrice { get; set; } = 0;
         
-        public decimal UnitPrice { get; set; }
-        public string Origin { get; set; } = string.Empty;
-        public int WarrantyMonths { get; set; }
-        public bool IsSerialManaged { get; set; }
-        public string Notes { get; set; } = string.Empty;
+        [MaxLength(100)]
+        public string? OriginCountry { get; set; }
+        
+        public int WarrantyPeriodMonths { get; set; } = 0;
+        public bool IsSerialTracked { get; set; } = false;
+        public bool IsActive { get; set; } = true;
 
-        public bool IsDeleted { get; set; } = false;
-
-        public virtual ICollection<ProductSerial> ProductSerials { get; set; } = new List<ProductSerial>();
-        public virtual ICollection<StockBalance> StockBalances { get; set; } = new List<StockBalance>();
-        public virtual ICollection<StockLedger> StockLedgers { get; set; } = new List<StockLedger>();
-        public virtual ICollection<ProductUnit> ProductUnits { get; set; } = new List<ProductUnit>();
+        // Navigation properties
+        public virtual ICollection<ProductUnit>? ProductUnits { get; set; }
+        public virtual ICollection<StockBalance>? StockBalances { get; set; }
+        public virtual ICollection<StockLedger>? StockLedgers { get; set; }
+        public virtual ICollection<ProductSerial>? ProductSerials { get; set; }
     }
 }

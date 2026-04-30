@@ -1,5 +1,5 @@
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
@@ -12,10 +12,7 @@ namespace QuanLyHangHoa.Services
     {
         private readonly Func<AppDbContext> _contextFactory;
 
-        public StockOutService()
-            : this(() => new AppDbContext())
-        {
-        }
+        public StockOutService() : this(() => new AppDbContext()) { }
 
         public StockOutService(Func<AppDbContext> contextFactory)
         {
@@ -26,37 +23,35 @@ namespace QuanLyHangHoa.Services
         {
             using var db = _contextFactory();
             return db.StockOuts
-                .Where(s => !s.IsDeleted)
                 .Include(s => s.Customer)
-                .Include(s => s.Employee)
-                .Include(s => s.StockOutDetails)
+                .Include(s => s.Creator)
+                .Include(s => s.Lines)
                     .ThenInclude(d => d.Product)
-                .Include(s => s.StockOutDetails)
-                    .ThenInclude(d => d.ProductSerials)
-                .OrderByDescending(s => s.ExportDate)
+                .OrderByDescending(s => s.CreatedAt)
                 .ToList();
         }
 
-        public void Create(StockOut stockOut)
+        public void Create(StockOut stockOut, List<StockOutLine> lines, int userId)
         {
+            stockOut.Lines = lines;
+            stockOut.CreatedBy = userId;
+            stockOut.CreatedAt = DateTime.UtcNow;
+            
             using var db = _contextFactory();
             using var transaction = db.Database.BeginTransaction();
 
-            stockOut.TotalAmount = stockOut.StockOutDetails.Sum(d => d.Quantity * d.ExportPrice);
-
-            var serialsByDetail = stockOut.StockOutDetails.ToDictionary(
-                detail => detail,
-                detail => detail.ProductSerials
-                    .Select(serial => serial.SerialNumber)
-                    .Where(serialNumber => !string.IsNullOrWhiteSpace(serialNumber))
-                    .ToArray());
-
-            foreach (var detail in stockOut.StockOutDetails)
+            if (string.IsNullOrWhiteSpace(stockOut.DocumentCode))
             {
-                detail.ProductSerials.Clear();
+                stockOut.DocumentCode = $"SO-{DateTime.Now:yyyyMMddHHmmss}";
             }
 
             db.StockOuts.Add(stockOut);
+            db.SaveChanges();
+
+            // Auto-approve and post for now to match current simple logic
+            stockOut.Status = "Posted";
+            stockOut.PostedBy = userId;
+            stockOut.PostedAt = DateTime.UtcNow;
             db.SaveChanges();
 
             var postingService = new InventoryPostingService(
@@ -64,56 +59,44 @@ namespace QuanLyHangHoa.Services
                 new DbDefaultWarehouseProvider(db),
                 new SystemClock());
 
-            foreach (var detail in stockOut.StockOutDetails)
+            // Sort lines by ProductId to prevent deadlocks
+            foreach (var line in stockOut.Lines.OrderBy(l => l.ProductId))
             {
+                var serials = line.ProductSerials?.Select(s => s.SerialNumber).ToArray() ?? Array.Empty<string>();
+                
                 postingService.PostStockOut(new PostStockOutCommand(
-                    Guid.NewGuid(),
+                    Guid.Empty,
+                    stockOut.WarehouseId,
                     StockOutKind.Sale,
-                    StockDocumentStatus.Approved,
-                    detail.ProductId,
-                    detail.Quantity,
-                    serialsByDetail[detail],
-                    stockOut.EmployeeId));
+                    StockDocumentStatus.Posted,
+                    line.ProductId,
+                    (int)line.Quantity,
+                    serials,
+                    userId));
             }
 
             transaction.Commit();
         }
 
-        public void SoftDelete(int id)
-        {
-            using var db = _contextFactory();
-            var s = db.StockOuts.Find(id);
-            if (s == null) return;
-            s.IsDeleted = true;
-            db.SaveChanges();
-        }
-
-        /// <summary>Get InStock serials for a given productId (for selection when creating StockOut)</summary>
-        public List<ProductSerial> GetInStockSerials(int productId)
+        public List<ProductSerial> GetInStockSerials(int productId, int warehouseId)
         {
             using var db = _contextFactory();
             return db.ProductSerials
-                .Where(ps => ps.ProductId == productId && ps.Status == "InStock" && !ps.IsDeleted)
+                .Where(s => s.ProductId == productId && s.CurrentWarehouseId == warehouseId && s.CurrentStatus == "InStock")
                 .ToList();
         }
 
         private sealed class DbDefaultWarehouseProvider : IDefaultWarehouseProvider
         {
             private readonly AppDbContext _context;
-
-            public DbDefaultWarehouseProvider(AppDbContext context)
-            {
-                _context = context;
-            }
+            public DbDefaultWarehouseProvider(AppDbContext context) => _context = context;
 
             public int GetDefaultWarehouseId()
             {
-                var warehouseId = _context.Warehouses
-                    .Where(warehouse => warehouse.IsDefault && warehouse.IsActive)
-                    .Select(warehouse => warehouse.Id)
-                    .FirstOrDefault();
-
-                return warehouseId == 0 ? 1 : warehouseId;
+                return _context.Warehouses
+                    .Where(w => w.IsDefault && w.IsActive)
+                    .Select(w => w.Id)
+                    .FirstOrDefault() switch { 0 => 1, var id => id };
             }
         }
 

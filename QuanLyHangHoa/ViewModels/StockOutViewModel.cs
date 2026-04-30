@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
@@ -6,143 +7,106 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
-using QuanLyHangHoa.Views;
 
 namespace QuanLyHangHoa.ViewModels
 {
-    public partial class StockOutDetailWrapper : ObservableObject
+    public partial class StockOutLineEditor : ObservableObject
     {
         [ObservableProperty] private Product? _selectedProduct;
-        [ObservableProperty] private int _quantity;
-        [ObservableProperty] private decimal _exportPrice;
-        [ObservableProperty] private string _serialInputString = string.Empty;
+        [ObservableProperty] private decimal _quantity = 1;
+        [ObservableProperty] private decimal _price;
+        [ObservableProperty] private ObservableCollection<ProductSerial> _selectedSerials = new();
 
         partial void OnSelectedProductChanged(Product? value)
         {
-            if (value != null) {
-                ExportPrice = value.UnitPrice;
+            if (value != null)
+            {
+                Price = value.DefaultPrice;
             }
         }
     }
 
     public partial class StockOutViewModel : ObservableObject
     {
-        private readonly StockOutService _stockOutService;
         private readonly ProductService _productService;
-        private readonly ReferenceDataService _refDataService;
-        private readonly Employee _currentUser;
+        private readonly StockOutService _stockOutService;
+        private readonly AppUser _currentUser;
 
-        [ObservableProperty]
-        private ObservableCollection<Product> _availableProducts;
+        [ObservableProperty] private ObservableCollection<Product> _availableProducts;
+        [ObservableProperty] private ObservableCollection<StockOutLineEditor> _lines = new();
+        [ObservableProperty] private string _documentCode = string.Empty;
+        [ObservableProperty] private int _warehouseId = 1;
+        [ObservableProperty] private string _statusMessage = string.Empty;
 
-        [ObservableProperty]
-        private ObservableCollection<Customer> _availableCustomers;
+        public StockOutViewModel() : this(new AppUser { Id = 1 }) { }
 
-        [ObservableProperty]
-        private Customer? _selectedCustomer;
-
-        [ObservableProperty]
-        private DateTime _exportDate = DateTime.Now;
-
-        [ObservableProperty]
-        private ObservableCollection<StockOutDetailWrapper> _details;
-
-        public StockOutViewModel(Employee currentUser)
+        public StockOutViewModel(AppUser currentUser)
         {
             _currentUser = currentUser;
-            _stockOutService = new StockOutService();
             _productService = new ProductService();
-            _refDataService = new ReferenceDataService();
-
+            _stockOutService = new StockOutService();
             AvailableProducts = new ObservableCollection<Product>(_productService.GetAllProducts());
-            AvailableCustomers = new ObservableCollection<Customer>(_refDataService.GetAllCustomers());
-            Details = new ObservableCollection<StockOutDetailWrapper>();
+            DocumentCode = $"OUT-{DateTime.Now:yyyyMMddHHmmss}";
         }
 
         [RelayCommand]
-        private void AddDetail()
+        private void AddLine()
         {
-            Details.Add(new StockOutDetailWrapper());
+            Lines.Add(new StockOutLineEditor());
         }
 
         [RelayCommand]
-        private void RemoveDetail(StockOutDetailWrapper detail)
+        private void RemoveLine(StockOutLineEditor line)
         {
-            if (detail != null) Details.Remove(detail);
-        }
-
-        [RelayCommand]
-        private void OpenSerialInput(StockOutDetailWrapper detail)
-        {
-            if (detail == null || detail.SelectedProduct == null) 
+            if (line != null)
             {
-                MessageBox.Show("Vui lòng chọn sản phẩm trước!", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-            
-            var availableSerials = _stockOutService.GetInStockSerials(detail.SelectedProduct.Id);
-            var window = new SerialInputWindow(detail.SerialInputString, availableSerials);
-            
-            if (window.ShowDialog() == true)
-            {
-                detail.SerialInputString = window.SerialInput;
-                var parsedSerials = StockInService.ParseSerialRange(window.SerialInput);
-                detail.Quantity = parsedSerials.Count;
+                Lines.Remove(line);
             }
         }
 
         [RelayCommand]
         private void SaveStockOut()
         {
-            if (SelectedCustomer == null)
+            if (string.IsNullOrWhiteSpace(DocumentCode) || !Lines.Any())
             {
-                MessageBox.Show("Vui lòng chọn khách hàng!", "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-            if (!Details.Any() || Details.Any(d => d.SelectedProduct == null))
-            {
-                MessageBox.Show("Vui lòng chọn sản phẩm cho tất cả các dòng!", "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-            if (Details.Any(d => d.Quantity <= 0))
-            {
-                MessageBox.Show("Số lượng xuất phải lớn hơn 0! Bạn đã nhập chuẩn Serials chưa?", "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Vui lòng nhập đủ thông tin.", "Cảnh báo");
                 return;
             }
 
-            var stockOut = new StockOut
+            try
             {
-                EmployeeId = _currentUser.Id,
-                CustomerId = SelectedCustomer.Id,
-                ExportDate = ExportDate
-            };
-
-            foreach (var detailWrapper in Details)
-            {
-                var detail = new StockOutDetail
+                var so = new StockOut
                 {
-                    ProductId = detailWrapper.SelectedProduct!.Id,
-                    Quantity = detailWrapper.Quantity,
-                    ExportPrice = detailWrapper.ExportPrice
+                    DocumentCode = DocumentCode,
+                    WarehouseId = WarehouseId,
+                    Status = "Completed",
+                    CreatedBy = _currentUser.Id,
+                    CreatedAt = DateTime.Now
                 };
 
-                // Parse the serial string directly from wrapper into detail
-                var parsedSerials = StockInService.ParseSerialRange(detailWrapper.SerialInputString);
-                
-                // Add the serials we mapped from the popup
-                foreach (var s in parsedSerials)
+                var soLines = Lines.Select(l => new StockOutLine
                 {
-                    detail.ProductSerials.Add(new ProductSerial { SerialNumber = s, ProductId = detail.ProductId });
-                }
+                    ProductId = l.SelectedProduct?.Id ?? 0,
+                    Quantity = l.Quantity,
+                    BaseQuantity = l.Quantity,
+                    UnitPrice = l.Price,
+                    ProductSerials = l.SelectedSerials.ToList()
+                }).ToList();
 
-                stockOut.StockOutDetails.Add(detail);
+                _stockOutService.Create(so, soLines, _currentUser.Id);
+                MessageBox.Show("Đã lưu phiếu xuất kho.", "Thông báo");
+                ResetForm();
             }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Lỗi");
+            }
+        }
 
-            _stockOutService.Create(stockOut);
-            MessageBox.Show("Lưu Phiếu Xuất Kho Thành Công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
-            
-            Details.Clear();
-            SelectedCustomer = null;
+        private void ResetForm()
+        {
+            Lines.Clear();
+            DocumentCode = $"OUT-{DateTime.Now:yyyyMMddHHmmss}";
         }
     }
 }

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace QuanLyHangHoa.Inventory;
 
-public sealed record ProductSnapshot(int ProductId, bool IsSerialManaged);
+public sealed record ProductSnapshot(int ProductId, bool IsSerialTracked);
 
 public sealed record ProductSerialSnapshot(
     string SerialNumber,
@@ -35,6 +35,7 @@ public sealed record AuditLogEntry(
 
 public sealed record PostStockInCommand(
     Guid DocumentId,
+    int WarehouseId,
     StockInKind Kind,
     StockDocumentStatus Status,
     int ProductId,
@@ -44,6 +45,7 @@ public sealed record PostStockInCommand(
 
 public sealed record PostStockOutCommand(
     Guid DocumentId,
+    int WarehouseId,
     StockOutKind Kind,
     StockDocumentStatus Status,
     int ProductId,

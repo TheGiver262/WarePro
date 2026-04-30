@@ -51,12 +51,12 @@ public sealed class InventoryAdjustmentService
 
             EnsureNoDuplicateSerials(serialNumbers);
 
-            if (product.IsSerialManaged && serialNumbers.Length != line.Quantity)
+            if (product.IsSerialTracked && serialNumbers.Length != line.Quantity)
             {
                 throw new InventoryDomainException("Serial count must match stock adjustment quantity.");
             }
 
-            if (!product.IsSerialManaged && serialNumbers.Length > 0)
+            if (!product.IsSerialTracked && serialNumbers.Length > 0)
             {
                 throw new InventoryDomainException("Non-serial products cannot be adjusted with serial numbers.");
             }

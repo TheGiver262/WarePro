@@ -28,6 +28,7 @@ namespace QuanLyHangHoa.Services
                 ?? throw new InvalidOperationException($"Sales invoice {salesInvoiceId} does not exist.");
 
             ApplyPayment(invoice, amount);
+            
             db.InvoicePayments.Add(new InvoicePayment
             {
                 SalesInvoiceId = salesInvoiceId,
@@ -50,6 +51,7 @@ namespace QuanLyHangHoa.Services
                 ?? throw new InvalidOperationException($"Purchase invoice {purchaseInvoiceId} does not exist.");
 
             ApplyPayment(invoice, amount);
+            
             db.InvoicePayments.Add(new InvoicePayment
             {
                 PurchaseInvoiceId = purchaseInvoiceId,

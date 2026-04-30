@@ -1,145 +1,112 @@
+using System;
 using System.Collections.ObjectModel;
+using System.Linq;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using System.Collections.Generic;
-using System.Linq;
-using System;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
-using QuanLyHangHoa.Views;
-using QuanLyHangHoa.Services.DataImport;
 
 namespace QuanLyHangHoa.ViewModels
 {
     public partial class ProductViewModel : ObservableObject
     {
-        private readonly ProductService _productService = new();
-        private readonly ReferenceDataService _refService = new();
-        private readonly DataImportManager _importManager = new();
+        private readonly ProductService _service;
+        private readonly ReferenceDataService _refDataService;
 
-        [ObservableProperty] private ObservableCollection<Product>  _products  = new();
-        [ObservableProperty] private ObservableCollection<Category> _categories = new();
-        [ObservableProperty] private ObservableCollection<Brand>    _brands     = new();
-        [ObservableProperty] private ObservableCollection<Unit>     _units      = new();
-
+        [ObservableProperty] private ObservableCollection<Product> _products = new();
         [ObservableProperty] private Product? _selectedProduct;
-        [ObservableProperty] private Product _currentInputProduct = new();
+        [ObservableProperty] private ObservableCollection<Category> _categories = new();
+        [ObservableProperty] private ObservableCollection<Brand> _brands = new();
+        [ObservableProperty] private ObservableCollection<Unit> _units = new();
+
+        [ObservableProperty] private string _productCode = string.Empty;
+        [ObservableProperty] private string _displayName = string.Empty;
+        [ObservableProperty] private int _categoryId;
+        [ObservableProperty] private int _brandId;
+        [ObservableProperty] private int _defaultUnitId;
+        [ObservableProperty] private decimal _defaultPrice;
 
         public ProductViewModel()
         {
-            LoadRefData();
+            _service = new ProductService();
+            _refDataService = new ReferenceDataService();
             LoadData();
-        }
-
-        private void LoadRefData()
-        {
-            Categories = new ObservableCollection<Category>(_refService.GetAllCategories());
-            Brands     = new ObservableCollection<Brand>(_refService.GetAllBrands());
-            Units      = new ObservableCollection<Unit>(_refService.GetAllUnits());
         }
 
         private void LoadData()
-            => Products = new ObservableCollection<Product>(_productService.GetAllProducts());
-
-        [RelayCommand]
-        private void ClearInput()
         {
-            CurrentInputProduct = new Product();
-            SelectedProduct = null;
+            Products = new ObservableCollection<Product>(_service.GetAllProducts());
+            Categories = new ObservableCollection<Category>(_refDataService.GetAllCategories());
+            Brands = new ObservableCollection<Brand>(_refDataService.GetAllBrands());
+            Units = new ObservableCollection<Unit>(_refDataService.GetAllUnits());
         }
 
         [RelayCommand]
-        private void SaveProduct()
+        private void Save()
         {
-            if (string.IsNullOrWhiteSpace(CurrentInputProduct.Name)) return;
-            if (CurrentInputProduct.CategoryId == 0 || CurrentInputProduct.BrandId == 0 || CurrentInputProduct.UnitId == 0)
-            {
-                System.Windows.MessageBox.Show("Vui lòng chọn Danh mục, Thương hiệu và Đơn vị tính.", "Thiếu thông tin", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
-                return;
-            }
+            if (string.IsNullOrWhiteSpace(DisplayName) || string.IsNullOrWhiteSpace(ProductCode)) return;
 
-            if (CurrentInputProduct.Id == 0)
-                _productService.AddProduct(CurrentInputProduct);
-            else
-                _productService.UpdateProduct(CurrentInputProduct);
-
-            LoadData();
-            ClearInput();
-        }
-
-        [RelayCommand]
-        private void DeleteProduct()
-        {
-            if (SelectedProduct == null || SelectedProduct.Id == 0) return;
-            _productService.DeleteProduct(SelectedProduct.Id);
-            LoadData();
-            ClearInput();
-        }
-
-        [RelayCommand]
-        private void AddInitialStock()
-        {
             if (SelectedProduct == null)
             {
-                System.Windows.MessageBox.Show("Vui lòng chọn một mặt hàng để thêm tồn kho đầu kỳ.", "Thông báo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                return;
-            }
-
-            var win = new SerialInputWindow();
-            if (win.ShowDialog() == true)
-            {
-                var serials = StockInService.ParseSerialRange(win.SerialInput);
-                if (serials.Count > 0)
+                var p = new Product
                 {
-                    _productService.AddInitialStock(SelectedProduct.Id, serials);
-                    LoadData();
-                    System.Windows.MessageBox.Show($"Đã thêm {serials.Count} serial vào tồn kho cho {SelectedProduct.Name}.", "Thành công", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-                }
+                    ProductCode = ProductCode,
+                    DisplayName = DisplayName,
+                    CategoryId = CategoryId,
+                    BrandId = BrandId,
+                    DefaultUnitId = DefaultUnitId,
+                    DefaultPrice = DefaultPrice,
+                    IsActive = true
+                };
+                _service.AddProduct(p);
             }
+            else
+            {
+                SelectedProduct.ProductCode = ProductCode;
+                SelectedProduct.DisplayName = DisplayName;
+                SelectedProduct.CategoryId = CategoryId;
+                SelectedProduct.BrandId = BrandId;
+                SelectedProduct.DefaultUnitId = DefaultUnitId;
+                SelectedProduct.DefaultPrice = DefaultPrice;
+                _service.UpdateProduct(SelectedProduct);
+            }
+            LoadData();
+            Clear();
         }
 
         [RelayCommand]
-        private void ImportData()
+        private void Delete()
         {
-            var dialog = new Microsoft.Win32.OpenFileDialog
+            if (SelectedProduct != null)
             {
-                Filter = "Excel Files|*.xlsx;*.xls|CSV Files|*.csv|All Files|*.*"
-            };
-
-            if (dialog.ShowDialog() == true)
-            {
-                try
-                {
-                    var result = _importManager.ProcessFile<Product>(dialog.FileName);
-                    LoadData();
-                    
-                    var reportWin = new ImportResultWindow(result.SuccessCount, result.Errors);
-                    reportWin.ShowDialog();
-                }
-                catch (Exception ex)
-                {
-                    System.Windows.MessageBox.Show(ex.Message, "Lỗi Import", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
-                }
+                _service.DeactivateProduct(SelectedProduct.Id);
+                LoadData();
+                Clear();
             }
+        }
+
+        private void Clear()
+        {
+            SelectedProduct = null;
+            ProductCode = string.Empty;
+            DisplayName = string.Empty;
+            CategoryId = 0;
+            BrandId = 0;
+            DefaultUnitId = 0;
+            DefaultPrice = 0;
         }
 
         partial void OnSelectedProductChanged(Product? value)
         {
             if (value != null)
             {
-                CurrentInputProduct = new Product
-                {
-                    Id           = value.Id,
-                    Name         = value.Name,
-                    CategoryId   = value.CategoryId,
-                    BrandId      = value.BrandId,
-                    UnitId       = value.UnitId,
-                    Quantity     = value.Quantity,
-                    UnitPrice    = value.UnitPrice,
-                    Origin       = value.Origin,
-                    WarrantyMonths = value.WarrantyMonths,
-                    Notes        = value.Notes
-                };
+                ProductCode = value.ProductCode;
+                DisplayName = value.DisplayName;
+                CategoryId = value.CategoryId;
+                BrandId = value.BrandId;
+                DefaultUnitId = value.DefaultUnitId;
+                DefaultPrice = value.DefaultPrice;
             }
         }
     }

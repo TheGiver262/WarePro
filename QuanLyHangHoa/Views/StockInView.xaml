@@ -1,75 +1,141 @@
-﻿<UserControl x:Class="QuanLyHangHoa.Views.StockInView"
+<UserControl x:Class="QuanLyHangHoa.Views.StockInView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:vm="clr-namespace:QuanLyHangHoa.ViewModels"
-             xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
-             Background="#111827">
-    <Grid Margin="20">
+             mc:Ignorable="d" 
+             d:DesignHeight="800" d:DesignWidth="1100">
+
+    <UserControl.DataContext>
+        <vm:StockInViewModel />
+    </UserControl.DataContext>
+
+    <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        
-        <TextBlock Grid.Row="0" Text="Phiếu Nhập Kho (Stock In)" FontSize="24" FontWeight="Bold" Foreground="White" Margin="0,0,0,20"/>
-        
-        <Border Grid.Row="1" Background="#1F2937" CornerRadius="8" Padding="20" Margin="0,0,0,20">
+
+        <!-- Header -->
+        <Border Padding="0,0,0,24">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="1*"/>
-                    <ColumnDefinition Width="1*"/>
-                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <StackPanel Grid.Column="0" Margin="0,0,20,0">
-                    <TextBlock Text="Nhà cung cấp:" Foreground="White" Margin="0,0,0,8"/>
-                    <ComboBox ItemsSource="{Binding AvailableSuppliers}" SelectedItem="{Binding SelectedSupplier}"
-                              DisplayMemberPath="Name" Background="#374151" Foreground="Black" Padding="8"/>
+
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="ArrowDownBox" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource PrimaryHueMidBrush}"/>
+                    <TextBlock Text="PHIẾU NHẬP KHO" FontSize="20" FontWeight="Bold" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="#333333"/>
                 </StackPanel>
-                <StackPanel Grid.Column="1" Margin="0,0,20,0">
-                    <TextBlock Text="Ngày nhập:" Foreground="White" Margin="0,0,0,8"/>
-                    <DatePicker SelectedDate="{Binding ImportDate}" Background="#374151" Foreground="White" Padding="8"/>
-                </StackPanel>
-                <StackPanel Grid.Column="2" VerticalAlignment="Bottom" HorizontalAlignment="Right">
-                    <Button Content="+ Thêm Sản Phẩm" Command="{Binding AddDetailCommand}" Background="#10B981" Foreground="White" Padding="15,10" BorderThickness="0" Cursor="Hand"/>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="HỦY BỎ" Style="{StaticResource MaterialDesignOutlinedButton}" materialDesign:ButtonAssist.CornerRadius="8" Height="40" Margin="0,0,12,0"/>
+                    <Button Content="LƯU PHIẾU" Command="{Binding SaveStockInCommand}" Style="{StaticResource MaterialDesignRaisedButton}" materialDesign:ButtonAssist.CornerRadius="8" Height="40"/>
                 </StackPanel>
             </Grid>
         </Border>
 
-        <DataGrid Grid.Row="2" ItemsSource="{Binding Details}" AutoGenerateColumns="False" CanUserAddRows="False" 
-                  Background="#1F2937" Foreground="Black" RowBackground="#374151" AlternatingRowBackground="#1F2937">
-            <DataGrid.Columns>
-                <DataGridTemplateColumn Header="Sản phẩm" Width="2*">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <ComboBox ItemsSource="{Binding DataContext.AvailableProducts, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                                      SelectedItem="{Binding SelectedProduct, UpdateSourceTrigger=PropertyChanged}"
-                                      DisplayMemberPath="Name" Foreground="Black" Width="200"/>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-                <DataGridTextColumn Header="Đơn giá nhập" Binding="{Binding ImportPrice, UpdateSourceTrigger=PropertyChanged}" Width="1*"/>
-                <DataGridTextColumn Header="Số lượng" Binding="{Binding Quantity}" IsReadOnly="True" Width="1*"/>
-                <DataGridTemplateColumn Header="Quản lý Serial" Width="1.5*">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <Button Content="Nhập Serials" Command="{Binding DataContext.OpenSerialInputCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Background="#3B82F6" Foreground="White" Padding="5" Margin="5"/>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-                <DataGridTemplateColumn Header="Xoá" Width="Auto">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <Button Content="X" Command="{Binding DataContext.RemoveDetailCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Background="#EF4444" Foreground="White" Padding="5,0" Margin="5"/>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-            </DataGrid.Columns>
-        </DataGrid>
+        <!-- Main Form Area -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="350"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
 
-        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
-            <Button Content="Lưu Phiếu Nhập" Command="{Binding SaveStockInCommand}" Background="#6366F1" Foreground="White" Padding="20,10" FontSize="16" FontWeight="Bold" BorderThickness="0" Cursor="Hand"/>
-        </StackPanel>
+            <!-- Document Info Card -->
+            <materialDesign:Card Grid.Column="0" Margin="0,0,12,0" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2" Padding="20">
+                <StackPanel>
+                    <TextBlock Text="THÔNG TIN CHỨNG TỪ" FontWeight="Bold" FontSize="16" Foreground="{StaticResource PrimaryHueMidBrush}" Margin="0,0,0,20"/>
+
+                    <TextBox Style="{StaticResource MaterialDesignFloatingHintTextBox}" materialDesign:HintAssist.Hint="Mã phiếu" IsReadOnly="True" Margin="0,0,0,16" Text="{Binding DocumentCode}"/>
+                    
+                    <ComboBox Style="{StaticResource MaterialDesignFloatingHintComboBox}" materialDesign:HintAssist.Hint="Kho nhận" Margin="0,0,0,16" IsEnabled="False" SelectedIndex="0">
+                        <ComboBoxItem Content="Kho chính (Default)"/>
+                    </ComboBox>
+
+                    <ComboBox Style="{StaticResource MaterialDesignFloatingHintComboBox}" materialDesign:HintAssist.Hint="Nhà cung cấp" Margin="0,0,0,16"
+                              ItemsSource="{Binding AvailableSuppliers}" DisplayMemberPath="DisplayName" SelectedItem="{Binding SelectedSupplier}"/>
+
+                    <DatePicker Style="{StaticResource MaterialDesignFloatingHintDatePicker}" materialDesign:HintAssist.Hint="Ngày nhập" Margin="0,0,0,16" SelectedDate="{Binding ImportDate}"/>
+
+                    <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}" materialDesign:HintAssist.Hint="Ghi chú" Height="100" TextWrapping="Wrap" VerticalAlignment="Top" AcceptsReturn="True" Margin="0,8,0,0"/>
+                </StackPanel>
+            </materialDesign:Card>
+
+            <!-- Grid Card -->
+            <materialDesign:Card Grid.Column="1" Margin="12,0,0,0" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Padding="16,12" Background="#F8F9FA" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" CornerRadius="12,12,0,0">
+                        <Grid>
+                            <TextBlock Text="CHI TIẾT MẶT HÀNG" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <Button HorizontalAlignment="Right" Content="THÊM DÒNG" Command="{Binding AddLineCommand}" Style="{StaticResource MaterialDesignOutlinedButton}" Height="32" Padding="8,0" FontSize="12"/>
+                        </Grid>
+                    </Border>
+
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding Lines}" AutoGenerateColumns="False" CanUserAddRows="False" 
+                              Style="{StaticResource MaterialDesignDataGrid}" BorderThickness="0">
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="Sản phẩm" Width="*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ComboBox ItemsSource="{Binding DataContext.AvailableProducts, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                                  SelectedItem="{Binding SelectedProduct, UpdateSourceTrigger=PropertyChanged}"
+                                                  DisplayMemberPath="DisplayName" materialDesign:TextFieldAssist.DecorationVisibility="Collapsed" BorderThickness="0"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTextColumn Header="Đơn giá" Binding="{Binding Price, StringFormat='N0'}" Width="120"/>
+                            
+                            <DataGridTemplateColumn Header="Số lượng" Width="100">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" HorizontalContentAlignment="Right" materialDesign:TextFieldAssist.DecorationVisibility="Collapsed" BorderThickness="0"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTemplateColumn Header="Serial Numbers" Width="Auto">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Content="Quản lý" Style="{StaticResource MaterialDesignFlatButton}" Height="30" Padding="4,0" FontSize="11" 
+                                                Command="{Binding DataContext.OpenSerialInputCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTemplateColumn Header="" Width="50">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Style="{StaticResource MaterialDesignIconButton}" Foreground="Red" Width="24" Height="24" Padding="0"
+                                                Command="{Binding DataContext.RemoveLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                            <materialDesign:PackIcon Kind="Delete" Width="16" Height="16"/>
+                                        </Button>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <Border Grid.Row="2" Padding="16" Background="#F8F9FA" BorderBrush="#E0E0E0" BorderThickness="0,1,0,0" CornerRadius="0,0,12,12">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <TextBlock Text="Tổng cộng:" VerticalAlignment="Center" Margin="0,0,16,0" Foreground="#666666"/>
+                            <TextBlock Text="{Binding TotalAmount, StringFormat='N0'}" FontWeight="Bold" FontSize="18" Foreground="{StaticResource PrimaryHueMidBrush}"/>
+                            <TextBlock Text=" VNĐ" VerticalAlignment="Bottom" Margin="4,0,0,2" FontSize="12" Foreground="#666666"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </materialDesign:Card>
+        </Grid>
     </Grid>
 </UserControl>

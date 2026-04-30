@@ -22,43 +22,24 @@ namespace QuanLyHangHoa.Services
         {
             ["Admin"] = AllPermissions(),
             ["Manager"] = AllPermissionsExcept(PermissionAction.ManageUsers),
-            ["WarehouseStaff"] = new()
-            {
-                PermissionAction.PostStockIn,
-                PermissionAction.PostStockOut,
-                PermissionAction.PostStockAdjustment,
-                PermissionAction.CreatePurchaseInvoice,
-                PermissionAction.ViewReports
-            },
-            ["SalesStaff"] = new()
-            {
-                PermissionAction.PostStockOut,
-                PermissionAction.CreateSalesInvoice,
-                PermissionAction.ViewReports
-            },
-            ["WarrantyStaff"] = new()
-            {
-                PermissionAction.CreateWarrantyClaim,
-                PermissionAction.ViewReports
-            },
             ["Staff"] = new()
             {
                 PermissionAction.PostStockIn,
                 PermissionAction.PostStockOut,
-                PermissionAction.CreatePurchaseInvoice,
                 PermissionAction.CreateSalesInvoice,
-                PermissionAction.CreateWarrantyClaim
+                PermissionAction.CreateWarrantyClaim,
+                PermissionAction.ViewReports
             }
         };
 
-        public bool CanPerform(Employee? employee, PermissionAction action)
+        public bool CanPerform(AppUser? user, PermissionAction action)
         {
-            if (employee is null || string.IsNullOrWhiteSpace(employee.Role))
+            if (user is null || !user.IsActive || string.IsNullOrWhiteSpace(user.RoleCode))
             {
                 return false;
             }
 
-            return RolePermissions.TryGetValue(employee.Role, out var permissions)
+            return RolePermissions.TryGetValue(user.RoleCode, out var permissions)
                 && permissions.Contains(action);
         }
 

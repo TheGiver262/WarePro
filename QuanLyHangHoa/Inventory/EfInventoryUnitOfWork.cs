@@ -17,13 +17,13 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
 
     public ProductSnapshot GetProduct(int productId)
     {
-        var product = _context.Products.SingleOrDefault(p => p.Id == productId && !p.IsDeleted);
+        var product = _context.Products.SingleOrDefault(p => p.Id == productId && p.IsActive);
         if (product is null)
         {
             throw new InventoryDomainException($"Product {productId} does not exist.");
         }
 
-        return new ProductSnapshot(product.Id, product.IsSerialManaged);
+        return new ProductSnapshot(product.Id, product.IsSerialTracked);
     }
 
     public StockBalanceSnapshot? FindBalance(int productId, int warehouseId)
@@ -73,13 +73,13 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
 
     public bool SerialExists(string serialNumber)
     {
-        return _context.ProductSerials.Any(s => s.SerialNumber == serialNumber && !s.IsDeleted);
+        return _context.ProductSerials.Any(s => s.SerialNumber == serialNumber);
     }
 
     public ProductSerialSnapshot GetSerial(string serialNumber)
     {
         var serial = _context.ProductSerials
-            .SingleOrDefault(s => s.SerialNumber == serialNumber && !s.IsDeleted);
+            .SingleOrDefault(s => s.SerialNumber == serialNumber);
 
         if (serial is null)
         {
@@ -104,21 +104,21 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
 
         serial.ProductId = snapshot.ProductId;
         serial.CurrentWarehouseId = snapshot.CurrentWarehouseId;
-        serial.Status = snapshot.Status.ToString();
-        serial.IsDeleted = false;
+        serial.CurrentStatus = snapshot.Status.ToString();
     }
 
     public void AddLedger(StockLedgerEntry entry)
     {
         _context.StockLedgers.Add(new StockLedger
         {
-            DocumentId = entry.DocumentId,
+            SourceDocumentType = "InventoryDocument", 
+            SourceDocumentId = 0, // Guid mapping not supported in this simple implementation
             ProductId = entry.ProductId,
             WarehouseId = entry.WarehouseId,
-            Direction = entry.Direction.ToString(),
+            MovementType = entry.Direction.ToString(),
             Quantity = entry.Quantity,
             PostedAt = entry.PostedAt,
-            PostedByUserId = entry.PostedByUserId
+            PostedBy = entry.PostedByUserId
         });
     }
 
@@ -126,10 +126,11 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
     {
         _context.AuditLogs.Add(new AuditLog
         {
-            DocumentId = entry.DocumentId,
+            EntityName = "InventoryDocument",
+            EntityId = 0, 
             ActionCode = entry.ActionCode.ToString(),
             PerformedAt = entry.PerformedAt,
-            PerformedByUserId = entry.PerformedByUserId
+            PerformedBy = entry.PerformedByUserId
         });
     }
 
@@ -147,16 +148,16 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
         return new StockBalanceSnapshot(
             balance.ProductId,
             balance.WarehouseId,
-            balance.OnHandQuantity,
-            balance.AvailableQuantity,
-            balance.ReservedQuantity);
+            (int)balance.OnHandQuantity,
+            (int)balance.AvailableQuantity,
+            (int)balance.ReservedQuantity);
     }
 
     private static ProductSerialSnapshot ToSnapshot(ProductSerial serial)
     {
-        if (!Enum.TryParse<SerialStatus>(serial.Status, out var status))
+        if (!Enum.TryParse<SerialStatus>(serial.CurrentStatus, out var status))
         {
-            throw new InventoryDomainException($"Serial {serial.SerialNumber} has unsupported status {serial.Status}.");
+            throw new InventoryDomainException($"Serial {serial.SerialNumber} has unsupported status {serial.CurrentStatus}.");
         }
 
         return new ProductSerialSnapshot(

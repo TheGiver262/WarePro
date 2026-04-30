@@ -9,7 +9,7 @@ namespace QuanLyHangHoa.ViewModels
 {
     public partial class InvoicePaymentViewModel : ObservableObject
     {
-        private readonly Employee _currentUser;
+        private readonly AppUser _currentUser;
         private readonly Action<int, decimal, string, string, int> _recordSalesPayment;
         private readonly Action<int, decimal, string, string, int> _recordPurchasePayment;
         private readonly Action<string, string> _showMessage;
@@ -21,7 +21,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _note = string.Empty;
         [ObservableProperty] private string _statusMessage = string.Empty;
 
-        public InvoicePaymentViewModel(Employee currentUser)
+        public InvoicePaymentViewModel(AppUser currentUser)
             : this(
                 currentUser,
                 new InvoicePaymentService().RecordSalesPayment,
@@ -31,7 +31,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         public InvoicePaymentViewModel(
-            Employee currentUser,
+            AppUser currentUser,
             Action<int, decimal, string, string, int> recordSalesPayment,
             Action<int, decimal, string, string, int> recordPurchasePayment,
             Action<string, string> showMessage)

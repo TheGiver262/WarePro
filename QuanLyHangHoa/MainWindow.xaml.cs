@@ -6,14 +6,10 @@ namespace QuanLyHangHoa
 {
     public partial class MainWindow : Window
     {
-        // Nhận Employee từ màn hình Login truyền sang MainWindow
-        public MainWindow(Employee user)
+        public MainWindow(AppUser user, Data.AppDbContext dbContext)
         {
             InitializeComponent();
-            
-            // Gắn view model và cắm DataContext
-            // Quản lý sẽ điều khiển view và binding dữ liệu
-            this.DataContext = new MainViewModel(user);
+            this.DataContext = new MainViewModel(user, dbContext);
         }
     }
 }

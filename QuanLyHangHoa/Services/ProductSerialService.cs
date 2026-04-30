@@ -27,11 +27,11 @@ namespace QuanLyHangHoa.Services
             var query = db.ProductSerials
                 .Include(serial => serial.Product)
                 .Include(serial => serial.CurrentWarehouse)
-                .Where(serial => !serial.IsDeleted);
+                .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(status) && status != "All")
             {
-                query = query.Where(serial => serial.Status == status);
+                query = query.Where(serial => serial.CurrentStatus == status);
             }
 
             if (!string.IsNullOrWhiteSpace(searchText))
@@ -39,8 +39,8 @@ namespace QuanLyHangHoa.Services
                 var keyword = searchText.Trim();
                 query = query.Where(serial =>
                     serial.SerialNumber.Contains(keyword) ||
-                    serial.Status.Contains(keyword) ||
-                    (serial.Product != null && serial.Product.Name.Contains(keyword)));
+                    serial.CurrentStatus.Contains(keyword) ||
+                    (serial.Product != null && serial.Product.DisplayName.Contains(keyword)));
             }
 
             return query

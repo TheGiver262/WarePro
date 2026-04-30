@@ -50,13 +50,16 @@ namespace QuanLyHangHoa.Services
                 {
                     using var db = _contextFactory();
                     using var transaction = db.Database.BeginTransaction();
+                    var warehouseProvider = new DbDefaultWarehouseProvider(db);
+                    var warehouseId = warehouseProvider.GetDefaultWarehouseId();
                     var postingService = new InventoryPostingService(
                         new EfInventoryUnitOfWork(db),
-                        new DbDefaultWarehouseProvider(db),
+                        warehouseProvider,
                         new SystemClock());
 
                     postingService.PostStockIn(new PostStockInCommand(
                         Guid.NewGuid(),
+                        warehouseId,
                         StockInKind.OpeningBalance,
                         StockDocumentStatus.Approved,
                         row.ProductId,

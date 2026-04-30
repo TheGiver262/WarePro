@@ -52,7 +52,7 @@ namespace QuanLyHangHoa.ViewModels
 
             var loaded = _productLedgerLoader(SelectedProduct.Id);
             Entries = new ObservableCollection<AuditTimelineEntry>(loaded);
-            ReportTitle = $"Lich su san pham: {SelectedProduct.Name}";
+            ReportTitle = $"Lich su san pham: {SelectedProduct.DisplayName}";
             StatusMessage = $"Da tai {Entries.Count} dong lich su.";
         }
 

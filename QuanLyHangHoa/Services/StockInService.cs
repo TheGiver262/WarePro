@@ -27,41 +27,52 @@ namespace QuanLyHangHoa.Services
         {
             using var db = _contextFactory();
             return db.StockIns
-                .Where(s => !s.IsDeleted)
                 .Include(s => s.Supplier)
-                .Include(s => s.Employee)
-                .Include(s => s.StockInDetails)
+                .Include(s => s.Creator)
+                .Include(s => s.Lines)
                     .ThenInclude(d => d.Product)
-                .Include(s => s.StockInDetails)
+                .Include(s => s.Lines)
                     .ThenInclude(d => d.ProductSerials)
-                .OrderByDescending(s => s.ImportDate)
+                .OrderByDescending(s => s.CreatedAt)
                 .ToList();
         }
 
-        /// <summary>
-        /// Save a new StockIn with its details and generated serial numbers.
-        /// </summary>
-        public void Create(StockIn stockIn)
+        public void Create(StockIn stockIn, List<StockInLine> lines, int userId)
         {
+            stockIn.Lines = lines;
+            stockIn.CreatedBy = userId;
             using var db = _contextFactory();
             using var transaction = db.Database.BeginTransaction();
 
-            // Recalculate total
-            stockIn.TotalAmount = stockIn.StockInDetails.Sum(d => d.Quantity * d.ImportPrice);
+            if (string.IsNullOrWhiteSpace(stockIn.DocumentCode))
+            {
+                stockIn.DocumentCode = $"SI-{DateTime.Now:yyyyMMddHHmmss}";
+            }
 
-            var serialsByDetail = stockIn.StockInDetails.ToDictionary(
-                detail => detail,
-                detail => detail.ProductSerials
+            if (stockIn.WarehouseId == 0)
+            {
+                stockIn.WarehouseId = new DbDefaultWarehouseProvider(db).GetDefaultWarehouseId();
+            }
+
+            var serialsByLine = stockIn.Lines.ToDictionary(
+                line => line,
+                line => line.ProductSerials?
                     .Select(serial => serial.SerialNumber)
                     .Where(serialNumber => !string.IsNullOrWhiteSpace(serialNumber))
-                    .ToArray());
+                    .ToArray() ?? Array.Empty<string>());
 
-            foreach (var detail in stockIn.StockInDetails)
+            foreach (var line in stockIn.Lines)
             {
-                detail.ProductSerials.Clear();
+                line.ProductSerials?.Clear();
             }
 
             db.StockIns.Add(stockIn);
+            db.SaveChanges();
+
+            // Auto-post/approve
+            stockIn.Status = "Posted";
+            stockIn.PostedBy = stockIn.CreatedBy;
+            stockIn.PostedAt = DateTime.UtcNow;
             db.SaveChanges();
 
             var postingService = new InventoryPostingService(
@@ -69,45 +80,31 @@ namespace QuanLyHangHoa.Services
                 new DbDefaultWarehouseProvider(db),
                 new SystemClock());
 
-            foreach (var detail in stockIn.StockInDetails)
+            foreach (var line in stockIn.Lines.OrderBy(l => l.ProductId))
             {
                 postingService.PostStockIn(new PostStockInCommand(
-                    Guid.NewGuid(),
+                    Guid.Empty,
+                    stockIn.WarehouseId,
                     StockInKind.Purchase,
-                    StockDocumentStatus.Approved,
-                    detail.ProductId,
-                    detail.Quantity,
-                    serialsByDetail[detail],
-                    stockIn.EmployeeId));
+                    StockDocumentStatus.Posted,
+                    line.ProductId,
+                    (int)line.Quantity,
+                    serialsByLine[line],
+                    stockIn.PostedBy ?? stockIn.CreatedBy));
             }
 
             transaction.Commit();
         }
 
-        public void SoftDelete(int id)
-        {
-            using var db = _contextFactory();
-            var s = db.StockIns.Find(id);
-            if (s == null) return;
-            s.IsDeleted = true;
-            db.SaveChanges();
-        }
-
-        /// <summary>
-        /// Parse a serial range string like "EM90126000-EM90126030" into individual serial numbers.
-        /// Also supports comma-separated and newline-separated individual serials.
-        /// </summary>
         public static List<string> ParseSerialRange(string input)
         {
             var result = new List<string>();
             if (string.IsNullOrWhiteSpace(input)) return result;
 
-            // Split on commas or newlines first
             var parts = input.Split(new[] { ',', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
             foreach (var part in parts)
             {
                 var trimmed = part.Trim();
-                // Check for dash range: PREFIX+DIGITS - PREFIX+DIGITS  or DIGITS-DIGITS
                 var rangeMatch = Regex.Match(trimmed, @"^([A-Za-z]*)(\d+)-[A-Za-z]*(\d+)$");
                 if (rangeMatch.Success)
                 {
@@ -116,7 +113,7 @@ namespace QuanLyHangHoa.Services
                     string endStr   = rangeMatch.Groups[3].Value;
                     if (long.TryParse(startStr, out long start) && long.TryParse(endStr, out long end) && end >= start)
                     {
-                        int padLen = startStr.Length; // preserve leading zeros
+                        int padLen = startStr.Length;
                         for (long i = start; i <= end; i++)
                             result.Add(prefix + i.ToString().PadLeft(padLen, '0'));
                     }

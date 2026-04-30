@@ -1,80 +1,108 @@
-using System;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
-using QuanLyHangHoa.Services.DataImport;
-using QuanLyHangHoa.Views;
 
 namespace QuanLyHangHoa.ViewModels
 {
     public partial class CustomerViewModel : ObservableObject
     {
-        private readonly ReferenceDataService _svc = new();
-        private readonly DataImportManager _importManager = new();
+        private readonly ReferenceDataService _service;
 
-        [ObservableProperty] private ObservableCollection<Customer> _customers = new();
-        [ObservableProperty] private Customer? _selectedCustomer;
-        [ObservableProperty] private string _editName    = string.Empty;
-        [ObservableProperty] private string _editAddress = string.Empty;
-        [ObservableProperty] private string _editPhone   = string.Empty;
-        [ObservableProperty] private string _statusMessage = string.Empty;
+        [ObservableProperty]
+        private ObservableCollection<Customer> _customers = new();
 
-        public CustomerViewModel() => LoadData();
-        private void LoadData() => Customers = new ObservableCollection<Customer>(_svc.GetAllCustomers());
+        [ObservableProperty]
+        private Customer? _selectedCustomer;
+
+        [ObservableProperty]
+        private string _displayName = string.Empty;
+
+        [ObservableProperty]
+        private string _customerCode = string.Empty;
+
+        [ObservableProperty]
+        private string _address = string.Empty;
+
+        [ObservableProperty]
+        private string _phone = string.Empty;
+
+        [ObservableProperty]
+        private string _email = string.Empty;
+
+        public CustomerViewModel()
+        {
+            _service = new ReferenceDataService();
+            LoadData();
+        }
+
+        private void LoadData()
+        {
+            var list = _service.GetAllCustomers();
+            Customers = new ObservableCollection<Customer>(list);
+        }
 
         [RelayCommand]
-        private void Add()
+        private void Save()
         {
-            if (string.IsNullOrWhiteSpace(EditName)) { StatusMessage = "Tên không được trống!"; return; }
-            _svc.AddCustomer(new Customer { Name = EditName.Trim(), Address = EditAddress, Phone = EditPhone });
-            ClearInputs(); LoadData(); StatusMessage = "Thêm thành công.";
+            if (string.IsNullOrWhiteSpace(DisplayName) || string.IsNullOrWhiteSpace(CustomerCode)) return;
+
+            if (SelectedCustomer == null)
+            {
+                _service.AddCustomer(new Customer 
+                { 
+                    DisplayName = DisplayName, 
+                    CustomerCode = CustomerCode,
+                    Address = Address,
+                    Phone = Phone,
+                    Email = Email
+                });
+            }
+            else
+            {
+                SelectedCustomer.DisplayName = DisplayName;
+                SelectedCustomer.CustomerCode = CustomerCode;
+                SelectedCustomer.Address = Address;
+                SelectedCustomer.Phone = Phone;
+                SelectedCustomer.Email = Email;
+                _service.UpdateCustomer(SelectedCustomer);
+            }
+            LoadData();
+            Clear();
         }
-        [RelayCommand]
-        private void SaveEdit()
-        {
-            if (SelectedCustomer == null) { StatusMessage = "Chưa chọn mục!"; return; }
-            SelectedCustomer.Name = EditName.Trim(); SelectedCustomer.Address = EditAddress; SelectedCustomer.Phone = EditPhone;
-            _svc.UpdateCustomer(SelectedCustomer); LoadData(); StatusMessage = "Cập nhật thành công.";
-        }
+
         [RelayCommand]
         private void Delete()
         {
-            if (SelectedCustomer == null) { StatusMessage = "Chưa chọn mục!"; return; }
-            _svc.DeleteCustomer(SelectedCustomer.Id); LoadData(); StatusMessage = "Đã xoá.";
-        }
-
-        [RelayCommand]
-        private void ImportData()
-        {
-            var dialog = new Microsoft.Win32.OpenFileDialog
+            if (SelectedCustomer != null)
             {
-                Filter = "Excel Files|*.xlsx;*.xls|CSV Files|*.csv|All Files|*.*"
-            };
-
-            if (dialog.ShowDialog() == true)
-            {
-                try
-                {
-                    var result = _importManager.ProcessFile<Customer>(dialog.FileName);
-                    LoadData();
-                    var reportWin = new ImportResultWindow(result.SuccessCount, result.Errors);
-                    reportWin.ShowDialog();
-                }
-                catch (Exception ex)
-                {
-                    System.Windows.MessageBox.Show(ex.Message, "Lỗi Import", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
-                }
+                _service.DeactivateCustomer(SelectedCustomer.Id);
+                LoadData();
+                Clear();
             }
         }
 
-        private void ClearInputs() { EditName = string.Empty; EditAddress = string.Empty; EditPhone = string.Empty; }
+        private void Clear()
+        {
+            SelectedCustomer = null;
+            DisplayName = string.Empty;
+            CustomerCode = string.Empty;
+            Address = string.Empty;
+            Phone = string.Empty;
+            Email = string.Empty;
+        }
+
         partial void OnSelectedCustomerChanged(Customer? value)
         {
-            EditName    = value?.Name    ?? string.Empty;
-            EditAddress = value?.Address ?? string.Empty;
-            EditPhone   = value?.Phone   ?? string.Empty;
+            if (value != null)
+            {
+                DisplayName = value.DisplayName;
+                CustomerCode = value.CustomerCode;
+                Address = value.Address ?? string.Empty;
+                Phone = value.Phone ?? string.Empty;
+                Email = value.Email ?? string.Empty;
+            }
         }
     }
 }

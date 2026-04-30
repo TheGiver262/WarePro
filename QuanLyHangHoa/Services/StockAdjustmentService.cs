@@ -37,9 +37,9 @@ namespace QuanLyHangHoa.Services
             postingService.PostAdjustment(new PostStockAdjustmentCommand(
                 Guid.NewGuid(),
                 ParseStatus(adjustment.Status),
-                adjustment.ReferenceDocumentCode,
-                adjustment.ReasonCode,
-                BuildLineCommands(db, adjustment.Lines),
+                adjustment.ReferenceDocumentCode ?? string.Empty,
+                adjustment.ReasonCode ?? string.Empty,
+                BuildLineCommands(db, adjustment.Lines ?? Enumerable.Empty<StockAdjustmentLine>()),
                 adjustment.PostedBy ?? adjustment.CreatedBy));
 
             adjustment.Status = StockDocumentStatus.Posted.ToString();

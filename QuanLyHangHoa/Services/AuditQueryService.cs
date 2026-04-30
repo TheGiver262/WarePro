@@ -13,13 +13,13 @@ namespace QuanLyHangHoa.Services
 
     public sealed record AuditTimelineEntry(
         AuditTimelineEntryKind Kind,
-        Guid DocumentId,
+        int EntityId,
         DateTime OccurredAt,
         string Action,
         int UserId,
         int? ProductId,
         int? WarehouseId,
-        int? Quantity);
+        decimal? Quantity);
 
     public class AuditQueryService
     {
@@ -35,29 +35,29 @@ namespace QuanLyHangHoa.Services
             _contextFactory = contextFactory;
         }
 
-        public IReadOnlyList<AuditTimelineEntry> GetDocumentTimeline(Guid documentId)
+        public IReadOnlyList<AuditTimelineEntry> GetEntityTimeline(string entityName, int entityId)
         {
             using var db = _contextFactory();
             var auditEntries = db.AuditLogs
-                .Where(audit => audit.DocumentId == documentId)
+                .Where(audit => audit.EntityName == entityName && audit.EntityId == entityId)
                 .Select(audit => new AuditTimelineEntry(
                     AuditTimelineEntryKind.Audit,
-                    audit.DocumentId,
+                    audit.EntityId,
                     audit.PerformedAt,
                     audit.ActionCode,
-                    audit.PerformedByUserId,
+                    audit.PerformedBy,
                     null,
                     null,
                     null));
 
             var ledgerEntries = db.StockLedgers
-                .Where(ledger => ledger.DocumentId == documentId)
+                .Where(ledger => ledger.SourceDocumentType == entityName && ledger.SourceDocumentId == entityId)
                 .Select(ledger => new AuditTimelineEntry(
                     AuditTimelineEntryKind.StockLedger,
-                    ledger.DocumentId,
+                    ledger.SourceDocumentId,
                     ledger.PostedAt,
-                    ledger.Direction,
-                    ledger.PostedByUserId,
+                    ledger.MovementType,
+                    ledger.PostedBy,
                     ledger.ProductId,
                     ledger.WarehouseId,
                     ledger.Quantity));
@@ -78,13 +78,52 @@ namespace QuanLyHangHoa.Services
                 .OrderByDescending(ledger => ledger.PostedAt)
                 .Select(ledger => new AuditTimelineEntry(
                     AuditTimelineEntryKind.StockLedger,
-                    ledger.DocumentId,
+                    ledger.SourceDocumentId,
                     ledger.PostedAt,
-                    ledger.Direction,
-                    ledger.PostedByUserId,
+                    ledger.MovementType,
+                    ledger.PostedBy,
                     ledger.ProductId,
                     ledger.WarehouseId,
                     ledger.Quantity))
+                .ToList();
+        }
+        public IReadOnlyList<AuditTimelineEntry> GetDocumentTimeline(Guid documentId)
+        {
+            // For now, documents are tracked via string IDs or integer IDs. 
+            // If the UI passes a Guid, we might need to map it.
+            // Assuming for now it maps to SourceDocumentId if available, or we search by string representation.
+            
+            using var db = _contextFactory();
+            var docIdStr = documentId.ToString();
+
+            var auditEntries = db.AuditLogs
+                .Where(audit => audit.EntityId.ToString() == docIdStr || audit.ActionCode.Contains(docIdStr))
+                .Select(audit => new AuditTimelineEntry(
+                    AuditTimelineEntryKind.Audit,
+                    audit.EntityId,
+                    audit.PerformedAt,
+                    audit.ActionCode,
+                    audit.PerformedBy,
+                    null,
+                    null,
+                    null));
+
+            var ledgerEntries = db.StockLedgers
+                .Where(ledger => ledger.SourceDocumentId.ToString() == docIdStr)
+                .Select(ledger => new AuditTimelineEntry(
+                    AuditTimelineEntryKind.StockLedger,
+                    ledger.SourceDocumentId,
+                    ledger.PostedAt,
+                    ledger.MovementType,
+                    ledger.PostedBy,
+                    ledger.ProductId,
+                    ledger.WarehouseId,
+                    ledger.Quantity));
+
+            return auditEntries
+                .AsEnumerable()
+                .Concat(ledgerEntries.AsEnumerable())
+                .OrderBy(entry => entry.OccurredAt)
                 .ToList();
         }
     }

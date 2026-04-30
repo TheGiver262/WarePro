@@ -26,10 +26,10 @@ namespace QuanLyHangHoa.Services
         {
             using var db = _contextFactory();
             return db.Products
-                .Where(p => !p.IsDeleted)
+                .Where(p => p.IsActive)
                 .Include(p => p.Category)
                 .Include(p => p.Brand)
-                .Include(p => p.Unit)
+                .Include(p => p.DefaultUnit)
                 .ToList();
         }
 
@@ -45,24 +45,27 @@ namespace QuanLyHangHoa.Services
             using var db = _contextFactory();
             var p = db.Products.Find(updated.Id);
             if (p == null) return;
-            p.Name          = updated.Name;
-            p.CategoryId    = updated.CategoryId;
-            p.BrandId       = updated.BrandId;
-            p.UnitId        = updated.UnitId;
-            p.Quantity      = updated.Quantity;
-            p.UnitPrice     = updated.UnitPrice;
-            p.Origin        = updated.Origin;
-            p.WarrantyMonths = updated.WarrantyMonths;
-            p.Notes         = updated.Notes;
+            
+            p.ProductCode = updated.ProductCode;
+            p.DisplayName = updated.DisplayName;
+            p.CategoryId = updated.CategoryId;
+            p.BrandId = updated.BrandId;
+            p.DefaultUnitId = updated.DefaultUnitId;
+            p.DefaultPrice = updated.DefaultPrice;
+            p.OriginCountry = updated.OriginCountry;
+            p.WarrantyPeriodMonths = updated.WarrantyPeriodMonths;
+            p.IsSerialTracked = updated.IsSerialTracked;
+            p.IsActive = updated.IsActive;
+
             db.SaveChanges();
         }
 
-        public void DeleteProduct(int id)
+        public void DeactivateProduct(int id)
         {
             using var db = _contextFactory();
             var p = db.Products.Find(id);
             if (p == null) return;
-            p.IsDeleted = true; // Soft delete
+            p.IsActive = false;
             db.SaveChanges();
         }
 
@@ -72,13 +75,15 @@ namespace QuanLyHangHoa.Services
             var product = db.Products.Find(productId);
             if (product == null) return;
 
+            var warehouseProvider = new DbDefaultWarehouseProvider(db);
             var service = new InventoryPostingService(
                 new EfInventoryUnitOfWork(db),
-                new DbDefaultWarehouseProvider(db),
+                warehouseProvider,
                 new SystemClock());
 
             service.PostStockIn(new PostStockInCommand(
                 Guid.NewGuid(),
+                warehouseProvider.GetDefaultWarehouseId(),
                 StockInKind.OpeningBalance,
                 StockDocumentStatus.Approved,
                 productId,
@@ -109,7 +114,7 @@ namespace QuanLyHangHoa.Services
 
         private sealed class SystemClock : IClock
         {
-            public DateTime Now => DateTime.Now;
+            public DateTime Now => DateTime.UtcNow;
         }
     }
 }

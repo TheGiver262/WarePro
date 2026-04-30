@@ -9,14 +9,16 @@ namespace QuanLyHangHoa.ViewModels
     public partial class MainViewModel : ObservableObject
     {
         [ObservableProperty]
-        private Employee _currentUser;
+        private AppUser _currentUser;
 
         [ObservableProperty]
         private UserControl? _currentView;
 
-        public MainViewModel(Employee user)
+        private readonly Data.AppDbContext _dbContext;
+        public MainViewModel(AppUser user, Data.AppDbContext dbContext)
         {
             CurrentUser = user;
+            _dbContext = dbContext;
             CurrentView = new ProductView();
         }
 
@@ -95,7 +97,7 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void OpenWarrantyView()
         {
-            var view = new WarrantyView { DataContext = new WarrantyViewModel(CurrentUser) };
+            var view = new WarrantyView { DataContext = new WarrantyViewModel(CurrentUser, _dbContext) };
             CurrentView = view;
         }
 
@@ -117,10 +119,10 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
-        private void OpenEmployeeView()
+        private void OpenAppUserView()
         {
-            if (CurrentUser.Role == "Admin")
-                CurrentView = new EmployeeView { DataContext = new EmployeeViewModel(CurrentUser) };
+            if (CurrentUser.RoleCode == "Admin")
+                CurrentView = new AppUserView { DataContext = new AppUserViewModel(CurrentUser, _dbContext) };
             else
                 System.Windows.MessageBox.Show("Bạn không phải Admin!", "Cảnh Báo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
         }

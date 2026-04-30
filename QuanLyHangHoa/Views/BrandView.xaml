@@ -1,38 +1,85 @@
 <UserControl x:Class="QuanLyHangHoa.Views.BrandView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:vm="clr-namespace:QuanLyHangHoa.ViewModels"
-             Background="#111827">
-    <Grid Margin="20">
+             mc:Ignorable="d" 
+             d:DesignHeight="800" d:DesignWidth="1100">
+
+    <UserControl.DataContext>
+        <vm:BrandViewModel />
+    </UserControl.DataContext>
+
+    <Grid Margin="24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        <TextBlock Grid.Row="0" Text="Quản Lý Thương Hiệu" FontSize="24" FontWeight="Bold" Foreground="White" Margin="0,0,0,20"/>
+
+        <!-- Header -->
+        <Border Padding="0,0,0,24">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="TagOutline" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource PrimaryHueMidBrush}"/>
+                    <TextBlock Text="QUẢN LÝ THƯƠNG HIỆU" FontSize="24" FontWeight="ExtraBold" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="#333333"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="LƯU THƯƠNG HIỆU" Command="{Binding SaveCommand}" Style="{StaticResource MaterialDesignRaisedButton}" materialDesign:ButtonAssist.CornerRadius="8" Height="40"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="2*"/>
-                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="350"/>
+                <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            <DataGrid Grid.Column="0" ItemsSource="{Binding Brands}" SelectedItem="{Binding SelectedBrand}"
-                      AutoGenerateColumns="False" CanUserAddRows="False" Background="#1F2937" Foreground="Black" RowBackground="#374151" AlternatingRowBackground="#1F2937">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="50" IsReadOnly="True"/>
-                    <DataGridTextColumn Header="Tên Thương Hiệu" Binding="{Binding Name}" Width="*" IsReadOnly="True"/>
-                </DataGrid.Columns>
-            </DataGrid>
-            <Border Grid.Column="1" Background="#1F2937" CornerRadius="8" Margin="20,0,0,0" Padding="20">
+
+            <!-- Editor Card -->
+            <materialDesign:Card Grid.Column="0" Margin="0,0,12,0" UniformCornerRadius="12" Padding="24" VerticalAlignment="Top">
                 <StackPanel>
-                    <TextBlock Text="Tên thương hiệu:" Foreground="White" Margin="0,0,0,8"/>
-                    <TextBox Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}" Background="#374151" Foreground="White" Padding="8" BorderThickness="0" Margin="0,0,0,20"/>
-                    <Button Content="Thêm Mới" Command="{Binding AddCommand}" Background="#10B981" Foreground="White" Padding="10" BorderThickness="0" Margin="0,0,0,10" Cursor="Hand"/>
-                    <Button Content="Lưu Thay Đổi" Command="{Binding SaveEditCommand}" Background="#3B82F6" Foreground="White" Padding="10" BorderThickness="0" Margin="0,0,0,10" Cursor="Hand"/>
-                    <Button Content="Import Data" Command="{Binding ImportDataCommand}" Background="#1F2937" Foreground="White" Padding="10" BorderThickness="1" BorderBrush="#3B82F6" Margin="0,0,0,10" Cursor="Hand"/>
-                    <Button Content="Xoá" Command="{Binding DeleteCommand}" Background="#EF4444" Foreground="White" Padding="10" BorderThickness="0" Margin="0,0,0,20" Cursor="Hand"/>
-                    <TextBlock Text="{Binding StatusMessage}" Foreground="#10B981" FontWeight="Bold" TextWrapping="Wrap"/>
+                    <TextBlock Text="THÔNG TIN THƯƠNG HIỆU" FontWeight="Bold" FontSize="16" Foreground="{StaticResource PrimaryHueMidBrush}" Margin="0,0,0,24"/>
+
+                    <TextBox Style="{StaticResource MaterialDesignFloatingHintTextBox}" materialDesign:HintAssist.Hint="Mã thương hiệu" 
+                             Text="{Binding BrandCode, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,20"/>
+
+                    <TextBox Style="{StaticResource MaterialDesignFloatingHintTextBox}" materialDesign:HintAssist.Hint="Tên thương hiệu" 
+                             Text="{Binding DisplayName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,32"/>
+
+                    <Button Content="XOÁ THƯƠNG HIỆU" Command="{Binding DeleteCommand}" Style="{StaticResource MaterialDesignFlatButton}" Foreground="Red"/>
                 </StackPanel>
-            </Border>
+            </materialDesign:Card>
+
+            <!-- List Card -->
+            <materialDesign:Card Grid.Column="1" Margin="12,0,0,0" UniformCornerRadius="12">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Padding="20,16" Background="#F8F9FA" BorderBrush="#EEEEEE" BorderThickness="0,0,0,1" CornerRadius="12,12,0,0">
+                        <TextBlock Text="DANH SÁCH THƯƠNG HIỆU" FontWeight="SemiBold" Foreground="#666666"/>
+                    </Border>
+
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding Brands}" SelectedItem="{Binding SelectedBrand}"
+                              AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                              Style="{StaticResource MaterialDesignDataGrid}" BorderThickness="0">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Mã thương hiệu" Binding="{Binding BrandCode}" Width="200"/>
+                            <DataGridTextColumn Header="Tên thương hiệu" Binding="{Binding DisplayName}" Width="*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </materialDesign:Card>
         </Grid>
     </Grid>
 </UserControl>

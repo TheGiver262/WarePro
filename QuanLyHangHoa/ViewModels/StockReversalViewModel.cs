@@ -10,7 +10,7 @@ namespace QuanLyHangHoa.ViewModels
 {
     public partial class StockReversalViewModel : ObservableObject
     {
-        private readonly Employee _currentUser;
+        private readonly AppUser _currentUser;
         private readonly Func<Guid, string, int, int> _reverseDocument;
         private readonly Action<string, string> _showMessage;
 
@@ -18,7 +18,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _reason = "WrongPosting";
         [ObservableProperty] private string _statusMessage = string.Empty;
 
-        public StockReversalViewModel(Employee currentUser)
+        public StockReversalViewModel(AppUser currentUser)
             : this(
                 currentUser,
                 new StockReversalService().ReversePostedLedgerDocument,
@@ -27,7 +27,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         public StockReversalViewModel(
-            Employee currentUser,
+            AppUser currentUser,
             Func<Guid, string, int, int> reverseDocument,
             Action<string, string> showMessage)
         {

@@ -10,31 +10,20 @@ namespace QuanLyHangHoa.ViewModels
 {
     public partial class DebtReportViewModel : ObservableObject
     {
-        private readonly Func<IReadOnlyList<DebtSummary>> _customerDebtLoader;
-        private readonly Func<IReadOnlyList<DebtSummary>> _supplierDebtLoader;
+        private readonly DebtReportService _service;
 
         [ObservableProperty] private bool _isCustomerMode = true;
-        [ObservableProperty] private ObservableCollection<DebtSummary> _summaries = new();
+        [ObservableProperty] private ObservableCollection<DebtReportEntry> _summaries = new();
         [ObservableProperty] private decimal _totalDebt;
 
         public DebtReportViewModel()
-            : this(
-                new DebtReportService().GetCustomerDebtSummary,
-                new DebtReportService().GetSupplierDebtSummary)
         {
-        }
-
-        public DebtReportViewModel(
-            Func<IReadOnlyList<DebtSummary>> customerDebtLoader,
-            Func<IReadOnlyList<DebtSummary>> supplierDebtLoader)
-        {
-            _customerDebtLoader = customerDebtLoader;
-            _supplierDebtLoader = supplierDebtLoader;
+            _service = new DebtReportService();
             LoadCurrentReport();
         }
 
-        public string ReportTitle => IsCustomerMode ? "Cong no khach hang" : "Cong no nha cung cap";
-        public string PartyColumnTitle => IsCustomerMode ? "Khach hang" : "Nha cung cap";
+        public string ReportTitle => IsCustomerMode ? "Công nợ khách hàng" : "Công nợ nhà cung cấp";
+        public string PartyColumnTitle => IsCustomerMode ? "Đối tác" : "Đối tác";
 
         [RelayCommand]
         private void ShowCustomers()
@@ -61,9 +50,9 @@ namespace QuanLyHangHoa.ViewModels
 
         private void LoadCurrentReport()
         {
-            var loaded = IsCustomerMode ? _customerDebtLoader() : _supplierDebtLoader();
-            Summaries = new ObservableCollection<DebtSummary>(loaded);
-            TotalDebt = loaded.Sum(summary => summary.DebtAmount);
+            var loaded = IsCustomerMode ? _service.GetCustomerDebtReport() : _service.GetSupplierDebtReport();
+            Summaries = new ObservableCollection<DebtReportEntry>(loaded);
+            TotalDebt = loaded.Sum(summary => summary.Balance);
         }
     }
 }

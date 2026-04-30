@@ -1,6 +1,5 @@
-using System;
 using System.Collections.Generic;
-
+using System.ComponentModel.DataAnnotations;
 using QuanLyHangHoa.Services.DataImport;
 
 namespace QuanLyHangHoa.Models
@@ -8,11 +7,19 @@ namespace QuanLyHangHoa.Models
     public class Unit
     {
         public int Id { get; set; }
-        [ImportKey]
-        public string Name { get; set; } = string.Empty;
-        public bool IsDeleted { get; set; } = false;
         
-        public virtual ICollection<Product> Products { get; set; } = new List<Product>();
-        public virtual ICollection<ProductUnit> ProductUnits { get; set; } = new List<ProductUnit>();
+        [Required]
+        [MaxLength(50)]
+        [ImportKey]
+        public string UnitCode { get; set; } = string.Empty;
+        
+        [Required]
+        [MaxLength(100)]
+        public string DisplayName { get; set; } = string.Empty;
+        
+        public bool IsActive { get; set; } = true;
+        
+        public virtual ICollection<Product>? Products { get; set; }
+        public virtual ICollection<ProductUnit>? ProductUnits { get; set; }
     }
 }

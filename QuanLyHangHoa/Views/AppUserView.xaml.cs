@@ -2,9 +2,9 @@ using System.Windows.Controls;
 
 namespace QuanLyHangHoa.Views
 {
-    public partial class EmployeeView : UserControl
+    public partial class AppUserView : UserControl
     {
-        public EmployeeView()
+        public AppUserView()
         {
             InitializeComponent();
         }

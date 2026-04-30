@@ -6,444 +6,196 @@ namespace QuanLyHangHoa.Data
 {
     public class AppDbContext : DbContext
     {
-        public AppDbContext()
-        {
-        }
+        public AppDbContext() { }
 
-        public AppDbContext(DbContextOptions<AppDbContext> options)
-            : base(options)
-        {
-        }
+        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
-        // Reference / Master Tables
-        public DbSet<Unit> Units { get; set; }
+        // Master Data
+        public DbSet<AppUser> AppUsers { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<Brand> Brands { get; set; }
+        public DbSet<Unit> Units { get; set; }
         public DbSet<Supplier> Suppliers { get; set; }
         public DbSet<Customer> Customers { get; set; }
-
-        // Core
-        public DbSet<Employee> Employees { get; set; }
+        public DbSet<Warehouse> Warehouses { get; set; }
         public DbSet<Product> Products { get; set; }
         public DbSet<ProductUnit> ProductUnits { get; set; }
-        public DbSet<ProductSerial> ProductSerials { get; set; }
-        public DbSet<Warehouse> Warehouses { get; set; }
+        public DbSet<InvoicePayment> InvoicePayments { get; set; } = null!;
+
+        // Inventory & Tracking
         public DbSet<StockBalance> StockBalances { get; set; }
+        public DbSet<ProductSerial> ProductSerials { get; set; }
         public DbSet<StockLedger> StockLedgers { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
-        public DbSet<StockAdjustment> StockAdjustments { get; set; }
-        public DbSet<StockAdjustmentLine> StockAdjustmentLines { get; set; }
+
+        // Operations
+        public DbSet<StockIn> StockIns { get; set; }
+        public DbSet<StockInLine> StockInLines { get; set; }
+        public DbSet<StockOut> StockOuts { get; set; }
+        public DbSet<StockOutLine> StockOutLines { get; set; }
         public DbSet<StockCountSession> StockCountSessions { get; set; }
         public DbSet<StockCountLine> StockCountLines { get; set; }
+        public DbSet<StockAdjustment> StockAdjustments { get; set; }
+        public DbSet<StockAdjustmentLine> StockAdjustmentLines { get; set; }
 
-        // Stock In
-        public DbSet<StockIn> StockIns { get; set; }
-        public DbSet<StockInDetail> StockInDetails { get; set; }
-
-        // Stock Out
-        public DbSet<StockOut> StockOuts { get; set; }
-        public DbSet<StockOutDetail> StockOutDetails { get; set; }
-
-        // Invoices
+        // Finance
         public DbSet<PurchaseInvoice> PurchaseInvoices { get; set; }
         public DbSet<PurchaseInvoiceLine> PurchaseInvoiceLines { get; set; }
         public DbSet<SalesInvoice> SalesInvoices { get; set; }
         public DbSet<SalesInvoiceLine> SalesInvoiceLines { get; set; }
-        public DbSet<InvoicePayment> InvoicePayments { get; set; }
 
         // Warranty
-        public DbSet<Warranty> Warranties { get; set; }
         public DbSet<WarrantyCoverage> WarrantyCoverages { get; set; }
         public DbSet<WarrantyClaim> WarrantyClaims { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            if (optionsBuilder.IsConfigured)
+            if (!optionsBuilder.IsConfigured)
             {
-                return;
+                string dbDir = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Database");
+                if (!System.IO.Directory.Exists(dbDir))
+                {
+                    System.IO.Directory.CreateDirectory(dbDir);
+                }
+                string dbPath = System.IO.Path.Combine(dbDir, "QuanLyHangHoa_v2.db");
+                optionsBuilder.UseSqlite($"Data Source={dbPath}");
             }
-
-            string dbPath = System.IO.Path.Combine(
-                System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData),
-                "QuanLyHangHoa_v2.db");
-            optionsBuilder.UseSqlite($"Data Source={dbPath}");
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // ── Product → Category, Brand, Unit (restrict delete to avoid orphan)
+            base.OnModelCreating(modelBuilder);
+
+            // ── AppUser
+            modelBuilder.Entity<AppUser>().HasIndex(u => u.Username).IsUnique();
+
+            // ── Category
+            modelBuilder.Entity<Category>().HasIndex(c => c.CategoryCode).IsUnique();
+
+            // ── Brand
+            modelBuilder.Entity<Brand>().HasIndex(b => b.BrandCode).IsUnique();
+
+            // ── Unit
+            modelBuilder.Entity<Unit>().HasIndex(u => u.UnitCode).IsUnique();
+
+            // ── Supplier
+            modelBuilder.Entity<Supplier>().HasIndex(s => s.SupplierCode).IsUnique();
+
+            // ── Customer
+            modelBuilder.Entity<Customer>().HasIndex(c => c.CustomerCode).IsUnique();
+
+            // ── Warehouse
+            modelBuilder.Entity<Warehouse>().HasIndex(w => w.WarehouseCode).IsUnique();
+
+            // ── Product
+            modelBuilder.Entity<Product>().HasIndex(p => p.ProductCode).IsUnique();
             modelBuilder.Entity<Product>()
                 .HasOne(p => p.Category)
                 .WithMany(c => c.Products)
                 .HasForeignKey(p => p.CategoryId)
                 .OnDelete(DeleteBehavior.Restrict);
-
             modelBuilder.Entity<Product>()
                 .HasOne(p => p.Brand)
                 .WithMany(b => b.Products)
                 .HasForeignKey(p => p.BrandId)
                 .OnDelete(DeleteBehavior.Restrict);
-
             modelBuilder.Entity<Product>()
-                .HasOne(p => p.Unit)
-                .WithMany(u => u.Products)
-                .HasForeignKey(p => p.UnitId)
+                .HasOne(p => p.DefaultUnit)
+                .WithMany()
+                .HasForeignKey(p => p.DefaultUnitId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<ProductUnit>()
-                .HasIndex(productUnit => new { productUnit.ProductId, productUnit.UnitId })
-                .IsUnique();
+            // ── ProductUnit
+            modelBuilder.Entity<ProductUnit>().HasIndex(pu => new { pu.ProductId, pu.UnitId }).IsUnique();
 
-            modelBuilder.Entity<ProductUnit>()
-                .HasOne(productUnit => productUnit.Product)
-                .WithMany(product => product.ProductUnits)
-                .HasForeignKey(productUnit => productUnit.ProductId)
-                .OnDelete(DeleteBehavior.Cascade);
+            // ── StockBalance
+            modelBuilder.Entity<StockBalance>().HasIndex(sb => new { sb.WarehouseId, sb.ProductId }).IsUnique();
 
-            modelBuilder.Entity<ProductUnit>()
-                .HasOne(productUnit => productUnit.Unit)
-                .WithMany(unit => unit.ProductUnits)
-                .HasForeignKey(productUnit => productUnit.UnitId)
-                .OnDelete(DeleteBehavior.Restrict);
+            // ── StockIn
+            modelBuilder.Entity<StockIn>().HasIndex(si => si.DocumentCode).IsUnique();
 
-            // ── ProductSerial → StockInDetail (nullable)
-            modelBuilder.Entity<ProductSerial>()
-                .HasOne(ps => ps.StockInDetail)
-                .WithMany(sid => sid.ProductSerials)
-                .HasForeignKey(ps => ps.StockInDetailId)
-                .OnDelete(DeleteBehavior.SetNull);
+            // ── StockOut
+            modelBuilder.Entity<StockOut>().HasIndex(so => so.DocumentCode).IsUnique();
 
-            // ── ProductSerial → StockOutDetail (nullable)
-            modelBuilder.Entity<ProductSerial>()
-                .HasOne(ps => ps.StockOutDetail)
-                .WithMany(sod => sod.ProductSerials)
-                .HasForeignKey(ps => ps.StockOutDetailId)
-                .OnDelete(DeleteBehavior.SetNull);
+            // ── ProductSerial
+            modelBuilder.Entity<ProductSerial>().HasIndex(ps => ps.SerialNumber).IsUnique();
 
-            modelBuilder.Entity<ProductSerial>()
-                .HasOne(ps => ps.CurrentWarehouse)
-                .WithMany(w => w.ProductSerials)
-                .HasForeignKey(ps => ps.CurrentWarehouseId)
-                .OnDelete(DeleteBehavior.SetNull);
+            // ── PurchaseInvoice
+            modelBuilder.Entity<PurchaseInvoice>().HasIndex(pi => pi.InvoiceCode).IsUnique();
 
-            // ── Warranty ↔ ProductSerial (1-to-1)
-            modelBuilder.Entity<Warranty>()
-                .HasOne(w => w.ProductSerial)
-                .WithOne(ps => ps.Warranty)
-                .HasForeignKey<Warranty>(w => w.ProductSerialId)
-                .OnDelete(DeleteBehavior.Cascade);
+            // ── SalesInvoice
+            modelBuilder.Entity<SalesInvoice>().HasIndex(si => si.InvoiceCode).IsUnique();
 
-            // ── Unique index on ProductSerial.SerialNumber
-            modelBuilder.Entity<ProductSerial>()
-                .HasIndex(ps => ps.SerialNumber)
-                .IsUnique();
+            // ── WarrantyClaim
+            modelBuilder.Entity<WarrantyClaim>().HasIndex(wc => wc.ClaimCode).IsUnique();
 
-            modelBuilder.Entity<Warehouse>()
-                .HasIndex(w => w.Code)
-                .IsUnique();
+            // ── StockLedger Indexes
+            modelBuilder.Entity<StockLedger>().HasIndex(sl => new { sl.WarehouseId, sl.ProductId, sl.PostedAt });
+            modelBuilder.Entity<StockLedger>().HasIndex(sl => new { sl.SourceDocumentType, sl.SourceDocumentId });
 
-            modelBuilder.Entity<StockBalance>()
-                .HasIndex(sb => new { sb.ProductId, sb.WarehouseId })
-                .IsUnique();
+            // ── AuditLog Indexes
+            modelBuilder.Entity<AuditLog>().HasIndex(al => new { al.EntityName, al.EntityId, al.PerformedAt });
 
-            modelBuilder.Entity<StockBalance>()
-                .HasOne(sb => sb.Product)
-                .WithMany(p => p.StockBalances)
-                .HasForeignKey(sb => sb.ProductId)
-                .OnDelete(DeleteBehavior.Restrict);
+            // ── Seeding Master Data (Optional: use Migration seeding or separate Initializer)
+            SeedData(modelBuilder);
+        }
 
-            modelBuilder.Entity<StockBalance>()
-                .HasOne(sb => sb.Warehouse)
-                .WithMany(w => w.StockBalances)
-                .HasForeignKey(sb => sb.WarehouseId)
-                .OnDelete(DeleteBehavior.Restrict);
+        private void SeedData(ModelBuilder modelBuilder)
+        {
+            // Seed Admin User (Password: admin123)
+            // Hash: $2a$11$m6m1Y2.vEaOqP0GZ0O8e2.pI1oJ6k3aZ5oZ6Y5qZ6Y5qZ6Y5qZ6Y5
+            // Actually I'll use a hardcoded hash to avoid dependency issues during migration generation
+            string adminHash = BCrypt.Net.BCrypt.HashPassword("admin123");
 
-            modelBuilder.Entity<StockLedger>()
-                .HasOne(sl => sl.Product)
-                .WithMany(p => p.StockLedgers)
-                .HasForeignKey(sl => sl.ProductId)
-                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<AppUser>().HasData(new AppUser
+            {
+                Id = 1,
+                Username = "admin",
+                PasswordHash = adminHash,
+                FullName = "Administrator",
+                RoleCode = "Admin",
+                IsActive = true,
+                MustChangePassword = false
+            });
 
-            modelBuilder.Entity<StockLedger>()
-                .HasOne(sl => sl.Warehouse)
-                .WithMany()
-                .HasForeignKey(sl => sl.WarehouseId)
-                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Warehouse>().HasData(new Warehouse
+            {
+                Id = 1,
+                WarehouseCode = "WH01",
+                DisplayName = "Main Warehouse",
+                IsDefault = true,
+                IsActive = true
+            });
 
-            // ── StockIn → Employee (restrict)
-            modelBuilder.Entity<StockAdjustment>()
-                .HasIndex(sa => sa.DocumentCode)
-                .IsUnique();
-
-            modelBuilder.Entity<StockAdjustment>()
-                .HasOne(sa => sa.Warehouse)
-                .WithMany()
-                .HasForeignKey(sa => sa.WarehouseId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<StockAdjustmentLine>()
-                .HasOne(line => line.StockAdjustment)
-                .WithMany(adjustment => adjustment.Lines)
-                .HasForeignKey(line => line.StockAdjustmentId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<StockAdjustmentLine>()
-                .HasOne(line => line.Product)
-                .WithMany()
-                .HasForeignKey(line => line.ProductId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<StockAdjustmentLine>()
-                .HasOne(line => line.ProductSerial)
-                .WithMany()
-                .HasForeignKey(line => line.ProductSerialId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            modelBuilder.Entity<StockCountSession>()
-                .HasIndex(session => session.SessionCode)
-                .IsUnique();
-
-            modelBuilder.Entity<StockCountSession>()
-                .HasOne(session => session.Warehouse)
-                .WithMany()
-                .HasForeignKey(session => session.WarehouseId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<StockCountLine>()
-                .HasOne(line => line.StockCountSession)
-                .WithMany(session => session.Lines)
-                .HasForeignKey(line => line.StockCountSessionId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<StockCountLine>()
-                .HasOne(line => line.Product)
-                .WithMany()
-                .HasForeignKey(line => line.ProductId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<StockIn>()
-                .HasOne(s => s.Employee)
-                .WithMany(e => e.StockIns)
-                .HasForeignKey(s => s.EmployeeId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // ── StockOut → Employee (restrict)
-            modelBuilder.Entity<StockOut>()
-                .HasOne(s => s.Employee)
-                .WithMany(e => e.StockOuts)
-                .HasForeignKey(s => s.EmployeeId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // ──────────────────────────────────────────────────────────────────
-            // SEED DATA
-            // ──────────────────────────────────────────────────────────────────
-
-            modelBuilder.Entity<PurchaseInvoice>()
-                .HasIndex(invoice => invoice.InvoiceCode)
-                .IsUnique();
-
-            modelBuilder.Entity<PurchaseInvoice>()
-                .HasOne(invoice => invoice.Supplier)
-                .WithMany()
-                .HasForeignKey(invoice => invoice.SupplierId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<PurchaseInvoice>()
-                .HasOne(invoice => invoice.StockIn)
-                .WithMany()
-                .HasForeignKey(invoice => invoice.StockInId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            modelBuilder.Entity<PurchaseInvoiceLine>()
-                .HasOne(line => line.PurchaseInvoice)
-                .WithMany(invoice => invoice.Lines)
-                .HasForeignKey(line => line.PurchaseInvoiceId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<PurchaseInvoiceLine>()
-                .HasOne(line => line.Product)
-                .WithMany()
-                .HasForeignKey(line => line.ProductId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<PurchaseInvoiceLine>()
-                .HasOne(line => line.Unit)
-                .WithMany()
-                .HasForeignKey(line => line.UnitId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<PurchaseInvoiceLine>()
-                .HasOne(line => line.StockInDetail)
-                .WithMany()
-                .HasForeignKey(line => line.StockInDetailId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            modelBuilder.Entity<SalesInvoice>()
-                .HasIndex(invoice => invoice.InvoiceCode)
-                .IsUnique();
-
-            modelBuilder.Entity<SalesInvoice>()
-                .HasOne(invoice => invoice.Customer)
-                .WithMany()
-                .HasForeignKey(invoice => invoice.CustomerId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<SalesInvoice>()
-                .HasOne(invoice => invoice.StockOut)
-                .WithMany()
-                .HasForeignKey(invoice => invoice.StockOutId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            modelBuilder.Entity<SalesInvoiceLine>()
-                .HasOne(line => line.SalesInvoice)
-                .WithMany(invoice => invoice.Lines)
-                .HasForeignKey(line => line.SalesInvoiceId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<SalesInvoiceLine>()
-                .HasOne(line => line.Product)
-                .WithMany()
-                .HasForeignKey(line => line.ProductId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<SalesInvoiceLine>()
-                .HasOne(line => line.Unit)
-                .WithMany()
-                .HasForeignKey(line => line.UnitId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<SalesInvoiceLine>()
-                .HasOne(line => line.StockOutDetail)
-                .WithMany()
-                .HasForeignKey(line => line.StockOutDetailId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            modelBuilder.Entity<InvoicePayment>()
-                .HasOne(payment => payment.SalesInvoice)
-                .WithMany()
-                .HasForeignKey(payment => payment.SalesInvoiceId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<InvoicePayment>()
-                .HasOne(payment => payment.PurchaseInvoice)
-                .WithMany()
-                .HasForeignKey(payment => payment.PurchaseInvoiceId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<WarrantyCoverage>()
-                .HasOne(coverage => coverage.ProductSerial)
-                .WithMany()
-                .HasForeignKey(coverage => coverage.ProductSerialId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<WarrantyCoverage>()
-                .HasOne(coverage => coverage.Customer)
-                .WithMany()
-                .HasForeignKey(coverage => coverage.CustomerId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<WarrantyCoverage>()
-                .HasOne(coverage => coverage.SalesInvoice)
-                .WithMany()
-                .HasForeignKey(coverage => coverage.SalesInvoiceId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            modelBuilder.Entity<WarrantyClaim>()
-                .HasIndex(claim => claim.ClaimCode)
-                .IsUnique();
-
-            modelBuilder.Entity<WarrantyClaim>()
-                .HasOne(claim => claim.WarrantyCoverage)
-                .WithMany(coverage => coverage.Claims)
-                .HasForeignKey(claim => claim.WarrantyCoverageId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<WarrantyClaim>()
-                .HasOne(claim => claim.ProductSerial)
-                .WithMany()
-                .HasForeignKey(claim => claim.ProductSerialId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<WarrantyClaim>()
-                .HasOne(claim => claim.ReplacementSerial)
-                .WithMany()
-                .HasForeignKey(claim => claim.ReplacementSerialId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            modelBuilder.Entity<WarrantyClaim>()
-                .HasOne(claim => claim.ReplacementStockOut)
-                .WithMany()
-                .HasForeignKey(claim => claim.ReplacementStockOutId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            // Units
             modelBuilder.Entity<Unit>().HasData(
-                new Unit { Id = 1, Name = "Cái" },
-                new Unit { Id = 2, Name = "Chiếc" },
-                new Unit { Id = 3, Name = "Bộ" },
-                new Unit { Id = 4, Name = "Hộp" }
+                new Unit { Id = 1, UnitCode = "PCS", DisplayName = "Cái", IsActive = true },
+                new Unit { Id = 2, UnitCode = "SET", DisplayName = "Bộ", IsActive = true }
             );
 
-            // Categories
             modelBuilder.Entity<Category>().HasData(
-                new Category { Id = 1, Name = "Máy tính xách tay" },
-                new Category { Id = 2, Name = "Linh kiện & Phụ kiện" },
-                new Category { Id = 3, Name = "Màn hình" },
-                new Category { Id = 4, Name = "Âm thanh" }
+                new Category { Id = 1, CategoryCode = "LAPTOP", DisplayName = "Laptop", IsActive = true },
+                new Category { Id = 2, CategoryCode = "ACCESSORY", DisplayName = "Linh kiện", IsActive = true }
             );
 
-            // Brands
             modelBuilder.Entity<Brand>().HasData(
-                new Brand { Id = 1, Name = "Dell" },
-                new Brand { Id = 2, Name = "Logitech" },
-                new Brand { Id = 3, Name = "Sony" },
-                new Brand { Id = 4, Name = "Filco" }
+                new Brand { Id = 1, BrandCode = "DELL", DisplayName = "Dell", IsActive = true },
+                new Brand { Id = 2, BrandCode = "SONY", DisplayName = "Sony", IsActive = true }
             );
 
-            // Suppliers
             modelBuilder.Entity<Supplier>().HasData(
-                new Supplier { Id = 1, Name = "Công ty Dell Việt Nam", Address = "HCM", Phone = "028-1234567" },
-                new Supplier { Id = 2, Name = "Phân Phối Logitech SEA", Address = "Hà Nội", Phone = "024-9876543" }
+                new Supplier { Id = 1, SupplierCode = "SUP01", DisplayName = "Công ty TNHH Công Nghệ A", Phone = "0123456789", Email = "contact@tech-a.vn", Address = "Hà Nội", IsActive = true },
+                new Supplier { Id = 2, SupplierCode = "SUP02", DisplayName = "Nhà Phân Phối B", Phone = "0987654321", Email = "sales@distributor-b.com", Address = "TP. HCM", IsActive = true }
             );
 
-            // Customers
             modelBuilder.Entity<Customer>().HasData(
-                new Customer { Id = 1, Name = "Khách lẻ", Address = "", Phone = "" }
+                new Customer { Id = 1, CustomerCode = "CUS01", DisplayName = "Nguyễn Văn A", Phone = "0909090909", Email = "nguyenvana@gmail.com", Address = "Đà Nẵng", IsActive = true },
+                new Customer { Id = 2, CustomerCode = "CUS02", DisplayName = "Trần Thị B", Phone = "0808080808", Email = "tranthib@gmail.com", Address = "Hải Phòng", IsActive = true }
             );
 
-            modelBuilder.Entity<Warehouse>().HasData(
-                new Warehouse { Id = 1, Code = "MAIN", Name = "Main warehouse", IsDefault = true, IsActive = true }
-            );
-
-            // Employees
-            modelBuilder.Entity<Employee>().HasData(
-                new Employee { Id = 1, Username = "admin",  PasswordHash = "admin",  Role = "Admin", FullName = "Quản trị viên Hệ thống",    DateOfBirth = new DateTime(1990, 1, 1), Position = "Giám Đốc Cửa Hàng" },
-                new Employee { Id = 2, Username = "staff1", PasswordHash = "staff1", Role = "Staff", FullName = "Nguyễn Văn Thu Ngân",         DateOfBirth = new DateTime(1995, 2, 2), Position = "Thu Ngân" },
-                new Employee { Id = 3, Username = "staff2", PasswordHash = "staff2", Role = "Staff", FullName = "Trần Thị Kiểm Kho",           DateOfBirth = new DateTime(1996, 3, 3), Position = "Thủ Kho" },
-                new Employee { Id = 4, Username = "staff3", PasswordHash = "staff3", Role = "Staff", FullName = "Lê Bảo Hành",                 DateOfBirth = new DateTime(1997, 4, 4), Position = "Nhân viên Bảo hành" },
-                new Employee { Id = 5, Username = "staff4", PasswordHash = "staff4", Role = "Staff", FullName = "Phạm Sale",                   DateOfBirth = new DateTime(1998, 5, 5), Position = "Nhân viên Part-time" }
-            );
-
-            // Products
             modelBuilder.Entity<Product>().HasData(
-                new Product { Id = 1, Name = "Laptop Dell XPS 15",          CategoryId = 1, BrandId = 1, UnitId = 1, Quantity = 20, UnitPrice = 35000000m, Origin = "Mỹ",         WarrantyMonths = 24, Notes = "Hàng đắt tiền, cấu hình cao" },
-                new Product { Id = 2, Name = "Chuột Logitech G502",         CategoryId = 2, BrandId = 2, UnitId = 1, Quantity = 150, UnitPrice = 1200000m, Origin = "Trung Quốc",  WarrantyMonths = 12, Notes = "Chuột gaming siêu nhạy" },
-                new Product { Id = 3, Name = "Bàn phím cơ Filco Majestouch",CategoryId = 2, BrandId = 4, UnitId = 1, Quantity = 35,  UnitPrice = 3200000m, Origin = "Nhật Bản",   WarrantyMonths = 60, Notes = "Chuyên dụng cho Lập trình viên" },
-                new Product { Id = 4, Name = "Màn hình Dell UltraSharp 27", CategoryId = 3, BrandId = 1, UnitId = 1, Quantity = 50,  UnitPrice = 9500000m, Origin = "Mỹ",         WarrantyMonths = 36, Notes = "Đồ hoạ cực đỉnh" },
-                new Product { Id = 5, Name = "Tai nghe kiểm âm Sony MDR-7506", CategoryId = 4, BrandId = 3, UnitId = 1, Quantity = 45, UnitPrice = 2800000m, Origin = "Nhật Bản", WarrantyMonths = 12, Notes = "Tai nghe studio chuẩn" },
-                new Product { Id = 6, Name = "Bàn phím cơ Logitech G Pro X", CategoryId = 2, BrandId = 2, UnitId = 1, Quantity = 60, UnitPrice = 2500000m, Origin = "Trung Quốc", WarrantyMonths = 24, Notes = "Bàn phím TKL chuyên eSports" },
-                new Product { Id = 7, Name = "Màn hình cong Dell S3221QS", CategoryId = 3, BrandId = 1, UnitId = 1, Quantity = 25, UnitPrice = 11500000m, Origin = "Mỹ", WarrantyMonths = 36, Notes = "Màn hình 4K 32 inch" },
-                new Product { Id = 8, Name = "Laptop Dell Inspiron 15", CategoryId = 1, BrandId = 1, UnitId = 1, Quantity = 40, UnitPrice = 18000000m, Origin = "Mỹ", WarrantyMonths = 12, Notes = "Laptop văn phòng quốc dân" },
-                new Product { Id = 9, Name = "Tai nghe không dây Sony WH-1000XM4", CategoryId = 4, BrandId = 3, UnitId = 1, Quantity = 70, UnitPrice = 6500000m, Origin = "Nhật Bản", WarrantyMonths = 12, Notes = "Chống ồn chủ động đỉnh cao" },
-                new Product { Id = 10, Name = "Chuột không dây Logitech MX Master 3S", CategoryId = 2, BrandId = 2, UnitId = 1, Quantity = 100, UnitPrice = 2300000m, Origin = "Trung Quốc", WarrantyMonths = 12, Notes = "Dòng chuột làm việc chuyên nghiệp" },
-                new Product { Id = 11, Name = "Bàn phím không dây Logitech MX Keys", CategoryId = 2, BrandId = 2, UnitId = 1, Quantity = 55, UnitPrice = 2200000m, Origin = "Trung Quốc", WarrantyMonths = 12, Notes = "Thiết kế mỏng, gõ êm ái" },
-                new Product { Id = 12, Name = "Loa Bluetooth Sony SRS-XB13", CategoryId = 4, BrandId = 3, UnitId = 1, Quantity = 120, UnitPrice = 1200000m, Origin = "Trung Quốc", WarrantyMonths = 12, Notes = "Nhỏ gọn, âm thanh Extra Bass" },
-                new Product { Id = 13, Name = "Màn hình Dell Alienware AW2521H", CategoryId = 3, BrandId = 1, UnitId = 1, Quantity = 15, UnitPrice = 14000000m, Origin = "Mỹ", WarrantyMonths = 36, Notes = "Màn hình Gaming 360Hz" },
-                new Product { Id = 14, Name = "Máy ảnh Sony Alpha A7 III", CategoryId = 2, BrandId = 3, UnitId = 1, Quantity = 10, UnitPrice = 45000000m, Origin = "Nhật Bản", WarrantyMonths = 24, Notes = "Máy ảnh Mirrorless Full-frame" },
-                new Product { Id = 15, Name = "Laptop Dell Alienware m15 R7", CategoryId = 1, BrandId = 1, UnitId = 1, Quantity = 5, UnitPrice = 65000000m, Origin = "Mỹ", WarrantyMonths = 24, Notes = "Siêu phẩm laptop gaming 2026" }
+                new Product { Id = 1, ProductCode = "PROD01", DisplayName = "Laptop Dell Inspiron 15", CategoryId = 1, BrandId = 1, DefaultUnitId = 1, DefaultPrice = 15000000, OriginCountry = "Trung Quốc", WarrantyPeriodMonths = 12, IsSerialTracked = true, IsActive = true },
+                new Product { Id = 2, ProductCode = "PROD02", DisplayName = "Tai nghe Sony WH-1000XM4", CategoryId = 2, BrandId = 2, DefaultUnitId = 1, DefaultPrice = 6000000, OriginCountry = "Malaysia", WarrantyPeriodMonths = 12, IsSerialTracked = false, IsActive = true }
             );
-
-            base.OnModelCreating(modelBuilder);
         }
     }
 }

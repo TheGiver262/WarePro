@@ -1,7 +1,6 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Windows;
+using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using QuanLyHangHoa.Models;
@@ -11,121 +10,106 @@ namespace QuanLyHangHoa.ViewModels
 {
     public partial class ProductUnitViewModel : ObservableObject
     {
-        private readonly Func<List<Product>> _productLoader;
-        private readonly Func<List<Unit>> _unitLoader;
-        private readonly Func<int, List<ProductUnit>> _productUnitLoader;
-        private readonly Action<ProductUnit> _addProductUnit;
-        private readonly Action<int> _deleteProductUnit;
-        private readonly Action<string, string> _showMessage;
+        private readonly ProductUnitService _service;
+        private readonly ProductService _productService;
+        private readonly ReferenceDataService _refDataService;
 
-        [ObservableProperty] private ObservableCollection<Product> _availableProducts = new();
-        [ObservableProperty] private ObservableCollection<Unit> _availableUnits = new();
-        [ObservableProperty] private ObservableCollection<ProductUnit> _productUnits = new();
+        [ObservableProperty] private ObservableCollection<Product> _products = new();
         [ObservableProperty] private Product? _selectedProduct;
-        [ObservableProperty] private Unit? _selectedUnit;
+        [ObservableProperty] private ObservableCollection<ProductUnit> _productUnits = new();
         [ObservableProperty] private ProductUnit? _selectedProductUnit;
-        [ObservableProperty] private decimal _conversionRateToBaseUnit = 1m;
-        [ObservableProperty] private bool _isBaseUnit;
-        [ObservableProperty] private string _statusMessage = string.Empty;
+        [ObservableProperty] private ObservableCollection<Unit> _availableUnits = new();
+        [ObservableProperty] private int _selectedUnitId;
+        [ObservableProperty] private decimal _conversionFactor = 1;
 
         public ProductUnitViewModel()
-            : this(
-                new ProductService().GetAllProducts,
-                new ReferenceDataService().GetAllUnits,
-                new ProductUnitService().GetProductUnits,
-                new ProductUnitService().AddProductUnit,
-                new ProductUnitService().DeleteProductUnit,
-                (message, title) => MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information))
         {
+            _service = new ProductUnitService();
+            _productService = new ProductService();
+            _refDataService = new ReferenceDataService();
+            
+            LoadProducts();
+            LoadUnits();
         }
 
-        public ProductUnitViewModel(
-            Func<List<Product>> productLoader,
-            Func<List<Unit>> unitLoader,
-            Func<int, List<ProductUnit>> productUnitLoader,
-            Action<ProductUnit> addProductUnit,
-            Action<int> deleteProductUnit,
-            Action<string, string> showMessage)
+        private void LoadProducts()
         {
-            _productLoader = productLoader;
-            _unitLoader = unitLoader;
-            _productUnitLoader = productUnitLoader;
-            _addProductUnit = addProductUnit;
-            _deleteProductUnit = deleteProductUnit;
-            _showMessage = showMessage;
-
-            LoadLookups();
+            Products = new ObservableCollection<Product>(_productService.GetAllProducts());
         }
 
-        [RelayCommand]
-        private void SaveProductUnit()
+        private void LoadUnits()
         {
-            if (SelectedProduct == null || SelectedUnit == null)
-            {
-                StatusMessage = "Chua chon hang hoa hoac don vi.";
-                _showMessage(StatusMessage, "Canh bao");
-                return;
-            }
-
-            try
-            {
-                _addProductUnit(new ProductUnit
-                {
-                    ProductId = SelectedProduct.Id,
-                    UnitId = SelectedUnit.Id,
-                    ConversionRateToBaseUnit = ConversionRateToBaseUnit,
-                    IsBaseUnit = IsBaseUnit
-                });
-
-                StatusMessage = "Da luu don vi quy doi.";
-                _showMessage(StatusMessage, "Thong bao");
-                ConversionRateToBaseUnit = 1m;
-                IsBaseUnit = false;
-                LoadProductUnits();
-            }
-            catch (InvalidOperationException ex)
-            {
-                StatusMessage = ex.Message;
-                _showMessage(ex.Message, "Loi don vi san pham");
-            }
-        }
-
-        [RelayCommand]
-        private void DeleteProductUnit()
-        {
-            if (SelectedProductUnit == null)
-            {
-                StatusMessage = "Chua chon don vi quy doi.";
-                _showMessage(StatusMessage, "Canh bao");
-                return;
-            }
-
-            _deleteProductUnit(SelectedProductUnit.Id);
-            StatusMessage = "Da xoa don vi quy doi.";
-            _showMessage(StatusMessage, "Thong bao");
-            LoadProductUnits();
+            AvailableUnits = new ObservableCollection<Unit>(_refDataService.GetAllUnits());
         }
 
         partial void OnSelectedProductChanged(Product? value)
         {
-            LoadProductUnits();
-        }
-
-        private void LoadLookups()
-        {
-            AvailableProducts = new ObservableCollection<Product>(_productLoader());
-            AvailableUnits = new ObservableCollection<Unit>(_unitLoader());
-        }
-
-        private void LoadProductUnits()
-        {
-            if (SelectedProduct == null)
+            if (value != null)
             {
-                ProductUnits = new ObservableCollection<ProductUnit>();
-                return;
+                LoadProductUnits(value.Id);
+            }
+            else
+            {
+                ProductUnits.Clear();
+            }
+        }
+
+        private void LoadProductUnits(int productId)
+        {
+            ProductUnits = new ObservableCollection<ProductUnit>(_service.GetByProductId(productId));
+        }
+
+        [RelayCommand]
+        private void Save()
+        {
+            if (SelectedProduct == null || SelectedUnitId == 0) return;
+
+            if (SelectedProductUnit == null)
+            {
+                var pu = new ProductUnit
+                {
+                    ProductId = SelectedProduct.Id,
+                    UnitId = SelectedUnitId,
+                    ConversionFactor = ConversionFactor
+                };
+                _service.Add(pu);
+            }
+            else
+            {
+                SelectedProductUnit.UnitId = SelectedUnitId;
+                SelectedProductUnit.ConversionFactor = ConversionFactor;
+                _service.Update(SelectedProductUnit);
             }
 
-            ProductUnits = new ObservableCollection<ProductUnit>(_productUnitLoader(SelectedProduct.Id));
+            LoadProductUnits(SelectedProduct.Id);
+            Clear();
+        }
+
+        [RelayCommand]
+        private void Delete()
+        {
+            if (SelectedProductUnit != null && SelectedProduct != null)
+            {
+                _service.Delete(SelectedProductUnit.Id);
+                LoadProductUnits(SelectedProduct.Id);
+                Clear();
+            }
+        }
+
+        private void Clear()
+        {
+            SelectedProductUnit = null;
+            SelectedUnitId = 0;
+            ConversionFactor = 1;
+        }
+
+        partial void OnSelectedProductUnitChanged(ProductUnit? value)
+        {
+            if (value != null)
+            {
+                SelectedUnitId = value.UnitId;
+                ConversionFactor = value.ConversionFactor;
+            }
         }
     }
 }

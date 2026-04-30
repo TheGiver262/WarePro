@@ -11,7 +11,7 @@ namespace QuanLyHangHoa.Services
         public List<Unit> GetAllUnits()
         {
             using var db = new AppDbContext();
-            return db.Units.Where(u => !u.IsDeleted).ToList();
+            return db.Units.Where(u => u.IsActive).ToList();
         }
         public void AddUnit(Unit u) { using var db = new AppDbContext(); db.Units.Add(u); db.SaveChanges(); }
         public void UpdateUnit(Unit updated)
@@ -19,15 +19,16 @@ namespace QuanLyHangHoa.Services
             using var db = new AppDbContext();
             var u = db.Units.Find(updated.Id);
             if (u == null) return;
-            u.Name = updated.Name;
+            u.DisplayName = updated.DisplayName;
+            u.UnitCode = updated.UnitCode;
             db.SaveChanges();
         }
-        public void DeleteUnit(int id)
+        public void DeactivateUnit(int id)
         {
             using var db = new AppDbContext();
             var u = db.Units.Find(id);
             if (u == null) return;
-            u.IsDeleted = true;
+            u.IsActive = false;
             db.SaveChanges();
         }
 
@@ -35,7 +36,7 @@ namespace QuanLyHangHoa.Services
         public List<Category> GetAllCategories()
         {
             using var db = new AppDbContext();
-            return db.Categories.Where(c => !c.IsDeleted).ToList();
+            return db.Categories.Where(c => c.IsActive).ToList();
         }
         public void AddCategory(Category c) { using var db = new AppDbContext(); db.Categories.Add(c); db.SaveChanges(); }
         public void UpdateCategory(Category updated)
@@ -43,15 +44,16 @@ namespace QuanLyHangHoa.Services
             using var db = new AppDbContext();
             var c = db.Categories.Find(updated.Id);
             if (c == null) return;
-            c.Name = updated.Name;
+            c.DisplayName = updated.DisplayName;
+            c.CategoryCode = updated.CategoryCode;
             db.SaveChanges();
         }
-        public void DeleteCategory(int id)
+        public void DeactivateCategory(int id)
         {
             using var db = new AppDbContext();
             var c = db.Categories.Find(id);
             if (c == null) return;
-            c.IsDeleted = true;
+            c.IsActive = false;
             db.SaveChanges();
         }
 
@@ -59,7 +61,7 @@ namespace QuanLyHangHoa.Services
         public List<Brand> GetAllBrands()
         {
             using var db = new AppDbContext();
-            return db.Brands.Where(b => !b.IsDeleted).ToList();
+            return db.Brands.Where(b => b.IsActive).ToList();
         }
         public void AddBrand(Brand b) { using var db = new AppDbContext(); db.Brands.Add(b); db.SaveChanges(); }
         public void UpdateBrand(Brand updated)
@@ -67,15 +69,17 @@ namespace QuanLyHangHoa.Services
             using var db = new AppDbContext();
             var b = db.Brands.Find(updated.Id);
             if (b == null) return;
-            b.Name = updated.Name;
+            b.DisplayName = updated.DisplayName;
+            b.BrandCode = updated.BrandCode;
+            b.OriginCountry = updated.OriginCountry;
             db.SaveChanges();
         }
-        public void DeleteBrand(int id)
+        public void DeactivateBrand(int id)
         {
             using var db = new AppDbContext();
             var b = db.Brands.Find(id);
             if (b == null) return;
-            b.IsDeleted = true;
+            b.IsActive = false;
             db.SaveChanges();
         }
 
@@ -83,7 +87,7 @@ namespace QuanLyHangHoa.Services
         public List<Supplier> GetAllSuppliers()
         {
             using var db = new AppDbContext();
-            return db.Suppliers.Where(s => !s.IsDeleted).ToList();
+            return db.Suppliers.Where(s => s.IsActive).ToList();
         }
         public void AddSupplier(Supplier s) { using var db = new AppDbContext(); db.Suppliers.Add(s); db.SaveChanges(); }
         public void UpdateSupplier(Supplier updated)
@@ -91,15 +95,19 @@ namespace QuanLyHangHoa.Services
             using var db = new AppDbContext();
             var s = db.Suppliers.Find(updated.Id);
             if (s == null) return;
-            s.Name = updated.Name; s.Address = updated.Address; s.Phone = updated.Phone;
+            s.SupplierCode = updated.SupplierCode;
+            s.DisplayName = updated.DisplayName; 
+            s.Address = updated.Address; 
+            s.Phone = updated.Phone;
+            s.Email = updated.Email;
             db.SaveChanges();
         }
-        public void DeleteSupplier(int id)
+        public void DeactivateSupplier(int id)
         {
             using var db = new AppDbContext();
             var s = db.Suppliers.Find(id);
             if (s == null) return;
-            s.IsDeleted = true;
+            s.IsActive = false;
             db.SaveChanges();
         }
 
@@ -107,7 +115,7 @@ namespace QuanLyHangHoa.Services
         public List<Customer> GetAllCustomers()
         {
             using var db = new AppDbContext();
-            return db.Customers.Where(c => !c.IsDeleted).ToList();
+            return db.Customers.Where(c => c.IsActive).ToList();
         }
         public void AddCustomer(Customer c) { using var db = new AppDbContext(); db.Customers.Add(c); db.SaveChanges(); }
         public void UpdateCustomer(Customer updated)
@@ -115,15 +123,19 @@ namespace QuanLyHangHoa.Services
             using var db = new AppDbContext();
             var c = db.Customers.Find(updated.Id);
             if (c == null) return;
-            c.Name = updated.Name; c.Address = updated.Address; c.Phone = updated.Phone;
+            c.CustomerCode = updated.CustomerCode;
+            c.DisplayName = updated.DisplayName; 
+            c.Address = updated.Address; 
+            c.Phone = updated.Phone;
+            c.Email = updated.Email;
             db.SaveChanges();
         }
-        public void DeleteCustomer(int id)
+        public void DeactivateCustomer(int id)
         {
             using var db = new AppDbContext();
             var c = db.Customers.Find(id);
             if (c == null) return;
-            c.IsDeleted = true;
+            c.IsActive = false;
             db.SaveChanges();
         }
     }

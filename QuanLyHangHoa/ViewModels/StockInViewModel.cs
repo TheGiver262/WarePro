@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
@@ -6,134 +6,104 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
-using QuanLyHangHoa.Views;
 
 namespace QuanLyHangHoa.ViewModels
 {
-    public partial class StockInDetailWrapper : ObservableObject
+    public partial class StockInLineEditor : ObservableObject
     {
         [ObservableProperty] private Product? _selectedProduct;
-        [ObservableProperty] private int _quantity;
-        [ObservableProperty] private decimal _importPrice;
-        [ObservableProperty] private string _serialInputString = string.Empty;
+        [ObservableProperty] private decimal _quantity = 1;
+        [ObservableProperty] private decimal _price;
 
         partial void OnSelectedProductChanged(Product? value)
         {
-            if (value != null) {
-                ImportPrice = value.UnitPrice * 0.8m; // Default guess
+            if (value != null)
+            {
+                Price = value.DefaultPrice;
             }
         }
     }
 
     public partial class StockInViewModel : ObservableObject
     {
-        private readonly StockInService _stockInService;
         private readonly ProductService _productService;
-        private readonly ReferenceDataService _refDataService;
-        private readonly Employee _currentUser;
+        private readonly StockInService _stockInService;
+        private readonly AppUser _currentUser;
 
-        [ObservableProperty]
-        private ObservableCollection<Product> _availableProducts;
+        [ObservableProperty] private ObservableCollection<Product> _availableProducts;
+        [ObservableProperty] private ObservableCollection<StockInLineEditor> _lines = new();
+        [ObservableProperty] private string _documentCode = string.Empty;
+        [ObservableProperty] private int _warehouseId = 1;
+        [ObservableProperty] private string _statusMessage = string.Empty;
 
-        [ObservableProperty]
-        private ObservableCollection<Supplier> _availableSuppliers;
+        public StockInViewModel() : this(new AppUser { Id = 1 }) { }
 
-        [ObservableProperty]
-        private Supplier? _selectedSupplier;
-
-        [ObservableProperty]
-        private DateTime _importDate = DateTime.Now;
-
-        [ObservableProperty]
-        private ObservableCollection<StockInDetailWrapper> _details;
-
-        public StockInViewModel(Employee currentUser)
+        public StockInViewModel(AppUser currentUser)
         {
             _currentUser = currentUser;
-            _stockInService = new StockInService();
             _productService = new ProductService();
-            _refDataService = new ReferenceDataService();
-
+            _stockInService = new StockInService();
             AvailableProducts = new ObservableCollection<Product>(_productService.GetAllProducts());
-            AvailableSuppliers = new ObservableCollection<Supplier>(_refDataService.GetAllSuppliers());
-            Details = new ObservableCollection<StockInDetailWrapper>();
+            DocumentCode = $"IN-{DateTime.Now:yyyyMMddHHmmss}";
         }
 
         [RelayCommand]
-        private void AddDetail()
+        private void AddLine()
         {
-            Details.Add(new StockInDetailWrapper());
+            Lines.Add(new StockInLineEditor());
         }
 
         [RelayCommand]
-        private void RemoveDetail(StockInDetailWrapper detail)
+        private void RemoveLine(StockInLineEditor line)
         {
-            if (detail != null) Details.Remove(detail);
-        }
-
-        [RelayCommand]
-        private void OpenSerialInput(StockInDetailWrapper detail)
-        {
-            if (detail == null) return;
-            var window = new SerialInputWindow(detail.SerialInputString);
-            if (window.ShowDialog() == true)
+            if (line != null)
             {
-                detail.SerialInputString = window.SerialInput;
-                var parsedSerials = StockInService.ParseSerialRange(window.SerialInput);
-                detail.Quantity = parsedSerials.Count;
+                Lines.Remove(line);
             }
         }
 
         [RelayCommand]
         private void SaveStockIn()
         {
-            if (SelectedSupplier == null)
+            if (string.IsNullOrWhiteSpace(DocumentCode) || !Lines.Any())
             {
-                MessageBox.Show("Vui lòng chọn nhà cung cấp!", "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-            if (!Details.Any() || Details.Any(d => d.SelectedProduct == null))
-            {
-                MessageBox.Show("Vui lòng chọn sản phẩm cho tất cả các dòng!", "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-            if (Details.Any(d => d.Quantity <= 0))
-            {
-                MessageBox.Show("Số lượng nhập phải lớn hơn 0!", "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Vui lòng nhập đủ thông tin.", "Cảnh báo");
                 return;
             }
 
-            var stockIn = new StockIn
+            try
             {
-                EmployeeId = _currentUser.Id,
-                SupplierId = SelectedSupplier.Id,
-                ImportDate = ImportDate
-            };
-
-            foreach (var detailWrapper in Details)
-            {
-                var detail = new StockInDetail
+                var si = new StockIn
                 {
-                    ProductId = detailWrapper.SelectedProduct!.Id,
-                    Quantity = detailWrapper.Quantity,
-                    ImportPrice = detailWrapper.ImportPrice
+                    DocumentCode = DocumentCode,
+                    WarehouseId = WarehouseId,
+                    Status = "Completed",
+                    CreatedBy = _currentUser.Id,
+                    CreatedAt = DateTime.Now
                 };
 
-                foreach (var serial in StockInDetailSerialFactory.CreateSerials(
-                    detailWrapper.SelectedProduct!,
-                    detailWrapper.SerialInputString))
+                var siLines = Lines.Select(l => new StockInLine
                 {
-                    detail.ProductSerials.Add(serial);
-                }
+                    ProductId = l.SelectedProduct?.Id ?? 0,
+                    Quantity = l.Quantity,
+                    BaseQuantity = l.Quantity,
+                    UnitPrice = l.Price
+                }).ToList();
 
-                stockIn.StockInDetails.Add(detail);
+                _stockInService.Create(si, siLines, _currentUser.Id);
+                MessageBox.Show("Đã lưu phiếu nhập kho.", "Thông báo");
+                ResetForm();
             }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Lỗi");
+            }
+        }
 
-            _stockInService.Create(stockIn);
-            MessageBox.Show("Lưu Phiếu Nhập Kho Thành Công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
-            
-            Details.Clear();
-            SelectedSupplier = null;
+        private void ResetForm()
+        {
+            Lines.Clear();
+            DocumentCode = $"IN-{DateTime.Now:yyyyMMddHHmmss}";
         }
     }
 }

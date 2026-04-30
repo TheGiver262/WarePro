@@ -17,6 +17,83 @@ namespace QuanLyHangHoa.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.0");
 
+            modelBuilder.Entity("QuanLyHangHoa.Models.AppUser", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("FailedLoginCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("LastFailedLoginAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("LastLoginAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("LastPasswordChangedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("LockoutUntil")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("MustChangePassword")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RoleCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("Username")
+                        .IsUnique();
+
+                    b.ToTable("AppUsers");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            CreatedAt = new DateTime(2026, 4, 30, 8, 45, 36, 59, DateTimeKind.Utc).AddTicks(1219),
+                            FailedLoginCount = 0,
+                            FullName = "Administrator",
+                            IsActive = true,
+                            MustChangePassword = false,
+                            PasswordHash = "$2a$11$SrDIlwwS8m16cTGIWXVBd.7GEtdHs0VlCdEeG5AQYYw4tv5u97Y2u",
+                            RoleCode = "Admin",
+                            Username = "admin"
+                        });
+                });
+
             modelBuilder.Entity("QuanLyHangHoa.Models.AuditLog", b =>
                 {
                     b.Property<int>("Id")
@@ -25,18 +102,34 @@ namespace QuanLyHangHoa.Migrations
 
                     b.Property<string>("ActionCode")
                         .IsRequired()
+                        .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
-                    b.Property<Guid>("DocumentId")
+                    b.Property<string>("AfterJson")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BeforeJson")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("EntityId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("EntityName")
+                        .IsRequired()
+                        .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("PerformedAt")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("PerformedByUserId")
+                    b.Property<int>("PerformedBy")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("PerformedBy");
+
+                    b.HasIndex("EntityName", "EntityId", "PerformedAt");
 
                     b.ToTable("AuditLogs");
                 });
@@ -47,14 +140,27 @@ namespace QuanLyHangHoa.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<bool>("IsDeleted")
+                    b.Property<string>("BrandCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("Name")
-                        .IsRequired()
+                    b.Property<string>("OriginCountry")
+                        .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BrandCode")
+                        .IsUnique();
 
                     b.ToTable("Brands");
 
@@ -62,26 +168,16 @@ namespace QuanLyHangHoa.Migrations
                         new
                         {
                             Id = 1,
-                            IsDeleted = false,
-                            Name = "Dell"
+                            BrandCode = "DELL",
+                            DisplayName = "Dell",
+                            IsActive = true
                         },
                         new
                         {
                             Id = 2,
-                            IsDeleted = false,
-                            Name = "Logitech"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            IsDeleted = false,
-                            Name = "Sony"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            IsDeleted = false,
-                            Name = "Filco"
+                            BrandCode = "SONY",
+                            DisplayName = "Sony",
+                            IsActive = true
                         });
                 });
 
@@ -91,14 +187,23 @@ namespace QuanLyHangHoa.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Name")
+                    b.Property<string>("CategoryCode")
                         .IsRequired()
+                        .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("CategoryCode")
+                        .IsUnique();
 
                     b.ToTable("Categories");
 
@@ -106,26 +211,16 @@ namespace QuanLyHangHoa.Migrations
                         new
                         {
                             Id = 1,
-                            IsDeleted = false,
-                            Name = "Máy tính xách tay"
+                            CategoryCode = "LAPTOP",
+                            DisplayName = "Laptop",
+                            IsActive = true
                         },
                         new
                         {
                             Id = 2,
-                            IsDeleted = false,
-                            Name = "Linh kiện & Phụ kiện"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            IsDeleted = false,
-                            Name = "Màn hình"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            IsDeleted = false,
-                            Name = "Âm thanh"
+                            CategoryCode = "ACCESSORY",
+                            DisplayName = "Linh kiện",
+                            IsActive = true
                         });
                 });
 
@@ -136,21 +231,34 @@ namespace QuanLyHangHoa.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Address")
-                        .IsRequired()
+                        .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
-                    b.Property<bool>("IsDeleted")
+                    b.Property<string>("CustomerCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Phone")
-                        .IsRequired()
+                        .HasMaxLength(30)
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CustomerCode")
+                        .IsUnique();
 
                     b.ToTable("Customers");
 
@@ -158,96 +266,22 @@ namespace QuanLyHangHoa.Migrations
                         new
                         {
                             Id = 1,
-                            Address = "",
-                            IsDeleted = false,
-                            Name = "Khách lẻ",
-                            Phone = ""
-                        });
-                });
-
-            modelBuilder.Entity("QuanLyHangHoa.Models.Employee", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("DateOfBirth")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("PasswordHash")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Position")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Role")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Username")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Employees");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            DateOfBirth = new DateTime(1990, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FullName = "Quản trị viên Hệ thống",
-                            PasswordHash = "admin",
-                            Position = "Giám Đốc Cửa Hàng",
-                            Role = "Admin",
-                            Username = "admin"
+                            Address = "Đà Nẵng",
+                            CustomerCode = "CUS01",
+                            DisplayName = "Nguyễn Văn A",
+                            Email = "nguyenvana@gmail.com",
+                            IsActive = true,
+                            Phone = "0909090909"
                         },
                         new
                         {
                             Id = 2,
-                            DateOfBirth = new DateTime(1995, 2, 2, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FullName = "Nguyễn Văn Thu Ngân",
-                            PasswordHash = "staff1",
-                            Position = "Thu Ngân",
-                            Role = "Staff",
-                            Username = "staff1"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            DateOfBirth = new DateTime(1996, 3, 3, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FullName = "Trần Thị Kiểm Kho",
-                            PasswordHash = "staff2",
-                            Position = "Thủ Kho",
-                            Role = "Staff",
-                            Username = "staff2"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            DateOfBirth = new DateTime(1997, 4, 4, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FullName = "Lê Bảo Hành",
-                            PasswordHash = "staff3",
-                            Position = "Nhân viên Bảo hành",
-                            Role = "Staff",
-                            Username = "staff3"
-                        },
-                        new
-                        {
-                            Id = 5,
-                            DateOfBirth = new DateTime(1998, 5, 5, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FullName = "Phạm Sale",
-                            PasswordHash = "staff4",
-                            Position = "Nhân viên Part-time",
-                            Role = "Staff",
-                            Username = "staff4"
+                            Address = "Hải Phòng",
+                            CustomerCode = "CUS02",
+                            DisplayName = "Trần Thị B",
+                            Email = "tranthib@gmail.com",
+                            IsActive = true,
+                            Phone = "0808080808"
                         });
                 });
 
@@ -301,34 +335,36 @@ namespace QuanLyHangHoa.Migrations
                     b.Property<int>("CategoryId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<bool>("IsDeleted")
+                    b.Property<decimal>("DefaultPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("DefaultUnitId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<bool>("IsSerialManaged")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Name")
+                    b.Property<string>("DisplayName")
                         .IsRequired()
+                        .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Notes")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Origin")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Quantity")
+                    b.Property<bool>("IsActive")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("UnitId")
+                    b.Property<bool>("IsSerialTracked")
                         .HasColumnType("INTEGER");
 
-                    b.Property<decimal>("UnitPrice")
+                    b.Property<string>("OriginCountry")
+                        .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("WarrantyMonths")
+                    b.Property<string>("ProductCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("UnitId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("WarrantyPeriodMonths")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
@@ -336,6 +372,11 @@ namespace QuanLyHangHoa.Migrations
                     b.HasIndex("BrandId");
 
                     b.HasIndex("CategoryId");
+
+                    b.HasIndex("DefaultUnitId");
+
+                    b.HasIndex("ProductCode")
+                        .IsUnique();
 
                     b.HasIndex("UnitId");
 
@@ -347,225 +388,28 @@ namespace QuanLyHangHoa.Migrations
                             Id = 1,
                             BrandId = 1,
                             CategoryId = 1,
-                            IsDeleted = false,
-                            IsSerialManaged = false,
-                            Name = "Laptop Dell XPS 15",
-                            Notes = "Hàng đắt tiền, cấu hình cao",
-                            Origin = "Mỹ",
-                            Quantity = 20,
-                            UnitId = 1,
-                            UnitPrice = 35000000m,
-                            WarrantyMonths = 24
+                            DefaultPrice = 15000000m,
+                            DefaultUnitId = 1,
+                            DisplayName = "Laptop Dell Inspiron 15",
+                            IsActive = true,
+                            IsSerialTracked = true,
+                            OriginCountry = "Trung Quốc",
+                            ProductCode = "PROD01",
+                            WarrantyPeriodMonths = 12
                         },
                         new
                         {
                             Id = 2,
                             BrandId = 2,
                             CategoryId = 2,
-                            IsDeleted = false,
-                            IsSerialManaged = false,
-                            Name = "Chuột Logitech G502",
-                            Notes = "Chuột gaming siêu nhạy",
-                            Origin = "Trung Quốc",
-                            Quantity = 150,
-                            UnitId = 1,
-                            UnitPrice = 1200000m,
-                            WarrantyMonths = 12
-                        },
-                        new
-                        {
-                            Id = 3,
-                            BrandId = 4,
-                            CategoryId = 2,
-                            IsDeleted = false,
-                            IsSerialManaged = false,
-                            Name = "Bàn phím cơ Filco Majestouch",
-                            Notes = "Chuyên dụng cho Lập trình viên",
-                            Origin = "Nhật Bản",
-                            Quantity = 35,
-                            UnitId = 1,
-                            UnitPrice = 3200000m,
-                            WarrantyMonths = 60
-                        },
-                        new
-                        {
-                            Id = 4,
-                            BrandId = 1,
-                            CategoryId = 3,
-                            IsDeleted = false,
-                            IsSerialManaged = false,
-                            Name = "Màn hình Dell UltraSharp 27",
-                            Notes = "Đồ hoạ cực đỉnh",
-                            Origin = "Mỹ",
-                            Quantity = 50,
-                            UnitId = 1,
-                            UnitPrice = 9500000m,
-                            WarrantyMonths = 36
-                        },
-                        new
-                        {
-                            Id = 5,
-                            BrandId = 3,
-                            CategoryId = 4,
-                            IsDeleted = false,
-                            IsSerialManaged = false,
-                            Name = "Tai nghe kiểm âm Sony MDR-7506",
-                            Notes = "Tai nghe studio chuẩn",
-                            Origin = "Nhật Bản",
-                            Quantity = 45,
-                            UnitId = 1,
-                            UnitPrice = 2800000m,
-                            WarrantyMonths = 12
-                        },
-                        new
-                        {
-                            Id = 6,
-                            BrandId = 2,
-                            CategoryId = 2,
-                            IsDeleted = false,
-                            IsSerialManaged = false,
-                            Name = "Bàn phím cơ Logitech G Pro X",
-                            Notes = "Bàn phím TKL chuyên eSports",
-                            Origin = "Trung Quốc",
-                            Quantity = 60,
-                            UnitId = 1,
-                            UnitPrice = 2500000m,
-                            WarrantyMonths = 24
-                        },
-                        new
-                        {
-                            Id = 7,
-                            BrandId = 1,
-                            CategoryId = 3,
-                            IsDeleted = false,
-                            IsSerialManaged = false,
-                            Name = "Màn hình cong Dell S3221QS",
-                            Notes = "Màn hình 4K 32 inch",
-                            Origin = "Mỹ",
-                            Quantity = 25,
-                            UnitId = 1,
-                            UnitPrice = 11500000m,
-                            WarrantyMonths = 36
-                        },
-                        new
-                        {
-                            Id = 8,
-                            BrandId = 1,
-                            CategoryId = 1,
-                            IsDeleted = false,
-                            IsSerialManaged = false,
-                            Name = "Laptop Dell Inspiron 15",
-                            Notes = "Laptop văn phòng quốc dân",
-                            Origin = "Mỹ",
-                            Quantity = 40,
-                            UnitId = 1,
-                            UnitPrice = 18000000m,
-                            WarrantyMonths = 12
-                        },
-                        new
-                        {
-                            Id = 9,
-                            BrandId = 3,
-                            CategoryId = 4,
-                            IsDeleted = false,
-                            IsSerialManaged = false,
-                            Name = "Tai nghe không dây Sony WH-1000XM4",
-                            Notes = "Chống ồn chủ động đỉnh cao",
-                            Origin = "Nhật Bản",
-                            Quantity = 70,
-                            UnitId = 1,
-                            UnitPrice = 6500000m,
-                            WarrantyMonths = 12
-                        },
-                        new
-                        {
-                            Id = 10,
-                            BrandId = 2,
-                            CategoryId = 2,
-                            IsDeleted = false,
-                            IsSerialManaged = false,
-                            Name = "Chuột không dây Logitech MX Master 3S",
-                            Notes = "Dòng chuột làm việc chuyên nghiệp",
-                            Origin = "Trung Quốc",
-                            Quantity = 100,
-                            UnitId = 1,
-                            UnitPrice = 2300000m,
-                            WarrantyMonths = 12
-                        },
-                        new
-                        {
-                            Id = 11,
-                            BrandId = 2,
-                            CategoryId = 2,
-                            IsDeleted = false,
-                            IsSerialManaged = false,
-                            Name = "Bàn phím không dây Logitech MX Keys",
-                            Notes = "Thiết kế mỏng, gõ êm ái",
-                            Origin = "Trung Quốc",
-                            Quantity = 55,
-                            UnitId = 1,
-                            UnitPrice = 2200000m,
-                            WarrantyMonths = 12
-                        },
-                        new
-                        {
-                            Id = 12,
-                            BrandId = 3,
-                            CategoryId = 4,
-                            IsDeleted = false,
-                            IsSerialManaged = false,
-                            Name = "Loa Bluetooth Sony SRS-XB13",
-                            Notes = "Nhỏ gọn, âm thanh Extra Bass",
-                            Origin = "Trung Quốc",
-                            Quantity = 120,
-                            UnitId = 1,
-                            UnitPrice = 1200000m,
-                            WarrantyMonths = 12
-                        },
-                        new
-                        {
-                            Id = 13,
-                            BrandId = 1,
-                            CategoryId = 3,
-                            IsDeleted = false,
-                            IsSerialManaged = false,
-                            Name = "Màn hình Dell Alienware AW2521H",
-                            Notes = "Màn hình Gaming 360Hz",
-                            Origin = "Mỹ",
-                            Quantity = 15,
-                            UnitId = 1,
-                            UnitPrice = 14000000m,
-                            WarrantyMonths = 36
-                        },
-                        new
-                        {
-                            Id = 14,
-                            BrandId = 3,
-                            CategoryId = 2,
-                            IsDeleted = false,
-                            IsSerialManaged = false,
-                            Name = "Máy ảnh Sony Alpha A7 III",
-                            Notes = "Máy ảnh Mirrorless Full-frame",
-                            Origin = "Nhật Bản",
-                            Quantity = 10,
-                            UnitId = 1,
-                            UnitPrice = 45000000m,
-                            WarrantyMonths = 24
-                        },
-                        new
-                        {
-                            Id = 15,
-                            BrandId = 1,
-                            CategoryId = 1,
-                            IsDeleted = false,
-                            IsSerialManaged = false,
-                            Name = "Laptop Dell Alienware m15 R7",
-                            Notes = "Siêu phẩm laptop gaming 2026",
-                            Origin = "Mỹ",
-                            Quantity = 5,
-                            UnitId = 1,
-                            UnitPrice = 65000000m,
-                            WarrantyMonths = 24
+                            DefaultPrice = 6000000m,
+                            DefaultUnitId = 1,
+                            DisplayName = "Tai nghe Sony WH-1000XM4",
+                            IsActive = true,
+                            IsSerialTracked = false,
+                            OriginCountry = "Malaysia",
+                            ProductCode = "PROD02",
+                            WarrantyPeriodMonths = 12
                         });
                 });
 
@@ -575,10 +419,18 @@ namespace QuanLyHangHoa.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("CurrentStatus")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
                     b.Property<int?>("CurrentWarehouseId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<bool>("IsDeleted")
+                    b.Property<int>("LastStockInLineId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("LastStockOutLineId")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("ProductId")
@@ -586,30 +438,21 @@ namespace QuanLyHangHoa.Migrations
 
                     b.Property<string>("SerialNumber")
                         .IsRequired()
+                        .HasMaxLength(150)
                         .HasColumnType("TEXT");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("StockInDetailId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("StockOutDetailId")
-                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
                     b.HasIndex("CurrentWarehouseId");
 
+                    b.HasIndex("LastStockInLineId");
+
+                    b.HasIndex("LastStockOutLineId");
+
                     b.HasIndex("ProductId");
 
                     b.HasIndex("SerialNumber")
                         .IsUnique();
-
-                    b.HasIndex("StockInDetailId");
-
-                    b.HasIndex("StockOutDetailId");
 
                     b.ToTable("ProductSerials");
                 });
@@ -620,13 +463,16 @@ namespace QuanLyHangHoa.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<decimal>("ConversionRateToBaseUnit")
-                        .HasColumnType("TEXT");
+                    b.Property<decimal>("ConversionFactor")
+                        .HasColumnType("decimal(18,6)");
 
                     b.Property<bool>("IsBaseUnit")
                         .HasColumnType("INTEGER");
 
-                    b.Property<bool>("IsDeleted")
+                    b.Property<bool>("IsPurchaseUnit")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsSalesUnit")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("ProductId")
@@ -655,33 +501,35 @@ namespace QuanLyHangHoa.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("GrandTotal")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("InvoiceCode")
                         .IsRequired()
+                        .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("InvoiceDate")
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("PaidAmount")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("PaymentStatus")
                         .IsRequired()
+                        .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
                     b.Property<int?>("StockInId")
                         .HasColumnType("INTEGER");
 
                     b.Property<decimal>("SubTotal")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("SupplierId")
                         .HasColumnType("INTEGER");
 
                     b.Property<decimal>("TaxAmount")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 
@@ -702,7 +550,7 @@ namespace QuanLyHangHoa.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<decimal>("GrandTotal")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("ProductId")
                         .HasColumnType("INTEGER");
@@ -711,25 +559,25 @@ namespace QuanLyHangHoa.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<decimal>("Quantity")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("decimal(18,2)");
 
-                    b.Property<int?>("StockInDetailId")
+                    b.Property<int?>("StockInLineId")
                         .HasColumnType("INTEGER");
 
                     b.Property<decimal>("SubTotal")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("TaxAmount")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("TaxRate")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("decimal(9,4)");
 
                     b.Property<int>("UnitId")
                         .HasColumnType("INTEGER");
 
                     b.Property<decimal>("UnitPrice")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 
@@ -737,7 +585,7 @@ namespace QuanLyHangHoa.Migrations
 
                     b.HasIndex("PurchaseInvoiceId");
 
-                    b.HasIndex("StockInDetailId");
+                    b.HasIndex("StockInLineId");
 
                     b.HasIndex("UnitId");
 
@@ -757,30 +605,32 @@ namespace QuanLyHangHoa.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("GrandTotal")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("InvoiceCode")
                         .IsRequired()
+                        .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("InvoiceDate")
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("PaidAmount")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("PaymentStatus")
                         .IsRequired()
+                        .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
                     b.Property<int?>("StockOutId")
                         .HasColumnType("INTEGER");
 
                     b.Property<decimal>("SubTotal")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("TaxAmount")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 
@@ -801,34 +651,34 @@ namespace QuanLyHangHoa.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<decimal>("GrandTotal")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("ProductId")
                         .HasColumnType("INTEGER");
 
                     b.Property<decimal>("Quantity")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("SalesInvoiceId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int?>("StockOutDetailId")
+                    b.Property<int?>("StockOutLineId")
                         .HasColumnType("INTEGER");
 
                     b.Property<decimal>("SubTotal")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("TaxAmount")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("TaxRate")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("decimal(9,4)");
 
                     b.Property<int>("UnitId")
                         .HasColumnType("INTEGER");
 
                     b.Property<decimal>("UnitPrice")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 
@@ -836,7 +686,7 @@ namespace QuanLyHangHoa.Migrations
 
                     b.HasIndex("SalesInvoiceId");
 
-                    b.HasIndex("StockOutDetailId");
+                    b.HasIndex("StockOutLineId");
 
                     b.HasIndex("UnitId");
 
@@ -851,6 +701,7 @@ namespace QuanLyHangHoa.Migrations
 
                     b.Property<string>("AdjustmentType")
                         .IsRequired()
+                        .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("ApprovedAt")
@@ -864,6 +715,7 @@ namespace QuanLyHangHoa.Migrations
 
                     b.Property<string>("DocumentCode")
                         .IsRequired()
+                        .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("PostedAt")
@@ -874,14 +726,23 @@ namespace QuanLyHangHoa.Migrations
 
                     b.Property<string>("ReasonCode")
                         .IsRequired()
+                        .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("ReferenceDocumentCode")
-                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("ReferenceDocumentId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ReferenceDocumentType")
+                        .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Status")
                         .IsRequired()
+                        .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
                     b.Property<int>("WarehouseId")
@@ -889,8 +750,11 @@ namespace QuanLyHangHoa.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DocumentCode")
-                        .IsUnique();
+                    b.HasIndex("ApprovedBy");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("PostedBy");
 
                     b.HasIndex("WarehouseId");
 
@@ -903,11 +767,15 @@ namespace QuanLyHangHoa.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("AdjustmentId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<decimal>("BaseQuantityDelta")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Direction")
                         .IsRequired()
+                        .HasMaxLength(20)
                         .HasColumnType("TEXT");
 
                     b.Property<int>("ProductId")
@@ -917,18 +785,15 @@ namespace QuanLyHangHoa.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<decimal>("QuantityDelta")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("StockAdjustmentId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AdjustmentId");
 
                     b.HasIndex("ProductId");
 
                     b.HasIndex("ProductSerialId");
-
-                    b.HasIndex("StockAdjustmentId");
 
                     b.ToTable("StockAdjustmentLines");
                 });
@@ -939,26 +804,26 @@ namespace QuanLyHangHoa.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("AvailableQuantity")
-                        .HasColumnType("INTEGER");
+                    b.Property<decimal>("AvailableQuantity")
+                        .HasColumnType("decimal(18,2)");
 
-                    b.Property<int>("OnHandQuantity")
-                        .HasColumnType("INTEGER");
+                    b.Property<decimal>("OnHandQuantity")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("ProductId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("ReservedQuantity")
-                        .HasColumnType("INTEGER");
+                    b.Property<decimal>("ReservedQuantity")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("WarehouseId")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("WarehouseId");
+                    b.HasIndex("ProductId");
 
-                    b.HasIndex("ProductId", "WarehouseId")
+                    b.HasIndex("WarehouseId", "ProductId")
                         .IsUnique();
 
                     b.ToTable("StockBalances");
@@ -971,25 +836,25 @@ namespace QuanLyHangHoa.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<decimal>("CountedQuantity")
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("DifferenceQuantity")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("ProductId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("StockCountSessionId")
+                    b.Property<int>("SessionId")
                         .HasColumnType("INTEGER");
 
                     b.Property<decimal>("SystemQuantity")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("VarianceQuantity")
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ProductId");
 
-                    b.HasIndex("StockCountSessionId");
+                    b.HasIndex("SessionId");
 
                     b.ToTable("StockCountLines");
                 });
@@ -1020,10 +885,12 @@ namespace QuanLyHangHoa.Migrations
 
                     b.Property<string>("SessionCode")
                         .IsRequired()
+                        .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Status")
                         .IsRequired()
+                        .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
                     b.Property<int>("WarehouseId")
@@ -1031,8 +898,11 @@ namespace QuanLyHangHoa.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SessionCode")
-                        .IsUnique();
+                    b.HasIndex("ApprovedBy");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("PostedBy");
 
                     b.HasIndex("WarehouseId");
 
@@ -1045,47 +915,86 @@ namespace QuanLyHangHoa.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("EmployeeId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("ImportDate")
+                    b.Property<DateTime?>("ApprovedAt")
                         .HasColumnType("TEXT");
 
-                    b.Property<bool>("IsDeleted")
+                    b.Property<int?>("ApprovedBy")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("SupplierId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<decimal>("TotalAmount")
+                    b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("DocumentCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("PostedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("PostedBy")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("PurposeCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("SupplierId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("WarehouseId")
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("EmployeeId");
+                    b.HasIndex("ApprovedBy");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("DocumentCode")
+                        .IsUnique();
+
+                    b.HasIndex("PostedBy");
 
                     b.HasIndex("SupplierId");
+
+                    b.HasIndex("WarehouseId");
 
                     b.ToTable("StockIns");
                 });
 
-            modelBuilder.Entity("QuanLyHangHoa.Models.StockInDetail", b =>
+            modelBuilder.Entity("QuanLyHangHoa.Models.StockInLine", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<decimal>("ImportPrice")
-                        .HasColumnType("TEXT");
+                    b.Property<decimal>("BaseQuantity")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("ProductId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("Quantity")
-                        .HasColumnType("INTEGER");
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("StockInId")
                         .HasColumnType("INTEGER");
+
+                    b.Property<int>("UnitId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 
@@ -1093,7 +1002,9 @@ namespace QuanLyHangHoa.Migrations
 
                     b.HasIndex("StockInId");
 
-                    b.ToTable("StockInDetails");
+                    b.HasIndex("UnitId");
+
+                    b.ToTable("StockInLines");
                 });
 
             modelBuilder.Entity("QuanLyHangHoa.Models.StockLedger", b =>
@@ -1102,33 +1013,48 @@ namespace QuanLyHangHoa.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("Direction")
+                    b.Property<string>("MovementType")
                         .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("DocumentId")
+                        .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("PostedAt")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("PostedByUserId")
+                    b.Property<int>("PostedBy")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("ProductId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("Quantity")
+                    b.Property<int?>("ProductSerialId")
                         .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("SourceDocumentId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SourceDocumentType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("WarehouseId")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("PostedBy");
+
                     b.HasIndex("ProductId");
 
-                    b.HasIndex("WarehouseId");
+                    b.HasIndex("ProductSerialId");
+
+                    b.HasIndex("SourceDocumentType", "SourceDocumentId");
+
+                    b.HasIndex("WarehouseId", "ProductId", "PostedAt");
 
                     b.ToTable("StockLedgers");
                 });
@@ -1139,47 +1065,86 @@ namespace QuanLyHangHoa.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("ApprovedBy")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("CustomerId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("EmployeeId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("ExportDate")
+                    b.Property<string>("DocumentCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
-                    b.Property<bool>("IsDeleted")
+                    b.Property<DateTime?>("PostedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("PostedBy")
                         .HasColumnType("INTEGER");
 
-                    b.Property<decimal>("TotalAmount")
+                    b.Property<string>("PurposeCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
                         .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("WarehouseId")
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ApprovedBy");
+
+                    b.HasIndex("CreatedBy");
+
                     b.HasIndex("CustomerId");
 
-                    b.HasIndex("EmployeeId");
+                    b.HasIndex("DocumentCode")
+                        .IsUnique();
+
+                    b.HasIndex("PostedBy");
+
+                    b.HasIndex("WarehouseId");
 
                     b.ToTable("StockOuts");
                 });
 
-            modelBuilder.Entity("QuanLyHangHoa.Models.StockOutDetail", b =>
+            modelBuilder.Entity("QuanLyHangHoa.Models.StockOutLine", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<decimal>("ExportPrice")
-                        .HasColumnType("TEXT");
+                    b.Property<decimal>("BaseQuantity")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("ProductId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("Quantity")
-                        .HasColumnType("INTEGER");
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("StockOutId")
                         .HasColumnType("INTEGER");
+
+                    b.Property<int>("UnitId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 
@@ -1187,7 +1152,9 @@ namespace QuanLyHangHoa.Migrations
 
                     b.HasIndex("StockOutId");
 
-                    b.ToTable("StockOutDetails");
+                    b.HasIndex("UnitId");
+
+                    b.ToTable("StockOutLines");
                 });
 
             modelBuilder.Entity("QuanLyHangHoa.Models.Supplier", b =>
@@ -1197,21 +1164,34 @@ namespace QuanLyHangHoa.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Address")
-                        .IsRequired()
+                        .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
-                    b.Property<bool>("IsDeleted")
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("Name")
-                        .IsRequired()
+                    b.Property<string>("Phone")
+                        .HasMaxLength(30)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Phone")
+                    b.Property<string>("SupplierCode")
                         .IsRequired()
+                        .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("SupplierCode")
+                        .IsUnique();
 
                     b.ToTable("Suppliers");
 
@@ -1219,18 +1199,22 @@ namespace QuanLyHangHoa.Migrations
                         new
                         {
                             Id = 1,
-                            Address = "HCM",
-                            IsDeleted = false,
-                            Name = "Công ty Dell Việt Nam",
-                            Phone = "028-1234567"
+                            Address = "Hà Nội",
+                            DisplayName = "Công ty TNHH Công Nghệ A",
+                            Email = "contact@tech-a.vn",
+                            IsActive = true,
+                            Phone = "0123456789",
+                            SupplierCode = "SUP01"
                         },
                         new
                         {
                             Id = 2,
-                            Address = "Hà Nội",
-                            IsDeleted = false,
-                            Name = "Phân Phối Logitech SEA",
-                            Phone = "024-9876543"
+                            Address = "TP. HCM",
+                            DisplayName = "Nhà Phân Phối B",
+                            Email = "sales@distributor-b.com",
+                            IsActive = true,
+                            Phone = "0987654321",
+                            SupplierCode = "SUP02"
                         });
                 });
 
@@ -1240,14 +1224,23 @@ namespace QuanLyHangHoa.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<bool>("IsDeleted")
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("Name")
+                    b.Property<string>("UnitCode")
                         .IsRequired()
+                        .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("UnitCode")
+                        .IsUnique();
 
                     b.ToTable("Units");
 
@@ -1255,26 +1248,16 @@ namespace QuanLyHangHoa.Migrations
                         new
                         {
                             Id = 1,
-                            IsDeleted = false,
-                            Name = "Cái"
+                            DisplayName = "Cái",
+                            IsActive = true,
+                            UnitCode = "PCS"
                         },
                         new
                         {
                             Id = 2,
-                            IsDeleted = false,
-                            Name = "Chiếc"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            IsDeleted = false,
-                            Name = "Bộ"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            IsDeleted = false,
-                            Name = "Hộp"
+                            DisplayName = "Bộ",
+                            IsActive = true,
+                            UnitCode = "SET"
                         });
                 });
 
@@ -1284,8 +1267,9 @@ namespace QuanLyHangHoa.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("Code")
+                    b.Property<string>("DisplayName")
                         .IsRequired()
+                        .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("IsActive")
@@ -1294,13 +1278,14 @@ namespace QuanLyHangHoa.Migrations
                     b.Property<bool>("IsDefault")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("Name")
+                    b.Property<string>("WarehouseCode")
                         .IsRequired()
+                        .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Code")
+                    b.HasIndex("WarehouseCode")
                         .IsUnique();
 
                     b.ToTable("Warehouses");
@@ -1309,45 +1294,11 @@ namespace QuanLyHangHoa.Migrations
                         new
                         {
                             Id = 1,
-                            Code = "MAIN",
+                            DisplayName = "Main Warehouse",
                             IsActive = true,
                             IsDefault = true,
-                            Name = "Main warehouse"
+                            WarehouseCode = "WH01"
                         });
-                });
-
-            modelBuilder.Entity("QuanLyHangHoa.Models.Warranty", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("EndDate")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ImageUrl")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("ProductSerialId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProductSerialId")
-                        .IsUnique();
-
-                    b.ToTable("Warranties");
                 });
 
             modelBuilder.Entity("QuanLyHangHoa.Models.WarrantyClaim", b =>
@@ -1361,28 +1312,25 @@ namespace QuanLyHangHoa.Migrations
 
                     b.Property<string>("ClaimCode")
                         .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ClaimStatus")
-                        .IsRequired()
+                        .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("ClosedDate")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("ManufacturerResult")
-                        .IsRequired()
+                        .HasMaxLength(1000)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("ProblemDescription")
-                        .IsRequired()
+                        .HasMaxLength(1000)
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("ProcessedBy")
+                    b.Property<int>("ProcessedBy")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("ProcessingNote")
-                        .IsRequired()
+                        .HasMaxLength(1000)
                         .HasColumnType("TEXT");
 
                     b.Property<int>("ProductSerialId")
@@ -1392,7 +1340,7 @@ namespace QuanLyHangHoa.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("RejectionReason")
-                        .IsRequired()
+                        .HasMaxLength(1000)
                         .HasColumnType("TEXT");
 
                     b.Property<int?>("ReplacementSerialId")
@@ -1401,8 +1349,17 @@ namespace QuanLyHangHoa.Migrations
                     b.Property<int?>("ReplacementStockOutId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("TechnicalConclusion")
+                    b.Property<string>("ResolutionType")
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
                         .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TechnicalConclusion")
+                        .HasMaxLength(1000)
                         .HasColumnType("TEXT");
 
                     b.Property<int>("WarrantyCoverageId")
@@ -1410,8 +1367,12 @@ namespace QuanLyHangHoa.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ApprovedBy");
+
                     b.HasIndex("ClaimCode")
                         .IsUnique();
+
+                    b.HasIndex("ProcessedBy");
 
                     b.HasIndex("ProductSerialId");
 
@@ -1432,6 +1393,7 @@ namespace QuanLyHangHoa.Migrations
 
                     b.Property<string>("CoverageStatus")
                         .IsRequired()
+                        .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
                     b.Property<int>("CustomerId")
@@ -1453,24 +1415,43 @@ namespace QuanLyHangHoa.Migrations
 
                     b.HasIndex("CustomerId");
 
-                    b.HasIndex("ProductSerialId");
+                    b.HasIndex("ProductSerialId")
+                        .IsUnique();
 
                     b.HasIndex("SalesInvoiceId");
 
                     b.ToTable("WarrantyCoverages");
                 });
 
+            modelBuilder.Entity("QuanLyHangHoa.Models.AppUser", b =>
+                {
+                    b.HasOne("QuanLyHangHoa.Models.AppUser", "Creator")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy");
+
+                    b.Navigation("Creator");
+                });
+
+            modelBuilder.Entity("QuanLyHangHoa.Models.AuditLog", b =>
+                {
+                    b.HasOne("QuanLyHangHoa.Models.AppUser", "Performer")
+                        .WithMany()
+                        .HasForeignKey("PerformedBy")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Performer");
+                });
+
             modelBuilder.Entity("QuanLyHangHoa.Models.InvoicePayment", b =>
                 {
                     b.HasOne("QuanLyHangHoa.Models.PurchaseInvoice", "PurchaseInvoice")
                         .WithMany()
-                        .HasForeignKey("PurchaseInvoiceId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .HasForeignKey("PurchaseInvoiceId");
 
                     b.HasOne("QuanLyHangHoa.Models.SalesInvoice", "SalesInvoice")
                         .WithMany()
-                        .HasForeignKey("SalesInvoiceId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .HasForeignKey("SalesInvoiceId");
 
                     b.Navigation("PurchaseInvoice");
 
@@ -1491,25 +1472,38 @@ namespace QuanLyHangHoa.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("QuanLyHangHoa.Models.Unit", "Unit")
-                        .WithMany("Products")
-                        .HasForeignKey("UnitId")
+                    b.HasOne("QuanLyHangHoa.Models.Unit", "DefaultUnit")
+                        .WithMany()
+                        .HasForeignKey("DefaultUnitId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("QuanLyHangHoa.Models.Unit", null)
+                        .WithMany("Products")
+                        .HasForeignKey("UnitId");
 
                     b.Navigation("Brand");
 
                     b.Navigation("Category");
 
-                    b.Navigation("Unit");
+                    b.Navigation("DefaultUnit");
                 });
 
             modelBuilder.Entity("QuanLyHangHoa.Models.ProductSerial", b =>
                 {
                     b.HasOne("QuanLyHangHoa.Models.Warehouse", "CurrentWarehouse")
                         .WithMany("ProductSerials")
-                        .HasForeignKey("CurrentWarehouseId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("CurrentWarehouseId");
+
+                    b.HasOne("QuanLyHangHoa.Models.StockInLine", "LastStockInLine")
+                        .WithMany("ProductSerials")
+                        .HasForeignKey("LastStockInLineId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("QuanLyHangHoa.Models.StockOutLine", "LastStockOutLine")
+                        .WithMany("ProductSerials")
+                        .HasForeignKey("LastStockOutLineId");
 
                     b.HasOne("QuanLyHangHoa.Models.Product", "Product")
                         .WithMany("ProductSerials")
@@ -1517,23 +1511,13 @@ namespace QuanLyHangHoa.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("QuanLyHangHoa.Models.StockInDetail", "StockInDetail")
-                        .WithMany("ProductSerials")
-                        .HasForeignKey("StockInDetailId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("QuanLyHangHoa.Models.StockOutDetail", "StockOutDetail")
-                        .WithMany("ProductSerials")
-                        .HasForeignKey("StockOutDetailId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.Navigation("CurrentWarehouse");
 
+                    b.Navigation("LastStockInLine");
+
+                    b.Navigation("LastStockOutLine");
+
                     b.Navigation("Product");
-
-                    b.Navigation("StockInDetail");
-
-                    b.Navigation("StockOutDetail");
                 });
 
             modelBuilder.Entity("QuanLyHangHoa.Models.ProductUnit", b =>
@@ -1547,7 +1531,7 @@ namespace QuanLyHangHoa.Migrations
                     b.HasOne("QuanLyHangHoa.Models.Unit", "Unit")
                         .WithMany("ProductUnits")
                         .HasForeignKey("UnitId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Product");
@@ -1559,13 +1543,12 @@ namespace QuanLyHangHoa.Migrations
                 {
                     b.HasOne("QuanLyHangHoa.Models.StockIn", "StockIn")
                         .WithMany()
-                        .HasForeignKey("StockInId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("StockInId");
 
                     b.HasOne("QuanLyHangHoa.Models.Supplier", "Supplier")
-                        .WithMany()
+                        .WithMany("PurchaseInvoices")
                         .HasForeignKey("SupplierId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("StockIn");
@@ -1578,7 +1561,7 @@ namespace QuanLyHangHoa.Migrations
                     b.HasOne("QuanLyHangHoa.Models.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("QuanLyHangHoa.Models.PurchaseInvoice", "PurchaseInvoice")
@@ -1587,22 +1570,21 @@ namespace QuanLyHangHoa.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("QuanLyHangHoa.Models.StockInDetail", "StockInDetail")
+                    b.HasOne("QuanLyHangHoa.Models.StockInLine", "StockInLine")
                         .WithMany()
-                        .HasForeignKey("StockInDetailId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("StockInLineId");
 
                     b.HasOne("QuanLyHangHoa.Models.Unit", "Unit")
                         .WithMany()
                         .HasForeignKey("UnitId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Product");
 
                     b.Navigation("PurchaseInvoice");
 
-                    b.Navigation("StockInDetail");
+                    b.Navigation("StockInLine");
 
                     b.Navigation("Unit");
                 });
@@ -1610,15 +1592,14 @@ namespace QuanLyHangHoa.Migrations
             modelBuilder.Entity("QuanLyHangHoa.Models.SalesInvoice", b =>
                 {
                     b.HasOne("QuanLyHangHoa.Models.Customer", "Customer")
-                        .WithMany()
+                        .WithMany("SalesInvoices")
                         .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("QuanLyHangHoa.Models.StockOut", "StockOut")
                         .WithMany()
-                        .HasForeignKey("StockOutId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("StockOutId");
 
                     b.Navigation("Customer");
 
@@ -1630,7 +1611,7 @@ namespace QuanLyHangHoa.Migrations
                     b.HasOne("QuanLyHangHoa.Models.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("QuanLyHangHoa.Models.SalesInvoice", "SalesInvoice")
@@ -1639,55 +1620,73 @@ namespace QuanLyHangHoa.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("QuanLyHangHoa.Models.StockOutDetail", "StockOutDetail")
+                    b.HasOne("QuanLyHangHoa.Models.StockOutLine", "StockOutLine")
                         .WithMany()
-                        .HasForeignKey("StockOutDetailId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("StockOutLineId");
 
                     b.HasOne("QuanLyHangHoa.Models.Unit", "Unit")
                         .WithMany()
                         .HasForeignKey("UnitId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Product");
 
                     b.Navigation("SalesInvoice");
 
-                    b.Navigation("StockOutDetail");
+                    b.Navigation("StockOutLine");
 
                     b.Navigation("Unit");
                 });
 
             modelBuilder.Entity("QuanLyHangHoa.Models.StockAdjustment", b =>
                 {
+                    b.HasOne("QuanLyHangHoa.Models.AppUser", "Approver")
+                        .WithMany()
+                        .HasForeignKey("ApprovedBy");
+
+                    b.HasOne("QuanLyHangHoa.Models.AppUser", "Creator")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("QuanLyHangHoa.Models.AppUser", "Poster")
+                        .WithMany()
+                        .HasForeignKey("PostedBy");
+
                     b.HasOne("QuanLyHangHoa.Models.Warehouse", "Warehouse")
                         .WithMany()
                         .HasForeignKey("WarehouseId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Approver");
+
+                    b.Navigation("Creator");
+
+                    b.Navigation("Poster");
 
                     b.Navigation("Warehouse");
                 });
 
             modelBuilder.Entity("QuanLyHangHoa.Models.StockAdjustmentLine", b =>
                 {
+                    b.HasOne("QuanLyHangHoa.Models.StockAdjustment", "StockAdjustment")
+                        .WithMany("Lines")
+                        .HasForeignKey("AdjustmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("QuanLyHangHoa.Models.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("QuanLyHangHoa.Models.ProductSerial", "ProductSerial")
                         .WithMany()
-                        .HasForeignKey("ProductSerialId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("QuanLyHangHoa.Models.StockAdjustment", "StockAdjustment")
-                        .WithMany("Lines")
-                        .HasForeignKey("StockAdjustmentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("ProductSerialId");
 
                     b.Navigation("Product");
 
@@ -1701,13 +1700,13 @@ namespace QuanLyHangHoa.Migrations
                     b.HasOne("QuanLyHangHoa.Models.Product", "Product")
                         .WithMany("StockBalances")
                         .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("QuanLyHangHoa.Models.Warehouse", "Warehouse")
                         .WithMany("StockBalances")
                         .HasForeignKey("WarehouseId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Product");
@@ -1720,12 +1719,12 @@ namespace QuanLyHangHoa.Migrations
                     b.HasOne("QuanLyHangHoa.Models.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("QuanLyHangHoa.Models.StockCountSession", "StockCountSession")
                         .WithMany("Lines")
-                        .HasForeignKey("StockCountSessionId")
+                        .HasForeignKey("SessionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1736,35 +1735,73 @@ namespace QuanLyHangHoa.Migrations
 
             modelBuilder.Entity("QuanLyHangHoa.Models.StockCountSession", b =>
                 {
+                    b.HasOne("QuanLyHangHoa.Models.AppUser", "Approver")
+                        .WithMany()
+                        .HasForeignKey("ApprovedBy");
+
+                    b.HasOne("QuanLyHangHoa.Models.AppUser", "Creator")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("QuanLyHangHoa.Models.AppUser", "Poster")
+                        .WithMany()
+                        .HasForeignKey("PostedBy");
+
                     b.HasOne("QuanLyHangHoa.Models.Warehouse", "Warehouse")
                         .WithMany()
                         .HasForeignKey("WarehouseId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Approver");
+
+                    b.Navigation("Creator");
+
+                    b.Navigation("Poster");
 
                     b.Navigation("Warehouse");
                 });
 
             modelBuilder.Entity("QuanLyHangHoa.Models.StockIn", b =>
                 {
-                    b.HasOne("QuanLyHangHoa.Models.Employee", "Employee")
-                        .WithMany("StockIns")
-                        .HasForeignKey("EmployeeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                    b.HasOne("QuanLyHangHoa.Models.AppUser", "Approver")
+                        .WithMany()
+                        .HasForeignKey("ApprovedBy");
 
-                    b.HasOne("QuanLyHangHoa.Models.Supplier", "Supplier")
-                        .WithMany("StockIns")
-                        .HasForeignKey("SupplierId")
+                    b.HasOne("QuanLyHangHoa.Models.AppUser", "Creator")
+                        .WithMany("CreatedStockIns")
+                        .HasForeignKey("CreatedBy")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Employee");
+                    b.HasOne("QuanLyHangHoa.Models.AppUser", "Poster")
+                        .WithMany()
+                        .HasForeignKey("PostedBy");
+
+                    b.HasOne("QuanLyHangHoa.Models.Supplier", "Supplier")
+                        .WithMany("StockIns")
+                        .HasForeignKey("SupplierId");
+
+                    b.HasOne("QuanLyHangHoa.Models.Warehouse", "Warehouse")
+                        .WithMany()
+                        .HasForeignKey("WarehouseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Approver");
+
+                    b.Navigation("Creator");
+
+                    b.Navigation("Poster");
 
                     b.Navigation("Supplier");
+
+                    b.Navigation("Warehouse");
                 });
 
-            modelBuilder.Entity("QuanLyHangHoa.Models.StockInDetail", b =>
+            modelBuilder.Entity("QuanLyHangHoa.Models.StockInLine", b =>
                 {
                     b.HasOne("QuanLyHangHoa.Models.Product", "Product")
                         .WithMany()
@@ -1773,55 +1810,97 @@ namespace QuanLyHangHoa.Migrations
                         .IsRequired();
 
                     b.HasOne("QuanLyHangHoa.Models.StockIn", "StockIn")
-                        .WithMany("StockInDetails")
+                        .WithMany("Lines")
                         .HasForeignKey("StockInId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("QuanLyHangHoa.Models.Unit", "Unit")
+                        .WithMany()
+                        .HasForeignKey("UnitId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Product");
 
                     b.Navigation("StockIn");
+
+                    b.Navigation("Unit");
                 });
 
             modelBuilder.Entity("QuanLyHangHoa.Models.StockLedger", b =>
                 {
+                    b.HasOne("QuanLyHangHoa.Models.AppUser", "Poster")
+                        .WithMany("PostedLedgers")
+                        .HasForeignKey("PostedBy")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("QuanLyHangHoa.Models.Product", "Product")
                         .WithMany("StockLedgers")
                         .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("QuanLyHangHoa.Models.ProductSerial", "ProductSerial")
+                        .WithMany()
+                        .HasForeignKey("ProductSerialId");
 
                     b.HasOne("QuanLyHangHoa.Models.Warehouse", "Warehouse")
                         .WithMany()
                         .HasForeignKey("WarehouseId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("Poster");
+
                     b.Navigation("Product");
+
+                    b.Navigation("ProductSerial");
 
                     b.Navigation("Warehouse");
                 });
 
             modelBuilder.Entity("QuanLyHangHoa.Models.StockOut", b =>
                 {
+                    b.HasOne("QuanLyHangHoa.Models.AppUser", "Approver")
+                        .WithMany()
+                        .HasForeignKey("ApprovedBy");
+
+                    b.HasOne("QuanLyHangHoa.Models.AppUser", "Creator")
+                        .WithMany("CreatedStockOuts")
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("QuanLyHangHoa.Models.Customer", "Customer")
                         .WithMany("StockOuts")
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("QuanLyHangHoa.Models.Employee", "Employee")
-                        .WithMany("StockOuts")
-                        .HasForeignKey("EmployeeId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                    b.HasOne("QuanLyHangHoa.Models.AppUser", "Poster")
+                        .WithMany()
+                        .HasForeignKey("PostedBy");
+
+                    b.HasOne("QuanLyHangHoa.Models.Warehouse", "Warehouse")
+                        .WithMany()
+                        .HasForeignKey("WarehouseId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Approver");
+
+                    b.Navigation("Creator");
 
                     b.Navigation("Customer");
 
-                    b.Navigation("Employee");
+                    b.Navigation("Poster");
+
+                    b.Navigation("Warehouse");
                 });
 
-            modelBuilder.Entity("QuanLyHangHoa.Models.StockOutDetail", b =>
+            modelBuilder.Entity("QuanLyHangHoa.Models.StockOutLine", b =>
                 {
                     b.HasOne("QuanLyHangHoa.Models.Product", "Product")
                         .WithMany()
@@ -1830,50 +1909,59 @@ namespace QuanLyHangHoa.Migrations
                         .IsRequired();
 
                     b.HasOne("QuanLyHangHoa.Models.StockOut", "StockOut")
-                        .WithMany("StockOutDetails")
+                        .WithMany("Lines")
                         .HasForeignKey("StockOutId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("QuanLyHangHoa.Models.Unit", "Unit")
+                        .WithMany()
+                        .HasForeignKey("UnitId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Product");
 
                     b.Navigation("StockOut");
-                });
 
-            modelBuilder.Entity("QuanLyHangHoa.Models.Warranty", b =>
-                {
-                    b.HasOne("QuanLyHangHoa.Models.ProductSerial", "ProductSerial")
-                        .WithOne("Warranty")
-                        .HasForeignKey("QuanLyHangHoa.Models.Warranty", "ProductSerialId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ProductSerial");
+                    b.Navigation("Unit");
                 });
 
             modelBuilder.Entity("QuanLyHangHoa.Models.WarrantyClaim", b =>
                 {
+                    b.HasOne("QuanLyHangHoa.Models.AppUser", "Approver")
+                        .WithMany()
+                        .HasForeignKey("ApprovedBy");
+
+                    b.HasOne("QuanLyHangHoa.Models.AppUser", "Processor")
+                        .WithMany()
+                        .HasForeignKey("ProcessedBy")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("QuanLyHangHoa.Models.ProductSerial", "ProductSerial")
                         .WithMany()
                         .HasForeignKey("ProductSerialId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("QuanLyHangHoa.Models.ProductSerial", "ReplacementSerial")
                         .WithMany()
-                        .HasForeignKey("ReplacementSerialId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("ReplacementSerialId");
 
                     b.HasOne("QuanLyHangHoa.Models.StockOut", "ReplacementStockOut")
                         .WithMany()
-                        .HasForeignKey("ReplacementStockOutId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("ReplacementStockOutId");
 
                     b.HasOne("QuanLyHangHoa.Models.WarrantyCoverage", "WarrantyCoverage")
                         .WithMany("Claims")
                         .HasForeignKey("WarrantyCoverageId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Approver");
+
+                    b.Navigation("Processor");
 
                     b.Navigation("ProductSerial");
 
@@ -1889,25 +1977,33 @@ namespace QuanLyHangHoa.Migrations
                     b.HasOne("QuanLyHangHoa.Models.Customer", "Customer")
                         .WithMany()
                         .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("QuanLyHangHoa.Models.ProductSerial", "ProductSerial")
-                        .WithMany()
-                        .HasForeignKey("ProductSerialId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .WithOne("WarrantyCoverage")
+                        .HasForeignKey("QuanLyHangHoa.Models.WarrantyCoverage", "ProductSerialId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("QuanLyHangHoa.Models.SalesInvoice", "SalesInvoice")
                         .WithMany()
-                        .HasForeignKey("SalesInvoiceId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("SalesInvoiceId");
 
                     b.Navigation("Customer");
 
                     b.Navigation("ProductSerial");
 
                     b.Navigation("SalesInvoice");
+                });
+
+            modelBuilder.Entity("QuanLyHangHoa.Models.AppUser", b =>
+                {
+                    b.Navigation("CreatedStockIns");
+
+                    b.Navigation("CreatedStockOuts");
+
+                    b.Navigation("PostedLedgers");
                 });
 
             modelBuilder.Entity("QuanLyHangHoa.Models.Brand", b =>
@@ -1922,12 +2018,7 @@ namespace QuanLyHangHoa.Migrations
 
             modelBuilder.Entity("QuanLyHangHoa.Models.Customer", b =>
                 {
-                    b.Navigation("StockOuts");
-                });
-
-            modelBuilder.Entity("QuanLyHangHoa.Models.Employee", b =>
-                {
-                    b.Navigation("StockIns");
+                    b.Navigation("SalesInvoices");
 
                     b.Navigation("StockOuts");
                 });
@@ -1945,7 +2036,7 @@ namespace QuanLyHangHoa.Migrations
 
             modelBuilder.Entity("QuanLyHangHoa.Models.ProductSerial", b =>
                 {
-                    b.Navigation("Warranty");
+                    b.Navigation("WarrantyCoverage");
                 });
 
             modelBuilder.Entity("QuanLyHangHoa.Models.PurchaseInvoice", b =>
@@ -1970,26 +2061,28 @@ namespace QuanLyHangHoa.Migrations
 
             modelBuilder.Entity("QuanLyHangHoa.Models.StockIn", b =>
                 {
-                    b.Navigation("StockInDetails");
+                    b.Navigation("Lines");
                 });
 
-            modelBuilder.Entity("QuanLyHangHoa.Models.StockInDetail", b =>
+            modelBuilder.Entity("QuanLyHangHoa.Models.StockInLine", b =>
                 {
                     b.Navigation("ProductSerials");
                 });
 
             modelBuilder.Entity("QuanLyHangHoa.Models.StockOut", b =>
                 {
-                    b.Navigation("StockOutDetails");
+                    b.Navigation("Lines");
                 });
 
-            modelBuilder.Entity("QuanLyHangHoa.Models.StockOutDetail", b =>
+            modelBuilder.Entity("QuanLyHangHoa.Models.StockOutLine", b =>
                 {
                     b.Navigation("ProductSerials");
                 });
 
             modelBuilder.Entity("QuanLyHangHoa.Models.Supplier", b =>
                 {
+                    b.Navigation("PurchaseInvoices");
+
                     b.Navigation("StockIns");
                 });
 

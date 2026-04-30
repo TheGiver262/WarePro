@@ -37,6 +37,8 @@ namespace QuanLyHangHoa.Services
 
         private static void CalculateSalesInvoice(SalesInvoice invoice)
         {
+            if (invoice.Lines == null) return;
+
             foreach (var line in invoice.Lines)
             {
                 CalculateLine(line.Quantity, line.UnitPrice, line.TaxRate, out var subTotal, out var taxAmount, out var grandTotal);
@@ -53,6 +55,8 @@ namespace QuanLyHangHoa.Services
 
         private static void CalculatePurchaseInvoice(PurchaseInvoice invoice)
         {
+            if (invoice.Lines == null) return;
+
             foreach (var line in invoice.Lines)
             {
                 CalculateLine(line.Quantity, line.UnitPrice, line.TaxRate, out var subTotal, out var taxAmount, out var grandTotal);
