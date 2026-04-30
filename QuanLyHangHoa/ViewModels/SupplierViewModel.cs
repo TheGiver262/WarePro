@@ -20,6 +20,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _editName    = string.Empty;
         [ObservableProperty] private string _editAddress = string.Empty;
         [ObservableProperty] private string _editPhone   = string.Empty;
+        [ObservableProperty] private string _editEmail   = string.Empty;
         [ObservableProperty] private string _statusMessage = string.Empty;
 
         public SupplierViewModel() => LoadData();
@@ -30,7 +31,7 @@ namespace QuanLyHangHoa.ViewModels
         {
             if (string.IsNullOrWhiteSpace(EditName)) { StatusMessage = "Tên không được trống!"; return; }
             if (string.IsNullOrWhiteSpace(EditCode)) { StatusMessage = "Mã không được trống!"; return; }
-            _svc.AddSupplier(new Supplier { SupplierCode = EditCode.Trim(), DisplayName = EditName.Trim(), Address = EditAddress, Phone = EditPhone });
+            _svc.AddSupplier(new Supplier { SupplierCode = EditCode.Trim(), DisplayName = EditName.Trim(), Address = EditAddress, Phone = EditPhone, Email = EditEmail });
             ClearInputs(); LoadData(); StatusMessage = "Thêm thành công.";
         }
         [RelayCommand]
@@ -41,6 +42,7 @@ namespace QuanLyHangHoa.ViewModels
             SelectedSupplier.DisplayName = EditName.Trim(); 
             SelectedSupplier.Address = EditAddress; 
             SelectedSupplier.Phone = EditPhone;
+            SelectedSupplier.Email = EditEmail;
             _svc.UpdateSupplier(SelectedSupplier); LoadData(); StatusMessage = "Cập nhật thành công.";
         }
         [RelayCommand]
@@ -74,7 +76,10 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
-        private void ClearInputs() { EditCode = string.Empty; EditName = string.Empty; EditAddress = string.Empty; EditPhone = string.Empty; }
+        [RelayCommand]
+        private void ClearInput() { EditCode = string.Empty; EditName = string.Empty; EditAddress = string.Empty; EditPhone = string.Empty; EditEmail = string.Empty; SelectedSupplier = null; }
+
+        private void ClearInputs() { EditCode = string.Empty; EditName = string.Empty; EditAddress = string.Empty; EditPhone = string.Empty; EditEmail = string.Empty; }
 
         partial void OnSelectedSupplierChanged(Supplier? value)
         {
@@ -82,6 +87,7 @@ namespace QuanLyHangHoa.ViewModels
             EditName    = value?.DisplayName    ?? string.Empty;
             EditAddress = value?.Address ?? string.Empty;
             EditPhone   = value?.Phone   ?? string.Empty;
+            EditEmail   = value?.Email   ?? string.Empty;
         }
     }
 }

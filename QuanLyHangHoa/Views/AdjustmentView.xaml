@@ -1,0 +1,69 @@
+<UserControl x:Class="QuanLyHangHoa.Views.AdjustmentView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+    <Grid Background="{StaticResource BodyBgBrush}">
+        <Grid Margin="24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <materialDesign:Card Grid.Row="0" UniformCornerRadius="12" Padding="16,8" Margin="0,0,0,24">
+                <DockPanel>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <materialDesign:PackIcon Kind="Tune" Width="28" Height="28" Foreground="{StaticResource PrimaryIndigoBrush}" VerticalAlignment="Center"/>
+                        <TextBlock Text="ĐIỀU CHỈNH KHO HÀNG" FontSize="20" FontWeight="Bold" Foreground="{StaticResource PrimaryIndigoBrush}" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <Button DockPanel.Dock="Right" Content="TẠO PHIẾU MỚI" Command="{Binding CreateCommand}" 
+                            Style="{StaticResource MaterialDesignRaisedButton}" materialDesign:ButtonAssist.CornerRadius="8" Height="36"/>
+                </DockPanel>
+            </materialDesign:Card>
+
+            <materialDesign:Card Grid.Row="1" UniformCornerRadius="12" Padding="24" Margin="0,0,0,24">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="1*"/>
+                        <ColumnDefinition Width="1*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                        <ComboBox ItemsSource="{Binding Products}" SelectedItem="{Binding SelectedProduct}" DisplayMemberPath="DisplayName"
+                                  Style="{StaticResource MaterialDesignFloatingHintComboBox}" materialDesign:HintAssist.Hint="Tìm sản phẩm..." FontSize="14"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Margin="0,0,16,0">
+                        <TextBox Text="{Binding NewQuantity}" Style="{StaticResource MaterialDesignFloatingHintTextBox}" 
+                                 materialDesign:HintAssist.Hint="Số lượng mới" FontSize="14"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Margin="0,0,16,0">
+                        <TextBox Text="{Binding Reason}" Style="{StaticResource MaterialDesignFloatingHintTextBox}" 
+                                 materialDesign:HintAssist.Hint="Lý do điều chỉnh" FontSize="14"/>
+                    </StackPanel>
+
+                    <Button Grid.Column="3" Content="THỰC HIỆN" Command="{Binding ExecuteCommand}" 
+                            Style="{StaticResource MaterialDesignRaisedButton}" Background="#10B981" BorderBrush="#10B981"
+                            Height="40" materialDesign:ButtonAssist.CornerRadius="8" VerticalAlignment="Bottom"/>
+                </Grid>
+            </materialDesign:Card>
+
+            <materialDesign:Card Grid.Row="2" UniformCornerRadius="12" Padding="0">
+                <DataGrid ItemsSource="{Binding Adjustments}" AutoGenerateColumns="False" CanUserAddRows="False" 
+                          IsReadOnly="True" Style="{StaticResource MaterialDesignDataGrid}" BorderThickness="0">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Ngày" Binding="{Binding AdjustmentDate, StringFormat=dd/MM/yyyy HH:mm}" Width="Auto" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+                        <DataGridTextColumn Header="Sản Phẩm" Binding="{Binding Product.DisplayName}" Width="2*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+                        <DataGridTextColumn Header="Số Lượng Cũ" Binding="{Binding OldQuantity}" Width="*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
+                        <DataGridTextColumn Header="Số Lượng Mới" Binding="{Binding NewQuantity}" Width="*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
+                        <DataGridTextColumn Header="Lý Do" Binding="{Binding Reason}" Width="2*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </materialDesign:Card>
+        </Grid>
+    </Grid>
+</UserControl>

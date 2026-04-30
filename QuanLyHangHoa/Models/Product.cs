@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
 using QuanLyHangHoa.Services.DataImport;
 
 namespace QuanLyHangHoa.Models
@@ -40,6 +41,9 @@ namespace QuanLyHangHoa.Models
         public int WarrantyPeriodMonths { get; set; } = 0;
         public bool IsSerialTracked { get; set; } = false;
         public bool IsActive { get; set; } = true;
+        
+        [NotMapped]
+        public decimal TotalQuantity => StockBalances?.Sum(sb => sb.OnHandQuantity) ?? 0;
 
         // Navigation properties
         public virtual ICollection<ProductUnit>? ProductUnits { get; set; }

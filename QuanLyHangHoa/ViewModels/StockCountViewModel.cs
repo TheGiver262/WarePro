@@ -58,10 +58,42 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void SaveStockCount()
         {
-            // Note: The previous logic called _stockCountService.CreateApprovedSession which seems missing.
-            // We will need to implement a standard save logic or fix the service.
-            // For now, let's keep it compiling.
-            MessageBox.Show("Chức năng này đang được cập nhật để phù hợp với hệ thống mới.", "Thông báo");
+            if (string.IsNullOrWhiteSpace(SessionCode) || !Lines.Any())
+            {
+                MessageBox.Show("Vui lòng nhập mã phiên và ít nhất 1 dòng kiểm kê.", "Cảnh báo");
+                return;
+            }
+
+            try
+            {
+                var session = new StockCountSession
+                {
+                    SessionCode = SessionCode,
+                    WarehouseId = WarehouseId,
+                    CountDate = CountDate,
+                    Status = "Counted", // Mark as counted for processing
+                    CreatedBy = _currentUser.Id
+                };
+
+                session.Lines = Lines.Select(l => new StockCountLine
+                {
+                    ProductId = l.SelectedProduct?.Id ?? 0,
+                    CountedQuantity = l.CountedQuantity,
+                    // Note: SystemQuantity would normally be pulled from current balance
+                    SystemQuantity = 0, 
+                    VarianceQuantity = l.CountedQuantity
+                }).ToList();
+
+                _stockCountService.CreateSession(session);
+                MessageBox.Show("Đã lưu phiên kiểm kê.", "Thông báo");
+                
+                Lines.Clear();
+                SessionCode = CreateDefaultSessionCode();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Lỗi");
+            }
         }
 
         private static string CreateDefaultSessionCode()

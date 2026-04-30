@@ -1,95 +1,164 @@
 <UserControl x:Class="QuanLyHangHoa.Views.StockAdjustmentView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             Background="#111827">
-    <Grid Margin="20">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:vm="clr-namespace:QuanLyHangHoa.ViewModels"
+             mc:Ignorable="d" 
+             d:DesignHeight="700" d:DesignWidth="1100">
+    
+    <UserControl.DataContext>
+        <vm:StockAdjustmentViewModel />
+    </UserControl.DataContext>
 
-        <TextBlock Grid.Row="0" Text="Dieu chinh ton kho" FontSize="24" FontWeight="Bold" Foreground="White" Margin="0,0,0,20"/>
+    <Grid Background="{StaticResource BodyBgBrush}">
+        <Grid Margin="24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
-        <Border Grid.Row="1" Background="#1F2937" CornerRadius="8" Padding="18" Margin="0,0,0,16">
-            <Grid>
+            <!-- Header Section -->
+            <materialDesign:Card Grid.Row="0" Margin="0,0,0,24" UniformCornerRadius="12" Background="{StaticResource PrimaryIndigoBrush}" materialDesign:ElevationAssist.Elevation="Dp2" Padding="16,8">
+                <Grid>
+                    <StackPanel Orientation="Horizontal">
+                        <Border Background="White" Width="48" Height="48" CornerRadius="12" Opacity="0.2"/>
+                        <Border Width="48" Height="48" CornerRadius="12">
+                            <materialDesign:PackIcon Kind="Tune" Width="24" Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"/>
+                        </Border>
+                        <TextBlock Text="ĐIỀU CHỈNH KHO" FontSize="20" FontWeight="Bold" Foreground="White" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+            </materialDesign:Card>
+
+            <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="1.2*"/>
-                    <ColumnDefinition Width="0.8*"/>
-                    <ColumnDefinition Width="1.2*"/>
-                    <ColumnDefinition Width="1.2*"/>
-                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="380"/>
                 </Grid.ColumnDefinitions>
 
-                <StackPanel Grid.Column="0" Margin="0,0,14,0">
-                    <TextBlock Text="Ma chung tu" Foreground="White" Margin="0,0,0,6"/>
-                    <TextBox Text="{Binding DocumentCode, UpdateSourceTrigger=PropertyChanged}" Background="#374151" Foreground="White" Padding="8"/>
-                </StackPanel>
+                <!-- Sidebar: Document Info (RIGHT) -->
+                <materialDesign:Card Grid.Column="1" Margin="12,0,0,0" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2" VerticalAlignment="Top">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
 
-                <StackPanel Grid.Column="1" Margin="0,0,14,0">
-                    <TextBlock Text="Kho" Foreground="White" Margin="0,0,0,6"/>
-                    <TextBox Text="{Binding WarehouseId, UpdateSourceTrigger=PropertyChanged}" Background="#374151" Foreground="White" Padding="8"/>
-                </StackPanel>
+                        <Border Background="{StaticResource PrimaryIndigoBrush}" Padding="16,12" CornerRadius="12,12,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="InformationOutline" Foreground="White" VerticalAlignment="Center"/>
+                                <TextBlock Text="Thông tin chứng từ" Foreground="White" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
 
-                <StackPanel Grid.Column="2" Margin="0,0,14,0">
-                    <TextBlock Text="Chung tu tham chieu" Foreground="White" Margin="0,0,0,6"/>
-                    <TextBox Text="{Binding ReferenceDocumentCode, UpdateSourceTrigger=PropertyChanged}" Background="#374151" Foreground="White" Padding="8"/>
-                </StackPanel>
+                        <Border Grid.Row="1" Padding="20">
+                            <StackPanel>
+                                <TextBox materialDesign:HintAssist.Hint="Mã chứng từ" 
+                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                         Text="{Binding DocumentCode}" Margin="0,0,0,16"
+                                         IsReadOnly="True"/>
 
-                <StackPanel Grid.Column="3" Margin="0,0,14,0">
-                    <TextBlock Text="Ly do" Foreground="White" Margin="0,0,0,6"/>
-                    <TextBox Text="{Binding ReasonCode, UpdateSourceTrigger=PropertyChanged}" Background="#374151" Foreground="White" Padding="8"/>
-                </StackPanel>
+                                <ComboBox materialDesign:HintAssist.Hint="Kho hàng" 
+                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                          SelectedValue="{Binding WarehouseId}"
+                                          SelectedValuePath="Id" DisplayMemberPath="DisplayName"
+                                          Margin="0,0,0,16">
+                                    <ComboBoxItem Content="Kho tổng" IsSelected="True" Tag="1"/>
+                                </ComboBox>
 
-                <Button Grid.Column="4" Content="+ Them dong" Command="{Binding AddLineCommand}" Background="#10B981" Foreground="White" Padding="14,9" BorderThickness="0" VerticalAlignment="Bottom"/>
+                                <TextBox materialDesign:HintAssist.Hint="Lý do điều chỉnh" 
+                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                         AcceptsReturn="True" TextWrapping="Wrap" Height="100"
+                                         VerticalContentAlignment="Top"
+                                         Text="{Binding ReasonCode, UpdateSourceTrigger=PropertyChanged}"
+                                         Margin="0,0,0,16"/>
+
+                                <TextBlock Text="{Binding StatusMessage}" Foreground="#EF5350" FontSize="12" TextWrapping="Wrap" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Grid.Row="2" Padding="20" Background="#F9FAFB" CornerRadius="0,0,12,12" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
+                            <Button Content="LƯU PHIẾU" Command="{Binding SaveAdjustmentCommand}"
+                                    Style="{StaticResource MaterialDesignRaisedButton}"
+                                    Background="{StaticResource PrimaryIndigoBrush}" BorderBrush="{StaticResource PrimaryIndigoBrush}"
+                                    Height="44" materialDesign:ButtonAssist.CornerRadius="8"/>
+                        </Border>
+                    </Grid>
+                </materialDesign:Card>
+
+                <!-- Main: Adjustment Lines (LEFT) -->
+                <materialDesign:Card Grid.Column="0" Margin="0,0,12,0" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <Border Padding="20,16" Background="#EEF2FF" BorderBrush="#E0E7FF" BorderThickness="0,0,0,1" CornerRadius="12,12,0,0">
+                            <Grid>
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="FormatListBulleted" VerticalAlignment="Center" Foreground="{StaticResource PrimaryIndigoBrush}"/>
+                                    <TextBlock Text="DANH SÁCH SẢN PHẨM ĐIỀU CHỈNH" VerticalAlignment="Center" FontWeight="SemiBold" Margin="12,0,0,0" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                </StackPanel>
+                                <Button HorizontalAlignment="Right" Content="THÊM DÒNG" 
+                                        Command="{Binding AddLineCommand}"
+                                        Style="{StaticResource MaterialDesignOutlinedButton}"
+                                        BorderBrush="{StaticResource PrimaryIndigoBrush}" Foreground="{StaticResource PrimaryIndigoBrush}"
+                                        Height="32" Padding="12,0" FontSize="12" materialDesign:ButtonAssist.CornerRadius="6"/>
+                            </Grid>
+                        </Border>
+
+                        <DataGrid Grid.Row="1" ItemsSource="{Binding Lines}" AutoGenerateColumns="False" 
+                                  CanUserAddRows="False" SelectionMode="Single" Margin="0"
+                                  Style="{StaticResource MaterialDesignDataGrid}" BorderThickness="0">
+                            <DataGrid.Columns>
+                                <DataGridTemplateColumn Header="Sản phẩm" Width="*">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <ComboBox ItemsSource="{Binding DataContext.AvailableProducts, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                      SelectedItem="{Binding SelectedProduct, UpdateSourceTrigger=PropertyChanged}"
+                                                      DisplayMemberPath="DisplayName"
+                                                      materialDesign:TextFieldAssist.DecorationVisibility="Collapsed" BorderThickness="0" Padding="8,4"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
+                                <DataGridTemplateColumn Header="Hướng" Width="100">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <ComboBox SelectedValue="{Binding Direction, UpdateSourceTrigger=PropertyChanged}"
+                                                      SelectedValuePath="Tag" materialDesign:TextFieldAssist.DecorationVisibility="Collapsed" BorderThickness="0">
+                                                <ComboBoxItem Content="Nhập (+)" Tag="In"/>
+                                                <ComboBoxItem Content="Xuất (-)" Tag="Out"/>
+                                            </ComboBox>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
+                                <materialDesign:DataGridTextColumn Header="Số lượng" Binding="{Binding Quantity}" 
+                                                                   ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"
+                                                                   Width="100"/>
+
+                                <DataGridTemplateColumn Width="60">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button Style="{StaticResource MaterialDesignIconButton}"
+                                                    Command="{Binding DataContext.RemoveLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"
+                                                    Foreground="#EF5350" Width="32" Height="32">
+                                                <materialDesign:PackIcon Kind="DeleteOutline" Width="20" Height="20"/>
+                                            </Button>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </materialDesign:Card>
             </Grid>
-        </Border>
-
-        <DataGrid Grid.Row="2"
-                  ItemsSource="{Binding Lines}"
-                  AutoGenerateColumns="False"
-                  CanUserAddRows="False"
-                  Background="#1F2937"
-                  Foreground="Black"
-                  RowBackground="#374151"
-                  AlternatingRowBackground="#1F2937">
-            <DataGrid.Columns>
-                <DataGridTemplateColumn Header="San pham" Width="2*">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <ComboBox ItemsSource="{Binding DataContext.AvailableProducts, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                      SelectedItem="{Binding SelectedProduct, UpdateSourceTrigger=PropertyChanged}"
-                                      DisplayMemberPath="Name"
-                                      Foreground="Black"
-                                      MinWidth="220"/>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-                <DataGridTextColumn Header="Chenhlech (+/-)" Binding="{Binding QuantityDelta, UpdateSourceTrigger=PropertyChanged}" Width="1*"/>
-                <DataGridTextColumn Header="Huong" Binding="{Binding Direction}" IsReadOnly="True" Width="0.8*"/>
-                <DataGridTemplateColumn Header="Xoa" Width="Auto">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <Button Content="X"
-                                    Command="{Binding DataContext.RemoveLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                    CommandParameter="{Binding}"
-                                    Background="#EF4444"
-                                    Foreground="White"
-                                    Padding="6,0"
-                                    Margin="5"
-                                    BorderThickness="0"/>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-            </DataGrid.Columns>
-        </DataGrid>
-
-        <Border Grid.Row="3" Background="#1F2937" CornerRadius="8" Padding="16" Margin="0,16,0,0">
-            <DockPanel>
-                <TextBlock Text="So luong duong se nhap tang, so luong am se xuat giam." Foreground="#D1D5DB" VerticalAlignment="Center" DockPanel.Dock="Left"/>
-                <Button Content="Post dieu chinh" Command="{Binding SaveAdjustmentCommand}" Background="#6366F1" Foreground="White" Padding="18,10" FontSize="15" FontWeight="Bold" BorderThickness="0" HorizontalAlignment="Right"/>
-            </DockPanel>
-        </Border>
+        </Grid>
     </Grid>
 </UserControl>

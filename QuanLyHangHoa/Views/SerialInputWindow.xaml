@@ -9,6 +9,10 @@
         AllowsTransparency="True"
         Background="Transparent">
 
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </Window.Resources>
+
     <Border CornerRadius="16" Background="White" BorderBrush="#E0E0E0" BorderThickness="1">
         <Grid Margin="24">
             <Grid.RowDefinitions>
@@ -96,3 +100,4 @@
         </Grid>
     </Border>
 </Window>
+

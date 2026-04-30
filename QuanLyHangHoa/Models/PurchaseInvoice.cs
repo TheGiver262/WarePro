@@ -40,6 +40,9 @@ namespace QuanLyHangHoa.Models
         public string PaymentStatus { get; set; } = "Unpaid"; // Unpaid, Partial, Paid
         
         public DateTime DueDate { get; set; }
+        
+        public string? Notes { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         public virtual ICollection<PurchaseInvoiceLine>? Lines { get; set; }
     }

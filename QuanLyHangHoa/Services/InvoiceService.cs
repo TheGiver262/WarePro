@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
 
@@ -99,19 +101,41 @@ namespace QuanLyHangHoa.Services
             grandTotal = subTotal + taxAmount;
         }
 
+        public List<SalesInvoice> GetAllSalesInvoices()
+        {
+            using var db = _contextFactory();
+            return db.SalesInvoices
+                .Include(i => i.Customer)
+                .Include(i => i.Lines!)
+                .ThenInclude(l => l.Product)
+                .OrderByDescending(i => i.InvoiceDate)
+                .ToList();
+        }
+
+        public List<PurchaseInvoice> GetAllPurchaseInvoices()
+        {
+            using var db = _contextFactory();
+            return db.PurchaseInvoices
+                .Include(i => i.Supplier)
+                .Include(i => i.Lines!)
+                .ThenInclude(l => l.Product)
+                .OrderByDescending(i => i.InvoiceDate)
+                .ToList();
+        }
+
         private static string GetPaymentStatus(decimal paidAmount, decimal grandTotal)
         {
             if (paidAmount < 0 || paidAmount > grandTotal)
             {
-                throw new InvalidOperationException("Invoice paid amount must be between zero and grand total.");
+                throw new InvalidOperationException("Số tiền đã thanh toán phải nằm trong khoảng từ 0 đến tổng tiền.");
             }
 
             if (paidAmount == 0)
             {
-                return "Unpaid";
+                return "Chưa thanh toán";
             }
 
-            return paidAmount == grandTotal ? "Paid" : "Partial";
+            return paidAmount >= grandTotal ? "Đã thanh toán" : "Thanh toán một phần";
         }
     }
 }

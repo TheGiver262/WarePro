@@ -25,7 +25,7 @@ namespace QuanLyHangHoa.Services
             using var db = _contextFactory();
             using var transaction = db.Database.BeginTransaction();
             var invoice = db.SalesInvoices.Find(salesInvoiceId)
-                ?? throw new InvalidOperationException($"Sales invoice {salesInvoiceId} does not exist.");
+                ?? throw new InvalidOperationException($"Hóa đơn bán #{salesInvoiceId} không tồn tại.");
 
             ApplyPayment(invoice, amount);
             
@@ -48,7 +48,7 @@ namespace QuanLyHangHoa.Services
             using var db = _contextFactory();
             using var transaction = db.Database.BeginTransaction();
             var invoice = db.PurchaseInvoices.Find(purchaseInvoiceId)
-                ?? throw new InvalidOperationException($"Purchase invoice {purchaseInvoiceId} does not exist.");
+                ?? throw new InvalidOperationException($"Hóa đơn mua #{purchaseInvoiceId} không tồn tại.");
 
             ApplyPayment(invoice, amount);
             
@@ -84,12 +84,12 @@ namespace QuanLyHangHoa.Services
         {
             if (amount <= 0)
             {
-                throw new InvalidOperationException("Payment amount must be greater than zero.");
+                throw new InvalidOperationException("Số tiền thanh toán phải lớn hơn 0.");
             }
 
             if (paidAmount + amount > grandTotal)
             {
-                throw new InvalidOperationException("Payment amount exceeds remaining invoice balance.");
+                throw new InvalidOperationException("Số tiền thanh toán vượt quá số dư còn lại của hóa đơn.");
             }
         }
 
@@ -97,10 +97,10 @@ namespace QuanLyHangHoa.Services
         {
             if (paidAmount == 0)
             {
-                return "Unpaid";
+                return "Chưa thanh toán";
             }
 
-            return paidAmount >= grandTotal ? "Paid" : "Partial";
+            return paidAmount >= grandTotal ? "Đã thanh toán" : "Thanh toán một phần";
         }
     }
 }

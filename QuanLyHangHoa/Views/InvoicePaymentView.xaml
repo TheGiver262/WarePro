@@ -5,116 +5,118 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              mc:Ignorable="d" 
-             d:DesignHeight="800" d:DesignWidth="1100"
-             Background="#111827">
-    <Grid Margin="24">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+             d:DesignHeight="800" d:DesignWidth="1100">
+    <Grid Background="{StaticResource BodyBgBrush}">
+        <Grid Margin="24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <materialDesign:ColorZone Grid.Row="0" Mode="PrimaryMid" Padding="16" CornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp3" Margin="0,0,0,24">
-            <DockPanel>
-                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
-                    <materialDesign:PackIcon Kind="CashMultiple" Width="24" Height="24" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding ModeTitle}" FontSize="20" FontWeight="Bold" Margin="12,0,0,0" VerticalAlignment="Center"/>
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <RadioButton Style="{StaticResource MaterialDesignTabRadioButton}" Margin="0,0,8,0"
-                                 Content="THANH TOÁN BÁN" IsChecked="True"
-                                 Command="{Binding SwitchToSalesCommand}"
-                                 materialDesign:ButtonAssist.CornerRadius="8" Padding="12,8"/>
-                    <RadioButton Style="{StaticResource MaterialDesignTabRadioButton}"
-                                 Content="THANH TOÁN MUA"
-                                 Command="{Binding SwitchToPurchaseCommand}"
-                                 materialDesign:ButtonAssist.CornerRadius="8" Padding="12,8"/>
-                </StackPanel>
-            </DockPanel>
-        </materialDesign:ColorZone>
-
-        <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="2*"/>
-                <ColumnDefinition Width="1*"/>
-            </Grid.ColumnDefinitions>
-
-            <!-- Payment Entry Form -->
-            <materialDesign:Card Grid.Column="0" Margin="0,0,20,0" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2" Padding="32">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-
-                    <TextBlock Text="CHI TIẾT THANH TOÁN" FontWeight="Bold" FontSize="16" Foreground="{StaticResource PrimaryHueMidBrush}" Margin="0,0,0,32"/>
-
-                    <StackPanel Grid.Row="1">
-                        <Grid Margin="0,0,0,24">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBox Grid.Column="0" Style="{StaticResource MaterialDesignFloatingHintTextBox}" materialDesign:HintAssist.Hint="Mã hóa đơn (ID)" Margin="0,0,12,0"
-                                     Text="{Binding InvoiceIdText, UpdateSourceTrigger=PropertyChanged}" FontSize="15"/>
-                            <TextBox Grid.Column="1" Style="{StaticResource MaterialDesignFloatingHintTextBox}" materialDesign:HintAssist.Hint="Số tiền thanh toán" Margin="12,0,0,0"
-                                     Text="{Binding Amount, UpdateSourceTrigger=PropertyChanged, StringFormat=N0}" FontSize="15" FontWeight="Bold"/>
-                        </Grid>
-
-                        <ComboBox Style="{StaticResource MaterialDesignFloatingHintComboBox}" materialDesign:HintAssist.Hint="Phương thức thanh toán" Margin="0,0,0,24"
-                                  Text="{Binding PaymentMethod, UpdateSourceTrigger=PropertyChanged}" FontSize="15">
-                            <ComboBoxItem Content="Tiền mặt"/>
-                            <ComboBoxItem Content="Chuyển khoản"/>
-                            <ComboBoxItem Content="Thẻ tín dụng"/>
-                            <ComboBoxItem Content="Ví điện tử"/>
-                        </ComboBox>
-
-                        <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}" materialDesign:HintAssist.Hint="Ghi chú thanh toán" 
-                                 Height="100" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
-                                 Text="{Binding Note, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,16"/>
+            <!-- Header -->
+            <materialDesign:Card Grid.Row="0" Margin="0,0,0,24" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2" Padding="16,8">
+                <DockPanel>
+                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
+                        <Border Background="{StaticResource PrimaryHueLightBrush}" Width="48" Height="48" CornerRadius="12">
+                            <materialDesign:PackIcon Kind="CashMultiple" Width="24" Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource PrimaryIndigoBrush}"/>
+                        </Border>
+                        <TextBlock Text="{Binding ModeTitle}" FontSize="20" FontWeight="Bold" Foreground="{StaticResource PrimaryIndigoBrush}" Margin="12,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
-
-                    <Button Grid.Row="2" Content="XÁC NHẬN THANH TOÁN" Command="{Binding SavePaymentCommand}" 
-                            Style="{StaticResource MaterialDesignRaisedButton}" Height="50" FontSize="15" FontWeight="Bold" 
-                            materialDesign:ButtonAssist.CornerRadius="12" Margin="0,20,0,0"/>
-                </Grid>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <RadioButton Style="{StaticResource MaterialDesignTabRadioButton}" Margin="0,0,12,0"
+                                     Content="THANH TOÁN BÁN" IsChecked="True"
+                                     Command="{Binding SwitchToSalesCommand}"
+                                     materialDesign:ButtonAssist.CornerRadius="8" Padding="16,8"/>
+                        <RadioButton Style="{StaticResource MaterialDesignTabRadioButton}"
+                                     Content="THANH TOÁN MUA"
+                                     Command="{Binding SwitchToPurchaseCommand}"
+                                     materialDesign:ButtonAssist.CornerRadius="8" Padding="16,8"/>
+                    </StackPanel>
+                </DockPanel>
             </materialDesign:Card>
 
-            <!-- Instructions & Help -->
-            <StackPanel Grid.Column="1">
-                <materialDesign:Card UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2" Padding="20" Margin="0,0,0,20" Background="#F5F3FF">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                            <materialDesign:PackIcon Kind="LightbulbOn" Foreground="#7C3AED" VerticalAlignment="Center"/>
-                            <TextBlock Text="Hướng dẫn" FontWeight="Bold" Foreground="#7C3AED" Margin="8,0,0,0" VerticalAlignment="Center"/>
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="1*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Payment Entry Form -->
+                <materialDesign:Card Grid.Column="0" Margin="0,0,24,0" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2" Padding="32">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Text="THÔNG TIN THANH TOÁN" FontWeight="Bold" FontSize="16" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,32"/>
+
+                        <StackPanel Grid.Row="1">
+                            <Grid Margin="0,0,0,28">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox Grid.Column="0" Style="{StaticResource MaterialDesignFloatingHintTextBox}" materialDesign:HintAssist.Hint="Mã hóa đơn (ID)" Margin="0,0,12,0"
+                                         Text="{Binding InvoiceIdText, UpdateSourceTrigger=PropertyChanged}" FontSize="15"/>
+                                <TextBox Grid.Column="1" Style="{StaticResource MaterialDesignFloatingHintTextBox}" materialDesign:HintAssist.Hint="Số tiền thanh toán" Margin="12,0,0,0"
+                                         Text="{Binding Amount, UpdateSourceTrigger=PropertyChanged, StringFormat=N0}" FontSize="15" FontWeight="Bold" Foreground="{StaticResource PrimaryIndigoBrush}"/>
+                            </Grid>
+
+                            <ComboBox Style="{StaticResource MaterialDesignFloatingHintComboBox}" materialDesign:HintAssist.Hint="Phương thức thanh toán" Margin="0,0,0,28"
+                                      Text="{Binding PaymentMethod, UpdateSourceTrigger=PropertyChanged}" FontSize="15">
+                                <ComboBoxItem Content="Tiền mặt"/>
+                                <ComboBoxItem Content="Chuyển khoản"/>
+                                <ComboBoxItem Content="Thẻ tín dụng"/>
+                                <ComboBoxItem Content="Ví điện tử"/>
+                            </ComboBox>
+
+                            <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}" materialDesign:HintAssist.Hint="Ghi chú thanh toán" 
+                                     Height="120" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                                     Text="{Binding Note, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,16" FontSize="14"/>
                         </StackPanel>
-                        <TextBlock Text="Mỗi lần ghi nhận sẽ tạo một dòng InvoicePayment và tự động cập nhật trạng thái của hóa đơn tương ứng." 
-                                   Foreground="#5B21B6" TextWrapping="Wrap" FontSize="13" LineHeight="20"/>
-                    </StackPanel>
+
+                        <Button Grid.Row="2" Content="XÁC NHẬN GHI NHẬN THANH TOÁN" Command="{Binding SavePaymentCommand}" 
+                                Style="{StaticResource MaterialDesignRaisedButton}" Height="54" FontSize="15" FontWeight="Bold" 
+                                materialDesign:ButtonAssist.CornerRadius="12" Margin="0,24,0,0"/>
+                    </Grid>
                 </materialDesign:Card>
 
-                <materialDesign:Card UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2" Padding="20" Background="#F0F9FF">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                            <materialDesign:PackIcon Kind="ShieldAlert" Foreground="#0284C7" VerticalAlignment="Center"/>
-                            <TextBlock Text="Lưu ý quan trọng" FontWeight="Bold" Foreground="#0284C7" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                <!-- Instructions & Help -->
+                <StackPanel Grid.Column="1">
+                    <materialDesign:Card UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2" Padding="24" Margin="0,0,0,24" Background="#F0F7FF">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                                <materialDesign:PackIcon Kind="LightbulbOn" Foreground="#2563EB" VerticalAlignment="Center"/>
+                                <TextBlock Text="Hướng dẫn" FontWeight="Bold" Foreground="#2563EB" Margin="10,0,0,0" VerticalAlignment="Center" FontSize="15"/>
+                            </StackPanel>
+                            <TextBlock Text="Hệ thống sẽ tự động ghi nhận lịch sử thanh toán và cập nhật trạng thái của hóa đơn (Đã thanh toán/Thanh toán một phần/Chờ thanh toán)." 
+                                       Foreground="#1E40AF" TextWrapping="Wrap" FontSize="14" LineHeight="22"/>
                         </StackPanel>
-                        <TextBlock Text="Hệ thống không cho phép thanh toán vượt quá tổng tiền của hóa đơn. Vui lòng kiểm tra kỹ mã hóa đơn trước khi xác nhận." 
-                                   Foreground="#075985" TextWrapping="Wrap" FontSize="13" LineHeight="20"/>
-                    </StackPanel>
-                </materialDesign:Card>
-            </StackPanel>
+                    </materialDesign:Card>
+
+                    <materialDesign:Card UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2" Padding="24" Background="#FFF9F5">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                                <materialDesign:PackIcon Kind="ShieldAlert" Foreground="#EA580C" VerticalAlignment="Center"/>
+                                <TextBlock Text="Lưu ý" FontWeight="Bold" Foreground="#EA580C" Margin="10,0,0,0" VerticalAlignment="Center" FontSize="15"/>
+                            </StackPanel>
+                            <TextBlock Text="Vui lòng kiểm tra kỹ Mã hóa đơn. Hệ thống sẽ không cho phép thanh toán vượt quá số tiền còn lại của hóa đơn đó." 
+                                       Foreground="#9A3412" TextWrapping="Wrap" FontSize="14" LineHeight="22"/>
+                        </StackPanel>
+                    </materialDesign:Card>
+                </StackPanel>
+            </Grid>
+
+            <!-- Status Footer -->
+            <materialDesign:Card Grid.Row="2" Margin="0,24,0,0" UniformCornerRadius="8" Padding="12" Background="{StaticResource PrimaryHueLightBrush}">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="Information" Foreground="{StaticResource PrimaryIndigoBrush}" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource PrimaryIndigoBrush}" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+            </materialDesign:Card>
         </Grid>
-
-        <!-- Status Footer -->
-        <materialDesign:Card Grid.Row="2" Margin="0,16,0,0" UniformCornerRadius="8" Padding="12" Background="{StaticResource PrimaryHueLightBrush}">
-            <StackPanel Orientation="Horizontal">
-                <materialDesign:PackIcon Kind="CheckboxMarkedCircle" Foreground="{StaticResource PrimaryHueMidBrush}" VerticalAlignment="Center"/>
-                <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource PrimaryHueMidBrush}" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"/>
-            </StackPanel>
-        </materialDesign:Card>
     </Grid>
-
 </UserControl>

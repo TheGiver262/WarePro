@@ -2,9 +2,9 @@ using System.Windows.Controls;
 
 namespace QuanLyHangHoa.Views
 {
-    public partial class InvoiceView : UserControl
+    public partial class PurchaseInvoiceView : UserControl
     {
-        public InvoiceView()
+        public PurchaseInvoiceView()
         {
             InitializeComponent();
         }

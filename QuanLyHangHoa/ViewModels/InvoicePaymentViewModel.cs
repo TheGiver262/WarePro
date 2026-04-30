@@ -17,7 +17,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private bool _isSalesMode = true;
         [ObservableProperty] private string _invoiceIdText = string.Empty;
         [ObservableProperty] private decimal _amount;
-        [ObservableProperty] private string _paymentMethod = "Cash";
+        [ObservableProperty] private string _paymentMethod = "Tiền mặt";
         [ObservableProperty] private string _note = string.Empty;
         [ObservableProperty] private string _statusMessage = string.Empty;
 
@@ -42,7 +42,7 @@ namespace QuanLyHangHoa.ViewModels
             _showMessage = showMessage;
         }
 
-        public string ModeTitle => IsSalesMode ? "Thu tien hoa don ban" : "Tra tien hoa don mua";
+        public string ModeTitle => IsSalesMode ? "Thu tiền hóa đơn bán" : "Trả tiền hóa đơn mua";
 
         partial void OnIsSalesModeChanged(bool value)
         {
@@ -60,15 +60,15 @@ namespace QuanLyHangHoa.ViewModels
         {
             if (!int.TryParse(InvoiceIdText, out var invoiceId) || invoiceId <= 0)
             {
-                StatusMessage = "InvoiceId khong hop le.";
-                _showMessage(StatusMessage, "Canh bao");
+                StatusMessage = "Mã hóa đơn không hợp lệ.";
+                _showMessage(StatusMessage, "Cảnh báo");
                 return;
             }
 
             if (Amount <= 0)
             {
-                StatusMessage = "So tien thanh toan phai lon hon 0.";
-                _showMessage(StatusMessage, "Canh bao");
+                StatusMessage = "Số tiền thanh toán phải lớn hơn 0.";
+                _showMessage(StatusMessage, "Cảnh báo");
                 return;
             }
 
@@ -83,15 +83,15 @@ namespace QuanLyHangHoa.ViewModels
                     _recordPurchasePayment(invoiceId, Amount, PaymentMethod.Trim(), Note.Trim(), _currentUser.Id);
                 }
 
-                StatusMessage = "Da ghi nhan thanh toan.";
-                _showMessage(StatusMessage, "Thong bao");
+                StatusMessage = "Đã ghi nhận thanh toán thành công.";
+                _showMessage(StatusMessage, "Thông báo");
                 Amount = 0m;
                 Note = string.Empty;
             }
             catch (InvalidOperationException ex)
             {
                 StatusMessage = ex.Message;
-                _showMessage(ex.Message, "Loi thanh toan");
+                _showMessage(ex.Message, "Lỗi thanh toán");
             }
         }
     }

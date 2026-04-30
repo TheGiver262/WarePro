@@ -26,7 +26,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private ObservableCollection<StockAdjustmentLineEditor> _lines;
         [ObservableProperty] private string _documentCode = string.Empty;
         [ObservableProperty] private int _warehouseId = 1;
-        [ObservableProperty] private string _reason = string.Empty;
+        [ObservableProperty] private string _reasonCode = string.Empty;
         [ObservableProperty] private string _statusMessage = string.Empty;
 
         public StockAdjustmentViewModel() : this(new AppUser { Id = 1 }) { }
@@ -72,7 +72,7 @@ namespace QuanLyHangHoa.ViewModels
                     DocumentCode = DocumentCode,
                     WarehouseId = WarehouseId,
                     AdjustmentType = "Manual",
-                    ReasonCode = Reason,
+                    ReasonCode = ReasonCode,
                     Status = "Posted",
                     CreatedBy = _currentUser.Id,
                     PostedBy = _currentUser.Id,
@@ -102,7 +102,7 @@ namespace QuanLyHangHoa.ViewModels
         {
             Lines.Clear();
             DocumentCode = $"ADJ-{DateTime.Now:yyyyMMddHHmmss}";
-            Reason = string.Empty;
+            ReasonCode = string.Empty;
         }
     }
 }

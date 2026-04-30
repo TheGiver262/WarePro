@@ -4,82 +4,82 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-             xmlns:vm="clr-namespace:QuanLyHangHoa.ViewModels"
              mc:Ignorable="d" 
              d:DesignHeight="800" d:DesignWidth="1100">
 
-    <UserControl.DataContext>
-        <vm:UnitViewModel />
-    </UserControl.DataContext>
+    <Grid Background="{StaticResource BodyBgBrush}">
+        <Grid Margin="24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
-    <Grid Margin="24">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
+            <!-- Header / Toolbar -->
+            <materialDesign:Card Grid.Row="0" Margin="0,0,0,24" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2" Padding="16,8">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
 
-        <!-- Header -->
-        <Border Padding="0,0,0,24">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="Weight" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource PrimaryIndigoBrush}"/>
+                        <TextBlock Text="QUẢN LÝ ĐƠN VỊ TÍNH" FontSize="20" FontWeight="Bold" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="{StaticResource PrimaryIndigoBrush}"/>
+                    </StackPanel>
 
-                <StackPanel Orientation="Horizontal">
-                    <materialDesign:PackIcon Kind="ScaleBalance" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource PrimaryHueMidBrush}"/>
-                    <TextBlock Text="QUẢN LÝ ĐƠN VỊ TÍNH" FontSize="24" FontWeight="ExtraBold" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="#333333"/>
-                </StackPanel>
-
-                <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <Button Content="LƯU ĐƠN VỊ" Command="{Binding SaveCommand}" Style="{StaticResource MaterialDesignRaisedButton}" materialDesign:ButtonAssist.CornerRadius="8" Height="40"/>
-                </StackPanel>
-            </Grid>
-        </Border>
-
-        <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="350"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-
-            <!-- Editor Card -->
-            <materialDesign:Card Grid.Column="0" Margin="0,0,12,0" UniformCornerRadius="12" Padding="24" VerticalAlignment="Top">
-                <StackPanel>
-                    <TextBlock Text="THÔNG TIN ĐƠN VỊ" FontWeight="Bold" FontSize="16" Foreground="{StaticResource PrimaryHueMidBrush}" Margin="0,0,0,24"/>
-
-                    <TextBox Style="{StaticResource MaterialDesignFloatingHintTextBox}" materialDesign:HintAssist.Hint="Mã đơn vị" 
-                             Text="{Binding UnitCode, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,20"/>
-
-                    <TextBox Style="{StaticResource MaterialDesignFloatingHintTextBox}" materialDesign:HintAssist.Hint="Tên đơn vị" 
-                             Text="{Binding DisplayName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,32"/>
-
-                    <Button Content="XOÁ ĐƠN VỊ" Command="{Binding DeleteCommand}" Style="{StaticResource MaterialDesignFlatButton}" Foreground="Red"/>
-                </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <Button Content="THÊM ĐƠN VỊ" Command="{Binding ClearInputCommand}" 
+                                Style="{StaticResource MaterialDesignRaisedButton}" materialDesign:ButtonAssist.CornerRadius="8" Height="40" Margin="0,0,12,0"/>
+                    </StackPanel>
+                </Grid>
             </materialDesign:Card>
 
-            <!-- List Card -->
-            <materialDesign:Card Grid.Column="1" Margin="12,0,0,0" UniformCornerRadius="12">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="380"/>
+                </Grid.ColumnDefinitions>
 
-                    <Border Padding="20,16" Background="#F8F9FA" BorderBrush="#EEEEEE" BorderThickness="0,0,0,1" CornerRadius="12,12,0,0">
-                        <TextBlock Text="DANH SÁCH ĐƠN VỊ TÍNH" FontWeight="SemiBold" Foreground="#666666"/>
-                    </Border>
-
-                    <DataGrid Grid.Row="1" ItemsSource="{Binding Units}" SelectedItem="{Binding SelectedUnit}"
+                <!-- Data Table -->
+                <materialDesign:Card Grid.Column="0" Margin="0,0,20,0" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2">
+                    <DataGrid ItemsSource="{Binding Units}" SelectedItem="{Binding SelectedUnit, Mode=TwoWay}"
                               AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                               Style="{StaticResource MaterialDesignDataGrid}" BorderThickness="0">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Mã đơn vị" Binding="{Binding UnitCode}" Width="200"/>
-                            <DataGridTextColumn Header="Tên đơn vị" Binding="{Binding DisplayName}" Width="*"/>
+                            <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="Auto" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
+                            <DataGridTextColumn Header="Tên Đơn Vị" Binding="{Binding Name}" Width="*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
                         </DataGrid.Columns>
                     </DataGrid>
-                </Grid>
-            </materialDesign:Card>
+                </materialDesign:Card>
+
+                <!-- Edit Form -->
+                <materialDesign:Card Grid.Column="1" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2" Padding="24">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,24">
+                            <materialDesign:PackIcon Kind="Edit" Foreground="{StaticResource PrimaryIndigoBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Text="THÔNG TIN CHI TIẾT" FontWeight="Bold" FontSize="16" Foreground="{StaticResource PrimaryIndigoBrush}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="1">
+                            <TextBox Style="{StaticResource MaterialDesignFloatingHintTextBox}" materialDesign:HintAssist.Hint="Tên đơn vị tính" Margin="0,0,0,20" 
+                                     Text="{Binding CurrentInputUnit.Name}" FontSize="14"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="2" Margin="0,24,0,0">
+                            <Button Content="LƯU ĐƠN VỊ" Command="{Binding SaveUnitCommand}" 
+                                    Style="{StaticResource MaterialDesignRaisedButton}" Height="48" materialDesign:ButtonAssist.CornerRadius="12" Margin="0,0,0,12"/>
+                            <Button Content="XÓA" Command="{Binding DeleteUnitCommand}" 
+                                    Style="{StaticResource MaterialDesignOutlinedButton}" Foreground="#EF5350" BorderBrush="#EF5350" Height="40" materialDesign:ButtonAssist.CornerRadius="8"/>
+                        </StackPanel>
+                    </Grid>
+                </materialDesign:Card>
+            </Grid>
         </Grid>
     </Grid>
 </UserControl>

@@ -6,70 +6,117 @@
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:vm="clr-namespace:QuanLyHangHoa.ViewModels"
              mc:Ignorable="d" 
-             d:DesignHeight="600" d:DesignWidth="800" Background="White">
+             d:DesignHeight="800" d:DesignWidth="1100">
     
     <UserControl.DataContext>
         <vm:AppUserViewModel />
     </UserControl.DataContext>
 
-    <Grid Margin="20">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
+    <Grid Background="{StaticResource BodyBgBrush}">
+        <Grid Margin="24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
-        <TextBlock Text="QUẢN TRỊ TÀI KHOẢN NGƯỜI DÙNG" FontSize="24" FontWeight="Bold" Margin="0,0,0,20" Foreground="#2C3E50"/>
-        
-        <!-- Khu nhập thông tin -->
-        <Border Grid.Row="0" Margin="0,0,0,20" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="8" Padding="15" Background="#F8F9F9">
-            <WrapPanel>
-                <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}" Width="250" Margin="10" 
-                         materialDesign:HintAssist.Hint="Họ và Tên"
-                         Text="{Binding CurrentInputUser.FullName}"/>
-                         
-                <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}" Width="200" Margin="10" 
-                         materialDesign:HintAssist.Hint="Tên đăng nhập"
-                         Text="{Binding CurrentInputUser.Username}"/>
-                         
-                <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}" Width="200" Margin="10" 
-                         materialDesign:HintAssist.Hint="Mật khẩu (để trống nếu không đổi)"
-                         Text="{Binding CurrentInputUser.PasswordHash}"/>
+            <!-- Header / Toolbar -->
+            <materialDesign:Card Grid.Row="0" Margin="0,0,0,24" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2" Padding="16,8">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
 
-                <ComboBox Style="{StaticResource MaterialDesignOutlinedComboBox}" Width="150" Margin="10"
-                          materialDesign:HintAssist.Hint="Quyền hạn"
-                          SelectedValuePath="Content"
-                          SelectedValue="{Binding CurrentInputUser.RoleCode}">
-                    <ComboBoxItem Content="Admin"/>
-                    <ComboBoxItem Content="Manager"/>
-                    <ComboBoxItem Content="Staff"/>
-                </ComboBox>
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="AccountSettings" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource PrimaryIndigoBrush}"/>
+                        <TextBlock Text="QUẢN TRỊ TÀI KHOẢN" FontSize="20" FontWeight="Bold" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="{StaticResource PrimaryIndigoBrush}"/>
+                    </StackPanel>
 
-                <CheckBox Content="Đang hoạt động" Margin="10" VerticalAlignment="Center"
-                          IsChecked="{Binding CurrentInputUser.IsActive}"/>
-            </WrapPanel>
-        </Border>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <Button Content="THÊM NGƯỜI DÙNG" Command="{Binding ClearInputCommand}" 
+                                Style="{StaticResource MaterialDesignRaisedButton}" materialDesign:ButtonAssist.CornerRadius="8" Height="40" Margin="0,0,12,0"/>
+                    </StackPanel>
+                </Grid>
+            </materialDesign:Card>
 
-        <!-- Thanh nút công cụ Control Bar -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="10,0,0,20">
-            <Button Content="LƯU THÔNG TIN" Command="{Binding SaveUserCommand}" Style="{StaticResource MaterialDesignRaisedButton}" Background="#27AE60" BorderBrush="#27AE60" Width="180" Margin="0,0,10,0"/>
-            <Button Content="LÀM MỚI" Command="{Binding ClearInputCommand}" Style="{StaticResource MaterialDesignOutlinedButton}" Width="120" Margin="0,0,10,0"/>
-            
-            <Button Content="VÔ HIỆU HÓA" Command="{Binding DeactivateUserCommand}" Style="{StaticResource MaterialDesignOutlinedButton}" Background="#FDF2F2" BorderBrush="#E74C3C" Foreground="#E74C3C" Width="180"/>
-        </StackPanel>
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="380"/>
+                </Grid.ColumnDefinitions>
 
-        <!-- Bảng Danh sách -->
-        <DataGrid Grid.Row="2" Margin="10,0,10,0" ItemsSource="{Binding Users}" SelectedItem="{Binding SelectedUser, Mode=TwoWay}"
-                  AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                  Style="{StaticResource MaterialDesignDataGrid}">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="ID" Binding="{Binding Id}" />
-                <DataGridTextColumn Header="Họ và Tên" Binding="{Binding FullName}" Width="*"/>
-                <DataGridTextColumn Header="Tên đăng nhập" Binding="{Binding Username}" FontWeight="Bold"/>
-                <DataGridTextColumn Header="Quyền hạn" Binding="{Binding RoleCode}" />
-                <DataGridCheckBoxColumn Header="Hoạt động" Binding="{Binding IsActive}" />
-                <DataGridTextColumn Header="Ngày tạo" Binding="{Binding CreatedAt, StringFormat='dd/MM/yyyy'}" />
-            </DataGrid.Columns>
-        </DataGrid>
+                <!-- Data Table -->
+                <materialDesign:Card Grid.Column="0" Margin="0,0,20,0" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2">
+                    <DataGrid ItemsSource="{Binding Users}" SelectedItem="{Binding SelectedUser, Mode=TwoWay}"
+                              AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                              Style="{StaticResource MaterialDesignDataGrid}" BorderThickness="0">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="Auto" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
+                            <DataGridTemplateColumn Header="Người dùng" Width="*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Margin="8,4">
+                                            <TextBlock Text="{Binding FullName}" FontWeight="Bold" Foreground="#1F2937"/>
+                                            <TextBlock Text="{Binding Username}" FontSize="12" Foreground="{StaticResource PrimaryIndigoBrush}"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Quyền hạn" Binding="{Binding RoleCode}" Width="Auto"/>
+                            <DataGridCheckBoxColumn Header="Hoạt động" Binding="{Binding IsActive}" Width="Auto"/>
+                            <DataGridTextColumn Header="Ngày tạo" Binding="{Binding CreatedAt, StringFormat='dd/MM/yyyy'}" Width="Auto"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </materialDesign:Card>
+
+                <!-- Edit Form -->
+                <materialDesign:Card Grid.Column="1" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2" Padding="24">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,24">
+                            <materialDesign:PackIcon Kind="AccountEdit" Foreground="{StaticResource PrimaryIndigoBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Text="THÔNG TIN TÀI KHOẢN" FontWeight="Bold" FontSize="16" Foreground="{StaticResource PrimaryIndigoBrush}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <TextBox Style="{StaticResource MaterialDesignFloatingHintTextBox}" materialDesign:HintAssist.Hint="Họ và Tên" Margin="0,0,0,20" 
+                                         Text="{Binding CurrentInputUser.FullName}" FontSize="14"/>
+                                
+                                <TextBox Style="{StaticResource MaterialDesignFloatingHintTextBox}" materialDesign:HintAssist.Hint="Tên đăng nhập" Margin="0,0,0,20" 
+                                         Text="{Binding CurrentInputUser.Username}" FontSize="14"/>
+                                
+                                <PasswordBox materialDesign:HintAssist.Hint="Mật khẩu mới" Margin="0,0,0,20" FontSize="14"
+                                             Style="{StaticResource MaterialDesignFloatingHintPasswordBox}">
+                                </PasswordBox>
+                                <TextBox Style="{StaticResource MaterialDesignFloatingHintTextBox}" materialDesign:HintAssist.Hint="Mật khẩu (Text - For Demo)" Margin="0,0,0,20" 
+                                         Text="{Binding CurrentInputUser.PasswordHash}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
+
+                                <ComboBox Style="{StaticResource MaterialDesignFloatingHintComboBox}" materialDesign:HintAssist.Hint="Quyền hạn" Margin="0,0,0,20"
+                                          SelectedValuePath="Content" SelectedValue="{Binding CurrentInputUser.RoleCode}" FontSize="14">
+                                    <ComboBoxItem Content="Admin"/>
+                                    <ComboBoxItem Content="Manager"/>
+                                    <ComboBoxItem Content="Staff"/>
+                                </ComboBox>
+
+                                <CheckBox Content="Tài khoản đang hoạt động" IsChecked="{Binding CurrentInputUser.IsActive}" Margin="0,8,0,0"/>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <StackPanel Grid.Row="2" Margin="0,24,0,0">
+                            <Button Content="LƯU THÔNG TIN" Command="{Binding SaveUserCommand}" 
+                                    Style="{StaticResource MaterialDesignRaisedButton}" Height="48" materialDesign:ButtonAssist.CornerRadius="12" Margin="0,0,0,12"/>
+                            <Button Content="VÔ HIỆU HÓA" Command="{Binding DeactivateUserCommand}" 
+                                    Style="{StaticResource MaterialDesignOutlinedButton}" Foreground="#EF5350" BorderBrush="#EF5350" Height="40" materialDesign:ButtonAssist.CornerRadius="8"/>
+                        </StackPanel>
+                    </Grid>
+                </materialDesign:Card>
+            </Grid>
+        </Grid>
     </Grid>
 </UserControl>

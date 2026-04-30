@@ -30,6 +30,7 @@ namespace QuanLyHangHoa.Services
                 .Include(p => p.Category)
                 .Include(p => p.Brand)
                 .Include(p => p.DefaultUnit)
+                .Include(p => p.StockBalances)
                 .ToList();
         }
 

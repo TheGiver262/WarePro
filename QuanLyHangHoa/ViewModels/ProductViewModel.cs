@@ -20,94 +20,123 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private ObservableCollection<Brand> _brands = new();
         [ObservableProperty] private ObservableCollection<Unit> _units = new();
 
-        [ObservableProperty] private string _productCode = string.Empty;
-        [ObservableProperty] private string _displayName = string.Empty;
-        [ObservableProperty] private int _categoryId;
-        [ObservableProperty] private int _brandId;
-        [ObservableProperty] private int _defaultUnitId;
-        [ObservableProperty] private decimal _defaultPrice;
+        // Object for editing/input
+        [ObservableProperty] private Product _currentInputProduct = new();
+
+        [ObservableProperty] private string _searchText = string.Empty;
 
         public ProductViewModel()
         {
             _service = new ProductService();
             _refDataService = new ReferenceDataService();
             LoadData();
+            Clear();
         }
 
         private void LoadData()
         {
-            Products = new ObservableCollection<Product>(_service.GetAllProducts());
+            var results = _service.GetAllProducts();
+            if (!string.IsNullOrWhiteSpace(SearchText))
+            {
+                var term = SearchText.ToLower();
+                results = results.Where(p => 
+                    p.DisplayName.ToLower().Contains(term) || 
+                    p.ProductCode.ToLower().Contains(term)).ToList();
+            }
+            Products = new ObservableCollection<Product>(results);
+            
             Categories = new ObservableCollection<Category>(_refDataService.GetAllCategories());
             Brands = new ObservableCollection<Brand>(_refDataService.GetAllBrands());
             Units = new ObservableCollection<Unit>(_refDataService.GetAllUnits());
         }
 
         [RelayCommand]
-        private void Save()
+        private void Search() => LoadData();
+
+        [RelayCommand]
+        private void SaveProduct()
         {
-            if (string.IsNullOrWhiteSpace(DisplayName) || string.IsNullOrWhiteSpace(ProductCode)) return;
+            if (string.IsNullOrWhiteSpace(CurrentInputProduct.DisplayName) || 
+                string.IsNullOrWhiteSpace(CurrentInputProduct.ProductCode)) 
+            {
+                MessageBox.Show("Vui lòng nhập đầy đủ Mã và Tên sản phẩm!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
 
             if (SelectedProduct == null)
             {
-                var p = new Product
-                {
-                    ProductCode = ProductCode,
-                    DisplayName = DisplayName,
-                    CategoryId = CategoryId,
-                    BrandId = BrandId,
-                    DefaultUnitId = DefaultUnitId,
-                    DefaultPrice = DefaultPrice,
-                    IsActive = true
-                };
-                _service.AddProduct(p);
+                CurrentInputProduct.IsActive = true;
+                _service.AddProduct(CurrentInputProduct);
             }
             else
             {
-                SelectedProduct.ProductCode = ProductCode;
-                SelectedProduct.DisplayName = DisplayName;
-                SelectedProduct.CategoryId = CategoryId;
-                SelectedProduct.BrandId = BrandId;
-                SelectedProduct.DefaultUnitId = DefaultUnitId;
-                SelectedProduct.DefaultPrice = DefaultPrice;
-                _service.UpdateProduct(SelectedProduct);
+                _service.UpdateProduct(CurrentInputProduct);
             }
             LoadData();
             Clear();
         }
 
         [RelayCommand]
-        private void Delete()
+        private void DeleteProduct()
         {
             if (SelectedProduct != null)
             {
-                _service.DeactivateProduct(SelectedProduct.Id);
-                LoadData();
-                Clear();
+                var result = MessageBox.Show($"Bạn có chắc chắn muốn xoá sản phẩm '{SelectedProduct.DisplayName}'?", 
+                    "Xác nhận xoá", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                    
+                if (result == MessageBoxResult.Yes)
+                {
+                    _service.DeactivateProduct(SelectedProduct.Id);
+                    LoadData();
+                    Clear();
+                }
             }
         }
+
+        [RelayCommand]
+        private void ClearInput() => Clear();
 
         private void Clear()
         {
             SelectedProduct = null;
-            ProductCode = string.Empty;
-            DisplayName = string.Empty;
-            CategoryId = 0;
-            BrandId = 0;
-            DefaultUnitId = 0;
-            DefaultPrice = 0;
+            CurrentInputProduct = new Product 
+            { 
+                IsActive = true,
+                CategoryId = Categories.FirstOrDefault()?.Id ?? 0,
+                BrandId = Brands.FirstOrDefault()?.Id ?? 0,
+                DefaultUnitId = Units.FirstOrDefault()?.Id ?? 0
+            };
         }
 
         partial void OnSelectedProductChanged(Product? value)
         {
             if (value != null)
             {
-                ProductCode = value.ProductCode;
-                DisplayName = value.DisplayName;
-                CategoryId = value.CategoryId;
-                BrandId = value.BrandId;
-                DefaultUnitId = value.DefaultUnitId;
-                DefaultPrice = value.DefaultPrice;
+                // Create a copy for editing to avoid direct binding updates to the list item before save
+                CurrentInputProduct = new Product
+                {
+                    Id = value.Id,
+                    ProductCode = value.ProductCode,
+                    DisplayName = value.DisplayName,
+                    CategoryId = value.CategoryId,
+                    BrandId = value.BrandId,
+                    DefaultUnitId = value.DefaultUnitId,
+                    DefaultPrice = value.DefaultPrice,
+                    OriginCountry = value.OriginCountry,
+                    WarrantyPeriodMonths = value.WarrantyPeriodMonths,
+                    IsSerialTracked = value.IsSerialTracked,
+                    IsActive = value.IsActive
+                };
             }
+            else
+            {
+                Clear();
+            }
+        }
+
+        partial void OnSearchTextChanged(string value)
+        {
+            LoadData();
         }
     }
 }

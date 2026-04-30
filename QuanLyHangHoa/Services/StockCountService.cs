@@ -8,6 +8,13 @@ namespace QuanLyHangHoa.Services
 {
     public class StockCountService
     {
+        public void CreateSession(StockCountSession session)
+        {
+            using var db = new AppDbContext();
+            db.StockCountSessions.Add(session);
+            db.SaveChanges();
+        }
+
         public void ProcessResults(int sessionId, int userId)
         {
             using var db = new AppDbContext();

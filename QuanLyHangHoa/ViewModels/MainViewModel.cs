@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Views;
+using QuanLyHangHoa.Services;
 using System.Windows.Controls;
 
 namespace QuanLyHangHoa.ViewModels
@@ -14,22 +15,50 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty]
         private UserControl? _currentView;
 
+        [ObservableProperty]
+        private string _currentViewTitle = "DASHBOARD";
+
+        [ObservableProperty]
+        private string _currentViewSubtitle = "Tổng quan hoạt động kinh doanh";
+
+        public bool IsAdmin => CurrentUser.RoleCode == "Admin";
+
         private readonly Data.AppDbContext _dbContext;
+        private readonly DashboardService _dashboardService;
+
         public MainViewModel(AppUser user, Data.AppDbContext dbContext)
         {
             CurrentUser = user;
             _dbContext = dbContext;
-            CurrentView = new ProductView();
+            _dashboardService = new DashboardService(_dbContext);
+            
+            OpenDashboard();
         }
 
-        // ── Core Operations ────────────────────────────────────────────────────
-        [RelayCommand] private void OpenProductView()  => CurrentView = new ProductView();
-        
-        [RelayCommand] 
+        // ── Navigation Commands ────────────────────────────────────────────────
+        [RelayCommand]
+        private void OpenDashboard()
+        {
+            CurrentView = new DashboardView { DataContext = new DashboardViewModel(_dashboardService, this) };
+            CurrentViewTitle = "DASHBOARD";
+            CurrentViewSubtitle = "Tổng quan hoạt động kinh doanh";
+        }
+
+        [RelayCommand]
+        private void OpenProductView()
+        {
+            CurrentView = new ProductView();
+            CurrentViewTitle = "KHO HÀNG";
+            CurrentViewSubtitle = "Quản lý danh mục sản phẩm và tồn kho";
+        }
+
+        [RelayCommand]
         private void OpenStockOutView()
         {
             var view = new StockOutView { DataContext = new StockOutViewModel(CurrentUser) };
             CurrentView = view;
+            CurrentViewTitle = "XUẤT KHO";
+            CurrentViewSubtitle = "Lập phiếu xuất kho và quản lý hàng xuất";
         }
 
         [RelayCommand]
@@ -37,12 +66,8 @@ namespace QuanLyHangHoa.ViewModels
         {
             var view = new StockInView { DataContext = new StockInViewModel(CurrentUser) };
             CurrentView = view;
-        }
-
-        [RelayCommand]
-        private void OpenOpeningBalanceImportView()
-        {
-            CurrentView = new OpeningBalanceImportView(CurrentUser.Id);
+            CurrentViewTitle = "NHẬP KHO";
+            CurrentViewSubtitle = "Lập phiếu nhập kho và quản lý hàng nhập";
         }
 
         [RelayCommand]
@@ -50,6 +75,8 @@ namespace QuanLyHangHoa.ViewModels
         {
             var view = new StockAdjustmentView { DataContext = new StockAdjustmentViewModel(CurrentUser) };
             CurrentView = view;
+            CurrentViewTitle = "ĐIỀU CHỈNH";
+            CurrentViewSubtitle = "Điều chỉnh số lượng tồn kho thực tế";
         }
 
         [RelayCommand]
@@ -57,13 +84,36 @@ namespace QuanLyHangHoa.ViewModels
         {
             var view = new StockCountView { DataContext = new StockCountViewModel(CurrentUser) };
             CurrentView = view;
+            CurrentViewTitle = "KIỂM KÊ";
+            CurrentViewSubtitle = "Kiểm kê định kỳ và đối soát hàng hóa";
         }
 
         [RelayCommand]
-        private void OpenInvoiceView()
+        private void OpenPurchaseInvoiceView()
         {
-            var view = new InvoiceView { DataContext = new InvoiceViewModel() };
+            CurrentView = new PurchaseInvoiceView { DataContext = new PurchaseInvoiceViewModel(this) };
+            CurrentViewTitle = "HÓA ĐƠN MUA";
+            CurrentViewSubtitle = "Quản lý hóa đơn nhập hàng từ NCC";
+        }
+
+        [RelayCommand]
+        private void OpenSalesInvoiceView()
+        {
+            CurrentView = new SalesInvoiceView { DataContext = new SalesInvoiceViewModel(this) };
+            CurrentViewTitle = "HÓA ĐƠN BÁN";
+            CurrentViewSubtitle = "Quản lý hóa đơn bán lẻ cho khách hàng";
+        }
+
+        public void OpenInvoicePaymentView(int invoiceId, bool isSales)
+        {
+            var viewModel = new InvoicePaymentViewModel(CurrentUser);
+            viewModel.IsSalesMode = isSales;
+            viewModel.InvoiceIdText = invoiceId.ToString();
+            
+            var view = new InvoicePaymentView { DataContext = viewModel };
             CurrentView = view;
+            CurrentViewTitle = "THANH TOÁN";
+            CurrentViewSubtitle = isSales ? $"Thanh toán hóa đơn bán #{invoiceId}" : $"Thanh toán hóa đơn mua #{invoiceId}";
         }
 
         [RelayCommand]
@@ -71,6 +121,8 @@ namespace QuanLyHangHoa.ViewModels
         {
             var view = new InvoicePaymentView { DataContext = new InvoicePaymentViewModel(CurrentUser) };
             CurrentView = view;
+            CurrentViewTitle = "THANH TOÁN";
+            CurrentViewSubtitle = "Thực hiện thanh toán hóa đơn";
         }
 
         [RelayCommand]
@@ -78,20 +130,8 @@ namespace QuanLyHangHoa.ViewModels
         {
             var view = new DebtReportView { DataContext = new DebtReportViewModel() };
             CurrentView = view;
-        }
-
-        [RelayCommand]
-        private void OpenAuditQueryView()
-        {
-            var view = new AuditQueryView { DataContext = new AuditQueryViewModel() };
-            CurrentView = view;
-        }
-
-        [RelayCommand]
-        private void OpenStockReversalView()
-        {
-            var view = new StockReversalView { DataContext = new StockReversalViewModel(CurrentUser) };
-            CurrentView = view;
+            CurrentViewTitle = "CÔNG NỢ";
+            CurrentViewSubtitle = "Theo dõi báo cáo công nợ khách hàng";
         }
 
         [RelayCommand]
@@ -99,32 +139,74 @@ namespace QuanLyHangHoa.ViewModels
         {
             var view = new WarrantyView { DataContext = new WarrantyViewModel(CurrentUser, _dbContext) };
             CurrentView = view;
+            CurrentViewTitle = "BẢO HÀNH";
+            CurrentViewSubtitle = "Quản lý phiếu bảo hành và sửa chữa";
         }
 
         // ── Reference Data ─────────────────────────────────────────────────────
-        [RelayCommand] private void OpenUnitView()     => CurrentView = new UnitView();
-        [RelayCommand] private void OpenProductUnitView() => CurrentView = new ProductUnitView();
-        [RelayCommand] private void OpenProductSerialView() => CurrentView = new ProductSerialView();
-        [RelayCommand] private void OpenCategoryView() => CurrentView = new CategoryView();
-        [RelayCommand] private void OpenBrandView()    => CurrentView = new BrandView();
-        [RelayCommand] private void OpenSupplierView() => CurrentView = new SupplierView();
-        [RelayCommand] private void OpenCustomerView() => CurrentView = new CustomerView();
+        [RelayCommand]
+        private void OpenCategoryView()
+        {
+            CurrentView = new CategoryView();
+            CurrentViewTitle = "PHÂN LOẠI";
+            CurrentViewSubtitle = "Quản lý nhóm hàng hóa";
+        }
+
+        [RelayCommand]
+        private void OpenBrandView()
+        {
+            CurrentView = new BrandView();
+            CurrentViewTitle = "THƯƠNG HIỆU";
+            CurrentViewSubtitle = "Quản lý các hãng sản xuất";
+        }
+
+        [RelayCommand]
+        private void OpenUnitView()
+        {
+            CurrentView = new UnitView();
+            CurrentViewTitle = "ĐƠN VỊ TÍNH";
+            CurrentViewSubtitle = "Quản lý đơn vị đo lường";
+        }
+
+        [RelayCommand]
+        private void OpenSupplierView()
+        {
+            CurrentView = new SupplierView();
+            CurrentViewTitle = "NHÀ CUNG CẤP";
+            CurrentViewSubtitle = "Quản lý đối tác nhập hàng";
+        }
+
+        [RelayCommand]
+        private void OpenCustomerView()
+        {
+            CurrentView = new CustomerView();
+            CurrentViewTitle = "KHÁCH HÀNG";
+            CurrentViewSubtitle = "Quản lý thông tin khách hàng";
+        }
 
         // ── Administration ─────────────────────────────────────────────────────
+        [RelayCommand]
+        private void OpenAppUserView()
+        {
+            if (IsAdmin)
+            {
+                CurrentView = new AppUserView { DataContext = new AppUserViewModel(CurrentUser, _dbContext) };
+                CurrentViewTitle = "NGƯỜI DÙNG";
+                CurrentViewSubtitle = "Quản lý tài khoản hệ thống";
+            }
+            else
+            {
+                System.Windows.MessageBox.Show("Bạn không có quyền truy cập!", "Thông báo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            }
+        }
+
         [RelayCommand]
         private void OpenChangePasswordView()
         {
             var view = new ChangePasswordView { DataContext = new ChangePasswordViewModel(CurrentUser) };
             CurrentView = view;
-        }
-
-        [RelayCommand]
-        private void OpenAppUserView()
-        {
-            if (CurrentUser.RoleCode == "Admin")
-                CurrentView = new AppUserView { DataContext = new AppUserViewModel(CurrentUser, _dbContext) };
-            else
-                System.Windows.MessageBox.Show("Bạn không phải Admin!", "Cảnh Báo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            CurrentViewTitle = "ĐỔI MẬT KHẨU";
+            CurrentViewSubtitle = "Cập nhật mật khẩu truy cập";
         }
 
         [RelayCommand]

@@ -22,30 +22,44 @@ namespace QuanLyHangHoa.Services
         public IReadOnlyList<DebtReportEntry> GetCustomerDebtReport()
         {
             using var db = _contextFactory();
-            return db.Customers
-                .AsNoTracking()
-                .Include(c => c.SalesInvoices)
-                .Select(c => new DebtReportEntry(
+            var customers = db.Customers
+                .Select(c => new
+                {
                     c.DisplayName,
-                    c.SalesInvoices != null ? c.SalesInvoices.Sum(i => i.GrandTotal) : 0,
-                    c.SalesInvoices != null ? c.SalesInvoices.Sum(i => i.PaidAmount) : 0,
-                    c.SalesInvoices != null ? c.SalesInvoices.Sum(i => i.GrandTotal - i.PaidAmount) : 0))
-                .Where(r => r.Balance != 0)
+                    Invoices = c.SalesInvoices!.Select(i => new { i.GrandTotal, i.PaidAmount }).ToList()
+                })
+                .AsNoTracking()
+                .ToList();
+
+            return customers
+                .Select(x => {
+                    var billed = x.Invoices.Sum(i => i.GrandTotal);
+                    var paid = x.Invoices.Sum(i => i.PaidAmount);
+                    return new DebtReportEntry(x.DisplayName, billed, paid, billed - paid);
+                })
+                .Where(x => x.Balance != 0)
                 .ToList();
         }
 
         public IReadOnlyList<DebtReportEntry> GetSupplierDebtReport()
         {
             using var db = _contextFactory();
-            return db.Suppliers
-                .AsNoTracking()
-                .Include(s => s.PurchaseInvoices)
-                .Select(s => new DebtReportEntry(
+            var suppliers = db.Suppliers
+                .Select(s => new
+                {
                     s.DisplayName,
-                    s.PurchaseInvoices != null ? s.PurchaseInvoices.Sum(i => i.GrandTotal) : 0,
-                    s.PurchaseInvoices != null ? s.PurchaseInvoices.Sum(i => i.PaidAmount) : 0,
-                    s.PurchaseInvoices != null ? s.PurchaseInvoices.Sum(i => i.GrandTotal - i.PaidAmount) : 0))
-                .Where(r => r.Balance != 0)
+                    Invoices = s.PurchaseInvoices!.Select(i => new { i.GrandTotal, i.PaidAmount }).ToList()
+                })
+                .AsNoTracking()
+                .ToList();
+
+            return suppliers
+                .Select(x => {
+                    var billed = x.Invoices.Sum(i => i.GrandTotal);
+                    var paid = x.Invoices.Sum(i => i.PaidAmount);
+                    return new DebtReportEntry(x.DisplayName, billed, paid, billed - paid);
+                })
+                .Where(x => x.Balance != 0)
                 .ToList();
         }
     }
