@@ -13,13 +13,13 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Margin="0,0,0,10">
-            <TextBlock Text="KẾT QUẢ IMPORT" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource PrimaryHueMidBrush}"/>
-            <TextBlock x:Name="TxtSummary" Text="Thành công: 0 dòng. Thất bại: 0 dòng." Margin="0,5,0,0"/>
+        <StackPanel Grid.Row="0" Margin="{StaticResource Margin.Bottom.md}">
+            <TextBlock Text="KẾT QUẢ IMPORT" Style="{StaticResource TypographyH2}" Foreground="{StaticResource AppPrimaryBrush}"/>
+            <TextBlock x:Name="TxtSummary" Text="Thành công: 0 dòng. Thất bại: 0 dòng." Style="{StaticResource TypographyCaption}"/>
         </StackPanel>
 
         <DataGrid Grid.Row="1" x:Name="DgErrors" AutoGenerateColumns="False" IsReadOnly="True" 
-                  ItemsSource="{Binding Errors}" materialDesign:DataGridAssist.CellPadding="4 2 2 2">
+                  ItemsSource="{Binding Errors}" RowHeight="28">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Dòng" Binding="{Binding RowNumber}" Width="60"/>
                 <DataGridTextColumn Header="Dữ liệu" Binding="{Binding Data}" Width="150"/>
@@ -27,8 +27,8 @@
             </DataGrid.Columns>
         </DataGrid>
 
-        <Button Grid.Row="2" Content="ĐÓNG" HorizontalAlignment="Right" Margin="0,10,0,0" 
-                IsDefault="True" Click="Close_Click" Style="{StaticResource MaterialDesignFlatButton}"/>
+        <Button Grid.Row="2" Content="ĐÓNG" HorizontalAlignment="Right" Margin="{StaticResource Margin.Top.md}" 
+                IsDefault="True" Click="Close_Click" Style="{StaticResource AppPrimaryButton}" Height="36"/>
     </Grid>
 </Window>
 

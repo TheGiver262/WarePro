@@ -7,54 +7,8 @@
         mc:Ignorable="d"
         Title="Phần Mềm Quản Lý Hàng Hoá - Pro Max Edition" Height="900" Width="1440"
         WindowStartupLocation="CenterScreen"
-        FontFamily="Segoe UI"
-        Background="{StaticResource BodyBgBrush}">
-
-    <Window.Resources>
-        <Style x:Key="SidebarItemStyle" TargetType="RadioButton" BasedOn="{x:Null}">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Height" Value="40"/>
-            <Setter Property="Margin" Value="8,2"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="RadioButton">
-                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="8" Padding="12,0">
-                            <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" 
-                                                         Width="20" Height="20" VerticalAlignment="Center" 
-                                                         Foreground="{TemplateBinding Foreground}"/>
-                                <ContentPresenter VerticalAlignment="Center" Margin="12,0,0,0"/>
-                            </StackPanel>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="{StaticResource SidebarActiveBrush}"/>
-                                <Setter Property="Foreground" Value="{StaticResource PrimaryIndigoBrush}"/>
-                                <Setter Property="FontWeight" Value="SemiBold"/>
-                            </Trigger>
-                            <Trigger Property="IsChecked" Value="False">
-                                <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
-                            </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#F1F3F5"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="HorizontalAlignment" Value="Stretch"/>
-            <Setter Property="GroupName" Value="SidebarMenu"/>
-        </Style>
-
-        <Style x:Key="SidebarSectionHeader" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#A0AEC0"/>
-            <Setter Property="FontSize" Value="11"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Margin" Value="16,24,0,8"/>
-        </Style>
-    </Window.Resources>
+        FontFamily="{StaticResource AppFontFamily}"
+        Background="{StaticResource AppBackgroundBrush}">
 
     <Grid>
         <Grid.ColumnDefinitions>
@@ -63,7 +17,7 @@
         </Grid.ColumnDefinitions>
 
         <!-- Sidebar -->
-        <Border Grid.Column="0" Background="{StaticResource SidebarBgBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,1,0">
+        <Border Grid.Column="0" Style="{StaticResource SidebarContainer}">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="80"/>
@@ -73,8 +27,8 @@
 
                 <!-- Brand/Logo -->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="24,0">
-                    <materialDesign:PackIcon Kind="ViewQuilt" Width="32" Height="32" Foreground="{StaticResource PrimaryIndigoBrush}"/>
-                    <TextBlock Text="INVENTORY" Foreground="{StaticResource TextPrimaryBrush}" FontWeight="ExtraBold" FontSize="20" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                    <materialDesign:PackIcon Kind="ViewQuilt" Width="32" Height="32" Foreground="{StaticResource AppTertiaryBrush}"/>
+                    <TextBlock Text="INVENTORY" Foreground="{StaticResource TextOnPrimaryBrush}" FontWeight="ExtraBold" FontSize="20" VerticalAlignment="Center" Margin="12,0,0,0"/>
                 </StackPanel>
 
                 <!-- Navigation Menu -->
@@ -116,21 +70,21 @@
                 </ScrollViewer>
 
                 <!-- User Profile Footer -->
-                <Border Grid.Row="2" Background="#F8F9FA" Padding="16,16" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
+                <Border Grid.Row="2" Background="{StaticResource AppPrimaryBrush}" Padding="16" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <Border Width="36" Height="36" CornerRadius="18" Background="{StaticResource PrimaryIndigoBrush}">
+                        <Border Width="36" Height="36" CornerRadius="18" Background="{StaticResource AppTertiaryBrush}">
                             <TextBlock Text="{Binding CurrentUser.FullName[0]}" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="16"/>
                         </Border>
                         <StackPanel Grid.Column="1" Margin="10,0" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding CurrentUser.FullName}" Foreground="{StaticResource TextPrimaryBrush}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis"/>
-                            <TextBlock Text="{Binding CurrentUser.RoleCode}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
+                            <TextBlock Text="{Binding CurrentUser.FullName}" Foreground="{StaticResource TextOnPrimaryBrush}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{Binding CurrentUser.RoleCode}" Foreground="{StaticResource TextDisabledBrush}" FontSize="11"/>
                         </StackPanel>
-                        <Button Grid.Column="2" Style="{StaticResource MaterialDesignIconButton}" Width="30" Height="30" Foreground="{StaticResource TextSecondaryBrush}" Command="{Binding LogoutCommand}">
+                        <Button Grid.Column="2" Style="{StaticResource MaterialDesignIconButton}" Width="30" Height="30" Foreground="{StaticResource TextDisabledBrush}" Command="{Binding LogoutCommand}">
                             <materialDesign:PackIcon Kind="Logout" Width="18" Height="18"/>
                         </Button>
                     </Grid>
@@ -146,8 +100,8 @@
             </Grid.RowDefinitions>
 
             <!-- Top Header -->
-            <Border Background="White" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1">
-                <Grid Margin="24,0">
+            <Border Background="{StaticResource AppSurfaceBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1">
+                <Grid Margin="32,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
@@ -156,28 +110,28 @@
                     
                     <!-- View Title -->
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="{Binding CurrentViewTitle, FallbackValue='DASHBOARD'}" FontSize="18" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}"/>
-                        <TextBlock Text="{Binding CurrentViewSubtitle, FallbackValue='Tổng quan hoạt động kinh doanh'}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <TextBlock Text="{Binding CurrentViewTitle, FallbackValue='DASHBOARD'}" Style="{StaticResource TypographyH2}"/>
+                        <TextBlock Text="{Binding CurrentViewSubtitle, FallbackValue='Tổng quan hoạt động kinh doanh'}" Style="{StaticResource TypographyCaption}"/>
                     </StackPanel>
 
-                    <!-- Search Bar (Placeholder) -->
-                    <Border Grid.Column="1" MaxWidth="400" Height="40" CornerRadius="8" Background="#F5F5F5" Margin="40,0" HorizontalAlignment="Left">
+                    <!-- Search Bar -->
+                    <Border Grid.Column="1" MaxWidth="400" Height="40" CornerRadius="{StaticResource Radius.md}" Background="{StaticResource AppBackgroundBrush}" Margin="40,0" HorizontalAlignment="Left">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <materialDesign:PackIcon Kind="Search" Margin="12,0" VerticalAlignment="Center" Foreground="#888888"/>
-                            <TextBox Grid.Column="1" materialDesign:TextFieldAssist.DecorationVisibility="Collapsed" BorderThickness="0" Background="Transparent" VerticalContentAlignment="Center" materialDesign:HintAssist.Hint="Tìm kiếm sản phẩm, đơn hàng..." FontSize="13"/>
+                            <materialDesign:PackIcon Kind="Search" Margin="12,0" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <TextBox Grid.Column="1" materialDesign:TextFieldAssist.DecorationVisibility="Collapsed" BorderThickness="0" Background="Transparent" VerticalContentAlignment="Center" materialDesign:HintAssist.Hint="Tìm kiếm sản phẩm, đơn hàng..." FontSize="13" Foreground="{StaticResource TextPrimaryBrush}" Margin="0"/>
                         </Grid>
                     </Border>
 
                     <!-- Notifications & Profile -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button Style="{StaticResource MaterialDesignIconButton}" Foreground="#666666" Margin="0,0,8,0">
+                        <Button Style="{StaticResource MaterialDesignIconButton}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,8,0">
                             <materialDesign:PackIcon Kind="BellOutline"/>
                         </Button>
-                        <Button Style="{StaticResource MaterialDesignIconButton}" Foreground="#666666">
+                        <Button Style="{StaticResource MaterialDesignIconButton}" Foreground="{StaticResource TextSecondaryBrush}">
                             <materialDesign:PackIcon Kind="HelpCircleOutline"/>
                         </Button>
                     </StackPanel>
@@ -192,4 +146,3 @@
 
     </Grid>
 </Window>
-

@@ -12,15 +12,15 @@
         <vm:SupplierViewModel />
     </UserControl.DataContext>
 
-    <Grid Background="{StaticResource BodyBgBrush}">
-        <Grid Margin="24">
+    <Grid Background="{StaticResource AppBackgroundBrush}">
+        <Grid Margin="{StaticResource Spacing.lg}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
             <!-- Header / Toolbar -->
-            <materialDesign:Card Grid.Row="0" Margin="0,0,0,24" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2" Padding="16,8">
+            <materialDesign:Card Grid.Row="0" Margin="{StaticResource Margin.Bottom.lg}" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.sm}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -28,16 +28,16 @@
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Orientation="Horizontal">
-                        <materialDesign:PackIcon Kind="TruckDelivery" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource PrimaryIndigoBrush}"/>
-                        <TextBlock Text="NHÀ CUNG CẤP" FontSize="20" FontWeight="Bold" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="{StaticResource PrimaryIndigoBrush}"/>
+                        <materialDesign:PackIcon Kind="TruckDelivery" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
+                        <TextBlock Text="NHÀ CUNG CẤP" Style="{StaticResource TypographyH2}" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.sm}" Foreground="{StaticResource AppPrimaryBrush}"/>
                         
-                        <Border Background="#F3F4F6" CornerRadius="8" Margin="32,0,0,0" Width="350" Height="42" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1">
+                        <Border Background="{StaticResource AppSurfaceBrush}" CornerRadius="{StaticResource Radius.md}" Margin="{StaticResource Margin.Left.lg}" Width="350" Height="40" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <materialDesign:PackIcon Kind="Search" VerticalAlignment="Center" Margin="12,0" Foreground="#6B7280"/>
+                                <materialDesign:PackIcon Kind="Search" VerticalAlignment="Center" Margin="{StaticResource Padding.sm}" Foreground="{StaticResource AppSecondaryBrush}"/>
                                 <TextBox Grid.Column="1" VerticalAlignment="Center" BorderThickness="0" 
                                          materialDesign:TextFieldAssist.DecorationVisibility="Collapsed" 
                                          materialDesign:HintAssist.Hint="Tìm kiếm nhà cung cấp..." 
@@ -48,9 +48,9 @@
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
                         <Button Content="THÊM MỚI" Command="{Binding ClearInputCommand}" 
-                                Style="{StaticResource MaterialDesignRaisedButton}" materialDesign:ButtonAssist.CornerRadius="8" Height="40" Margin="0,0,12,0"/>
+                                Style="{StaticResource AppPrimaryButton}" Margin="{StaticResource Margin.Right.sm}"/>
                         <Button Content="NHẬP EXCEL" Command="{Binding ImportDataCommand}" 
-                                Style="{StaticResource MaterialDesignOutlinedButton}" materialDesign:ButtonAssist.CornerRadius="8" Height="40"/>
+                                Style="{StaticResource AppSecondaryButton}"/>
                     </StackPanel>
                 </Grid>
             </materialDesign:Card>
@@ -62,31 +62,31 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Data Table -->
-                <materialDesign:Card Grid.Column="0" Margin="0,0,20,0" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2">
+                <materialDesign:Card Grid.Column="0" Margin="{StaticResource Margin.Right.lg}" Style="{StaticResource AppCard}" Padding="0">
                     <DataGrid ItemsSource="{Binding Suppliers}" SelectedItem="{Binding SelectedSupplier, Mode=TwoWay}"
-                              AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                              Style="{StaticResource MaterialDesignDataGrid}" BorderThickness="0">
+                               AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                               BorderThickness="0" RowHeight="28">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Mã" Binding="{Binding Id}" Width="Auto" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
-                            <DataGridTextColumn Header="Mã NCC" Binding="{Binding SupplierCode}" Width="Auto" FontWeight="SemiBold"/>
-                            <DataGridTemplateColumn Header="Nhà cung cấp" Width="*">
+                            <DataGridTextColumn Header="MÃ" Binding="{Binding Id}" Width="Auto" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
+                            <DataGridTextColumn Header="MÃ NCC" Binding="{Binding SupplierCode}" Width="Auto" FontWeight="SemiBold"/>
+                            <DataGridTemplateColumn Header="NHÀ CUNG CẤP" Width="*">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <StackPanel Margin="8,4">
-                                            <TextBlock Text="{Binding DisplayName}" FontWeight="Bold" Foreground="#1F2937"/>
-                                            <TextBlock Text="{Binding Phone}" FontSize="11" Foreground="#6B7280"/>
+                                        <StackPanel Margin="{StaticResource Spacing.sm}">
+                                            <TextBlock Text="{Binding DisplayName}" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                            <TextBlock Text="{Binding Phone}" Style="{StaticResource TypographyCaption}" Foreground="{StaticResource TextSecondaryBrush}"/>
                                         </StackPanel>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="Email" Binding="{Binding Email}" Width="Auto"/>
-                            <DataGridTextColumn Header="Địa chỉ" Binding="{Binding Address}" Width="1.5*"/>
+                            <DataGridTextColumn Header="EMAIL" Binding="{Binding Email}" Width="Auto"/>
+                            <DataGridTextColumn Header="ĐỊA CHỈ" Binding="{Binding Address}" Width="1.5*"/>
                         </DataGrid.Columns>
                     </DataGrid>
                 </materialDesign:Card>
 
                 <!-- Edit Form -->
-                <materialDesign:Card Grid.Column="1" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2" Padding="24">
+                <materialDesign:Card Grid.Column="1" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.lg}">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -94,33 +94,33 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,24">
-                            <materialDesign:PackIcon Kind="Edit" Foreground="{StaticResource PrimaryIndigoBrush}" VerticalAlignment="Center"/>
-                            <TextBlock Text="CHI TIẾT ĐỐI TÁC" FontWeight="Bold" FontSize="16" Foreground="{StaticResource PrimaryIndigoBrush}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        <StackPanel Orientation="Horizontal" Margin="{StaticResource Margin.Bottom.lg}">
+                            <materialDesign:PackIcon Kind="Edit" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Text="CHI TIẾT ĐỐI TÁC" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppPrimaryBrush}" Margin="{StaticResource Margin.Left.sm}" VerticalAlignment="Center"/>
                         </StackPanel>
 
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                             <StackPanel>
-                                <TextBox Style="{StaticResource MaterialDesignFloatingHintTextBox}" materialDesign:HintAssist.Hint="Mã nhà cung cấp" Margin="0,0,0,20" 
-                                         Text="{Binding EditCode}" FontSize="14"/>
-                                <TextBox Style="{StaticResource MaterialDesignFloatingHintTextBox}" materialDesign:HintAssist.Hint="Tên nhà cung cấp" Margin="0,0,0,20" 
-                                         Text="{Binding EditName}" FontSize="14"/>
-                                <TextBox Style="{StaticResource MaterialDesignFloatingHintTextBox}" materialDesign:HintAssist.Hint="Số điện thoại" Margin="0,0,0,20" 
-                                         Text="{Binding EditPhone}" FontSize="14"/>
-                                <TextBox Style="{StaticResource MaterialDesignFloatingHintTextBox}" materialDesign:HintAssist.Hint="Email liên hệ" Margin="0,0,0,20" 
-                                         Text="{Binding EditEmail}" FontSize="14"/>
+                                <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}" materialDesign:HintAssist.Hint="Mã nhà cung cấp" Margin="{StaticResource Margin.Bottom.md}" 
+                                         Text="{Binding EditCode}"/>
+                                <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}" materialDesign:HintAssist.Hint="Tên nhà cung cấp" Margin="{StaticResource Margin.Bottom.md}" 
+                                         Text="{Binding EditName}"/>
+                                <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}" materialDesign:HintAssist.Hint="Số điện thoại" Margin="{StaticResource Margin.Bottom.md}" 
+                                         Text="{Binding EditPhone}"/>
+                                <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}" materialDesign:HintAssist.Hint="Email liên hệ" Margin="{StaticResource Margin.Bottom.md}" 
+                                         Text="{Binding EditEmail}"/>
                                 
                                 <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}" materialDesign:HintAssist.Hint="Địa chỉ chi tiết" Height="100" 
                                          TextWrapping="Wrap" VerticalAlignment="Top" AcceptsReturn="True" 
-                                         Text="{Binding EditAddress}" Margin="0,8,0,20" FontSize="14"/>
+                                         Text="{Binding EditAddress}" Margin="{StaticResource Margin.Bottom.md}" VerticalContentAlignment="Top"/>
                             </StackPanel>
                         </ScrollViewer>
 
-                        <StackPanel Grid.Row="2" Margin="0,24,0,0">
+                        <StackPanel Grid.Row="2" Margin="{StaticResource Margin.Top.lg}">
                             <Button Content="LƯU THAY ĐỔI" Command="{Binding SaveEditCommand}" 
-                                    Style="{StaticResource MaterialDesignRaisedButton}" Height="48" materialDesign:ButtonAssist.CornerRadius="12" Margin="0,0,0,12"/>
+                                    Style="{StaticResource AppPrimaryButton}" Margin="{StaticResource Margin.Bottom.sm}"/>
                             <Button Content="XOÁ ĐỐI TÁC" Command="{Binding DeleteCommand}" 
-                                    Style="{StaticResource MaterialDesignFlatButton}" Foreground="#EF5350" Height="40" materialDesign:ButtonAssist.CornerRadius="8"/>
+                                    Style="{StaticResource AppDangerButton}"/>
                         </StackPanel>
                     </Grid>
                 </materialDesign:Card>

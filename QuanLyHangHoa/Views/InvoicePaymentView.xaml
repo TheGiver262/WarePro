@@ -6,7 +6,7 @@
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              mc:Ignorable="d" 
              d:DesignHeight="800" d:DesignWidth="1100">
-    <Grid Background="{StaticResource BodyBgBrush}">
+    <Grid Background="{StaticResource AppBackgroundBrush}">
         <Grid Margin="24">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -19,9 +19,9 @@
                 <DockPanel>
                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
                         <Border Background="{StaticResource PrimaryHueLightBrush}" Width="48" Height="48" CornerRadius="12">
-                            <materialDesign:PackIcon Kind="CashMultiple" Width="24" Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource PrimaryIndigoBrush}"/>
+                            <materialDesign:PackIcon Kind="CashMultiple" Width="24" Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
                         </Border>
-                        <TextBlock Text="{Binding ModeTitle}" FontSize="20" FontWeight="Bold" Foreground="{StaticResource PrimaryIndigoBrush}" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding ModeTitle}" FontSize="20" FontWeight="Bold" Foreground="{StaticResource AppTertiaryBrush}" Margin="12,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                         <RadioButton Style="{StaticResource MaterialDesignTabRadioButton}" Margin="0,0,12,0"
@@ -62,7 +62,7 @@
                                 <TextBox Grid.Column="0" Style="{StaticResource MaterialDesignFloatingHintTextBox}" materialDesign:HintAssist.Hint="Mã hóa đơn (ID)" Margin="0,0,12,0"
                                          Text="{Binding InvoiceIdText, UpdateSourceTrigger=PropertyChanged}" FontSize="15"/>
                                 <TextBox Grid.Column="1" Style="{StaticResource MaterialDesignFloatingHintTextBox}" materialDesign:HintAssist.Hint="Số tiền thanh toán" Margin="12,0,0,0"
-                                         Text="{Binding Amount, UpdateSourceTrigger=PropertyChanged, StringFormat=N0}" FontSize="15" FontWeight="Bold" Foreground="{StaticResource PrimaryIndigoBrush}"/>
+                                         Text="{Binding Amount, UpdateSourceTrigger=PropertyChanged, StringFormat=N0}" FontSize="15" FontWeight="Bold" Foreground="{StaticResource AppTertiaryBrush}"/>
                             </Grid>
 
                             <ComboBox Style="{StaticResource MaterialDesignFloatingHintComboBox}" materialDesign:HintAssist.Hint="Phương thức thanh toán" Margin="0,0,0,28"
@@ -113,8 +113,8 @@
             <!-- Status Footer -->
             <materialDesign:Card Grid.Row="2" Margin="0,24,0,0" UniformCornerRadius="8" Padding="12" Background="{StaticResource PrimaryHueLightBrush}">
                 <StackPanel Orientation="Horizontal">
-                    <materialDesign:PackIcon Kind="Information" Foreground="{StaticResource PrimaryIndigoBrush}" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource PrimaryIndigoBrush}" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                    <materialDesign:PackIcon Kind="Information" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource AppTertiaryBrush}" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"/>
                 </StackPanel>
             </materialDesign:Card>
         </Grid>

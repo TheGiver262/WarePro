@@ -18,20 +18,21 @@
     </Window.DataContext>
 
     <Window.Resources>
-        <!-- Override global TextBox style: use outlined with floating hint, no clear button -->
+        <!-- Local override for Login TextBoxes -->
         <Style x:Key="LoginTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource MaterialDesignOutlinedTextBox}">
             <Setter Property="materialDesign:TextFieldAssist.HasClearButton" Value="False"/>
             <Setter Property="materialDesign:HintAssist.IsFloating" Value="True"/>
             <Setter Property="materialDesign:HintAssist.FloatingScale" Value="0.85"/>
             <Setter Property="FontSize" Value="15"/>
-            <Setter Property="Margin" Value="0,0,0,20"/>
+            <Setter Property="Margin" Value="{StaticResource Margin.Bottom.md}"/>
             <Setter Property="Height" Value="Auto"/>
+            <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
         </Style>
     </Window.Resources>
 
-    <Border Background="{StaticResource BodyBgBrush}" CornerRadius="20" Margin="20">
+    <Border Background="{StaticResource AppBackgroundBrush}" CornerRadius="{StaticResource Radius.lg}" Margin="{StaticResource Spacing.md}">
         <Border.Effect>
-            <DropShadowEffect BlurRadius="25" Color="#20000000" Direction="-90" ShadowDepth="5" Opacity="0.3"/>
+            <DropShadowEffect BlurRadius="30" Color="#20000000" Direction="-90" ShadowDepth="8" Opacity="0.2"/>
         </Border.Effect>
 
         <Grid>
@@ -41,9 +42,9 @@
             </Grid.RowDefinitions>
 
             <!-- Top Decorative Bar -->
-            <Border Grid.Row="0" Height="6" Background="{StaticResource PrimaryIndigoBrush}" CornerRadius="20,20,0,0"/>
+            <Border Grid.Row="0" Height="6" Background="{StaticResource AppTertiaryBrush}" CornerRadius="12,12,0,0"/>
 
-            <Grid Grid.Row="1" Margin="32,20,32,28">
+            <Grid Grid.Row="1" Margin="{StaticResource Spacing.lg}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/> <!-- Close -->
                     <RowDefinition Height="Auto"/> <!-- Header -->
@@ -57,23 +58,25 @@
                         Style="{StaticResource MaterialDesignIconForegroundButton}"
                         Width="32" Height="32"
                         Click="BtnClose_Click" Margin="0,-8,-16,0">
-                    <materialDesign:PackIcon Kind="Close" Width="18" Height="18" Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <materialDesign:PackIcon Kind="Close" Width="20" Height="20" Foreground="{StaticResource TextSecondaryBrush}"/>
                 </Button>
 
                 <!-- Brand Header -->
-                <StackPanel Grid.Row="1" HorizontalAlignment="Center" Margin="0,0,0,24">
-                    <Border Width="64" Height="64" Background="{StaticResource SidebarActiveBrush}" CornerRadius="16" Margin="0,0,0,12">
-                        <materialDesign:PackIcon Kind="Warehouse" Width="36" Height="36" Foreground="{StaticResource PrimaryIndigoBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <StackPanel Grid.Row="1" HorizontalAlignment="Center" Margin="{StaticResource Margin.Bottom.lg}">
+                    <Border Width="72" Height="72" Background="{StaticResource AppSurfaceBrush}" CornerRadius="{StaticResource Radius.lg}" Margin="{StaticResource Margin.Bottom.md}">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="10" Color="#10000000" ShadowDepth="2" Opacity="0.1"/>
+                        </Border.Effect>
+                        <materialDesign:PackIcon Kind="Warehouse" Width="40" Height="40" Foreground="{StaticResource AppTertiaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
-                    <TextBlock Text="INVENTORY" FontSize="22" FontWeight="Black" Foreground="{StaticResource PrimaryIndigoBrush}" HorizontalAlignment="Center"/>
-                    <TextBlock Text="ĐĂNG NHẬP HỆ THỐNG" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                    <TextBlock Text="INVENTORY" Style="{StaticResource TypographyDisplay}" FontSize="24" Foreground="{StaticResource AppPrimaryBrush}" HorizontalAlignment="Center"/>
+                    <TextBlock Text="ĐĂNG NHẬP HỆ THỐNG" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppSecondaryBrush}" HorizontalAlignment="Center" Margin="0,4,0,0"/>
                 </StackPanel>
 
                 <!-- Login Form -->
                 <StackPanel Grid.Row="2" VerticalAlignment="Center">
                     <TextBox Style="{StaticResource LoginTextBoxStyle}"
                              materialDesign:HintAssist.Hint="Tên đăng nhập"
-                             materialDesign:HintAssist.IsFloating="True"
                              Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"/>
 
                     <PasswordBox x:Name="txtPassword"
@@ -82,26 +85,25 @@
                                  materialDesign:HintAssist.IsFloating="True"
                                  materialDesign:HintAssist.FloatingScale="0.85"
                                  PasswordChanged="TxtPassword_PasswordChanged"
-                                 FontSize="15" Margin="0,0,0,8"/>
+                                 FontSize="15" Margin="{StaticResource Margin.Bottom.sm}"
+                                 BorderBrush="{StaticResource AppBorderBrush}"/>
                 </StackPanel>
 
                 <!-- Error Message -->
-                <TextBlock Grid.Row="3" Text="{Binding ErrorMessage}" Foreground="#EF5350" FontSize="12" FontWeight="SemiBold"
-                           HorizontalAlignment="Center" Margin="0,8,0,8" TextWrapping="Wrap" TextAlignment="Center"
+                <TextBlock Grid.Row="3" Text="{Binding ErrorMessage}" Foreground="{StaticResource AppErrorBrush}" FontSize="12" FontWeight="SemiBold"
+                           HorizontalAlignment="Center" Margin="{StaticResource Spacing.sm}" TextWrapping="Wrap" TextAlignment="Center"
                            Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVisibilityConverter}}"/>
 
                 <!-- Actions -->
-                <StackPanel Grid.Row="4" Margin="0,8,0,0">
-                    <Button Content="ĐĂNG NHẬP" FontSize="15" FontWeight="Bold"
-                            Style="{StaticResource MaterialDesignRaisedButton}"
-                            Height="48"
-                            materialDesign:ButtonAssist.CornerRadius="12"
+                <StackPanel Grid.Row="4" Margin="{StaticResource Margin.Top.md}">
+                    <Button Content="ĐĂNG NHẬP" Style="{StaticResource AppPrimaryButton}"
+                            Height="50" FontSize="16"
                             Command="{Binding LoginCommand}" 
                             CommandParameter="{Binding ElementName=LoginWindow}"/>
                     
                     <TextBlock Text="Quên mật khẩu? Liên hệ quản trị viên" 
-                               FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" 
-                               HorizontalAlignment="Center" Margin="0,16,0,0"/>
+                               Style="{StaticResource TypographyCaption}" Foreground="{StaticResource AppSecondaryBrush}" 
+                               HorizontalAlignment="Center" Margin="{StaticResource Margin.Top.lg}"/>
                 </StackPanel>
             </Grid>
         </Grid>

@@ -16,7 +16,7 @@ namespace QuanLyHangHoa.ViewModels
         private readonly AppUser? _currentUser;
 
         [ObservableProperty]
-        private ObservableCollection<AppUser> _users = new();
+        private ObservableCollection<AppUser> _users = [];
 
         [ObservableProperty]
         private AppUser? _selectedUser;

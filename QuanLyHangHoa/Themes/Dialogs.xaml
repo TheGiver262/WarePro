@@ -1,0 +1,18 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+
+    <!-- Global DialogHost Style -->
+    <Style TargetType="materialDesign:DialogHost">
+        <Setter Property="OverlayBackground" Value="Black"/>
+        <Setter Property="Opacity" Value="0.3"/>
+    </Style>
+
+    <!-- Dialog Content Container -->
+    <Style x:Key="DialogContentCard" TargetType="materialDesign:Card" BasedOn="{StaticResource AppCard}">
+        <Setter Property="MinWidth" Value="400"/>
+        <Setter Property="MaxWidth" Value="800"/>
+        <Setter Property="Margin" Value="24"/>
+    </Style>
+
+</ResourceDictionary>

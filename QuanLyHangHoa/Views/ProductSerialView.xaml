@@ -1,9 +1,13 @@
 <UserControl x:Class="QuanLyHangHoa.Views.ProductSerialView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
-    <Grid Background="{StaticResource BodyBgBrush}">
-        <Grid Margin="24">
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="900">
+    <Grid Background="{StaticResource AppBackgroundBrush}">
+        <Grid Margin="{StaticResource Spacing.lg}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -11,12 +15,14 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
+            <!-- Header -->
             <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,24">
-                <materialDesign:PackIcon Kind="BarcodeScan" Width="28" Height="28" Foreground="{StaticResource PrimaryIndigoBrush}" VerticalAlignment="Center"/>
-                <TextBlock Text="QUẢN LÝ SERIAL / IMEI" FontSize="20" FontWeight="Bold" Foreground="{StaticResource PrimaryIndigoBrush}" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                <materialDesign:PackIcon Kind="BarcodeScan" Width="28" Height="28" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
+                <TextBlock Text="QUẢN LÝ SERIAL / IMEI" Style="{StaticResource TypographyH2}" Foreground="{StaticResource AppPrimaryBrush}" Margin="12,0,0,0" VerticalAlignment="Center"/>
             </StackPanel>
 
-            <materialDesign:Card Grid.Row="1" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2" Padding="24" Margin="0,0,0,24">
+            <!-- Input Form -->
+            <materialDesign:Card Grid.Row="1" Style="{StaticResource AppCard}" Padding="24" Margin="0,0,0,24">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="2*"/>
@@ -25,25 +31,23 @@
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Grid.Column="0" Margin="0,0,16,0">
-                        <TextBlock Text="Chọn sản phẩm" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>
                         <ComboBox ItemsSource="{Binding Products}" SelectedItem="{Binding SelectedProduct}" DisplayMemberPath="DisplayName"
-                                  Style="{StaticResource MaterialDesignFloatingHintComboBox}" materialDesign:HintAssist.Hint="Tìm sản phẩm..." FontSize="14"/>
+                                  Style="{StaticResource MaterialDesignOutlinedComboBox}" materialDesign:HintAssist.Hint="Sản phẩm" FontSize="14"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" Margin="0,0,16,0">
-                        <TextBlock Text="Mã Serial / IMEI" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>
-                        <TextBox Text="{Binding SerialNumber}" Style="{StaticResource MaterialDesignFloatingHintTextBox}" materialDesign:HintAssist.Hint="Nhập hoặc quét mã..." FontSize="14"/>
+                        <TextBox Text="{Binding SerialNumber}" Style="{StaticResource MaterialDesignOutlinedTextBox}" materialDesign:HintAssist.Hint="Mã Serial / IMEI" FontSize="14"/>
                     </StackPanel>
 
                     <Button Grid.Column="2" Content="THÊM MÃ" Command="{Binding AddSerialCommand}" 
-                            Style="{StaticResource MaterialDesignRaisedButton}" Background="#10B981" BorderBrush="#10B981"
-                            Height="40" Padding="20,0" materialDesign:ButtonAssist.CornerRadius="8" VerticalAlignment="Bottom"/>
+                            Style="{StaticResource AppPrimaryButton}" Height="40" Padding="20,0" VerticalAlignment="Bottom"/>
                 </Grid>
             </materialDesign:Card>
 
-            <materialDesign:Card Grid.Row="2" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2" Padding="0">
+            <!-- Data Table -->
+            <materialDesign:Card Grid.Row="2" Style="{StaticResource AppCard}" Padding="0">
                 <DataGrid ItemsSource="{Binding ProductSerials}" AutoGenerateColumns="False" CanUserAddRows="False" 
-                          IsReadOnly="True" Style="{StaticResource MaterialDesignDataGrid}" BorderThickness="0">
+                          IsReadOnly="True" BorderThickness="0" RowHeight="28">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Sản Phẩm" Binding="{Binding Product.DisplayName}" Width="2*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
                         <DataGridTextColumn Header="Số Serial / IMEI" Binding="{Binding SerialNumber}" Width="*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
@@ -51,7 +55,7 @@
                         <DataGridTemplateColumn Width="100">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <Button Style="{StaticResource MaterialDesignIconButton}" Command="{Binding DataContext.DeleteSerialCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Foreground="#EF4444">
+                                    <Button Style="{StaticResource MaterialDesignIconButton}" Command="{Binding DataContext.DeleteSerialCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Foreground="{StaticResource AppErrorBrush}">
                                         <materialDesign:PackIcon Kind="Delete" Width="20" Height="20"/>
                                     </Button>
                                 </DataTemplate>
@@ -61,10 +65,11 @@
                 </DataGrid>
             </materialDesign:Card>
 
-            <materialDesign:Card Grid.Row="3" Margin="0,24,0,0" UniformCornerRadius="8" Padding="12" Background="{StaticResource PrimaryHueLightBrush}">
+            <!-- Status Footer -->
+            <materialDesign:Card Grid.Row="3" Margin="0,24,0,0" Style="{StaticResource AppCard}" Padding="12" Background="{StaticResource AppSurfaceBrush}">
                 <StackPanel Orientation="Horizontal">
-                    <materialDesign:PackIcon Kind="Information" Foreground="{StaticResource PrimaryIndigoBrush}" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource PrimaryIndigoBrush}" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                    <materialDesign:PackIcon Kind="Information" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource AppPrimaryBrush}" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"/>
                 </StackPanel>
             </materialDesign:Card>
         </Grid>

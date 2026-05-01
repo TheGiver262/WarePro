@@ -12,15 +12,15 @@
         <vm:AppUserViewModel />
     </UserControl.DataContext>
 
-    <Grid Background="{StaticResource BodyBgBrush}">
-        <Grid Margin="24">
+    <Grid Background="{StaticResource AppBackgroundBrush}">
+        <Grid Margin="{StaticResource Spacing.lg}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
             <!-- Header / Toolbar -->
-            <materialDesign:Card Grid.Row="0" Margin="0,0,0,24" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2" Padding="16,8">
+            <materialDesign:Card Grid.Row="0" Margin="{StaticResource Margin.Bottom.lg}" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.md}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -28,13 +28,13 @@
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Orientation="Horizontal">
-                        <materialDesign:PackIcon Kind="AccountSettings" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource PrimaryIndigoBrush}"/>
-                        <TextBlock Text="QUẢN TRỊ TÀI KHOẢN" FontSize="20" FontWeight="Bold" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="{StaticResource PrimaryIndigoBrush}"/>
+                        <materialDesign:PackIcon Kind="AccountSettings" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
+                        <TextBlock Text="QUẢN TRỊ TÀI KHOẢN" Style="{StaticResource TypographyH2}" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.md}" Foreground="{StaticResource AppPrimaryBrush}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
                         <Button Content="THÊM NGƯỜI DÙNG" Command="{Binding ClearInputCommand}" 
-                                Style="{StaticResource MaterialDesignRaisedButton}" materialDesign:ButtonAssist.CornerRadius="8" Height="40" Margin="0,0,12,0"/>
+                                Style="{StaticResource AppPrimaryButton}"/>
                     </StackPanel>
                 </Grid>
             </materialDesign:Card>
@@ -46,31 +46,31 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Data Table -->
-                <materialDesign:Card Grid.Column="0" Margin="0,0,20,0" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2">
+                <materialDesign:Card Grid.Column="0" Margin="{StaticResource Margin.Right.lg}" Style="{StaticResource AppCard}" Padding="0">
                     <DataGrid ItemsSource="{Binding Users}" SelectedItem="{Binding SelectedUser, Mode=TwoWay}"
-                              AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                              Style="{StaticResource MaterialDesignDataGrid}" BorderThickness="0">
+                               AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                               RowHeight="28" BorderThickness="0">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="Auto" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
-                            <DataGridTemplateColumn Header="Người dùng" Width="*">
+                            <DataGridTemplateColumn Header="NGƯỜI DÙNG" Width="*">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <StackPanel Margin="8,4">
-                                            <TextBlock Text="{Binding FullName}" FontWeight="Bold" Foreground="#1F2937"/>
-                                            <TextBlock Text="{Binding Username}" FontSize="12" Foreground="{StaticResource PrimaryIndigoBrush}"/>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.sm}">
+                                            <TextBlock Text="{Binding FullName}" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding Username, StringFormat=' ({0})'}" Style="{StaticResource TypographyCaption}" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="Quyền hạn" Binding="{Binding RoleCode}" Width="Auto"/>
-                            <DataGridCheckBoxColumn Header="Hoạt động" Binding="{Binding IsActive}" Width="Auto"/>
-                            <DataGridTextColumn Header="Ngày tạo" Binding="{Binding CreatedAt, StringFormat='dd/MM/yyyy'}" Width="Auto"/>
+                            <DataGridTextColumn Header="QUYỀN HẠN" Binding="{Binding RoleCode}" Width="Auto" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+                            <DataGridCheckBoxColumn Header="HOẠT ĐỘNG" Binding="{Binding IsActive}" Width="Auto"/>
+                            <DataGridTextColumn Header="NGÀY TẠO" Binding="{Binding CreatedAt, StringFormat='dd/MM/yyyy'}" Width="Auto" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
                         </DataGrid.Columns>
                     </DataGrid>
                 </materialDesign:Card>
 
                 <!-- Edit Form -->
-                <materialDesign:Card Grid.Column="1" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2" Padding="24">
+                <materialDesign:Card Grid.Column="1" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.lg}">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -78,41 +78,42 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,24">
-                            <materialDesign:PackIcon Kind="AccountEdit" Foreground="{StaticResource PrimaryIndigoBrush}" VerticalAlignment="Center"/>
-                            <TextBlock Text="THÔNG TIN TÀI KHOẢN" FontWeight="Bold" FontSize="16" Foreground="{StaticResource PrimaryIndigoBrush}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        <StackPanel Orientation="Horizontal" Margin="{StaticResource Margin.Bottom.lg}">
+                            <materialDesign:PackIcon Kind="AccountEdit" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Text="THÔNG TIN TÀI KHOẢN" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppPrimaryBrush}" Margin="{StaticResource Margin.Left.sm}" VerticalAlignment="Center"/>
                         </StackPanel>
 
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                             <StackPanel>
-                                <TextBox Style="{StaticResource MaterialDesignFloatingHintTextBox}" materialDesign:HintAssist.Hint="Họ và Tên" Margin="0,0,0,20" 
-                                         Text="{Binding CurrentInputUser.FullName}" FontSize="14"/>
+                                <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}" materialDesign:HintAssist.Hint="Họ và Tên" Margin="{StaticResource Margin.Bottom.md}" 
+                                         Text="{Binding CurrentInputUser.FullName}"/>
                                 
-                                <TextBox Style="{StaticResource MaterialDesignFloatingHintTextBox}" materialDesign:HintAssist.Hint="Tên đăng nhập" Margin="0,0,0,20" 
-                                         Text="{Binding CurrentInputUser.Username}" FontSize="14"/>
+                                <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}" materialDesign:HintAssist.Hint="Tên đăng nhập" Margin="{StaticResource Margin.Bottom.md}" 
+                                         Text="{Binding CurrentInputUser.Username}"/>
                                 
-                                <PasswordBox materialDesign:HintAssist.Hint="Mật khẩu mới" Margin="0,0,0,20" FontSize="14"
-                                             Style="{StaticResource MaterialDesignFloatingHintPasswordBox}">
+                                <PasswordBox materialDesign:HintAssist.Hint="Mật khẩu mới" Margin="{StaticResource Margin.Bottom.md}"
+                                             Style="{StaticResource MaterialDesignOutlinedPasswordBox}">
                                 </PasswordBox>
-                                <TextBox Style="{StaticResource MaterialDesignFloatingHintTextBox}" materialDesign:HintAssist.Hint="Mật khẩu (Text - For Demo)" Margin="0,0,0,20" 
-                                         Text="{Binding CurrentInputUser.PasswordHash}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                
+                                <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}" materialDesign:HintAssist.Hint="Mật khẩu (Text - For Demo)" Margin="{StaticResource Margin.Bottom.md}" 
+                                         Text="{Binding CurrentInputUser.PasswordHash}" Foreground="{StaticResource TextSecondaryBrush}"/>
 
-                                <ComboBox Style="{StaticResource MaterialDesignFloatingHintComboBox}" materialDesign:HintAssist.Hint="Quyền hạn" Margin="0,0,0,20"
-                                          SelectedValuePath="Content" SelectedValue="{Binding CurrentInputUser.RoleCode}" FontSize="14">
+                                <ComboBox Style="{StaticResource MaterialDesignOutlinedComboBox}" materialDesign:HintAssist.Hint="Quyền hạn" Margin="{StaticResource Margin.Bottom.md}"
+                                          SelectedValuePath="Content" SelectedValue="{Binding CurrentInputUser.RoleCode}">
                                     <ComboBoxItem Content="Admin"/>
                                     <ComboBoxItem Content="Manager"/>
                                     <ComboBoxItem Content="Staff"/>
                                 </ComboBox>
 
-                                <CheckBox Content="Tài khoản đang hoạt động" IsChecked="{Binding CurrentInputUser.IsActive}" Margin="0,8,0,0"/>
+                                <CheckBox Content="Tài khoản đang hoạt động" IsChecked="{Binding CurrentInputUser.IsActive}" Margin="{StaticResource Margin.Top.sm}"/>
                             </StackPanel>
                         </ScrollViewer>
 
-                        <StackPanel Grid.Row="2" Margin="0,24,0,0">
+                        <StackPanel Grid.Row="2" Margin="{StaticResource Margin.Top.lg}">
                             <Button Content="LƯU THÔNG TIN" Command="{Binding SaveUserCommand}" 
-                                    Style="{StaticResource MaterialDesignRaisedButton}" Height="48" materialDesign:ButtonAssist.CornerRadius="12" Margin="0,0,0,12"/>
+                                    Style="{StaticResource AppPrimaryButton}" Margin="{StaticResource Margin.Bottom.sm}"/>
                             <Button Content="VÔ HIỆU HÓA" Command="{Binding DeactivateUserCommand}" 
-                                    Style="{StaticResource MaterialDesignOutlinedButton}" Foreground="#EF5350" BorderBrush="#EF5350" Height="40" materialDesign:ButtonAssist.CornerRadius="8"/>
+                                    Style="{StaticResource AppDangerButton}"/>
                         </StackPanel>
                     </Grid>
                 </materialDesign:Card>

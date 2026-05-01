@@ -12,15 +12,15 @@
         <vm:ProductViewModel />
     </UserControl.DataContext>
 
-    <Grid Background="{StaticResource BodyBgBrush}">
-        <Grid Margin="24">
+    <Grid Background="{StaticResource AppBackgroundBrush}">
+        <Grid Margin="{StaticResource Spacing.lg}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <!-- Header / Toolbar -->
-            <materialDesign:Card Grid.Row="0" Margin="0,0,0,24" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2" Padding="16,8">
+            <!-- Header Section -->
+            <materialDesign:Card Grid.Row="0" Margin="{StaticResource Margin.Bottom.lg}" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.md}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -28,29 +28,30 @@
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Orientation="Horizontal">
-                        <materialDesign:PackIcon Kind="PackageVariant" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource PrimaryIndigoBrush}"/>
-                        <TextBlock Text="DANH MỤC SẢN PHẨM" FontSize="20" FontWeight="Bold" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="{StaticResource PrimaryIndigoBrush}"/>
-                        
-                        <Border Background="#F3F4F6" CornerRadius="8" Margin="32,0,0,0" Width="350" Height="42">
+                        <Border Background="{StaticResource AppTertiaryBrush}" Width="40" Height="40" CornerRadius="{StaticResource Radius.md}">
+                            <materialDesign:PackIcon Kind="PackageVariant" Width="24" Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource TextOnPrimaryBrush}"/>
+                        </Border>
+                        <StackPanel Margin="{StaticResource Margin.Left.md}" VerticalAlignment="Center">
+                            <TextBlock Text="DANH MỤC SẢN PHẨM" Style="{StaticResource TypographyH2}" Foreground="{StaticResource AppPrimaryBrush}"/>
+                            <TextBlock Text="Quản lý thông tin hàng hóa, tồn kho và giá bán" Style="{StaticResource TypographyCaption}"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border Background="{StaticResource AppSurfaceBrush}" CornerRadius="{StaticResource Radius.md}" Width="300" Height="36" Margin="{StaticResource Margin.Right.md}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <materialDesign:PackIcon Kind="Search" VerticalAlignment="Center" Margin="12,0" Foreground="#6B7280"/>
-                                <TextBox Grid.Column="1" VerticalAlignment="Center" BorderThickness="0" 
-                                         materialDesign:TextFieldAssist.DecorationVisibility="Collapsed" 
-                                         materialDesign:HintAssist.Hint="Tìm kiếm theo tên, mã sản phẩm..." 
-                                         FontSize="14" Background="Transparent"/>
+                                <materialDesign:PackIcon Kind="Search" VerticalAlignment="Center" Margin="{StaticResource Padding.sm}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBox Grid.Column="1" VerticalAlignment="Center" BorderThickness="0" materialDesign:TextFieldAssist.DecorationVisibility="Collapsed" materialDesign:HintAssist.Hint="Tìm sản phẩm..." FontSize="13" Background="Transparent"/>
                             </Grid>
                         </Border>
-                    </StackPanel>
-
-                    <StackPanel Grid.Column="1" Orientation="Horizontal">
                         <Button Content="THÊM MỚI" Command="{Binding ClearInputCommand}" 
-                                Style="{StaticResource MaterialDesignRaisedButton}" materialDesign:ButtonAssist.CornerRadius="8" Height="40" Margin="0,0,12,0"/>
+                                Style="{StaticResource AppPrimaryButton}" Margin="{StaticResource Margin.Right.sm}"/>
                         <Button Content="NHẬP EXCEL" Command="{Binding ImportDataCommand}" 
-                                Style="{StaticResource MaterialDesignOutlinedButton}" materialDesign:ButtonAssist.CornerRadius="8" Height="40"/>
+                                Style="{StaticResource AppSecondaryButton}"/>
                     </StackPanel>
                 </Grid>
             </materialDesign:Card>
@@ -58,44 +59,43 @@
             <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="380"/>
+                    <ColumnDefinition Width="400"/>
                 </Grid.ColumnDefinitions>
-
+                
                 <!-- Data Table -->
-                <materialDesign:Card Grid.Column="0" Margin="0,0,20,0" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2">
+                <materialDesign:Card Grid.Column="0" Margin="{StaticResource Margin.Right.lg}" Style="{StaticResource AppCard}" Padding="0">
                     <DataGrid ItemsSource="{Binding Products}" SelectedItem="{Binding SelectedProduct, Mode=TwoWay}"
-                              AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                              Style="{StaticResource MaterialDesignDataGrid}" BorderThickness="0">
+                               AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" BorderThickness="0" RowHeight="28">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Mã" Binding="{Binding Id}" Width="Auto" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
-                            <DataGridTemplateColumn Header="Sản phẩm" Width="*">
+                            <DataGridTextColumn Header="MÃ" Binding="{Binding Id}" Width="Auto" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
+                            <DataGridTemplateColumn Header="SẢN PHẨM" Width="*">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <StackPanel Margin="8,4">
-                                            <TextBlock Text="{Binding DisplayName}" FontWeight="Bold" Foreground="#1F2937"/>
-                                            <TextBlock Text="{Binding ProductCode}" FontSize="11" Foreground="#6B7280"/>
+                                        <StackPanel Margin="4,2" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" Foreground="{StaticResource AppPrimaryBrush}"/>
+                                            <TextBlock Text="{Binding ProductCode}" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
                                         </StackPanel>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="Phân loại" Binding="{Binding Category.DisplayName}" Width="Auto"/>
-                            <DataGridTemplateColumn Header="Tồn kho" Width="Auto">
+                            <DataGridTextColumn Header="PHÂN LOẠI" Binding="{Binding Category.DisplayName}" Width="150" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+                            <DataGridTemplateColumn Header="TỒN KHO" Width="100">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Border Background="{StaticResource PrimaryHueLightBrush}" CornerRadius="4" Padding="12,4" HorizontalAlignment="Center">
-                                            <TextBlock Text="{Binding TotalQuantity}" Foreground="{StaticResource PrimaryIndigoBrush}" FontWeight="Bold"/>
+                                        <Border Background="{StaticResource AppBackgroundBrush}" CornerRadius="{StaticResource Radius.sm}" Padding="8,2" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding TotalQuantity}" Foreground="{StaticResource AppTertiaryBrush}" FontWeight="Bold" FontSize="12"/>
                                         </Border>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="Giá bán" Binding="{Binding DefaultPrice, StringFormat='N0'}" Width="Auto" FontWeight="SemiBold"/>
-                            <DataGridTextColumn Header="ĐVT" Binding="{Binding DefaultUnit.DisplayName}" Width="Auto"/>
+                            <DataGridTextColumn Header="GIÁ BÁN" Binding="{Binding DefaultPrice, StringFormat='N0'}" Width="120" FontWeight="SemiBold" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnRightElementStyle}"/>
+                            <DataGridTextColumn Header="ĐVT" Binding="{Binding DefaultUnit.DisplayName}" Width="80" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
                         </DataGrid.Columns>
                     </DataGrid>
                 </materialDesign:Card>
 
                 <!-- Edit Form -->
-                <materialDesign:Card Grid.Column="1" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2" Padding="24">
+                <materialDesign:Card Grid.Column="1" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.lg}">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -103,58 +103,46 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,24">
-                            <materialDesign:PackIcon Kind="Edit" Foreground="{StaticResource PrimaryIndigoBrush}" VerticalAlignment="Center"/>
-                            <TextBlock Text="CHI TIẾT SẢN PHẨM" FontWeight="Bold" FontSize="16" Foreground="{StaticResource PrimaryIndigoBrush}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        <StackPanel Orientation="Horizontal" Margin="{StaticResource Margin.Bottom.lg}">
+                            <materialDesign:PackIcon Kind="PackageVariant" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Text="CHI TIẾT SẢN PHẨM" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppPrimaryBrush}" Margin="{StaticResource Margin.Left.sm}" VerticalAlignment="Center"/>
                         </StackPanel>
 
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                             <StackPanel>
-                                <TextBox Style="{StaticResource MaterialDesignFloatingHintTextBox}" materialDesign:HintAssist.Hint="Mã sản phẩm" Margin="0,0,0,20" 
-                                         Text="{Binding CurrentInputProduct.ProductCode}" FontSize="14"/>
-                                <TextBox Style="{StaticResource MaterialDesignFloatingHintTextBox}" materialDesign:HintAssist.Hint="Tên hàng hoá" Margin="0,0,0,20" 
-                                         Text="{Binding CurrentInputProduct.DisplayName}" FontSize="14"/>
+                                <TextBox materialDesign:HintAssist.Hint="Mã sản phẩm" Text="{Binding CurrentInputProduct.ProductCode}" Style="{StaticResource MaterialDesignOutlinedTextBox}" Margin="{StaticResource Margin.Bottom.md}"/>
+                                <TextBox materialDesign:HintAssist.Hint="Tên hàng hóa" Text="{Binding CurrentInputProduct.DisplayName}" Style="{StaticResource MaterialDesignOutlinedTextBox}" Margin="{StaticResource Margin.Bottom.md}"/>
                                 
-                                <Grid Margin="0,0,0,20">
+                                <Grid Margin="{StaticResource Margin.Bottom.md}">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <ComboBox Grid.Column="0" Style="{StaticResource MaterialDesignFloatingHintComboBox}" materialDesign:HintAssist.Hint="Danh mục" Margin="0,0,10,0"
-                                              ItemsSource="{Binding Categories}" DisplayMemberPath="DisplayName" SelectedValuePath="Id"
-                                              SelectedValue="{Binding CurrentInputProduct.CategoryId}"/>
-                                    <ComboBox Grid.Column="1" Style="{StaticResource MaterialDesignFloatingHintComboBox}" materialDesign:HintAssist.Hint="Thương hiệu" Margin="10,0,0,0"
-                                              ItemsSource="{Binding Brands}" DisplayMemberPath="DisplayName" SelectedValuePath="Id"
-                                              SelectedValue="{Binding CurrentInputProduct.BrandId}"/>
+                                    <ComboBox Grid.Column="0" materialDesign:HintAssist.Hint="Danh mục" Margin="{StaticResource Margin.Right.sm}" ItemsSource="{Binding Categories}" DisplayMemberPath="DisplayName" SelectedValuePath="Id" SelectedValue="{Binding CurrentInputProduct.CategoryId}" Style="{StaticResource MaterialDesignOutlinedComboBox}"/>
+                                    <ComboBox Grid.Column="1" materialDesign:HintAssist.Hint="Thương hiệu" Margin="{StaticResource Margin.Left.sm}" ItemsSource="{Binding Brands}" DisplayMemberPath="DisplayName" SelectedValuePath="Id" SelectedValue="{Binding CurrentInputProduct.BrandId}" Style="{StaticResource MaterialDesignOutlinedComboBox}"/>
                                 </Grid>
 
-                                <Grid Margin="0,0,0,20">
+                                <Grid Margin="{StaticResource Margin.Bottom.md}">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <ComboBox Grid.Column="0" Style="{StaticResource MaterialDesignFloatingHintComboBox}" materialDesign:HintAssist.Hint="Đơn vị tính" Margin="0,0,10,0"
-                                              ItemsSource="{Binding Units}" DisplayMemberPath="DisplayName" SelectedValuePath="Id"
-                                              SelectedValue="{Binding CurrentInputProduct.DefaultUnitId}"/>
-                                    <TextBox Grid.Column="1" Style="{StaticResource MaterialDesignFloatingHintTextBox}" materialDesign:HintAssist.Hint="Giá bán" Margin="10,0,0,0"
-                                             Text="{Binding CurrentInputProduct.DefaultPrice, StringFormat='N0'}" FontSize="14" FontWeight="SemiBold"/>
+                                    <ComboBox Grid.Column="0" materialDesign:HintAssist.Hint="Đơn vị tính" Margin="{StaticResource Margin.Right.sm}" ItemsSource="{Binding Units}" DisplayMemberPath="DisplayName" SelectedValuePath="Id" SelectedValue="{Binding CurrentInputProduct.DefaultUnitId}" Style="{StaticResource MaterialDesignOutlinedComboBox}"/>
+                                    <TextBox Grid.Column="1" materialDesign:HintAssist.Hint="Giá bán" Margin="{StaticResource Margin.Left.sm}" Text="{Binding CurrentInputProduct.DefaultPrice, StringFormat='N0'}" Style="{StaticResource MaterialDesignOutlinedTextBox}" FontWeight="Bold" Foreground="{StaticResource AppTertiaryBrush}"/>
                                 </Grid>
 
-                                <TextBox Style="{StaticResource MaterialDesignFloatingHintTextBox}" materialDesign:HintAssist.Hint="Nguồn gốc / Xuất xứ" Margin="0,0,0,20" 
-                                         Text="{Binding CurrentInputProduct.OriginCountry}" FontSize="14"/>
-                                <TextBox Style="{StaticResource MaterialDesignFloatingHintTextBox}" materialDesign:HintAssist.Hint="Bảo hành (tháng)" Margin="0,0,0,20" 
-                                         Text="{Binding CurrentInputProduct.WarrantyPeriodMonths}" FontSize="14"/>
+                                <TextBox materialDesign:HintAssist.Hint="Xuất xứ" Text="{Binding CurrentInputProduct.OriginCountry}" Style="{StaticResource MaterialDesignOutlinedTextBox}" Margin="{StaticResource Margin.Bottom.md}"/>
+                                <TextBox materialDesign:HintAssist.Hint="Bảo hành (tháng)" Text="{Binding CurrentInputProduct.WarrantyPeriodMonths}" Style="{StaticResource MaterialDesignOutlinedTextBox}" Margin="{StaticResource Margin.Bottom.md}"/>
                                 
-                                <CheckBox Content="Theo dõi theo Serial Number" IsChecked="{Binding CurrentInputProduct.IsSerialTracked}" 
-                                          Style="{StaticResource MaterialDesignCheckBox}" Margin="0,8,0,0"/>
+                                <CheckBox Content="Theo dõi theo Serial Number" IsChecked="{Binding CurrentInputProduct.IsSerialTracked}" Margin="{StaticResource Margin.Bottom.md}" Style="{StaticResource MaterialDesignCheckBox}"/>
                             </StackPanel>
                         </ScrollViewer>
 
-                        <StackPanel Grid.Row="2" Margin="0,24,0,0">
-                            <Button Content="LƯU THAY ĐỔI" Command="{Binding SaveProductCommand}" 
-                                    Style="{StaticResource MaterialDesignRaisedButton}" Height="48" materialDesign:ButtonAssist.CornerRadius="12" Margin="0,0,0,12"/>
+                        <StackPanel Grid.Row="2" Margin="{StaticResource Margin.Top.lg}">
+                            <Button Content="CẬP NHẬT THÔNG TIN" Command="{Binding SaveProductCommand}" 
+                                    Style="{StaticResource AppPrimaryButton}" Margin="{StaticResource Margin.Bottom.sm}"/>
                             <Button Content="XOÁ SẢN PHẨM" Command="{Binding DeleteProductCommand}" 
-                                    Style="{StaticResource MaterialDesignFlatButton}" Foreground="#EF5350" Height="40" materialDesign:ButtonAssist.CornerRadius="8"/>
+                                    Style="{StaticResource AppDangerButton}"/>
                         </StackPanel>
                     </Grid>
                 </materialDesign:Card>

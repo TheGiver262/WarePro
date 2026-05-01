@@ -12,22 +12,19 @@
         <vm:StockAdjustmentViewModel />
     </UserControl.DataContext>
 
-    <Grid Background="{StaticResource BodyBgBrush}">
-        <Grid Margin="24">
+    <Grid Background="{StaticResource AppBackgroundBrush}">
+        <Grid Margin="{StaticResource Spacing.lg}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
             <!-- Header Section -->
-            <materialDesign:Card Grid.Row="0" Margin="0,0,0,24" UniformCornerRadius="12" Background="{StaticResource PrimaryIndigoBrush}" materialDesign:ElevationAssist.Elevation="Dp2" Padding="16,8">
+            <materialDesign:Card Grid.Row="0" Margin="{StaticResource Margin.Bottom.lg}" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.md}">
                 <Grid>
                     <StackPanel Orientation="Horizontal">
-                        <Border Background="White" Width="48" Height="48" CornerRadius="12" Opacity="0.2"/>
-                        <Border Width="48" Height="48" CornerRadius="12">
-                            <materialDesign:PackIcon Kind="Tune" Width="24" Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White"/>
-                        </Border>
-                        <TextBlock Text="ĐIỀU CHỈNH KHO" FontSize="20" FontWeight="Bold" Foreground="White" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                        <materialDesign:PackIcon Kind="Tune" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
+                        <TextBlock Text="PHIẾU ĐIỀU CHỈNH KHO" Style="{StaticResource TypographyH2}" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.md}" Foreground="{StaticResource AppPrimaryBrush}"/>
                     </StackPanel>
                 </Grid>
             </materialDesign:Card>
@@ -39,7 +36,7 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Sidebar: Document Info (RIGHT) -->
-                <materialDesign:Card Grid.Column="1" Margin="12,0,0,0" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2" VerticalAlignment="Top">
+                <materialDesign:Card Grid.Column="1" Margin="{StaticResource Margin.Left.lg}" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.lg}" VerticalAlignment="Top">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -47,90 +44,80 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
-                        <Border Background="{StaticResource PrimaryIndigoBrush}" Padding="16,12" CornerRadius="12,12,0,0">
-                            <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="InformationOutline" Foreground="White" VerticalAlignment="Center"/>
-                                <TextBlock Text="Thông tin chứng từ" Foreground="White" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"/>
-                            </StackPanel>
-                        </Border>
+                        <StackPanel Orientation="Horizontal" Margin="{StaticResource Margin.Bottom.lg}">
+                            <materialDesign:PackIcon Kind="InformationOutline" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Text="THÔNG TIN CHỨNG TỪ" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppPrimaryBrush}" Margin="{StaticResource Margin.Left.sm}" VerticalAlignment="Center"/>
+                        </StackPanel>
 
-                        <Border Grid.Row="1" Padding="20">
-                            <StackPanel>
-                                <TextBox materialDesign:HintAssist.Hint="Mã chứng từ" 
-                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                                         Text="{Binding DocumentCode}" Margin="0,0,0,16"
-                                         IsReadOnly="True"/>
+                        <StackPanel Grid.Row="1">
+                            <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}" materialDesign:HintAssist.Hint="Mã chứng từ (Tự động)" 
+                                     Text="{Binding DocumentCode}" Margin="{StaticResource Margin.Bottom.md}"
+                                     IsReadOnly="True"/>
 
-                                <ComboBox materialDesign:HintAssist.Hint="Kho hàng" 
-                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"
-                                          SelectedValue="{Binding WarehouseId}"
-                                          SelectedValuePath="Id" DisplayMemberPath="DisplayName"
-                                          Margin="0,0,0,16">
-                                    <ComboBoxItem Content="Kho tổng" IsSelected="True" Tag="1"/>
-                                </ComboBox>
+                            <ComboBox Style="{StaticResource MaterialDesignOutlinedComboBox}" materialDesign:HintAssist.Hint="Kho hàng điều chỉnh" 
+                                      SelectedValue="{Binding WarehouseId}"
+                                      SelectedValuePath="Id" DisplayMemberPath="DisplayName"
+                                      Margin="{StaticResource Margin.Bottom.md}">
+                                <ComboBoxItem Content="Kho tổng" IsSelected="True" Tag="1"/>
+                            </ComboBox>
 
-                                <TextBox materialDesign:HintAssist.Hint="Lý do điều chỉnh" 
-                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                                         AcceptsReturn="True" TextWrapping="Wrap" Height="100"
-                                         VerticalContentAlignment="Top"
-                                         Text="{Binding ReasonCode, UpdateSourceTrigger=PropertyChanged}"
-                                         Margin="0,0,0,16"/>
+                            <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}" materialDesign:HintAssist.Hint="Lý do / Ghi chú" 
+                                     AcceptsReturn="True" TextWrapping="Wrap" Height="120"
+                                     VerticalContentAlignment="Top"
+                                     Text="{Binding ReasonCode, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="{StaticResource Margin.Bottom.md}"/>
 
-                                <TextBlock Text="{Binding StatusMessage}" Foreground="#EF5350" FontSize="12" TextWrapping="Wrap" HorizontalAlignment="Center"/>
-                            </StackPanel>
-                        </Border>
+                            <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource AppErrorBrush}" 
+                                       Style="{StaticResource TypographyCaption}" HorizontalAlignment="Center" FontWeight="SemiBold"/>
+                        </StackPanel>
 
-                        <Border Grid.Row="2" Padding="20" Background="#F9FAFB" CornerRadius="0,0,12,12" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
-                            <Button Content="LƯU PHIẾU" Command="{Binding SaveAdjustmentCommand}"
-                                    Style="{StaticResource MaterialDesignRaisedButton}"
-                                    Background="{StaticResource PrimaryIndigoBrush}" BorderBrush="{StaticResource PrimaryIndigoBrush}"
-                                    Height="44" materialDesign:ButtonAssist.CornerRadius="8"/>
-                        </Border>
+                        <StackPanel Grid.Row="2" Margin="{StaticResource Margin.Top.lg}">
+                            <Button Content="LƯU PHIẾU ĐIỀU CHỈNH" Command="{Binding SaveAdjustmentCommand}"
+                                    Style="{StaticResource AppPrimaryButton}"/>
+                        </StackPanel>
                     </Grid>
                 </materialDesign:Card>
 
                 <!-- Main: Adjustment Lines (LEFT) -->
-                <materialDesign:Card Grid.Column="0" Margin="0,0,12,0" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2">
+                <materialDesign:Card Grid.Column="0" Margin="{StaticResource Margin.Right.lg}" Style="{StaticResource AppCard}" Padding="0">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
 
-                        <Border Padding="20,16" Background="#EEF2FF" BorderBrush="#E0E7FF" BorderThickness="0,0,0,1" CornerRadius="12,12,0,0">
+                        <Border Padding="{StaticResource Spacing.md}" Background="{StaticResource AppSurfaceBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1">
                             <Grid>
                                 <StackPanel Orientation="Horizontal">
-                                    <materialDesign:PackIcon Kind="FormatListBulleted" VerticalAlignment="Center" Foreground="{StaticResource PrimaryIndigoBrush}"/>
-                                    <TextBlock Text="DANH SÁCH SẢN PHẨM ĐIỀU CHỈNH" VerticalAlignment="Center" FontWeight="SemiBold" Margin="12,0,0,0" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                    <materialDesign:PackIcon Kind="FormatListBulleted" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
+                                    <TextBlock Text="DANH SÁCH SẢN PHẨM" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Left.md}" Foreground="{StaticResource AppPrimaryBrush}"/>
                                 </StackPanel>
                                 <Button HorizontalAlignment="Right" Content="THÊM DÒNG" 
                                         Command="{Binding AddLineCommand}"
-                                        Style="{StaticResource MaterialDesignOutlinedButton}"
-                                        BorderBrush="{StaticResource PrimaryIndigoBrush}" Foreground="{StaticResource PrimaryIndigoBrush}"
-                                        Height="32" Padding="12,0" FontSize="12" materialDesign:ButtonAssist.CornerRadius="6"/>
+                                        Style="{StaticResource AppSecondaryButton}"
+                                        Height="32" Padding="12,0" FontSize="12"/>
                             </Grid>
                         </Border>
 
                         <DataGrid Grid.Row="1" ItemsSource="{Binding Lines}" AutoGenerateColumns="False" 
-                                  CanUserAddRows="False" SelectionMode="Single" Margin="0"
-                                  Style="{StaticResource MaterialDesignDataGrid}" BorderThickness="0">
+                                  CanUserAddRows="False" SelectionMode="Single" BorderThickness="0" RowHeight="28">
                             <DataGrid.Columns>
-                                <DataGridTemplateColumn Header="Sản phẩm" Width="*">
+                                <DataGridTemplateColumn Header="SẢN PHẨM" Width="*">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <ComboBox ItemsSource="{Binding DataContext.AvailableProducts, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                       SelectedItem="{Binding SelectedProduct, UpdateSourceTrigger=PropertyChanged}"
                                                       DisplayMemberPath="DisplayName"
-                                                      materialDesign:TextFieldAssist.DecorationVisibility="Collapsed" BorderThickness="0" Padding="8,4"/>
+                                                      materialDesign:TextFieldAssist.DecorationVisibility="Collapsed" BorderThickness="0" Padding="{StaticResource Spacing.sm}"/>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="Hướng" Width="100">
+                                <DataGridTemplateColumn Header="HƯỚNG" Width="120">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <ComboBox SelectedValue="{Binding Direction, UpdateSourceTrigger=PropertyChanged}"
-                                                      SelectedValuePath="Tag" materialDesign:TextFieldAssist.DecorationVisibility="Collapsed" BorderThickness="0">
+                                                      SelectedValuePath="Tag" materialDesign:TextFieldAssist.DecorationVisibility="Collapsed" BorderThickness="0" Padding="{StaticResource Spacing.sm}">
                                                 <ComboBoxItem Content="Nhập (+)" Tag="In"/>
                                                 <ComboBoxItem Content="Xuất (-)" Tag="Out"/>
                                             </ComboBox>
@@ -138,9 +125,9 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <materialDesign:DataGridTextColumn Header="Số lượng" Binding="{Binding Quantity}" 
-                                                                   ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"
-                                                                   Width="100"/>
+                                <DataGridTextColumn Header="SỐ LƯỢNG" Binding="{Binding Quantity}" 
+                                                   ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"
+                                                   Width="120" FontWeight="Bold"/>
 
                                 <DataGridTemplateColumn Width="60">
                                     <DataGridTemplateColumn.CellTemplate>
@@ -148,7 +135,7 @@
                                             <Button Style="{StaticResource MaterialDesignIconButton}"
                                                     Command="{Binding DataContext.RemoveLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}"
-                                                    Foreground="#EF5350" Width="32" Height="32">
+                                                    Foreground="{StaticResource AppErrorBrush}" Width="32" Height="32">
                                                 <materialDesign:PackIcon Kind="DeleteOutline" Width="20" Height="20"/>
                                             </Button>
                                         </DataTemplate>

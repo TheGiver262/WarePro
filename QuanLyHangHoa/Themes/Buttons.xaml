@@ -1,0 +1,40 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+
+    <!-- Global Button Style Override -->
+    <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignRaisedButton}">
+        <Setter Property="materialDesign:ButtonAssist.CornerRadius" Value="{StaticResource Radius.md}"/>
+        <Setter Property="Height" Value="40"/>
+        <Setter Property="Padding" Value="16,0"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="materialDesign:ElevationAssist.Elevation" Value="Dp0"/>
+    </Style>
+
+    <!-- Primary Button (Indigo/Tertiary) -->
+    <Style x:Key="AppPrimaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+        <Setter Property="Background" Value="{StaticResource AppTertiaryBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource AppTertiaryBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource TextOnPrimaryBrush}"/>
+        <Setter Property="Padding" Value="20,12"/>
+        <Setter Property="Height" Value="Auto"/>
+        <Setter Property="MinHeight" Value="40"/>
+    </Style>
+
+    <!-- Secondary Button (Slate Outline) -->
+    <Style x:Key="AppSecondaryButton" TargetType="Button" BasedOn="{StaticResource MaterialDesignOutlinedButton}">
+        <Setter Property="materialDesign:ButtonAssist.CornerRadius" Value="{StaticResource Radius.md}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource AppSecondaryBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource AppSecondaryBrush}"/>
+        <Setter Property="Height" Value="40"/>
+    </Style>
+
+    <!-- Danger Button -->
+    <Style x:Key="AppDangerButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+        <Setter Property="Background" Value="{StaticResource AppErrorBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource AppErrorBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource TextOnPrimaryBrush}"/>
+    </Style>
+
+</ResourceDictionary>
