@@ -70,11 +70,11 @@
                     <DataGrid ItemsSource="{Binding Summaries}" AutoGenerateColumns="False" 
                               CanUserAddRows="False" IsReadOnly="True" BorderThickness="0" RowHeight="28">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="MÃ" Binding="{Binding PartyId}" Width="100" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
-                            <DataGridTextColumn Header="TÊN ĐỐI TÁC" Binding="{Binding PartyName}" Width="*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                            <DataGridTextColumn Header="TỔNG GIAO DỊCH" Binding="{Binding TotalAmount, StringFormat=N0}" Width="150" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnRightElementStyle}"/>
-                            <DataGridTextColumn Header="ĐÃ THANH TOÁN" Binding="{Binding PaidAmount, StringFormat=N0}" Width="150" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnRightElementStyle}"/>
-                            <DataGridTextColumn Header="CÒN NỢ" Binding="{Binding DebtAmount, StringFormat=N0}" Width="150" FontWeight="Bold">
+                            <DataGridTextColumn Header="MÃ" Binding="{Binding PartnerCode}" Width="100" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
+                            <DataGridTextColumn Header="TÊN ĐỐI TÁC" Binding="{Binding PartnerName}" Width="*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+                            <DataGridTextColumn Header="TỔNG GIAO DỊCH" Binding="{Binding TotalBilled, StringFormat=N0}" Width="150" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnRightElementStyle}"/>
+                            <DataGridTextColumn Header="ĐÃ THANH TOÁN" Binding="{Binding TotalPaid, StringFormat=N0}" Width="150" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnRightElementStyle}"/>
+                            <DataGridTextColumn Header="CÒN NỢ" Binding="{Binding Balance, StringFormat=N0}" Width="150" FontWeight="Bold">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock" BasedOn="{StaticResource MaterialDesignDataGridTextColumnRightElementStyle}">
                                         <Setter Property="Foreground" Value="{StaticResource AppDangerBrush}"/>

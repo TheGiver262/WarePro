@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using QuanLyHangHoa.Models;
@@ -40,6 +41,14 @@ namespace QuanLyHangHoa.ViewModels
         private void LoadData()
         {
             var list = _userService.GetAllUsers();
+            if (!string.IsNullOrWhiteSpace(SearchText))
+            {
+                var term = SearchText.ToLower();
+                list = list.Where(u => 
+                    (u.FullName != null && u.FullName.ToLower().Contains(term)) || 
+                    (u.Username != null && u.Username.ToLower().Contains(term))
+                ).ToList();
+            }
             Users = new ObservableCollection<AppUser>(list);
         }
 
@@ -117,6 +126,10 @@ namespace QuanLyHangHoa.ViewModels
                     PasswordHash = "" // Clear for UI safety, though service handles hash detection
                 };
             }
+        }
+        partial void OnSearchTextChanged(string value)
+        {
+            LoadData();
         }
     }
 }

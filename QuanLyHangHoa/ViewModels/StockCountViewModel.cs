@@ -21,8 +21,8 @@ namespace QuanLyHangHoa.ViewModels
         private readonly StockCountService _stockCountService;
         private readonly AppUser _currentUser;
 
-        [ObservableProperty] private ObservableCollection<Product> _availableProducts;
-        [ObservableProperty] private ObservableCollection<StockCountLineEditor> _lines;
+        [ObservableProperty] private ObservableCollection<Product> _availableProducts = new();
+        [ObservableProperty] private ObservableCollection<StockCountLineEditor> _lines = new();
         [ObservableProperty] private string _sessionCode = string.Empty;
         [ObservableProperty] private int _warehouseId = 1;
         [ObservableProperty] private DateTime _countDate = DateTime.Now;
@@ -37,7 +37,6 @@ namespace QuanLyHangHoa.ViewModels
             _productService = new ProductService();
             _stockCountService = new StockCountService();
             LoadData();
-            Lines = new ObservableCollection<StockCountLineEditor>();
             SessionCode = CreateDefaultSessionCode();
         }
 

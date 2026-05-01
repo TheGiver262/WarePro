@@ -62,7 +62,7 @@ namespace QuanLyHangHoa.ViewModels
             if (!string.IsNullOrWhiteSpace(SearchText))
             {
                 loaded = loaded.Where(x => 
-                    (x.DisplayName != null && x.DisplayName.Contains(SearchText, StringComparison.OrdinalIgnoreCase)) ||
+                    (x.PartnerName != null && x.PartnerName.Contains(SearchText, StringComparison.OrdinalIgnoreCase)) ||
                     (x.PhoneNumber != null && x.PhoneNumber.Contains(SearchText, StringComparison.OrdinalIgnoreCase))
                 ).ToList();
             }

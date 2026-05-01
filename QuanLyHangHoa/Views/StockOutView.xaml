@@ -52,8 +52,8 @@
                 <Border Grid.Column="0" Background="{StaticResource AppSurfaceBrush}" CornerRadius="{StaticResource Radius.md}" Height="40" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1">
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <Grid.ColumnDefinition Width="Auto"/>
-                            <Grid.ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <materialDesign:PackIcon Kind="Search" VerticalAlignment="Center" Margin="{StaticResource Padding.sm}" Foreground="{StaticResource AppSecondaryBrush}"/>
                         <TextBox Grid.Column="1" VerticalAlignment="Center" BorderThickness="0" 
