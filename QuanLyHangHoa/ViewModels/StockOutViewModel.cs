@@ -34,6 +34,7 @@ namespace QuanLyHangHoa.ViewModels
 
         [ObservableProperty] private ObservableCollection<Product> _availableProducts;
         [ObservableProperty] private ObservableCollection<StockOutLineEditor> _lines = new();
+        [ObservableProperty] private string _searchText = string.Empty;
         [ObservableProperty] private string _documentCode = string.Empty;
         [ObservableProperty] private int _warehouseId = 1;
         [ObservableProperty] private string _statusMessage = string.Empty;

@@ -11,33 +11,49 @@
         <Grid Margin="{StaticResource Spacing.lg}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <!-- Header / Toolbar -->
-            <materialDesign:Card Grid.Row="0" Margin="{StaticResource Margin.Bottom.lg}" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.md}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+            <!-- Row 0: Header Section (Transparent) -->
+            <Grid Grid.Row="0" Margin="{StaticResource Margin.Bottom.md}">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="ShieldCheck" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
+                    <TextBlock Text="QUẢN LÝ BẢO HÀNH" Style="{StaticResource TypographyH2}" Foreground="{StaticResource AppPrimaryBrush}" Margin="{StaticResource Margin.Left.md}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Button Content="TẠO PHIẾU MỚI" Command="{Binding CreateWarrantyCommand}" Style="{StaticResource AppPrimaryButton}"/>
+                </StackPanel>
+            </Grid>
 
-                    <StackPanel Orientation="Horizontal">
-                        <materialDesign:PackIcon Kind="ShieldCheck" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
-                        <TextBlock Text="QUẢN LÝ BẢO HÀNH" Style="{StaticResource TypographyH2}" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.md}" Foreground="{StaticResource AppPrimaryBrush}"/>
-                    </StackPanel>
+            <!-- Row 1: Search Row (Integrated Search) -->
+            <Grid Grid.Row="1" Margin="{StaticResource Margin.Bottom.md}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Background="{StaticResource AppSurfaceBrush}" CornerRadius="{StaticResource Radius.md}" Height="40" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <materialDesign:PackIcon Kind="Search" VerticalAlignment="Center" Margin="{StaticResource Padding.sm}" Foreground="{StaticResource AppSecondaryBrush}"/>
+                        <TextBox Grid.Column="1" VerticalAlignment="Center" BorderThickness="0" 
+                                 materialDesign:TextFieldAssist.DecorationVisibility="Collapsed" 
+                                 materialDesign:HintAssist.Hint="Tìm kiếm theo mã phiếu, serial/IMEI..." 
+                                 FontSize="14" Background="Transparent"
+                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}">
+                            <TextBox.InputBindings>
+                                <KeyBinding Key="Enter" Command="{Binding LoadDataCommand}"/>
+                            </TextBox.InputBindings>
+                        </TextBox>
+                    </Grid>
+                </Border>
+                <Button Grid.Column="1" Content="TÌM KIẾM" Command="{Binding LoadDataCommand}" Style="{StaticResource AppSecondaryButton}" Margin="{StaticResource Margin.Left.sm}" Height="40"/>
+            </Grid>
 
-                    <StackPanel Grid.Column="1" Orientation="Horizontal">
-                        <TextBox Width="280" materialDesign:HintAssist.Hint="Tìm theo Serial/IMEI..." 
-                                 Style="{StaticResource MaterialDesignOutlinedTextBox}" Margin="{StaticResource Margin.Right.md}"
-                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"/>
-                        <Button Content="TẠO PHIẾU MỚI" Command="{Binding CreateWarrantyCommand}" 
-                                Style="{StaticResource AppPrimaryButton}"/>
-                    </StackPanel>
-                </Grid>
-            </materialDesign:Card>
-
-            <Grid Grid.Row="1">
+            <Grid Grid.Row="2">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="400"/>

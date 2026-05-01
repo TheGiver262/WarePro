@@ -11,11 +11,12 @@
         <Grid Margin="{StaticResource Spacing.lg}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
             <!-- Header / Toolbar -->
-            <materialDesign:Card Grid.Row="0" Margin="{StaticResource Margin.Bottom.md}" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.sm}">
+            <materialDesign:Card Grid.Row="0" Margin="{StaticResource Margin.Bottom.md}" Background="Transparent" materialDesign:ShadowAssist.ShadowDepth="Depth0" Padding="{StaticResource Spacing.sm}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -24,17 +25,45 @@
 
                     <StackPanel Orientation="Horizontal">
                         <materialDesign:PackIcon Kind="Label" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
-                        <TextBlock Text="QUẢN LÝ THƯƠNG HIỆU" Style="{StaticResource TypographyH2}" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.sm}" Foreground="{StaticResource AppPrimaryBrush}"/>
+                        <TextBlock Text="THƯƠNG HIỆU" Style="{StaticResource TypographyH2}" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.sm}" Foreground="{StaticResource AppPrimaryBrush}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
-                        <Button Content="THÊM THƯƠNG HIỆU" Command="{Binding ClearInputCommand}" 
+                        <Button Content="THÊM MỚI" Command="{Binding ClearCommand}" 
                                 Style="{StaticResource AppPrimaryButton}"/>
                     </StackPanel>
                 </Grid>
             </materialDesign:Card>
 
-            <Grid Grid.Row="1">
+            <!-- Search Row -->
+            <Grid Grid.Row="1" Margin="{StaticResource Margin.Bottom.md}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Background="{StaticResource AppSurfaceBrush}" CornerRadius="{StaticResource Radius.md}" Height="40" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <materialDesign:PackIcon Kind="Search" VerticalAlignment="Center" Margin="{StaticResource Padding.sm}" Foreground="{StaticResource AppSecondaryBrush}"/>
+                        <TextBox Grid.Column="1" VerticalAlignment="Center" BorderThickness="0" 
+                                 materialDesign:TextFieldAssist.DecorationVisibility="Collapsed" 
+                                 materialDesign:HintAssist.Hint="Tìm kiếm thương hiệu..." 
+                                 FontSize="14" Background="Transparent"
+                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}">
+                            <TextBox.InputBindings>
+                                <KeyBinding Key="Enter" Command="{Binding LoadDataCommand}"/>
+                            </TextBox.InputBindings>
+                        </TextBox>
+                    </Grid>
+                </Border>
+                <Button Grid.Column="1" Content="TÌM KIẾM" Command="{Binding LoadDataCommand}" Style="{StaticResource AppSecondaryButton}" Margin="{StaticResource Margin.Left.sm}" Height="40"/>
+            </Grid>
+
+            <Grid Grid.Row="2">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="380"/>
@@ -46,9 +75,9 @@
                                AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                                BorderThickness="0" RowHeight="28">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="Auto" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
-                            <DataGridTextColumn Header="TÊN THƯƠNG HIỆU" Binding="{Binding Name}" Width="*" FontWeight="SemiBold"/>
-                            <DataGridTextColumn Header="GHI CHÚ" Binding="{Binding Description}" Width="2*"/>
+                            <DataGridTextColumn Header="MÃ" Binding="{Binding BrandCode}" Width="Auto" FontWeight="SemiBold"/>
+                            <DataGridTextColumn Header="TÊN THƯƠNG HIỆU" Binding="{Binding DisplayName}" Width="*" />
+                            <DataGridTextColumn Header="TRẠNG THÁI" Binding="{Binding IsActive}" Width="Auto"/>
                         </DataGrid.Columns>
                     </DataGrid>
                 </materialDesign:Card>
@@ -64,22 +93,20 @@
 
                         <StackPanel Orientation="Horizontal" Margin="{StaticResource Margin.Bottom.lg}">
                             <materialDesign:PackIcon Kind="Edit" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
-                            <TextBlock Text="THÔNG TIN CHI TIẾT" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppPrimaryBrush}" Margin="{StaticResource Margin.Left.sm}" VerticalAlignment="Center"/>
+                            <TextBlock Text="CHI TIẾT THƯƠNG HIỆU" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppPrimaryBrush}" Margin="{StaticResource Margin.Left.sm}" VerticalAlignment="Center"/>
                         </StackPanel>
 
                         <StackPanel Grid.Row="1">
+                            <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}" materialDesign:HintAssist.Hint="Mã thương hiệu" Margin="{StaticResource Margin.Bottom.md}" 
+                                     Text="{Binding BrandCode}"/>
                             <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}" materialDesign:HintAssist.Hint="Tên thương hiệu" Margin="{StaticResource Margin.Bottom.md}" 
-                                     Text="{Binding CurrentInputBrand.Name}"/>
-                            
-                            <TextBox Style="{StaticResource MaterialDesignOutlinedTextBox}" materialDesign:HintAssist.Hint="Ghi chú / Mô tả" 
-                                     Height="120" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
-                                     Text="{Binding CurrentInputBrand.Description}" VerticalContentAlignment="Top"/>
+                                     Text="{Binding DisplayName}"/>
                         </StackPanel>
 
                         <StackPanel Grid.Row="2" Margin="{StaticResource Margin.Top.lg}">
-                            <Button Content="LƯU THƯƠNG HIỆU" Command="{Binding SaveBrandCommand}" 
+                            <Button Content="LƯU THÔNG TIN" Command="{Binding SaveCommand}" 
                                     Style="{StaticResource AppPrimaryButton}" Margin="{StaticResource Margin.Bottom.sm}"/>
-                            <Button Content="XÓA" Command="{Binding DeleteBrandCommand}" 
+                            <Button Content="VÔ HIỆU HÓA" Command="{Binding DeleteCommand}" 
                                     Style="{StaticResource AppDangerButton}"/>
                         </StackPanel>
                     </Grid>

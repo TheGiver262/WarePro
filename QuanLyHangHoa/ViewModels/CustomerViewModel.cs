@@ -21,6 +21,9 @@ namespace QuanLyHangHoa.ViewModels
         private Customer? _selectedCustomer;
 
         [ObservableProperty]
+        private string _searchText = string.Empty;
+
+        [ObservableProperty]
         private string _displayName = string.Empty;
 
         [ObservableProperty]
@@ -44,6 +47,11 @@ namespace QuanLyHangHoa.ViewModels
         private void LoadData()
         {
             var list = _service.GetAllCustomers();
+            if (!string.IsNullOrWhiteSpace(SearchText))
+            {
+                var term = SearchText.ToLower();
+                list = list.Where(c => c.DisplayName.ToLower().Contains(term) || c.CustomerCode.ToLower().Contains(term)).ToList();
+            }
             Customers = new ObservableCollection<Customer>(list);
         }
 
@@ -112,6 +120,11 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        partial void OnSearchTextChanged(string value) => LoadData();
+
+        [RelayCommand]
+        private void Search() => LoadData();
+
         private void Clear()
         {
             SelectedCustomer = null;

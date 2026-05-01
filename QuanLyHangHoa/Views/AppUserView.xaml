@@ -16,30 +16,56 @@
         <Grid Margin="{StaticResource Spacing.lg}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <!-- Header / Toolbar -->
-            <materialDesign:Card Grid.Row="0" Margin="{StaticResource Margin.Bottom.lg}" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.md}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+            <!-- Header Section (Transparent) -->
+            <Grid Grid.Row="0" Margin="{StaticResource Margin.Bottom.md}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
 
-                    <StackPanel Orientation="Horizontal">
-                        <materialDesign:PackIcon Kind="AccountSettings" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
-                        <TextBlock Text="QUẢN TRỊ TÀI KHOẢN" Style="{StaticResource TypographyH2}" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.md}" Foreground="{StaticResource AppPrimaryBrush}"/>
-                    </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="AccountSettings" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
+                    <TextBlock Text="QUẢN TRỊ TÀI KHOẢN" Style="{StaticResource TypographyH2}" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.md}" Foreground="{StaticResource AppPrimaryBrush}"/>
+                </StackPanel>
 
-                    <StackPanel Grid.Column="1" Orientation="Horizontal">
-                        <Button Content="THÊM NGƯỜI DÙNG" Command="{Binding ClearInputCommand}" 
-                                Style="{StaticResource AppPrimaryButton}"/>
-                    </StackPanel>
-                </Grid>
-            </materialDesign:Card>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="THÊM NGƯỜI DÙNG" Command="{Binding ClearInputCommand}" 
+                            Style="{StaticResource AppPrimaryButton}"/>
+                </StackPanel>
+            </Grid>
 
-            <Grid Grid.Row="1">
+            <!-- Search Row (Unified Standard) -->
+            <Grid Grid.Row="1" Margin="{StaticResource Margin.Bottom.md}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Background="{StaticResource AppSurfaceBrush}" CornerRadius="{StaticResource Radius.md}" Height="40" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <materialDesign:PackIcon Kind="Search" VerticalAlignment="Center" Margin="{StaticResource Spacing.sm}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <TextBox Grid.Column="1" VerticalAlignment="Center" BorderThickness="0" 
+                                 materialDesign:TextFieldAssist.DecorationVisibility="Collapsed" 
+                                 materialDesign:HintAssist.Hint="Tìm kiếm tài khoản..." FontSize="13" Background="Transparent"
+                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}">
+                            <TextBox.InputBindings>
+                                <KeyBinding Key="Enter" Command="{Binding SearchCommand}"/>
+                            </TextBox.InputBindings>
+                        </TextBox>
+                    </Grid>
+                </Border>
+                <Button Grid.Column="1" Content="TÌM KIẾM" Command="{Binding SearchCommand}" Style="{StaticResource AppPrimaryButton}" Margin="{StaticResource Margin.Left.sm}" Height="40"/>
+            </Grid>
+
+            <Grid Grid.Row="2">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="380"/>

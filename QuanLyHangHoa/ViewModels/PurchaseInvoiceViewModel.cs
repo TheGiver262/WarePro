@@ -48,6 +48,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private decimal _totalPaidAmount;
         [ObservableProperty] private decimal _totalDebtAmount;
         [ObservableProperty] private int _totalPurchaseCount;
+        [ObservableProperty] private string _searchText = string.Empty;
 
         private readonly MainViewModel? _mainViewModel;
 
@@ -60,17 +61,27 @@ namespace QuanLyHangHoa.ViewModels
             _productService = new ProductService();
             _refDataService = new ReferenceDataService();
 
-            LoadInitialData();
+            LoadData();
             ResetForm();
         }
 
-        private void LoadInitialData()
+        [RelayCommand]
+        public void LoadData()
         {
             AvailableProducts = new ObservableCollection<Product>(_productService.GetAllProducts());
             AvailableSuppliers = new ObservableCollection<Supplier>(_refDataService.GetAllSuppliers());
+            
             var allInvoices = _invoiceService.GetAllPurchaseInvoices();
-            Invoices = new ObservableCollection<PurchaseInvoice>(allInvoices);
+            if (!string.IsNullOrWhiteSpace(SearchText))
+            {
+                allInvoices = allInvoices.Where(i => 
+                    (i.InvoiceCode != null && i.InvoiceCode.Contains(SearchText, StringComparison.OrdinalIgnoreCase)) ||
+                    (i.Supplier != null && i.Supplier.DisplayName != null && i.Supplier.DisplayName.Contains(SearchText, StringComparison.OrdinalIgnoreCase)) ||
+                    (i.Notes != null && i.Notes.Contains(SearchText, StringComparison.OrdinalIgnoreCase))
+                ).ToList();
+            }
 
+            Invoices = new ObservableCollection<PurchaseInvoice>(allInvoices);
             UpdateSummaries(allInvoices);
         }
 
@@ -141,7 +152,7 @@ namespace QuanLyHangHoa.ViewModels
 
                 _invoiceService.SavePurchaseInvoice(invoice);
                 MessageBox.Show("Lưu hóa đơn mua hàng thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
-                LoadInitialData(); // Refresh list and summaries
+                LoadData(); // Refresh list and summaries
                 ResetForm();
             }
             catch (Exception ex)

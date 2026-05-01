@@ -13,24 +13,21 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <!-- Header Section -->
-            <materialDesign:Card Grid.Row="0" Margin="{StaticResource Margin.Bottom.md}" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.md}">
-                <Grid>
-                    <StackPanel Orientation="Horizontal">
-                        <materialDesign:PackIcon Kind="History" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
-                        <TextBlock Text="ĐẢO CHỨNG TỪ KHO" Style="{StaticResource TypographyH2}" Foreground="{StaticResource AppPrimaryBrush}" Margin="12,0,0,0" VerticalAlignment="Center"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                        <materialDesign:PackIcon Kind="Alert" Foreground="{StaticResource AppErrorBrush}" VerticalAlignment="Center" Margin="{StaticResource Margin.Right.sm}"/>
-                        <TextBlock Text="Cần thận trọng" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppErrorBrush}" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Grid>
-            </materialDesign:Card>
+            <!-- Row 0: Header Section (Transparent) -->
+            <Grid Grid.Row="0" Margin="{StaticResource Margin.Bottom.md}">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="History" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
+                    <TextBlock Text="ĐẢO CHỨNG TỪ KHO" Style="{StaticResource TypographyH2}" Foreground="{StaticResource AppPrimaryBrush}" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <materialDesign:PackIcon Kind="Alert" Foreground="{StaticResource AppErrorBrush}" VerticalAlignment="Center" Margin="{StaticResource Margin.Right.sm}"/>
+                    <TextBlock Text="Cần thận trọng" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppErrorBrush}" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
 
-            <!-- Action Card -->
+            <!-- Row 1: Action Card (Standardized Position) -->
             <materialDesign:Card Grid.Row="1" Margin="{StaticResource Margin.Bottom.md}" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.lg}">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -41,14 +38,18 @@
 
                     <TextBox Grid.Column="0" Style="{StaticResource MaterialDesignOutlinedTextBox}" 
                               materialDesign:HintAssist.Hint="Mã chứng từ (DocumentId) cần đảo" Margin="{StaticResource Margin.Right.md}"
-                              Text="{Binding DocumentIdText, UpdateSourceTrigger=PropertyChanged}"/>
+                              Text="{Binding DocumentIdText, UpdateSourceTrigger=PropertyChanged}">
+                        <TextBox.InputBindings>
+                            <KeyBinding Key="Enter" Command="{Binding ReverseDocumentCommand}"/>
+                        </TextBox.InputBindings>
+                    </TextBox>
 
                     <TextBox Grid.Column="1" Style="{StaticResource MaterialDesignOutlinedTextBox}" 
                               materialDesign:HintAssist.Hint="Lý do đảo chứng từ" Margin="{StaticResource Margin.Right.md}"
                               Text="{Binding Reason, UpdateSourceTrigger=PropertyChanged}"/>
 
                     <Button Grid.Column="2" Content="ĐẢO CHỨNG TỪ" Command="{Binding ReverseDocumentCommand}" 
-                            Style="{StaticResource AppPrimaryButton}" Background="{StaticResource AppErrorBrush}" BorderBrush="{StaticResource AppErrorBrush}"
+                            Style="{StaticResource AppDangerButton}"
                             Height="48" Padding="24,0" VerticalAlignment="Bottom"/>
                 </Grid>
             </materialDesign:Card>

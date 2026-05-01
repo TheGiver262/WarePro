@@ -15,6 +15,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private bool _isCustomerMode = true;
         [ObservableProperty] private ObservableCollection<DebtReportEntry> _summaries = new();
         [ObservableProperty] private decimal _totalDebt;
+        [ObservableProperty] private string _searchText = string.Empty;
 
         public DebtReportViewModel()
         {
@@ -24,6 +25,12 @@ namespace QuanLyHangHoa.ViewModels
 
         public string ReportTitle => IsCustomerMode ? "Công nợ khách hàng" : "Công nợ nhà cung cấp";
         public string PartyColumnTitle => IsCustomerMode ? "Đối tác" : "Đối tác";
+
+        [RelayCommand]
+        public void LoadData()
+        {
+            LoadCurrentReport();
+        }
 
         [RelayCommand]
         private void ShowCustomers()
@@ -51,6 +58,15 @@ namespace QuanLyHangHoa.ViewModels
         private void LoadCurrentReport()
         {
             var loaded = IsCustomerMode ? _service.GetCustomerDebtReport() : _service.GetSupplierDebtReport();
+            
+            if (!string.IsNullOrWhiteSpace(SearchText))
+            {
+                loaded = loaded.Where(x => 
+                    (x.DisplayName != null && x.DisplayName.Contains(SearchText, StringComparison.OrdinalIgnoreCase)) ||
+                    (x.PhoneNumber != null && x.PhoneNumber.Contains(SearchText, StringComparison.OrdinalIgnoreCase))
+                ).ToList();
+            }
+
             Summaries = new ObservableCollection<DebtReportEntry>(loaded);
             TotalDebt = loaded.Sum(summary => summary.Balance);
         }

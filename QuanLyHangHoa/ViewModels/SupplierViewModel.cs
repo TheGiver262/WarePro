@@ -21,10 +21,26 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _editAddress = string.Empty;
         [ObservableProperty] private string _editPhone   = string.Empty;
         [ObservableProperty] private string _editEmail   = string.Empty;
+        [ObservableProperty] private string _searchText = string.Empty;
         [ObservableProperty] private string _statusMessage = string.Empty;
 
         public SupplierViewModel() => LoadData();
-        private void LoadData() => Suppliers = new ObservableCollection<Supplier>(_svc.GetAllSuppliers());
+
+        [RelayCommand]
+        private void LoadData()
+        {
+            var data = _svc.GetAllSuppliers();
+            if (!string.IsNullOrWhiteSpace(SearchText))
+            {
+                var lowerSearch = SearchText.ToLower().Trim();
+                data = data.FindAll(x => 
+                    (x.DisplayName?.ToLower().Contains(lowerSearch) ?? false) || 
+                    (x.SupplierCode?.ToLower().Contains(lowerSearch) ?? false) ||
+                    (x.Phone?.ToLower().Contains(lowerSearch) ?? false) ||
+                    (x.Email?.ToLower().Contains(lowerSearch) ?? false));
+            }
+            Suppliers = new ObservableCollection<Supplier>(data);
+        }
 
         [RelayCommand]
         private void Add()

@@ -21,8 +21,8 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty]
         private AppUser? _selectedUser;
 
-        [ObservableProperty]
-        private AppUser _currentInputUser;
+        [ObservableProperty] private AppUser _currentInputUser = new();
+        [ObservableProperty] private string _searchText = string.Empty;
 
         public AppUserViewModel()
             : this(null, new Data.AppDbContext())

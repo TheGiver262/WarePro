@@ -1,78 +1,96 @@
 <UserControl x:Class="QuanLyHangHoa.Views.DebtReportView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:vm="clr-namespace:QuanLyHangHoa.ViewModels"
+             mc:Ignorable="d" 
+             d:DesignHeight="800" d:DesignWidth="1200">
+
+    <UserControl.DataContext>
+        <vm:DebtReportViewModel />
+    </UserControl.DataContext>
+
     <Grid Background="{StaticResource AppBackgroundBrush}">
-        <Grid Margin="24">
+        <Grid Margin="{StaticResource Spacing.lg}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <materialDesign:Card Grid.Row="0" Style="{StaticResource AppCard}" Padding="16,8" Margin="0,0,0,24">
-                <DockPanel>
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <materialDesign:PackIcon Kind="AccountClock" Width="28" Height="28" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
-                        <TextBlock Text="{Binding ReportTitle}" FontSize="20" FontWeight="Bold" Foreground="{StaticResource AppTertiaryBrush}" Margin="12,0,0,0" VerticalAlignment="Center"/>
-                    </StackPanel>
-                    
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <Button Content="KHÁCH HÀNG" Command="{Binding ShowCustomersCommand}" 
-                                Style="{StaticResource MaterialDesignFlatButton}" Foreground="{StaticResource AppTertiaryBrush}" Margin="0,0,8,0"/>
-                        <Button Content="NHÀ CUNG CẤP" Command="{Binding ShowSuppliersCommand}" 
-                                Style="{StaticResource MaterialDesignFlatButton}" Foreground="{StaticResource AppTertiaryBrush}" Margin="0,0,8,0"/>
-                        <Button Content="TẢI LẠI" Command="{Binding RefreshCommand}" 
-                                Style="{StaticResource MaterialDesignRaisedButton}" materialDesign:ButtonAssist.CornerRadius="8" Height="36"/>
-                    </StackPanel>
-                </DockPanel>
-            </materialDesign:Card>
-
-            <materialDesign:Card Grid.Row="1" Style="{StaticResource AppCard}" Padding="20" Margin="0,0,0,20" Background="#F0F9FF">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Orientation="Horizontal">
-                        <materialDesign:PackIcon Kind="InformationOutline" Foreground="#0369A1" VerticalAlignment="Center"/>
-                        <TextBlock Text="Báo cáo chỉ hiển thị các đối tác hiện đang còn dư nợ chưa thanh toán hết." 
-                                   Foreground="#0C4A6E" VerticalAlignment="Center" Margin="8,0,0,0" FontSize="14"/>
-                    </StackPanel>
-                    <StackPanel Grid.Column="1" Orientation="Horizontal">
-                        <TextBlock Text="TỔNG DƯ NỢ:" Foreground="#0369A1" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                        <TextBlock Text="{Binding TotalDebt, StringFormat='N0'}" Foreground="#C2410C" FontSize="20" FontWeight="Bold" VerticalAlignment="Center"/>
-                        <TextBlock Text=" VNĐ" Foreground="#0369A1" FontSize="12" VerticalAlignment="Bottom" Margin="4,0,0,4"/>
-                    </StackPanel>
-                </Grid>
-            </materialDesign:Card>
-
-            <materialDesign:Card Grid.Row="2" Style="{StaticResource AppCard}" Padding="0">
-                <DataGrid ItemsSource="{Binding Summaries}" AutoGenerateColumns="False" 
-                          CanUserAddRows="False" IsReadOnly="True" Style="{StaticResource MaterialDesignDataGrid}" 
-                          BorderThickness="0" RowHeight="28">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="Mã" Binding="{Binding PartyId}" Width="100" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
-                        <DataGridTextColumn Header="Tên Đối Tác" Binding="{Binding PartyName}" Width="*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                        <DataGridTextColumn Header="Tổng Giao Dịch" Binding="{Binding TotalAmount, StringFormat=N0}" Width="150" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnRightElementStyle}"/>
-                        <DataGridTextColumn Header="Đã Thanh Toán" Binding="{Binding PaidAmount, StringFormat=N0}" Width="150" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnRightElementStyle}"/>
-                        <DataGridTextColumn Header="Còn Nợ" Binding="{Binding DebtAmount, StringFormat=N0}" Width="150" FontWeight="Bold">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock" BasedOn="{StaticResource MaterialDesignDataGridTextColumnRightElementStyle}">
-                                    <Setter Property="Foreground" Value="#EF4444"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </materialDesign:Card>
-
-            <materialDesign:Card Grid.Row="3" Margin="0,20,0,0" UniformCornerRadius="8" Padding="12" Background="{StaticResource PrimaryHueLightBrush}">
+            <!-- Row 0: Header Section (Transparent) -->
+            <Grid Grid.Row="0" Margin="{StaticResource Margin.Bottom.md}">
                 <StackPanel Orientation="Horizontal">
-                    <materialDesign:PackIcon Kind="Information" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource AppTertiaryBrush}" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                    <materialDesign:PackIcon Kind="BankTransfer" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
+                    <TextBlock Text="{Binding ReportTitle}" Style="{StaticResource TypographyH2}" Foreground="{StaticResource AppPrimaryBrush}" Margin="{StaticResource Margin.Left.md}" VerticalAlignment="Center"/>
                 </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <RadioButton Content="KHÁCH HÀNG" Command="{Binding ShowCustomersCommand}" IsChecked="{Binding IsCustomerMode}" Style="{StaticResource MaterialDesignTabRadioButton}" Margin="{StaticResource Margin.Right.md}"/>
+                    <RadioButton Content="NHÀ CUNG CẤP" Command="{Binding ShowSuppliersCommand}" IsChecked="{Binding IsCustomerMode, Converter={StaticResource InverseBooleanConverter}}" Style="{StaticResource MaterialDesignTabRadioButton}"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- Row 1: Search Row (Integrated Search) -->
+            <Grid Grid.Row="1" Margin="{StaticResource Margin.Bottom.md}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Background="{StaticResource AppSurfaceBrush}" CornerRadius="{StaticResource Radius.md}" Height="40" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <materialDesign:PackIcon Kind="Search" VerticalAlignment="Center" Margin="{StaticResource Padding.sm}" Foreground="{StaticResource AppSecondaryBrush}"/>
+                        <TextBox Grid.Column="1" VerticalAlignment="Center" BorderThickness="0" 
+                                 materialDesign:TextFieldAssist.DecorationVisibility="Collapsed" 
+                                 materialDesign:HintAssist.Hint="Tìm kiếm theo tên đối tác, số điện thoại..." 
+                                 FontSize="14" Background="Transparent"
+                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}">
+                            <TextBox.InputBindings>
+                                <KeyBinding Key="Enter" Command="{Binding LoadDataCommand}"/>
+                            </TextBox.InputBindings>
+                        </TextBox>
+                    </Grid>
+                </Border>
+                <Button Grid.Column="1" Content="TÌM KIẾM" Command="{Binding LoadDataCommand}" Style="{StaticResource AppSecondaryButton}" Margin="{StaticResource Margin.Left.sm}" Height="40"/>
+            </Grid>
+
+            <!-- Row 2: Data Table -->
+            <materialDesign:Card Grid.Row="2" Style="{StaticResource AppCard}" Padding="0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    
+                    <DataGrid ItemsSource="{Binding Summaries}" AutoGenerateColumns="False" 
+                              CanUserAddRows="False" IsReadOnly="True" BorderThickness="0" RowHeight="28">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="MÃ" Binding="{Binding PartyId}" Width="100" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
+                            <DataGridTextColumn Header="TÊN ĐỐI TÁC" Binding="{Binding PartyName}" Width="*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+                            <DataGridTextColumn Header="TỔNG GIAO DỊCH" Binding="{Binding TotalAmount, StringFormat=N0}" Width="150" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnRightElementStyle}"/>
+                            <DataGridTextColumn Header="ĐÃ THANH TOÁN" Binding="{Binding PaidAmount, StringFormat=N0}" Width="150" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnRightElementStyle}"/>
+                            <DataGridTextColumn Header="CÒN NỢ" Binding="{Binding DebtAmount, StringFormat=N0}" Width="150" FontWeight="Bold">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource MaterialDesignDataGridTextColumnRightElementStyle}">
+                                        <Setter Property="Foreground" Value="{StaticResource AppDangerBrush}"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <Border Grid.Row="1" Padding="{StaticResource Spacing.md}" Background="{StaticResource AppBackgroundBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Information" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource AppTertiaryBrush}" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
             </materialDesign:Card>
         </Grid>
     </Grid>

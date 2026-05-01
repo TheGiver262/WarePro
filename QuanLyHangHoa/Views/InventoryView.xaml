@@ -13,44 +13,57 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <!-- Header Section -->
-            <materialDesign:Card Grid.Row="0" Margin="{StaticResource Margin.Bottom.lg}" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.md}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+            <!-- Header Section (Transparent) -->
+            <Grid Grid.Row="0" Margin="{StaticResource Margin.Bottom.md}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
 
-                    <StackPanel Orientation="Horizontal">
-                        <materialDesign:PackIcon Kind="Warehouse" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
-                        <TextBlock Text="BÁO CÁO TỒN KHO" Style="{StaticResource TypographyH2}" Margin="{StaticResource Margin.Left.md}" VerticalAlignment="Center" Foreground="{StaticResource AppPrimaryBrush}"/>
-                    </StackPanel>
-                    
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border Background="{StaticResource AppSurfaceBrush}" CornerRadius="{StaticResource Radius.md}" Width="300" Height="40" Margin="{StaticResource Margin.Right.md}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <materialDesign:PackIcon Kind="Search" VerticalAlignment="Center" Margin="{StaticResource Spacing.sm}" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                <TextBox Grid.Column="1" VerticalAlignment="Center" BorderThickness="0" 
-                                         materialDesign:TextFieldAssist.DecorationVisibility="Collapsed" 
-                                         materialDesign:HintAssist.Hint="Tìm kiếm..." FontSize="13" Background="Transparent"
-                                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"/>
-                            </Grid>
-                        </Border>
-                        <Button Content="TẢI LẠI DỮ LIỆU" Command="{Binding RefreshCommand}" 
-                                Style="{StaticResource AppSecondaryButton}"/>
-                    </StackPanel>
-                </Grid>
-            </materialDesign:Card>
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="Warehouse" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
+                    <TextBlock Text="BÁO CÁO TỒN KHO" Style="{StaticResource TypographyH2}" Margin="{StaticResource Margin.Left.md}" VerticalAlignment="Center" Foreground="{StaticResource AppPrimaryBrush}"/>
+                </StackPanel>
+                
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="TẢI LẠI DỮ LIỆU" Command="{Binding RefreshCommand}" 
+                            Style="{StaticResource AppSecondaryButton}"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- Search Row (Unified Standard) -->
+            <Grid Grid.Row="1" Margin="{StaticResource Margin.Bottom.md}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Background="{StaticResource AppSurfaceBrush}" CornerRadius="{StaticResource Radius.md}" Height="40" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <materialDesign:PackIcon Kind="Search" VerticalAlignment="Center" Margin="{StaticResource Spacing.sm}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <TextBox Grid.Column="1" VerticalAlignment="Center" BorderThickness="0" 
+                                 materialDesign:TextFieldAssist.DecorationVisibility="Collapsed" 
+                                 materialDesign:HintAssist.Hint="Tìm kiếm sản phẩm hoặc mã sản phẩm..." FontSize="13" Background="Transparent"
+                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}">
+                            <TextBox.InputBindings>
+                                <KeyBinding Key="Enter" Command="{Binding RefreshCommand}"/>
+                            </TextBox.InputBindings>
+                        </TextBox>
+                    </Grid>
+                </Border>
+                <Button Grid.Column="1" Content="TÌM KIẾM" Command="{Binding RefreshCommand}" Style="{StaticResource AppPrimaryButton}" Margin="{StaticResource Margin.Left.sm}" Height="40"/>
+            </Grid>
 
             <!-- Statistics Bar -->
-            <materialDesign:Card Grid.Row="1" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.lg}" Margin="{StaticResource Margin.Bottom.lg}" Background="{StaticResource AppBackgroundBrush}">
+            <materialDesign:Card Grid.Row="2" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.lg}" Margin="{StaticResource Margin.Bottom.md}" Background="Transparent" materialDesign:ShadowAssist.ShadowDepth="Depth0">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -70,7 +83,7 @@
             </materialDesign:Card>
 
             <!-- Main DataGrid -->
-            <materialDesign:Card Grid.Row="2" Style="{StaticResource AppCard}" Padding="0">
+            <materialDesign:Card Grid.Row="3" Style="{StaticResource AppCard}" Padding="0">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>

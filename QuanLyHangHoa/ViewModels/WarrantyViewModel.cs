@@ -5,6 +5,10 @@ using CommunityToolkit.Mvvm.Input;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
 using QuanLyHangHoa.Data;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using Microsoft.EntityFrameworkCore;
 
 namespace QuanLyHangHoa.ViewModels
 {
@@ -27,6 +31,13 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _rejectionReason = string.Empty;
         [ObservableProperty] private string _replacementSerialNumber = string.Empty;
         [ObservableProperty] private string _statusMessage = string.Empty;
+        
+        [ObservableProperty] private ObservableCollection<WarrantyClaim> _warranties = new();
+        [ObservableProperty] private WarrantyClaim? _selectedWarranty;
+        [ObservableProperty] private string _searchText = string.Empty;
+        [ObservableProperty] private List<string> _statusList = new() { "Open", "Ready", "ManufacturerWait", "Closed", "Rejected" };
+
+        private readonly AppDbContext _dbContext;
 
         public WarrantyViewModel(AppUser currentUser, AppDbContext dbContext)
             : this(
@@ -38,6 +49,8 @@ namespace QuanLyHangHoa.ViewModels
                 new WarrantyClaimService(() => dbContext).ReplaceSerial,
                 (message, title) => MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information))
         {
+            _dbContext = dbContext;
+            LoadData();
         }
 
         public WarrantyViewModel(
@@ -53,6 +66,8 @@ namespace QuanLyHangHoa.ViewModels
                 (_, _, _, _) => { },
                 showMessage)
         {
+            _dbContext = new AppDbContext();
+            LoadData();
         }
 
         public WarrantyViewModel(
@@ -71,8 +86,68 @@ namespace QuanLyHangHoa.ViewModels
             _rejectClaim = rejectClaim;
             _replaceSerial = replaceSerial;
             _showMessage = showMessage;
+            _dbContext = new AppDbContext();
             ClaimCode = CreateDefaultClaimCode();
         }
+
+        [RelayCommand]
+        public void LoadData()
+        {
+            var query = _dbContext.WarrantyClaims
+                .Include("ProductSerial")
+                .Include("ProductSerial.Product")
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(SearchText))
+            {
+                query = query.Where(c => 
+                    (c.ClaimCode != null && c.ClaimCode.Contains(SearchText)) ||
+                    (c.ProductSerial != null && c.ProductSerial.SerialNumber != null && c.ProductSerial.SerialNumber.Contains(SearchText))
+                );
+            }
+
+            Warranties = new ObservableCollection<WarrantyClaim>(query.ToList());
+        }
+
+        [RelayCommand]
+        private void SaveWarranty()
+        {
+            if (SelectedWarranty == null) return;
+            try
+            {
+                _dbContext.WarrantyClaims.Update(SelectedWarranty);
+                _dbContext.SaveChanges();
+                _showMessage("Cập nhật phiếu bảo hành thành công!", "Thông báo");
+                LoadData();
+            }
+            catch (Exception ex)
+            {
+                _showMessage(ex.Message, "Lỗi");
+            }
+        }
+
+        [RelayCommand]
+        private void DeleteWarranty()
+        {
+            if (SelectedWarranty == null) return;
+            if (MessageBox.Show("Bạn có chắc chắn muốn xóa phiếu bảo hành này?", "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+            {
+                try
+                {
+                    _dbContext.WarrantyClaims.Remove(SelectedWarranty);
+                    _dbContext.SaveChanges();
+                    _showMessage("Đã xóa phiếu bảo hành.", "Thông báo");
+                    LoadData();
+                }
+                catch (Exception ex)
+                {
+                    _showMessage(ex.Message, "Lỗi");
+                }
+            }
+        }
+
+        [RelayCommand]
+        private void CreateWarranty() => ResetForm();
 
         [RelayCommand]
         private void CreateWarrantyClaim()

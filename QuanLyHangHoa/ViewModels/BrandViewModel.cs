@@ -13,6 +13,7 @@ namespace QuanLyHangHoa.ViewModels
 
         [ObservableProperty] private ObservableCollection<Brand> _brands = new();
         [ObservableProperty] private Brand? _selectedBrand;
+        [ObservableProperty] private string _searchText = string.Empty;
         [ObservableProperty] private string _brandCode = string.Empty;
         [ObservableProperty] private string _displayName = string.Empty;
 
@@ -22,9 +23,18 @@ namespace QuanLyHangHoa.ViewModels
             LoadData();
         }
 
+        [RelayCommand]
         private void LoadData()
         {
-            Brands = new ObservableCollection<Brand>(_service.GetAllBrands());
+            var data = _service.GetAllBrands();
+            if (!string.IsNullOrWhiteSpace(SearchText))
+            {
+                var lowerSearch = SearchText.ToLower().Trim();
+                data = data.Where(x => 
+                    (x.DisplayName?.ToLower().Contains(lowerSearch) ?? false) || 
+                    (x.BrandCode?.ToLower().Contains(lowerSearch) ?? false)).ToList();
+            }
+            Brands = new ObservableCollection<Brand>(data);
         }
 
         [RelayCommand]
@@ -58,6 +68,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
+        [RelayCommand]
         private void Clear()
         {
             SelectedBrand = null;

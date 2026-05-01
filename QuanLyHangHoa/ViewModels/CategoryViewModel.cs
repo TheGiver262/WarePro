@@ -13,6 +13,7 @@ namespace QuanLyHangHoa.ViewModels
 
         [ObservableProperty] private ObservableCollection<Category> _categories = new();
         [ObservableProperty] private Category? _selectedCategory;
+        [ObservableProperty] private string _searchText = string.Empty;
         [ObservableProperty] private string _categoryCode = string.Empty;
         [ObservableProperty] private string _displayName = string.Empty;
 
@@ -22,9 +23,18 @@ namespace QuanLyHangHoa.ViewModels
             LoadData();
         }
 
+        [RelayCommand]
         private void LoadData()
         {
-            Categories = new ObservableCollection<Category>(_service.GetAllCategories());
+            var data = _service.GetAllCategories();
+            if (!string.IsNullOrWhiteSpace(SearchText))
+            {
+                var lowerSearch = SearchText.ToLower().Trim();
+                data = data.Where(x => 
+                    (x.DisplayName?.ToLower().Contains(lowerSearch) ?? false) || 
+                    (x.CategoryCode?.ToLower().Contains(lowerSearch) ?? false)).ToList();
+            }
+            Categories = new ObservableCollection<Category>(data);
         }
 
         [RelayCommand]
@@ -58,6 +68,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
+        [RelayCommand]
         private void Clear()
         {
             SelectedCategory = null;

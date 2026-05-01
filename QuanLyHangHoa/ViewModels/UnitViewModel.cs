@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using QuanLyHangHoa.Models;
@@ -16,11 +17,9 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty]
         private Unit? _selectedUnit;
 
-        [ObservableProperty]
-        private string _displayName = string.Empty;
-
-        [ObservableProperty]
-        private string _unitCode = string.Empty;
+        [ObservableProperty] private string _searchText = string.Empty;
+        [ObservableProperty] private string _displayName = string.Empty;
+        [ObservableProperty] private string _unitCode = string.Empty;
 
         public UnitViewModel()
         {
@@ -28,10 +27,18 @@ namespace QuanLyHangHoa.ViewModels
             LoadData();
         }
 
+        [RelayCommand]
         private void LoadData()
         {
-            var list = _service.GetAllUnits();
-            Units = new ObservableCollection<Unit>(list);
+            var data = _service.GetAllUnits();
+            if (!string.IsNullOrWhiteSpace(SearchText))
+            {
+                var lowerSearch = SearchText.ToLower().Trim();
+                data = data.Where(x => 
+                    (x.DisplayName?.ToLower().Contains(lowerSearch) ?? false) || 
+                    (x.UnitCode?.ToLower().Contains(lowerSearch) ?? false)).ToList();
+            }
+            Units = new ObservableCollection<Unit>(data);
         }
 
         [RelayCommand]
@@ -64,6 +71,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
+        [RelayCommand]
         private void Clear()
         {
             SelectedUnit = null;

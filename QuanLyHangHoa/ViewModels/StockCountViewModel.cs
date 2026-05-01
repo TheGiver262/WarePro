@@ -27,6 +27,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private int _warehouseId = 1;
         [ObservableProperty] private DateTime _countDate = DateTime.Now;
         [ObservableProperty] private string _statusMessage = string.Empty;
+        [ObservableProperty] private string _searchText = string.Empty;
 
         public StockCountViewModel() : this(new AppUser { Id = 1 }) { } // Design-time
 
@@ -35,9 +36,23 @@ namespace QuanLyHangHoa.ViewModels
             _currentUser = currentUser;
             _productService = new ProductService();
             _stockCountService = new StockCountService();
-            AvailableProducts = new ObservableCollection<Product>(_productService.GetAllProducts());
+            LoadData();
             Lines = new ObservableCollection<StockCountLineEditor>();
             SessionCode = CreateDefaultSessionCode();
+        }
+
+        [RelayCommand]
+        public void LoadData()
+        {
+            var products = _productService.GetAllProducts();
+            if (!string.IsNullOrWhiteSpace(SearchText))
+            {
+                products = products.Where(p => 
+                    (p.DisplayName != null && p.DisplayName.Contains(SearchText, StringComparison.OrdinalIgnoreCase)) ||
+                    (p.ProductCode != null && p.ProductCode.Contains(SearchText, StringComparison.OrdinalIgnoreCase))
+                ).ToList();
+            }
+            AvailableProducts = new ObservableCollection<Product>(products);
         }
 
         [RelayCommand]

@@ -16,37 +16,29 @@
         <Grid Margin="{StaticResource Spacing.lg}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <!-- Header / Toolbar -->
-            <materialDesign:Card Grid.Row="0" Margin="{StaticResource Margin.Bottom.lg}" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.sm}">
+            <!-- Header Section (Transparent) -->
+            <materialDesign:Card Grid.Row="0" Margin="{StaticResource Margin.Bottom.md}" Background="Transparent" materialDesign:ShadowAssist.ShadowDepth="Depth0" Padding="{StaticResource Spacing.sm}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-
+    
                     <StackPanel Orientation="Horizontal">
-                        <materialDesign:PackIcon Kind="TruckDelivery" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
-                        <TextBlock Text="NHÀ CUNG CẤP" Style="{StaticResource TypographyH2}" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.sm}" Foreground="{StaticResource AppPrimaryBrush}"/>
-                        
-                        <Border Background="{StaticResource AppSurfaceBrush}" CornerRadius="{StaticResource Radius.md}" Margin="{StaticResource Margin.Left.lg}" Width="350" Height="40" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <materialDesign:PackIcon Kind="Search" VerticalAlignment="Center" Margin="{StaticResource Padding.sm}" Foreground="{StaticResource AppSecondaryBrush}"/>
-                                <TextBox Grid.Column="1" VerticalAlignment="Center" BorderThickness="0" 
-                                         materialDesign:TextFieldAssist.DecorationVisibility="Collapsed" 
-                                         materialDesign:HintAssist.Hint="Tìm kiếm nhà cung cấp..." 
-                                         FontSize="14" Background="Transparent"/>
-                            </Grid>
+                        <Border Background="{StaticResource AppTertiaryBrush}" Width="40" Height="40" CornerRadius="{StaticResource Radius.md}">
+                            <materialDesign:PackIcon Kind="TruckDelivery" Width="24" Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource TextOnPrimaryBrush}"/>
                         </Border>
+                        <StackPanel Margin="{StaticResource Margin.Left.md}" VerticalAlignment="Center">
+                            <TextBlock Text="NHÀ CUNG CẤP" Style="{StaticResource TypographyH2}" Foreground="{StaticResource AppPrimaryBrush}"/>
+                            <TextBlock Text="Quản lý thông tin và lịch sử giao dịch nhà cung cấp" Style="{StaticResource TypographyCaption}"/>
+                        </StackPanel>
                     </StackPanel>
-
-                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+    
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                         <Button Content="THÊM MỚI" Command="{Binding ClearInputCommand}" 
                                 Style="{StaticResource AppPrimaryButton}" Margin="{StaticResource Margin.Right.sm}"/>
                         <Button Content="NHẬP EXCEL" Command="{Binding ImportDataCommand}" 
@@ -54,8 +46,36 @@
                     </StackPanel>
                 </Grid>
             </materialDesign:Card>
+    
+            <!-- Search Row (Integrated) -->
+            <Grid Grid.Row="1" Margin="{StaticResource Margin.Bottom.md}" Background="Transparent">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+    
+                <Border Background="{StaticResource AppSurfaceBrush}" CornerRadius="{StaticResource Radius.md}" Height="40" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <materialDesign:PackIcon Kind="Search" VerticalAlignment="Center" Margin="{StaticResource Padding.sm}" Foreground="{StaticResource AppSecondaryBrush}"/>
+                        <TextBox Grid.Column="1" VerticalAlignment="Center" BorderThickness="0" 
+                                 materialDesign:TextFieldAssist.DecorationVisibility="Collapsed" 
+                                 materialDesign:HintAssist.Hint="Tìm kiếm nhà cung cấp..." 
+                                 FontSize="14" Background="Transparent"
+                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}">
+                            <TextBox.InputBindings>
+                                <KeyBinding Key="Enter" Command="{Binding LoadDataCommand}"/>
+                            </TextBox.InputBindings>
+                        </TextBox>
+                    </Grid>
+                </Border>
+                <Button Grid.Column="1" Content="TÌM KIẾM" Command="{Binding LoadDataCommand}" Style="{StaticResource AppSecondaryButton}" Margin="{StaticResource Margin.Left.sm}" Height="40"/>
+            </Grid>
 
-            <Grid Grid.Row="1">
+            <Grid Grid.Row="2">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="380"/>

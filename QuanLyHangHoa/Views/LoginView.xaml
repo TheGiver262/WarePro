@@ -6,7 +6,7 @@
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:vm="clr-namespace:QuanLyHangHoa.ViewModels"
         mc:Ignorable="d"
-        Title="Đăng Nhập - Inventory Pro Max" Height="560" Width="420"
+        Title="Đăng Nhập - Inventory Pro Max" Height="600" Width="460"
         WindowStartupLocation="CenterScreen" 
         WindowStyle="None" 
         AllowsTransparency="True" 
@@ -26,15 +26,11 @@
             <Setter Property="FontSize" Value="15"/>
             <Setter Property="Margin" Value="{StaticResource Margin.Bottom.md}"/>
             <Setter Property="Height" Value="Auto"/>
-            <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
+
         </Style>
     </Window.Resources>
 
     <Border Background="{StaticResource AppBackgroundBrush}" CornerRadius="{StaticResource Radius.lg}" Margin="{StaticResource Spacing.md}">
-        <Border.Effect>
-            <DropShadowEffect BlurRadius="30" Color="#20000000" Direction="-90" ShadowDepth="8" Opacity="0.2"/>
-        </Border.Effect>
-
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -42,9 +38,7 @@
             </Grid.RowDefinitions>
 
             <!-- Top Decorative Bar -->
-            <Border Grid.Row="0" Height="6" Background="{StaticResource AppTertiaryBrush}" CornerRadius="12,12,0,0"/>
-
-            <Grid Grid.Row="1" Margin="{StaticResource Spacing.lg}">
+            <Grid Grid.Row="0" Margin="{StaticResource Spacing.lg}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/> <!-- Close -->
                     <RowDefinition Height="Auto"/> <!-- Header -->
@@ -70,7 +64,7 @@
                         <materialDesign:PackIcon Kind="Warehouse" Width="40" Height="40" Foreground="{StaticResource AppTertiaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <TextBlock Text="INVENTORY" Style="{StaticResource TypographyDisplay}" FontSize="24" Foreground="{StaticResource AppPrimaryBrush}" HorizontalAlignment="Center"/>
-                    <TextBlock Text="ĐĂNG NHẬP HỆ THỐNG" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppSecondaryBrush}" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                    <TextBlock Text="PHẦN MỀM QUẢN LÝ KHO HÀNG" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppSecondaryBrush}" HorizontalAlignment="Center" Margin="0,4,0,0"/>
                 </StackPanel>
 
                 <!-- Login Form -->
