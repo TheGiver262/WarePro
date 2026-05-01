@@ -8,3 +8,5 @@
 graphify-out/
 *.log
 .superpowers/
+__pycache__/
+*.pyc
