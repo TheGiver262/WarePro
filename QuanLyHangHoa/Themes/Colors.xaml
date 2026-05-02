@@ -6,7 +6,7 @@
     <!-- ═══════════════════════════════════════════════════════ -->
 
     <!-- Core Colors -->
-    <Color x:Key="AppPrimaryColor">#1F1532</Color>          <!-- SidebarBg -->
+    <Color x:Key="AppPrimaryColor">#1E293B</Color>          <!-- SidebarBg -->
     <Color x:Key="AppSecondaryColor">#6F667C</Color>        <!-- TextSecondary -->
     <Color x:Key="AppTertiaryColor">#7C3AED</Color>         <!-- PrimaryPurple -->
     <Color x:Key="AppSurfaceColor">#FFFFFF</Color>          <!-- Surface -->
@@ -58,7 +58,8 @@
     <!-- ═══════════════════════════════════════════════════════ -->
 
     <!-- Sidebar §3.1 + §6 -->
-    <SolidColorBrush x:Key="SidebarBgBrush" Color="#1F1532" />
+    <SolidColorBrush x:Key="SidebarBgBrush" Color="#1E293B" />
+    <SolidColorBrush x:Key="SidebarBrush" Color="#1E293B" />
     <SolidColorBrush x:Key="SidebarBgDarkerBrush" Color="#1A102A" />
     <SolidColorBrush x:Key="SidebarHoverBrush" Color="#2E2144" />
     <SolidColorBrush x:Key="SidebarActiveBrush" Color="#7C3AED" />

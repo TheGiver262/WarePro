@@ -70,7 +70,7 @@ Toàn bộ ứng dụng dùng một **Main Shell Window** cố định gồm 3 v
 |---|---|---|
 | `PrimaryPurple` | `#7C3AED` | Button chính, menu active |
 | `PrimaryPurpleHover` | `#6D28D9` | Hover button chính |
-| `SidebarBg` | `#1F1532` | Nền sidebar |
+| `SidebarBg` | `#1E293B` | Nền sidebar |
 | `SidebarBgDarker` | `#1A102A` | Nền footer/logout sidebar |
 | `SidebarHover` | `#2E2144` | Hover menu sidebar |
 | `SidebarActive` | `#7C3AED` | Menu đang chọn |
@@ -117,7 +117,7 @@ Nếu dùng WPF + Material Design in XAML, không dùng `SecondaryColor="Slate"`
     <SolidColorBrush x:Key="PrimaryPurpleBrush" Color="#7C3AED" />
     <SolidColorBrush x:Key="PrimaryPurpleHoverBrush" Color="#6D28D9" />
 
-    <SolidColorBrush x:Key="SidebarBgBrush" Color="#1F1532" />
+    <SolidColorBrush x:Key="SidebarBgBrush" Color="#1E293B" />
     <SolidColorBrush x:Key="SidebarBgDarkerBrush" Color="#1A102A" />
     <SolidColorBrush x:Key="SidebarHoverBrush" Color="#2E2144" />
     <SolidColorBrush x:Key="SidebarActiveBrush" Color="#7C3AED" />
@@ -1299,7 +1299,7 @@ Trong `App.xaml`, có thể dùng theme Material Design nhưng màu custom vẫn
 ```xml
 <materialDesign:BundledTheme BaseTheme="Light"
                              PrimaryColor="DeepPurple"
-                             SecondaryColor="BlueGrey" />
+                             SecondaryColor="Purple" />
 ```
 
 Sau đó override bằng brush custom của WarePro. Không dùng `SecondaryColor="Slate"` vì không hợp lệ trong Material Design palette.
