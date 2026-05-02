@@ -29,7 +29,7 @@
             </Grid.RowDefinitions>
 
             <!-- Top Decorative Bar -->
-            <Grid Grid.Row="0" Margin="{StaticResource Spacing.lg}">
+            <Grid Grid.Row="0" Margin="{StaticResource PagePadding}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/> <!-- Close -->
                     <RowDefinition Height="Auto"/> <!-- Header -->
@@ -54,7 +54,7 @@
                         </Border.Effect>
                         <materialDesign:PackIcon Kind="Warehouse" Width="40" Height="40" Foreground="{StaticResource AppTertiaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
-                    <TextBlock Text="INVENTORY" Style="{StaticResource TypographyDisplay}" FontSize="24" Foreground="{StaticResource AppPrimaryBrush}" HorizontalAlignment="Center"/>
+                    <TextBlock Text="INVENTORY" Style="{StaticResource TypographyDisplay}" FontSize="24" HorizontalAlignment="Center"/>
                     <TextBlock Text="PHẦN MỀM QUẢN LÝ KHO HÀNG" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppSecondaryBrush}" HorizontalAlignment="Center" Margin="0,4,0,0"/>
                 </StackPanel>
 
@@ -71,7 +71,7 @@
                 </StackPanel>
 
                 <!-- Error Message -->
-                <TextBlock Grid.Row="3" Text="{Binding ErrorMessage}" Foreground="{StaticResource AppErrorBrush}" FontSize="12" FontWeight="SemiBold"
+                <TextBlock Grid.Row="3" Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerTextBrush}" FontSize="12" FontWeight="SemiBold"
                            HorizontalAlignment="Center" Margin="{StaticResource Spacing.sm}" TextWrapping="Wrap" TextAlignment="Center"
                            Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVisibilityConverter}}"/>
 

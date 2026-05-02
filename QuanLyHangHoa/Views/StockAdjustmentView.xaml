@@ -13,7 +13,7 @@
     </UserControl.DataContext>
 
     <Grid Background="{StaticResource AppBackgroundBrush}">
-        <Grid Margin="{StaticResource Spacing.lg}">
+        <Grid Margin="{StaticResource PagePadding}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -24,7 +24,7 @@
             <Grid Grid.Row="0" Margin="{StaticResource Margin.Bottom.md}">
                 <StackPanel Orientation="Horizontal">
                     <materialDesign:PackIcon Kind="Tune" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
-                    <TextBlock Text="ĐIỀU CHỈNH KHO" Style="{StaticResource TypographyH2}" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.sm}" Foreground="{StaticResource AppPrimaryBrush}"/>
+                    <TextBlock Text="ĐIỀU CHỈNH KHO" Style="{StaticResource TypographyH2}" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.sm}"/>
                 </StackPanel>
             </Grid>
 
@@ -73,7 +73,7 @@
 
                         <StackPanel Orientation="Horizontal" Margin="{StaticResource Margin.Bottom.lg}">
                             <materialDesign:PackIcon Kind="InformationOutline" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
-                            <TextBlock Text="THÔNG TIN CHỨNG TỪ" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppPrimaryBrush}" Margin="{StaticResource Margin.Left.sm}" VerticalAlignment="Center"/>
+                            <TextBlock Text="THÔNG TIN CHỨNG TỪ" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Left.sm}" VerticalAlignment="Center"/>
                         </StackPanel>
 
                         <StackPanel Grid.Row="1">
@@ -94,7 +94,7 @@
                                      Text="{Binding ReasonCode, UpdateSourceTrigger=PropertyChanged}"
                                      Margin="{StaticResource Margin.Bottom.md}"/>
 
-                            <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource AppErrorBrush}" 
+                            <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource DangerTextBrush}" 
                                        Style="{StaticResource TypographyCaption}" HorizontalAlignment="Center" FontWeight="SemiBold"/>
                         </StackPanel>
 
@@ -117,7 +117,7 @@
                             <Grid>
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="FormatListBulleted" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
-                                    <TextBlock Text="DANH SÁCH SẢN PHẨM" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Left.md}" Foreground="{StaticResource AppPrimaryBrush}"/>
+                                    <TextBlock Text="DANH SÁCH SẢN PHẨM" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Left.md}"/>
                                 </StackPanel>
                                 <Button HorizontalAlignment="Right" Content="THÊM DÒNG" 
                                         Command="{Binding AddLineCommand}"
@@ -162,7 +162,7 @@
                                             <Button Style="{StaticResource MaterialDesignIconButton}"
                                                     Command="{Binding DataContext.RemoveLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}"
-                                                    Foreground="{StaticResource AppErrorBrush}" Width="32" Height="32">
+                                                    Foreground="{StaticResource DangerTextBrush}" Width="32" Height="32">
                                                 <materialDesign:PackIcon Kind="DeleteOutline" Width="20" Height="20"/>
                                             </Button>
                                         </DataTemplate>

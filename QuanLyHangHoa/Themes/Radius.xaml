@@ -1,8 +1,9 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
+    <!-- WarePro UI Design Guideline — Radius §10, §12, §16 -->
     <CornerRadius x:Key="Radius.sm">4</CornerRadius>
-    <CornerRadius x:Key="Radius.md">8</CornerRadius>
-    <CornerRadius x:Key="Radius.lg">12</CornerRadius>
+    <CornerRadius x:Key="Radius.md">5</CornerRadius>       <!-- Card/button radius -->
+    <CornerRadius x:Key="Radius.lg">6</CornerRadius>       <!-- Table container radius -->
 
 </ResourceDictionary>

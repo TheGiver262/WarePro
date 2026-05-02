@@ -1,17 +1,19 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
+    <!-- WarePro UI Design Guideline — Spacing §17 -->
+
     <!-- Thickness Tokens -->
     <Thickness x:Key="Spacing.sm">8</Thickness>
     <Thickness x:Key="Spacing.md">16</Thickness>
     <Thickness x:Key="Spacing.lg">32</Thickness>
 
-    <!-- Uniform Thickness Tokens (for Margin/Padding where all sides are same) -->
+    <!-- Uniform Thickness Tokens -->
     <Thickness x:Key="Padding.sm">8</Thickness>
     <Thickness x:Key="Padding.md">16</Thickness>
     <Thickness x:Key="Padding.lg">32</Thickness>
 
-    <!-- Side-specific Thickness (if needed) -->
+    <!-- Side-specific Thickness -->
     <Thickness x:Key="Margin.Bottom.sm">0,0,0,8</Thickness>
     <Thickness x:Key="Margin.Bottom.md">0,0,0,16</Thickness>
     <Thickness x:Key="Margin.Bottom.lg">0,0,0,32</Thickness>
@@ -35,5 +37,12 @@
     <Thickness x:Key="Margin.Vertical.sm">0,8,0,8</Thickness>
     <Thickness x:Key="Margin.Vertical.md">0,16,0,16</Thickness>
     <Thickness x:Key="Margin.Vertical.lg">0,32,0,32</Thickness>
+
+    <!-- WarePro-specific Spacing §17 -->
+    <Thickness x:Key="PagePadding">24</Thickness>
+    <Thickness x:Key="SectionBottomMargin">0,0,0,24</Thickness>
+    <Thickness x:Key="ControlRightMargin">0,0,8,0</Thickness>
+    <Thickness x:Key="TableCellPadding">14,0</Thickness>
+    <Thickness x:Key="FilterBarPadding">14,16</Thickness>
 
 </ResourceDictionary>

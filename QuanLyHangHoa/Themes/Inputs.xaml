@@ -2,48 +2,67 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
 
-    <!-- Outlined Styles (Use explicitly for Forms) -->
+    <!-- WarePro UI Design Guideline — Inputs §10.2 + §16.3 -->
+
+    <!-- Outlined Form TextBox (for dialogs/forms) -->
     <Style x:Key="AppTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource MaterialDesignOutlinedTextBox}">
         <Setter Property="materialDesign:TextFieldAssist.HasClearButton" Value="True"/>
         <Setter Property="materialDesign:TextFieldAssist.TextFieldCornerRadius" Value="{StaticResource Radius.sm}"/>
         <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
-        <Setter Property="Padding" Value="12,10"/>
+        <Setter Property="Padding" Value="10,6"/>
         <Setter Property="Height" Value="Auto"/>
-        <Setter Property="MinHeight" Value="48"/>
+        <Setter Property="MinHeight" Value="34"/>
+        <Setter Property="FontSize" Value="13"/>
         <Setter Property="Margin" Value="{StaticResource Margin.Bottom.md}"/>
         <Style.Triggers>
             <Trigger Property="IsFocused" Value="True">
-                <Setter Property="BorderBrush" Value="{StaticResource AppTertiaryBrush}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource PrimaryPurpleBrush}"/>
                 <Setter Property="BorderThickness" Value="2"/>
             </Trigger>
         </Style.Triggers>
     </Style>
 
+    <!-- Outlined Form ComboBox -->
     <Style x:Key="AppComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource MaterialDesignOutlinedComboBox}">
         <Setter Property="materialDesign:TextFieldAssist.TextFieldCornerRadius" Value="{StaticResource Radius.sm}"/>
         <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
-        <Setter Property="Padding" Value="12,10"/>
+        <Setter Property="Padding" Value="10,6"/>
         <Setter Property="Height" Value="Auto"/>
-        <Setter Property="MinHeight" Value="48"/>
+        <Setter Property="MinHeight" Value="34"/>
+        <Setter Property="FontSize" Value="13"/>
         <Setter Property="Margin" Value="{StaticResource Margin.Bottom.md}"/>
     </Style>
 
+    <!-- Outlined Form PasswordBox -->
     <Style x:Key="AppPasswordBoxStyle" TargetType="PasswordBox" BasedOn="{StaticResource MaterialDesignOutlinedPasswordBox}">
         <Setter Property="materialDesign:TextFieldAssist.TextFieldCornerRadius" Value="{StaticResource Radius.sm}"/>
         <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
-        <Setter Property="Padding" Value="12,10"/>
+        <Setter Property="Padding" Value="10,6"/>
         <Setter Property="Height" Value="Auto"/>
-        <Setter Property="MinHeight" Value="48"/>
+        <Setter Property="MinHeight" Value="34"/>
         <Setter Property="Margin" Value="{StaticResource Margin.Bottom.md}"/>
     </Style>
 
+    <!-- Outlined Form DatePicker -->
     <Style x:Key="AppDatePickerStyle" TargetType="DatePicker" BasedOn="{StaticResource MaterialDesignOutlinedDatePicker}">
         <Setter Property="materialDesign:TextFieldAssist.TextFieldCornerRadius" Value="{StaticResource Radius.sm}"/>
         <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
-        <Setter Property="Padding" Value="12,10"/>
+        <Setter Property="Padding" Value="10,6"/>
         <Setter Property="Height" Value="Auto"/>
-        <Setter Property="MinHeight" Value="48"/>
+        <Setter Property="MinHeight" Value="34"/>
         <Setter Property="Margin" Value="{StaticResource Margin.Bottom.md}"/>
+    </Style>
+
+    <!-- Compact Search TextBox §16.3 (for filter bars) -->
+    <Style x:Key="SearchTextBoxStyle" TargetType="TextBox">
+        <Setter Property="Height" Value="32"/>
+        <Setter Property="MinWidth" Value="160"/>
+        <Setter Property="Padding" Value="10,0"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Background" Value="White"/>
+        <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
     </Style>
 
     <!-- Default Implicit Styles (Simple/Plain) -->

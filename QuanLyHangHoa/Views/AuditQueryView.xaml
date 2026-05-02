@@ -9,7 +9,7 @@
              d:DesignHeight="800" d:DesignWidth="1100">
 
     <Grid Background="{StaticResource AppBackgroundBrush}">
-        <Grid Margin="{StaticResource Spacing.lg}">
+        <Grid Margin="{StaticResource PagePadding}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -26,7 +26,7 @@
 
                     <StackPanel Orientation="Horizontal">
                         <materialDesign:PackIcon Kind="History" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
-                        <TextBlock Text="{Binding ReportTitle}" Style="{StaticResource TypographyH2}" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.md}" Foreground="{StaticResource AppPrimaryBrush}"/>
+                        <TextBlock Text="{Binding ReportTitle}" Style="{StaticResource TypographyH2}" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.md}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
@@ -80,7 +80,7 @@
                     <Border Padding="{StaticResource Spacing.md}" Background="{StaticResource AppBackgroundBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="FormatListBulleted" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
-                            <TextBlock Text="NHẬT KÝ HỆ THỐNG" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.md}" Foreground="{StaticResource AppPrimaryBrush}"/>
+                            <TextBlock Text="NHẬT KÝ HỆ THỐNG" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.md}"/>
                         </StackPanel>
                     </Border>
 
@@ -111,7 +111,7 @@
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="{StaticResource Margin.Bottom.lg}">
                         <materialDesign:PackIcon Kind="FilterVariant" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
-                        <TextBlock Text="BỘ LỌC TRUY VẤN" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppPrimaryBrush}" Margin="{StaticResource Margin.Left.sm}" VerticalAlignment="Center"/>
+                        <TextBlock Text="BỘ LỌC TRUY VẤN" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Left.sm}" VerticalAlignment="Center"/>
                     </StackPanel>
 
                     <TextBlock Text="Lọc theo sản phẩm" Style="{StaticResource TypographyCaption}" Foreground="{StaticResource AppSecondaryBrush}" Margin="{StaticResource Margin.Bottom.sm}"/>

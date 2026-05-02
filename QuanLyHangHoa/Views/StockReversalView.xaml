@@ -8,7 +8,7 @@
              d:DesignHeight="800" d:DesignWidth="1000">
     
     <Grid Background="{StaticResource AppBackgroundBrush}">
-        <Grid Margin="{StaticResource Spacing.lg}">
+        <Grid Margin="{StaticResource PagePadding}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -19,11 +19,11 @@
             <Grid Grid.Row="0" Margin="{StaticResource Margin.Bottom.md}">
                 <StackPanel Orientation="Horizontal">
                     <materialDesign:PackIcon Kind="History" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
-                    <TextBlock Text="ĐẢO CHỨNG TỪ KHO" Style="{StaticResource TypographyH2}" Foreground="{StaticResource AppPrimaryBrush}" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="ĐẢO CHỨNG TỪ KHO" Style="{StaticResource TypographyH2}" Margin="12,0,0,0" VerticalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <materialDesign:PackIcon Kind="Alert" Foreground="{StaticResource AppErrorBrush}" VerticalAlignment="Center" Margin="{StaticResource Margin.Right.sm}"/>
-                    <TextBlock Text="Cần thận trọng" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppErrorBrush}" VerticalAlignment="Center"/>
+                    <materialDesign:PackIcon Kind="Alert" Foreground="{StaticResource DangerTextBrush}" VerticalAlignment="Center" Margin="{StaticResource Margin.Right.sm}"/>
+                    <TextBlock Text="Cần thận trọng" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource DangerTextBrush}" VerticalAlignment="Center"/>
                 </StackPanel>
             </Grid>
 
@@ -58,12 +58,12 @@
             <materialDesign:Card Grid.Row="2" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.lg}" VerticalAlignment="Top">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="{StaticResource Margin.Bottom.md}">
-                        <materialDesign:PackIcon Kind="AlertCircle" Foreground="{StaticResource AppErrorBrush}" VerticalAlignment="Center" Width="24" Height="24"/>
-                        <TextBlock Text="LƯU Ý QUAN TRỌNG" Style="{StaticResource TypographyH2}" Foreground="{StaticResource AppErrorBrush}" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                        <materialDesign:PackIcon Kind="AlertCircle" Foreground="{StaticResource DangerTextBrush}" VerticalAlignment="Center" Width="24" Height="24"/>
+                        <TextBlock Text="LƯU Ý QUAN TRỌNG" Style="{StaticResource TypographyH2}" Foreground="{StaticResource DangerTextBrush}" Margin="12,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
                     
                     <TextBlock Text="Chức năng này sẽ tạo các bản ghi điều chỉnh (Adjustment) đảo chiều toàn bộ giao dịch của chứng từ đã chọn và cập nhật ngay lập tức vào tồn kho thực tế." 
-                               Style="{StaticResource TypographyBody}" Foreground="{StaticResource AppPrimaryBrush}" TextWrapping="Wrap" Margin="{StaticResource Margin.Bottom.md}"/>
+                               Style="{StaticResource TypographyBody}" TextWrapping="Wrap" Margin="{StaticResource Margin.Bottom.md}"/>
                     
                     <Border Background="{StaticResource AppBackgroundBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" Padding="{StaticResource Spacing.md}" CornerRadius="{StaticResource Radius.md}">
                         <StackPanel>

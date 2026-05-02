@@ -13,7 +13,7 @@
     </UserControl.DataContext>
 
     <Grid Background="{StaticResource AppBackgroundBrush}">
-        <Grid Margin="{StaticResource Spacing.lg}">
+        <Grid Margin="{StaticResource PagePadding}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -25,7 +25,7 @@
             <Grid Grid.Row="0" Margin="{StaticResource Margin.Bottom.md}">
                 <StackPanel Orientation="Horizontal">
                     <materialDesign:PackIcon Kind="FileExport" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
-                    <TextBlock Text="HÓA ĐƠN XUẤT HÀNG" Style="{StaticResource TypographyH2}" Foreground="{StaticResource AppPrimaryBrush}" Margin="{StaticResource Margin.Left.md}" VerticalAlignment="Center"/>
+                    <TextBlock Text="HÓA ĐƠN XUẤT HÀNG" Style="{StaticResource TypographyH2}" Margin="{StaticResource Margin.Left.md}" VerticalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <Button Content="TẠO HÓA ĐƠN MỚI" Command="{Binding ResetFormCommand}" Style="{StaticResource AppPrimaryButton}"/>
@@ -73,7 +73,7 @@
                 <materialDesign:Card Grid.Column="1" Margin="{StaticResource Margin.Left.md}" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.md}">
                     <StackPanel>
                         <TextBlock Text="TỔNG TIỀN XUẤT" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppSecondaryBrush}"/>
-                        <TextBlock Text="{Binding TotalSalesAmount, StringFormat='N0'}" Style="{StaticResource TypographyH1}" Foreground="{StaticResource AppPrimaryBrush}" Margin="{StaticResource Margin.Top.sm}"/>
+                        <TextBlock Text="{Binding TotalSalesAmount, StringFormat='N0'}" Style="{StaticResource TypographyH1}" Margin="{StaticResource Margin.Top.sm}"/>
                     </StackPanel>
                 </materialDesign:Card>
             </Grid>
@@ -103,7 +103,7 @@
                                 <Border Padding="{StaticResource Spacing.md}" Background="{StaticResource AppSurfaceBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1">
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="Database" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
-                                        <TextBlock Text="LỊCH SỬ XUẤT HÓA ĐƠN" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Left.md}" Foreground="{StaticResource AppPrimaryBrush}"/>
+                                        <TextBlock Text="LỊCH SỬ XUẤT HÓA ĐƠN" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Left.md}"/>
                                     </StackPanel>
                                 </Border>
 
@@ -141,7 +141,7 @@
                                     <Grid>
                                         <StackPanel Orientation="Horizontal">
                                             <materialDesign:PackIcon Kind="FilePlusOutline" VerticalAlignment="Center" Foreground="{StaticResource AppSuccessBrush}"/>
-                                            <TextBlock Text="THÔNG TIN HÓA ĐƠN MỚI" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Left.md}" Foreground="{StaticResource AppPrimaryBrush}"/>
+                                            <TextBlock Text="THÔNG TIN HÓA ĐƠN MỚI" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Left.md}"/>
                                         </StackPanel>
                                         <Button HorizontalAlignment="Right" Content="LÀM MỚI" Command="{Binding ResetFormCommand}" Style="{StaticResource AppSecondaryButton}" Height="32" Padding="12,0" FontSize="12"/>
                                     </Grid>
@@ -186,7 +186,7 @@
                                                         <DataGridTemplateColumn Header="" Width="50">
                                                             <DataGridTemplateColumn.CellTemplate>
                                                                 <DataTemplate>
-                                                                    <Button Style="{StaticResource MaterialDesignIconButton}" Foreground="{StaticResource AppErrorBrush}" Width="24" Height="24" Padding="0"
+                                                                    <Button Style="{StaticResource MaterialDesignIconButton}" Foreground="{StaticResource DangerTextBrush}" Width="24" Height="24" Padding="0"
                                                                             Command="{Binding DataContext.RemoveLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
                                                                         <materialDesign:PackIcon Kind="DeleteOutline" Width="18" Height="18"/>
                                                                     </Button>
@@ -221,7 +221,7 @@
 
                         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="{StaticResource Margin.Bottom.lg}">
                             <materialDesign:PackIcon Kind="Information" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
-                            <TextBlock Text="CHI TIẾT HÓA ĐƠN" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppPrimaryBrush}" Margin="{StaticResource Margin.Left.sm}" VerticalAlignment="Center"/>
+                            <TextBlock Text="CHI TIẾT HÓA ĐƠN" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Left.sm}" VerticalAlignment="Center"/>
                         </StackPanel>
 
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
@@ -252,7 +252,7 @@
                                 <Border Background="{StaticResource AppBackgroundBrush}" CornerRadius="{StaticResource Radius.md}" Padding="{StaticResource Spacing.md}" Margin="{StaticResource Margin.Bottom.md}">
                                     <StackPanel>
                                         <TextBlock Text="GHI CHÚ" Style="{StaticResource TypographyLabel}" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="{StaticResource Margin.Bottom.sm}"/>
-                                        <TextBlock Text="{Binding SelectedInvoice.Notes}" TextWrapping="Wrap" FontSize="13" Foreground="{StaticResource AppPrimaryBrush}" FontStyle="Italic"/>
+                                        <TextBlock Text="{Binding SelectedInvoice.Notes}" TextWrapping="Wrap" FontSize="13" FontStyle="Italic"/>
                                         <TextBlock Text="Không có ghi chú" FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" FontStyle="Italic">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">

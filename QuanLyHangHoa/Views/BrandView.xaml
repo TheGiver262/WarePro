@@ -8,130 +8,155 @@
              d:DesignHeight="800" d:DesignWidth="1100">
 
     <Grid Background="{StaticResource AppBackgroundBrush}">
-        <Grid Margin="{StaticResource Spacing.lg}">
+        <Grid Margin="{StaticResource PagePadding}">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <!-- Row 0: Header -->
-            <Grid Grid.Row="0" Margin="{StaticResource Margin.Bottom.md}">
+            <!-- Row 0: Page Header §8 + §13.2 -->
+            <Grid Grid.Row="0" Margin="{StaticResource SectionBottomMargin}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-
                 <StackPanel VerticalAlignment="Center">
-                    <TextBlock Text="THƯƠNG HIỆU" Style="{StaticResource TypographyH2}" Foreground="{StaticResource AppPrimaryBrush}"/>
+                    <TextBlock Text="Thương hiệu" Style="{StaticResource TypographyH2}"/>
                     <TextBlock Text="Quản lý nhãn hiệu và thương hiệu sản phẩm" Style="{StaticResource TypographyCaption}"/>
                 </StackPanel>
-
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <ComboBox Width="120" SelectedIndex="0" Style="{StaticResource AppComboBoxStyle}" Margin="{StaticResource Margin.Right.sm}" Height="36">
+                    <ComboBox Width="120" SelectedIndex="0" Style="{StaticResource AppComboBoxStyle}" Margin="{StaticResource ControlRightMargin}" Height="34">
                         <ComboBoxItem Content="Tất cả"/>
                         <ComboBoxItem Content="Hoạt động"/>
                         <ComboBoxItem Content="Ngưng HĐ"/>
                     </ComboBox>
-                    <Button Command="{Binding ClearCommand}" Style="{StaticResource AppPrimaryButton}" Height="36">
+                    <Button Command="{Binding ClearCommand}" Style="{StaticResource AppPrimaryButton}" Height="34">
                         <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="Plus" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                            <TextBlock Text="Thêm mới" VerticalAlignment="Center"/>
+                            <materialDesign:PackIcon Kind="Plus" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock Text="Thêm mới" VerticalAlignment="Center" FontSize="13"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
             </Grid>
 
-            <!-- Row 1: Search Fields -->
-            <Border Grid.Row="1" Margin="{StaticResource Margin.Bottom.md}" Padding="12,8" Background="{StaticResource AppSurfaceBrush}" CornerRadius="{StaticResource Radius.md}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1">
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <StackPanel Margin="0,0,12,0">
-                        <TextBlock Text="Mã thương hiệu" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4"/>
-                        <TextBox Width="180" Height="32" FontSize="13" BorderThickness="1" BorderBrush="{StaticResource AppBorderBrush}" 
-                                 Padding="8,4" Background="{StaticResource AppSurfaceBrush}"
-                                 materialDesign:HintAssist.Hint="Tìm Mã thương hiệu..."
-                                 materialDesign:TextFieldAssist.DecorationVisibility="Collapsed"
-                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}">
-                            <TextBox.InputBindings>
-                                <KeyBinding Key="Enter" Command="{Binding LoadDataCommand}"/>
-                            </TextBox.InputBindings>
-                        </TextBox>
-                    </StackPanel>
+            <!-- Row 1: Table Card Container §10 -->
+            <Border Grid.Row="1" Background="{StaticResource AppSurfaceBrush}" 
+                    BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource Radius.lg}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-                    <StackPanel Margin="0,0,12,0">
-                        <TextBlock Text="Tên thương hiệu" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4"/>
-                        <TextBox Width="200" Height="32" FontSize="13" BorderThickness="1" BorderBrush="{StaticResource AppBorderBrush}" 
-                                 Padding="8,4" Background="{StaticResource AppSurfaceBrush}"
-                                 materialDesign:HintAssist.Hint="Tìm Tên thương hiệu..."
-                                 materialDesign:TextFieldAssist.DecorationVisibility="Collapsed">
-                            <TextBox.InputBindings>
-                                <KeyBinding Key="Enter" Command="{Binding LoadDataCommand}"/>
-                            </TextBox.InputBindings>
-                        </TextBox>
-                    </StackPanel>
-
-                    <Button Command="{Binding LoadDataCommand}" Style="{StaticResource AppPrimaryButton}" Height="32" Padding="16,0" VerticalAlignment="Bottom" Margin="0,0,8,0">
-                        <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="Magnify" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                            <TextBlock Text="Tìm kiếm" VerticalAlignment="Center" FontSize="13"/>
-                        </StackPanel>
-                    </Button>
-
-                    <Button Style="{StaticResource MaterialDesignIconButton}" Width="32" Height="32" Padding="0" VerticalAlignment="Bottom" Margin="0,0,4,0" ToolTip="Sao chép">
-                        <materialDesign:PackIcon Kind="ContentCopy" Width="18" Height="18" Foreground="{StaticResource TextSecondaryBrush}"/>
-                    </Button>
-                    <Button Style="{StaticResource MaterialDesignIconButton}" Width="32" Height="32" Padding="0" VerticalAlignment="Bottom" ToolTip="Tải xuống">
-                        <materialDesign:PackIcon Kind="Download" Width="18" Height="18" Foreground="{StaticResource TextSecondaryBrush}"/>
-                    </Button>
-                </StackPanel>
-            </Border>
-
-            <!-- Row 2: Data Table -->
-            <DataGrid Grid.Row="2" ItemsSource="{Binding Brands}" SelectedItem="{Binding SelectedBrand, Mode=TwoWay}"
-                      AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                      BorderThickness="0" RowHeight="40" Background="{StaticResource AppSurfaceBrush}"
-                      GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="{StaticResource AppBorderBrush}">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="Mã thương hiệu" Binding="{Binding BrandCode}" Width="Auto" FontWeight="SemiBold" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                    <DataGridTextColumn Header="Tên thương hiệu" Binding="{Binding DisplayName}" Width="*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                    <DataGridTextColumn Header="Xuất xứ" Binding="{Binding OriginCountry}" Width="*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                    <DataGridTemplateColumn Header="Trạng thái" Width="Auto">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding IsActive, Converter={StaticResource BooleanToStatusConverter}}" 
-                                           VerticalAlignment="Center" Padding="8,4" FontSize="12" FontWeight="SemiBold">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Foreground" Value="{StaticResource AppErrorBrush}"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                                    <Setter Property="Foreground" Value="{StaticResource AppSuccessBrush}"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-                    <DataGridTemplateColumn Header="" Width="80">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                    <Button Style="{StaticResource MaterialDesignIconButton}" Width="28" Height="28" Padding="0" ToolTip="Sửa"
-                                            Command="{Binding DataContext.SaveCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
-                                        <materialDesign:PackIcon Kind="PencilOutline" Width="16" Height="16" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                    </Button>
-                                    <Button Style="{StaticResource MaterialDesignIconButton}" Width="28" Height="28" Padding="0" ToolTip="Xóa"
-                                            Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
-                                        <materialDesign:PackIcon Kind="TrashCanOutline" Width="16" Height="16" Foreground="{StaticResource AppErrorBrush}"/>
-                                    </Button>
+                    <!-- Filter Bar §10.2 -->
+                    <Border Grid.Row="0" Padding="{StaticResource FilterBarPadding}" BorderBrush="{StaticResource GridLineBrush}" BorderThickness="0,0,0,1">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <StackPanel Margin="{StaticResource ControlRightMargin}">
+                                <TextBlock Text="Mã thương hiệu" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+                                <TextBox Width="160" Height="32" FontSize="13" BorderThickness="1" BorderBrush="{StaticResource AppBorderBrush}" 
+                                         Padding="10,0" VerticalContentAlignment="Center" Background="White"
+                                         materialDesign:HintAssist.Hint="Tìm mã thương hiệu..."
+                                         materialDesign:TextFieldAssist.DecorationVisibility="Collapsed"
+                                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}">
+                                    <TextBox.InputBindings>
+                                        <KeyBinding Key="Enter" Command="{Binding LoadDataCommand}"/>
+                                    </TextBox.InputBindings>
+                                </TextBox>
+                            </StackPanel>
+                            <StackPanel Margin="{StaticResource ControlRightMargin}">
+                                <TextBlock Text="Tên thương hiệu" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+                                <TextBox Width="200" Height="32" FontSize="13" BorderThickness="1" BorderBrush="{StaticResource AppBorderBrush}" 
+                                         Padding="10,0" VerticalContentAlignment="Center" Background="White"
+                                         materialDesign:HintAssist.Hint="Tìm tên thương hiệu..."
+                                         materialDesign:TextFieldAssist.DecorationVisibility="Collapsed">
+                                    <TextBox.InputBindings>
+                                        <KeyBinding Key="Enter" Command="{Binding LoadDataCommand}"/>
+                                    </TextBox.InputBindings>
+                                </TextBox>
+                            </StackPanel>
+                            <Button Command="{Binding LoadDataCommand}" Style="{StaticResource AppPrimaryButton}" Height="32" Padding="14,0" VerticalAlignment="Bottom" Margin="{StaticResource ControlRightMargin}">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Magnify" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBlock Text="Tìm kiếm" VerticalAlignment="Center" FontSize="13"/>
                                 </StackPanel>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-                </DataGrid.Columns>
-            </DataGrid>
+                            </Button>
+                            <Button Style="{StaticResource AppSecondaryButton}" Height="32" VerticalAlignment="Bottom" Padding="12,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Printer" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBlock Text="In" VerticalAlignment="Center" FontSize="13"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- DataGrid §11 -->
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding Brands}" SelectedItem="{Binding SelectedBrand, Mode=TwoWay}" IsReadOnly="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Mã thương hiệu" Binding="{Binding BrandCode}" Width="Auto" FontWeight="SemiBold" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+                            <DataGridTextColumn Header="Tên thương hiệu" Binding="{Binding DisplayName}" Width="*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+                            <DataGridTextColumn Header="Xuất xứ" Binding="{Binding OriginCountry}" Width="*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+                            <DataGridTemplateColumn Header="Trạng thái" Width="Auto">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border Padding="4,2" CornerRadius="4" VerticalAlignment="Center" HorizontalAlignment="Left">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="{StaticResource NeutralBgBrush}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                            <Setter Property="Background" Value="{StaticResource SuccessBgBrush}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock Text="{Binding IsActive, Converter={StaticResource BooleanToStatusConverter}}" FontSize="12" FontWeight="SemiBold" Padding="4,0">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="{StaticResource NeutralTextBrush}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                                <Setter Property="Foreground" Value="{StaticResource SuccessTextBrush}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="" Width="80">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                            <Button Style="{StaticResource MaterialDesignIconButton}" Width="28" Height="28" Padding="0" ToolTip="Sửa"
+                                                    Command="{Binding DataContext.SaveCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                                                <materialDesign:PackIcon Kind="PencilOutline" Width="16" Height="16" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                            </Button>
+                                            <Button Style="{StaticResource MaterialDesignIconButton}" Width="28" Height="28" Padding="0" ToolTip="Xóa"
+                                                    Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                                                <materialDesign:PackIcon Kind="TrashCanOutline" Width="16" Height="16" Foreground="{StaticResource DangerTextBrush}"/>
+                                            </Button>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!-- Footer -->
+                    <Border Grid.Row="2" Padding="14,8" BorderBrush="{StaticResource GridLineBrush}" BorderThickness="0,1,0,0">
+                        <TextBlock FontSize="12" Foreground="{StaticResource TextSecondaryBrush}">
+                            <TextBlock.Text>
+                                <MultiBinding StringFormat="{}{0} bản ghi">
+                                    <Binding Path="Brands.Count"/>
+                                </MultiBinding>
+                            </TextBlock.Text>
+                        </TextBlock>
+                    </Border>
+                </Grid>
+            </Border>
         </Grid>
     </Grid>
 </UserControl>

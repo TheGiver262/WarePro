@@ -5,139 +5,127 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         mc:Ignorable="d"
-        Title="Phần Mềm Quản Lý Hàng Hoá - Pro Max Edition" Height="900" Width="1440"
+        Title="Phần Mềm Quản Lý Hàng Hoá &amp; Bảo Hành" Height="900" Width="1440"
         WindowStartupLocation="CenterScreen"
         FontFamily="{StaticResource AppFontFamily}"
         Background="{StaticResource AppBackgroundBrush}">
 
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="260"/>
+            <ColumnDefinition Width="240"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <!-- Sidebar -->
-        <Border Grid.Column="0" Style="{StaticResource SidebarContainer}">
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- Sidebar §6                                  -->
+        <!-- ═══════════════════════════════════════════ -->
+        <Border Grid.Column="0" Background="{StaticResource SidebarBgBrush}">
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="80"/>
+                    <RowDefinition Height="56"/>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <!-- Brand/Logo -->
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="24,0">
-                    <materialDesign:PackIcon Kind="ViewQuilt" Width="32" Height="32" Foreground="{StaticResource AppTertiaryBrush}"/>
-                    <TextBlock Text="INVENTORY" Foreground="{StaticResource TextOnPrimaryBrush}" FontWeight="ExtraBold" FontSize="20" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                <!-- Logo §6.1 -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="20,0">
+                    <materialDesign:PackIcon Kind="ViewQuilt" Width="28" Height="28" Foreground="{StaticResource PrimaryPurpleBrush}"/>
+                    <TextBlock Text="WarePro" Foreground="{StaticResource TextOnPrimaryBrush}" FontWeight="Bold" FontSize="15" VerticalAlignment="Center" Margin="10,0,0,0"/>
                 </StackPanel>
 
-                <!-- Navigation Menu -->
+                <!-- Navigation Menu §6.1 -->
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Hidden">
                     <StackPanel Margin="8,0">
-                        <TextBlock Text="TỔNG QUAN" Style="{StaticResource SidebarSectionHeader}"/>
-                        <RadioButton Content="Dashboard" Tag="ViewDashboard" Style="{StaticResource SidebarItemStyle}" IsChecked="True" Command="{Binding OpenDashboardCommand}"/>
-                        
-                        <TextBlock Text="KHO HÀNG" Style="{StaticResource SidebarSectionHeader}"/>
-                        <RadioButton Content="Sản Phẩm" Tag="PackageVariant" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenProductViewCommand}"/>
-                        <RadioButton Content="Nhập Kho" Tag="ArrowDownBox" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockInViewCommand}"/>
-                        <RadioButton Content="Xuất Kho" Tag="ArrowUpBox" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockOutViewCommand}"/>
-                        <RadioButton Content="Điều Chỉnh" Tag="Tune" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockAdjustmentViewCommand}"/>
-                        <RadioButton Content="Kiểm Kê" Tag="ClipboardCheck" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockCountViewCommand}"/>
-
-                        <TextBlock Text="HÓA ĐƠN" Style="{StaticResource SidebarSectionHeader}"/>
-                        <RadioButton Content="Hóa Đơn Bán" Tag="FileDocumentOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenSalesInvoiceViewCommand}"/>
-                        <RadioButton Content="Hóa Đơn Mua" Tag="FileImportOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenPurchaseInvoiceViewCommand}"/>
-
-
-                        <TextBlock Text="BẢO HÀNH" Style="{StaticResource SidebarSectionHeader}"/>
-                        <RadioButton Content="Quản Lý Bảo Hành" Tag="ShieldCheck" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenWarrantyViewCommand}"/>
+                        <RadioButton Content="Dashboard" Tag="ViewDashboardOutline" Style="{StaticResource SidebarItemStyle}" IsChecked="True" Command="{Binding OpenDashboardCommand}"/>
 
                         <TextBlock Text="DANH MỤC" Style="{StaticResource SidebarSectionHeader}"/>
-                        <RadioButton Content="Thương Hiệu" Tag="Label" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenBrandViewCommand}"/>
-                        <RadioButton Content="Phân Loại" Tag="Shape" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenCategoryViewCommand}"/>
-                        <RadioButton Content="Đơn Vị Tính" Tag="Scale" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenUnitViewCommand}"/>
-                        <RadioButton Content="Nhà Cung Cấp" Tag="Factory" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenSupplierViewCommand}"/>
-                        <RadioButton Content="Khách Hàng" Tag="AccountGroup" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenCustomerViewCommand}"/>
+                        <RadioButton Content="Loại hàng" Tag="TagOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenCategoryViewCommand}"/>
+                        <RadioButton Content="Thương hiệu" Tag="Domain" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenBrandViewCommand}"/>
+                        <RadioButton Content="Đơn vị tính" Tag="CubeOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenUnitViewCommand}"/>
+                        <RadioButton Content="Nhà cung cấp" Tag="TruckOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenSupplierViewCommand}"/>
+                        <RadioButton Content="Khách hàng" Tag="AccountGroupOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenCustomerViewCommand}"/>
+
+                        <TextBlock Text="SẢN PHẨM" Style="{StaticResource SidebarSectionHeader}"/>
+                        <RadioButton Content="Danh sách sản phẩm" Tag="PackageVariantClosed" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenProductViewCommand}"/>
+                        <RadioButton Content="Quản lý Serial" Tag="BarcodeScan" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenProductSerialViewCommand}"/>
+
+                        <TextBlock Text="KHO" Style="{StaticResource SidebarSectionHeader}"/>
+                        <RadioButton Content="Nhập kho" Tag="TrayArrowDown" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockInViewCommand}"/>
+                        <RadioButton Content="Xuất kho" Tag="TrayArrowUp" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockOutViewCommand}"/>
+                        <RadioButton Content="Tồn kho" Tag="ChartBar" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenInventoryViewCommand}"/>
+                        <RadioButton Content="Điều chỉnh kho" Tag="Tune" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockAdjustmentViewCommand}"/>
+                        <RadioButton Content="Kiểm kê" Tag="ClipboardCheckOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockCountViewCommand}"/>
+
+                        <TextBlock Text="HÓA ĐƠN" Style="{StaticResource SidebarSectionHeader}"/>
+                        <RadioButton Content="Hóa đơn mua" Tag="CartOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenPurchaseInvoiceViewCommand}"/>
+                        <RadioButton Content="Hóa đơn bán" Tag="FileDocumentOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenSalesInvoiceViewCommand}"/>
+
+                        <TextBlock Text="BẢO HÀNH" Style="{StaticResource SidebarSectionHeader}"/>
+                        <RadioButton Content="Quyền bảo hành" Tag="ShieldCheckOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenWarrantyCoverageViewCommand}"/>
+                        <RadioButton Content="Yêu cầu bảo hành" Tag="WrenchOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenWarrantyViewCommand}"/>
 
                         <TextBlock Text="HỆ THỐNG" Style="{StaticResource SidebarSectionHeader}"/>
-                        <RadioButton Content="Người Dùng" Tag="AccountSettings" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenAppUserViewCommand}"
+                        <RadioButton Content="Báo cáo" Tag="ChartBoxOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenReportViewCommand}"/>
+                        <RadioButton Content="Người dùng" Tag="AccountMultipleOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenAppUserViewCommand}"
                                      Visibility="{Binding IsAdmin, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                        <RadioButton Content="Đổi Mật Khẩu" Tag="KeyVariant" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenChangePasswordViewCommand}"/>
-                        
+                        <RadioButton Content="Đổi mật khẩu" Tag="KeyVariant" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenChangePasswordViewCommand}"/>
+
                         <Border Height="20"/>
                     </StackPanel>
                 </ScrollViewer>
 
-                <!-- User Profile Footer -->
-                <Border Grid.Row="2" Background="{StaticResource AppPrimaryBrush}" Padding="16" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
+                <!-- User Footer §6 -->
+                <Border Grid.Row="2" Background="{StaticResource SidebarBgDarkerBrush}" Padding="16" BorderBrush="#2E2144" BorderThickness="0,1,0,0">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <Border Width="36" Height="36" CornerRadius="18" Background="{StaticResource AppTertiaryBrush}">
-                            <TextBlock Text="{Binding CurrentUser.FullName[0]}" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="16"/>
+                        <Border Width="36" Height="36" CornerRadius="18" Background="{StaticResource PrimaryPurpleBrush}">
+                            <TextBlock Text="{Binding CurrentUser.FullName[0]}" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14"/>
                         </Border>
                         <StackPanel Grid.Column="1" Margin="10,0" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding CurrentUser.FullName}" Foreground="{StaticResource TextOnPrimaryBrush}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{Binding CurrentUser.FullName}" Foreground="{StaticResource SidebarTextBrush}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis"/>
                             <TextBlock Text="{Binding CurrentUser.RoleCode}" Foreground="{StaticResource TextDisabledBrush}" FontSize="11"/>
                         </StackPanel>
-                        <Button Grid.Column="2" Style="{StaticResource MaterialDesignIconButton}" Width="30" Height="30" Foreground="{StaticResource TextDisabledBrush}" Command="{Binding LogoutCommand}">
-                            <materialDesign:PackIcon Kind="Logout" Width="18" Height="18"/>
+                        <Button Grid.Column="2" Style="{StaticResource MaterialDesignIconButton}" Width="30" Height="30" Foreground="{StaticResource SidebarTextBrush}" Command="{Binding LogoutCommand}" ToolTip="Đăng xuất">
+                            <materialDesign:PackIcon Kind="LogoutVariant" Width="18" Height="18"/>
                         </Button>
                     </Grid>
                 </Border>
             </Grid>
         </Border>
 
-        <!-- Main Content Area -->
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- Main Content Area                           -->
+        <!-- ═══════════════════════════════════════════ -->
         <Grid Grid.Column="1">
             <Grid.RowDefinitions>
-                <RowDefinition Height="70"/>
+                <RowDefinition Height="56"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <!-- Top Header -->
-            <Border Background="{StaticResource AppSurfaceBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1">
-                <Grid Margin="32,0">
+            <!-- Top Bar §7 -->
+            <Border Background="{StaticResource AppSurfaceBrush}" BorderBrush="{StaticResource TopBarBorderBrush}" BorderThickness="0,0,0,1">
+                <Grid Margin="24,0">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    
-                    <!-- View Title -->
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="{Binding CurrentViewTitle, FallbackValue='DASHBOARD'}" Style="{StaticResource TypographyH2}"/>
-                        <TextBlock Text="{Binding CurrentViewSubtitle, FallbackValue='Tổng quan hoạt động kinh doanh'}" Style="{StaticResource TypographyCaption}"/>
-                    </StackPanel>
 
-                    <!-- Search Bar -->
-                    <Border Grid.Column="1" MaxWidth="400" Height="40" CornerRadius="{StaticResource Radius.md}" Background="{StaticResource AppBackgroundBrush}" Margin="40,0" HorizontalAlignment="Left">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <materialDesign:PackIcon Kind="Search" Margin="12,0" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}"/>
-                            <TextBox Grid.Column="1" materialDesign:TextFieldAssist.DecorationVisibility="Collapsed" BorderThickness="0" Background="Transparent" VerticalContentAlignment="Center" materialDesign:HintAssist.Hint="Tìm kiếm sản phẩm, đơn hàng..." FontSize="13" Foreground="{StaticResource TextPrimaryBrush}" Margin="0"/>
-                        </Grid>
-                    </Border>
+                    <TextBlock Text="Phần mềm Quản lý Hàng hóa &amp; Bảo hành" 
+                               Foreground="{StaticResource TopBarTextBrush}" 
+                               FontSize="14" FontWeight="SemiBold" 
+                               VerticalAlignment="Center"/>
 
-                    <!-- Notifications & Profile -->
-                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button Style="{StaticResource MaterialDesignIconButton}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,8,0">
-                            <materialDesign:PackIcon Kind="BellOutline"/>
-                        </Button>
-                        <Button Style="{StaticResource MaterialDesignIconButton}" Foreground="{StaticResource TextSecondaryBrush}">
-                            <materialDesign:PackIcon Kind="HelpCircleOutline"/>
-                        </Button>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding CurrentUser.FullName}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="13" VerticalAlignment="Center" Margin="0,0,8,0"/>
                     </StackPanel>
                 </Grid>
             </Border>
 
-            <!-- Actual Content -->
+            <!-- Content §2 -->
             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                 <ContentControl Content="{Binding CurrentView}"/>
             </ScrollViewer>

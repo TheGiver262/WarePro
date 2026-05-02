@@ -9,7 +9,7 @@
              d:DesignHeight="800" d:DesignWidth="1100">
     
     <Grid Background="{StaticResource AppBackgroundBrush}">
-        <Grid Margin="{StaticResource Spacing.lg}">
+        <Grid Margin="{StaticResource PagePadding}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -26,7 +26,7 @@
 
                 <StackPanel Orientation="Horizontal">
                     <materialDesign:PackIcon Kind="Warehouse" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
-                    <TextBlock Text="BÁO CÁO TỒN KHO" Style="{StaticResource TypographyH2}" Margin="{StaticResource Margin.Left.md}" VerticalAlignment="Center" Foreground="{StaticResource AppPrimaryBrush}"/>
+                    <TextBlock Text="BÁO CÁO TỒN KHO" Style="{StaticResource TypographyH2}" Margin="{StaticResource Margin.Left.md}" VerticalAlignment="Center"/>
                 </StackPanel>
                 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
@@ -76,7 +76,7 @@
                     </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
                         <TextBlock Text="TỔNG GIÁ TRỊ TỒN KHO:" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center" Margin="{StaticResource Margin.Right.md}"/>
-                        <TextBlock Text="{Binding TotalInventoryValue, StringFormat='N0'}" Style="{StaticResource TypographyH1}" Foreground="{StaticResource AppPrimaryBrush}" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding TotalInventoryValue, StringFormat='N0'}" Style="{StaticResource TypographyH1}" VerticalAlignment="Center"/>
                         <TextBlock Text=" VNĐ" Style="{StaticResource TypographyCaption}" VerticalAlignment="Bottom" Margin="{StaticResource Margin.Left.xs}" FontWeight="SemiBold"/>
                     </StackPanel>
                 </Grid>
@@ -93,7 +93,7 @@
                     <Border Padding="{StaticResource Spacing.md}" Background="{StaticResource AppSurfaceBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="FormatListNumbered" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
-                            <TextBlock Text="CHI TIẾT SỐ DƯ TỒN KHO" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.md}" Foreground="{StaticResource AppPrimaryBrush}"/>
+                            <TextBlock Text="CHI TIẾT SỐ DƯ TỒN KHO" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.md}"/>
                         </StackPanel>
                     </Border>
 

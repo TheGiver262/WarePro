@@ -13,7 +13,7 @@
     </UserControl.DataContext>
 
     <Grid Background="{StaticResource AppBackgroundBrush}">
-        <Grid Margin="{StaticResource Spacing.lg}">
+        <Grid Margin="{StaticResource PagePadding}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -21,25 +21,25 @@
             </Grid.RowDefinitions>
 
             <!-- Row 0: Header -->
-            <Grid Grid.Row="0" Margin="{StaticResource Margin.Bottom.md}">
+            <Grid Grid.Row="0" Margin="{StaticResource SectionBottomMargin}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
                 <StackPanel VerticalAlignment="Center">
-                    <TextBlock Text="NHẬP KHO HÀNG HÓA" Style="{StaticResource TypographyH2}" Foreground="{StaticResource AppPrimaryBrush}"/>
+                    <TextBlock Text="Nhập kho" Style="{StaticResource TypographyH2}"/>
                     <TextBlock Text="Lập phiếu nhập kho và cập nhật số lượng tồn kho" Style="{StaticResource TypographyCaption}"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <ComboBox Width="120" SelectedIndex="0" Style="{StaticResource AppComboBoxStyle}" Margin="{StaticResource Margin.Right.sm}" Height="36">
+                    <ComboBox Width="120" SelectedIndex="0" Style="{StaticResource AppComboBoxStyle}" Margin="{StaticResource ControlRightMargin}" Height="34">
                         <ComboBoxItem Content="Tất cả TT"/>
                         <ComboBoxItem Content="Mới tạo"/>
                         <ComboBoxItem Content="Đã xác nhận"/>
                     </ComboBox>
-                    <Button Content="HỦY PHIẾU" Command="{Binding CancelCommand}" Style="{StaticResource AppSecondaryButton}" Height="36" Margin="{StaticResource Margin.Right.sm}"/>
-                    <Button Command="{Binding SaveStockInCommand}" Style="{StaticResource AppPrimaryButton}" Height="36">
+                    <Button Content="Hủy phiếu" Command="{Binding CancelCommand}" Style="{StaticResource AppSecondaryButton}" Height="34" Margin="{StaticResource ControlRightMargin}"/>
+                    <Button Command="{Binding SaveStockInCommand}" Style="{StaticResource AppPrimaryButton}" Height="34">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Plus" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
                             <TextBlock Text="Tạo phiếu nhập" VerticalAlignment="Center"/>
@@ -98,7 +98,8 @@
             </Border>
 
             <!-- Row 2: Items Table + Footer -->
-            <Grid Grid.Row="2">
+            <Border Grid.Row="2" Background="{StaticResource AppSurfaceBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource Radius.lg}">
+            <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
@@ -141,7 +142,7 @@
                                 <DataTemplate>
                                     <Button Style="{StaticResource MaterialDesignIconButton}" Width="28" Height="28" Padding="0"
                                             Command="{Binding DataContext.RemoveLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
-                                        <materialDesign:PackIcon Kind="TrashCanOutline" Width="16" Height="16" Foreground="{StaticResource AppErrorBrush}"/>
+                                        <materialDesign:PackIcon Kind="TrashCanOutline" Width="16" Height="16" Foreground="{StaticResource DangerTextBrush}"/>
                                     </Button>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
@@ -149,7 +150,7 @@
                     </DataGrid.Columns>
                 </DataGrid>
 
-                <Border Grid.Row="1" Padding="12,8" Background="{StaticResource AppBackgroundBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
+                <Border Grid.Row="1" Padding="14,8" Background="{StaticResource AppSurfaceBrush}" BorderBrush="{StaticResource GridLineBrush}" BorderThickness="0,1,0,0">
                     <Grid>
                         <TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource AppTertiaryBrush}"/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
@@ -160,6 +161,7 @@
                     </Grid>
                 </Border>
             </Grid>
+            </Border>
         </Grid>
     </Grid>
 </UserControl>

@@ -13,7 +13,7 @@
 
             <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="{StaticResource Margin.Bottom.lg}">
                 <materialDesign:PackIcon Kind="FileImport" Width="28" Height="28" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
-                <TextBlock Text="NHẬP TỒN ĐẦU KỲ" Style="{StaticResource TypographyH2}" Foreground="{StaticResource AppPrimaryBrush}" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                <TextBlock Text="NHẬP TỒN ĐẦU KỲ" Style="{StaticResource TypographyH2}" Margin="12,0,0,0" VerticalAlignment="Center"/>
             </StackPanel>
 
             <materialDesign:Card Grid.Row="1" Style="{StaticResource AppCard}" Padding="24" Margin="{StaticResource Margin.Bottom.lg}">

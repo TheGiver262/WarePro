@@ -14,7 +14,7 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Margin="{StaticResource Margin.Bottom.md}">
-            <TextBlock Text="KẾT QUẢ IMPORT" Style="{StaticResource TypographyH2}" Foreground="{StaticResource AppPrimaryBrush}"/>
+            <TextBlock Text="KẾT QUẢ IMPORT" Style="{StaticResource TypographyH2}"/>
             <TextBlock x:Name="TxtSummary" Text="Thành công: 0 dòng. Thất bại: 0 dòng." Style="{StaticResource TypographyCaption}"/>
         </StackPanel>
 
@@ -28,7 +28,7 @@
         </DataGrid>
 
         <Button Grid.Row="2" Content="ĐÓNG" HorizontalAlignment="Right" Margin="{StaticResource Margin.Top.md}" 
-                IsDefault="True" Click="Close_Click" Style="{StaticResource AppPrimaryButton}" Height="36"/>
+                IsDefault="True" Click="Close_Click" Style="{StaticResource AppPrimaryButton}" Height="34"/>
     </Grid>
 </Window>
 

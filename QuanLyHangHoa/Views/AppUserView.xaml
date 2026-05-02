@@ -13,7 +13,7 @@
     </UserControl.DataContext>
 
     <Grid Background="{StaticResource AppBackgroundBrush}">
-        <Grid Margin="{StaticResource Spacing.lg}">
+        <Grid Margin="{StaticResource PagePadding}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -29,7 +29,7 @@
 
                 <StackPanel Orientation="Horizontal">
                     <materialDesign:PackIcon Kind="AccountSettings" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
-                    <TextBlock Text="QUẢN TRỊ TÀI KHOẢN" Style="{StaticResource TypographyH2}" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.md}" Foreground="{StaticResource AppPrimaryBrush}"/>
+                    <TextBlock Text="QUẢN TRỊ TÀI KHOẢN" Style="{StaticResource TypographyH2}" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.md}"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
@@ -106,7 +106,7 @@
 
                         <StackPanel Orientation="Horizontal" Margin="{StaticResource Margin.Bottom.lg}">
                             <materialDesign:PackIcon Kind="AccountEdit" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
-                            <TextBlock Text="THÔNG TIN TÀI KHOẢN" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppPrimaryBrush}" Margin="{StaticResource Margin.Left.sm}" VerticalAlignment="Center"/>
+                            <TextBlock Text="THÔNG TIN TÀI KHOẢN" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Left.sm}" VerticalAlignment="Center"/>
                         </StackPanel>
 
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">

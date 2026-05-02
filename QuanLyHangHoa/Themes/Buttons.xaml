@@ -2,32 +2,40 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
 
+    <!-- WarePro UI Design Guideline — Buttons §10.3 + §16.1 + §16.2 -->
+
     <!-- Global Button Style Override -->
     <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignRaisedButton}">
         <Setter Property="materialDesign:ButtonAssist.CornerRadius" Value="{StaticResource Radius.md}"/>
-        <Setter Property="Height" Value="40"/>
-        <Setter Property="Padding" Value="16,0"/>
-        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="Height" Value="34"/>
+        <Setter Property="Padding" Value="14,0"/>
+        <Setter Property="FontSize" Value="13"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="materialDesign:ElevationAssist.Elevation" Value="Dp0"/>
     </Style>
 
-    <!-- Primary Button (Indigo/Tertiary) -->
+    <!-- Primary Button §16.1 -->
     <Style x:Key="AppPrimaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-        <Setter Property="Background" Value="{StaticResource AppTertiaryBrush}"/>
-        <Setter Property="BorderBrush" Value="{StaticResource AppTertiaryBrush}"/>
+        <Setter Property="Background" Value="{StaticResource PrimaryPurpleBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource PrimaryPurpleBrush}"/>
         <Setter Property="Foreground" Value="{StaticResource TextOnPrimaryBrush}"/>
-        <Setter Property="Padding" Value="20,12"/>
-        <Setter Property="Height" Value="Auto"/>
-        <Setter Property="MinHeight" Value="40"/>
+        <Setter Property="Padding" Value="14,0"/>
+        <Setter Property="Height" Value="34"/>
+        <Setter Property="MinWidth" Value="88"/>
     </Style>
 
-    <!-- Secondary Button (Slate Outline) -->
+    <!-- Secondary Button §16.2 -->
     <Style x:Key="AppSecondaryButton" TargetType="Button" BasedOn="{StaticResource MaterialDesignOutlinedButton}">
         <Setter Property="materialDesign:ButtonAssist.CornerRadius" Value="{StaticResource Radius.md}"/>
-        <Setter Property="BorderBrush" Value="{StaticResource AppSecondaryBrush}"/>
-        <Setter Property="Foreground" Value="{StaticResource AppSecondaryBrush}"/>
-        <Setter Property="Height" Value="40"/>
+        <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="Background" Value="White"/>
+        <Setter Property="Height" Value="34"/>
+        <Setter Property="MinWidth" Value="64"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Cursor" Value="Hand"/>
     </Style>
 
     <!-- Danger Button -->

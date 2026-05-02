@@ -8,7 +8,7 @@
              d:DesignHeight="800" d:DesignWidth="1200">
 
     <Grid Background="{StaticResource AppBackgroundBrush}">
-        <Grid Margin="{StaticResource Spacing.lg}">
+        <Grid Margin="{StaticResource PagePadding}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/> <!-- Row 0: Header -->
                 <RowDefinition Height="Auto"/> <!-- Row 1: Search -->
@@ -27,7 +27,7 @@
                     <Border Background="{StaticResource AppTertiaryBrush}" Width="40" Height="40" CornerRadius="{StaticResource Radius.md}">
                         <materialDesign:PackIcon Kind="Tools" Width="24" Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource TextOnPrimaryBrush}"/>
                     </Border>
-                    <TextBlock Text="YÊU CẦU BẢO HÀNH" Style="{StaticResource TypographyH2}" Foreground="{StaticResource AppPrimaryBrush}" Margin="{StaticResource Margin.Left.md}" VerticalAlignment="Center"/>
+                    <TextBlock Text="YÊU CẦU BẢO HÀNH" Style="{StaticResource TypographyH2}" Margin="{StaticResource Margin.Left.md}" VerticalAlignment="Center"/>
                 </StackPanel>
             </Grid>
 

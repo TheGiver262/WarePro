@@ -1,28 +1,34 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- WarePro UI Design Guideline — Color Palette §3         -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+
     <!-- Core Colors -->
-    <Color x:Key="AppPrimaryColor">#0F172A</Color>
-    <Color x:Key="AppSecondaryColor">#64748B</Color>
-    <Color x:Key="AppTertiaryColor">#4F46E5</Color>
-    <Color x:Key="AppSurfaceColor">#FFFFFF</Color>
-    <Color x:Key="AppBackgroundColor">#F1F5F9</Color>
-    <Color x:Key="AppBorderColor">#E2E8F0</Color>
-    <Color x:Key="AppDividerColor">#CBD5E1</Color>
+    <Color x:Key="AppPrimaryColor">#1F1532</Color>          <!-- SidebarBg -->
+    <Color x:Key="AppSecondaryColor">#6F667C</Color>        <!-- TextSecondary -->
+    <Color x:Key="AppTertiaryColor">#7C3AED</Color>         <!-- PrimaryPurple -->
+    <Color x:Key="AppSurfaceColor">#FFFFFF</Color>          <!-- Surface -->
+    <Color x:Key="AppBackgroundColor">#F7F6FA</Color>       <!-- PageBg -->
+    <Color x:Key="AppBorderColor">#DDD8E7</Color>           <!-- Border -->
+    <Color x:Key="AppDividerColor">#E4DFEA</Color>          <!-- TopBar divider -->
 
     <!-- Semantic Colors -->
-    <Color x:Key="AppSuccessColor">#10B981</Color>
-    <Color x:Key="AppWarningColor">#F59E0B</Color>
-    <Color x:Key="AppErrorColor">#EF4444</Color>
-    <Color x:Key="AppInfoColor">#3B82F6</Color>
+    <Color x:Key="AppSuccessColor">#15803D</Color>
+    <Color x:Key="AppWarningColor">#B45309</Color>
+    <Color x:Key="AppErrorColor">#DC2626</Color>
+    <Color x:Key="AppInfoColor">#2563EB</Color>
 
     <!-- Text Colors -->
-    <Color x:Key="TextPrimaryColor">#0F172A</Color>
-    <Color x:Key="TextSecondaryColor">#64748B</Color>
-    <Color x:Key="TextDisabledColor">#94A3B8</Color>
+    <Color x:Key="TextPrimaryColor">#26212E</Color>
+    <Color x:Key="TextSecondaryColor">#6F667C</Color>
+    <Color x:Key="TextDisabledColor">#8B819A</Color>        <!-- TextMuted -->
     <Color x:Key="TextOnPrimaryColor">#FFFFFF</Color>
 
-    <!-- Brushes -->
+    <!-- ═══════════════════════════════ -->
+    <!-- Core Brushes                   -->
+    <!-- ═══════════════════════════════ -->
     <SolidColorBrush x:Key="AppPrimaryBrush" Color="{StaticResource AppPrimaryColor}" />
     <SolidColorBrush x:Key="AppSecondaryBrush" Color="{StaticResource AppSecondaryColor}" />
     <SolidColorBrush x:Key="AppTertiaryBrush" Color="{StaticResource AppTertiaryColor}" />
@@ -30,17 +36,79 @@
     <SolidColorBrush x:Key="AppBackgroundBrush" Color="{StaticResource AppBackgroundColor}" />
     <SolidColorBrush x:Key="AppBorderBrush" Color="{StaticResource AppBorderColor}" />
     <SolidColorBrush x:Key="AppDividerBrush" Color="{StaticResource AppDividerColor}" />
+
+    <!-- Legacy aliases (backward compat) -->
     <SolidColorBrush x:Key="PrimaryIndigoBrush" Color="{StaticResource AppTertiaryColor}" />
     <SolidColorBrush x:Key="BodyBgBrush" Color="{StaticResource AppBackgroundColor}" />
 
+    <!-- Semantic Brushes -->
     <SolidColorBrush x:Key="AppSuccessBrush" Color="{StaticResource AppSuccessColor}" />
     <SolidColorBrush x:Key="AppWarningBrush" Color="{StaticResource AppWarningColor}" />
     <SolidColorBrush x:Key="AppErrorBrush" Color="{StaticResource AppErrorColor}" />
     <SolidColorBrush x:Key="AppInfoBrush" Color="{StaticResource AppInfoColor}" />
 
+    <!-- Text Brushes -->
     <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimaryColor}" />
     <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondaryColor}" />
     <SolidColorBrush x:Key="TextDisabledBrush" Color="{StaticResource TextDisabledColor}" />
     <SolidColorBrush x:Key="TextOnPrimaryBrush" Color="{StaticResource TextOnPrimaryColor}" />
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- WarePro-specific Tokens (NEW)                          -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+
+    <!-- Sidebar §3.1 + §6 -->
+    <SolidColorBrush x:Key="SidebarBgBrush" Color="#1F1532" />
+    <SolidColorBrush x:Key="SidebarBgDarkerBrush" Color="#1A102A" />
+    <SolidColorBrush x:Key="SidebarHoverBrush" Color="#2E2144" />
+    <SolidColorBrush x:Key="SidebarActiveBrush" Color="#7C3AED" />
+    <SolidColorBrush x:Key="SidebarTextBrush" Color="#DCD5EA" />
+
+    <!-- Primary Purple variant -->
+    <SolidColorBrush x:Key="PrimaryPurpleBrush" Color="#7C3AED" />
+    <SolidColorBrush x:Key="PrimaryPurpleHoverBrush" Color="#6D28D9" />
+
+    <!-- Table/Surface §11 -->
+    <SolidColorBrush x:Key="SurfaceMutedBrush" Color="#F3F1F7" />
+    <SolidColorBrush x:Key="RowHoverBrush" Color="#FAF8FE" />
+    <SolidColorBrush x:Key="GridLineBrush" Color="#E5E0EE" />
+
+    <!-- Top bar §7 -->
+    <SolidColorBrush x:Key="TopBarBorderBrush" Color="#E4DFEA" />
+    <SolidColorBrush x:Key="TopBarTextBrush" Color="#7C728C" />
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- Status Badges §3.2 + §12                               -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+
+    <!-- Success: Hoạt động, Đã TT, Trong kho, Đã sửa -->
+    <SolidColorBrush x:Key="SuccessBgBrush" Color="#DCFCE7" />
+    <SolidColorBrush x:Key="SuccessTextBrush" Color="#15803D" />
+
+    <!-- Info: Đã duyệt, Đã bán, Tiếp nhận -->
+    <SolidColorBrush x:Key="InfoBgBrush" Color="#DBEAFE" />
+    <SolidColorBrush x:Key="InfoTextBrush" Color="#2563EB" />
+
+    <!-- Warning: Đang xử lý, TT một phần -->
+    <SolidColorBrush x:Key="WarningBgBrush" Color="#FEF3C7" />
+    <SolidColorBrush x:Key="WarningTextBrush" Color="#B45309" />
+
+    <!-- Danger: Chưa TT, Từ chối -->
+    <SolidColorBrush x:Key="DangerBgBrush" Color="#FEE2E2" />
+    <SolidColorBrush x:Key="DangerTextBrush" Color="#DC2626" />
+
+    <!-- Neutral: Nháp, Ngừng HĐ, Đã đóng -->
+    <SolidColorBrush x:Key="NeutralBgBrush" Color="#E5E7EB" />
+    <SolidColorBrush x:Key="NeutralTextBrush" Color="#4B5563" />
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- Dashboard Card Icon Colors §3.3                        -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <SolidColorBrush x:Key="DashProductIconBrush" Color="#2F80ED" />
+    <SolidColorBrush x:Key="DashStockInIconBrush" Color="#22C55E" />
+    <SolidColorBrush x:Key="DashStockOutIconBrush" Color="#F97316" />
+    <SolidColorBrush x:Key="DashWarrantyIconBrush" Color="#A855F7" />
+    <SolidColorBrush x:Key="DashPurchaseUnpaidIconBrush" Color="#EF4444" />
+    <SolidColorBrush x:Key="DashSalesUnpaidIconBrush" Color="#EAB308" />
 
 </ResourceDictionary>

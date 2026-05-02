@@ -7,7 +7,7 @@
              mc:Ignorable="d" 
              d:DesignHeight="600" d:DesignWidth="900">
     <Grid Background="{StaticResource AppBackgroundBrush}">
-        <Grid Margin="{StaticResource Spacing.lg}">
+        <Grid Margin="{StaticResource PagePadding}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -18,7 +18,7 @@
             <!-- Header -->
             <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,24">
                 <materialDesign:PackIcon Kind="Scale" Width="28" Height="28" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
-                <TextBlock Text="CẤU HÌNH ĐƠN VỊ QUY ĐỔI" Style="{StaticResource TypographyH2}" Foreground="{StaticResource AppPrimaryBrush}" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                <TextBlock Text="CẤU HÌNH ĐƠN VỊ QUY ĐỔI" Style="{StaticResource TypographyH2}" Margin="12,0,0,0" VerticalAlignment="Center"/>
             </StackPanel>
 
             <!-- Input Form -->
@@ -61,7 +61,7 @@
                         <DataGridTemplateColumn Width="100">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <Button Style="{StaticResource MaterialDesignIconButton}" Command="{Binding DataContext.DeleteUnitCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Foreground="{StaticResource AppErrorBrush}">
+                                    <Button Style="{StaticResource MaterialDesignIconButton}" Command="{Binding DataContext.DeleteUnitCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Foreground="{StaticResource DangerTextBrush}">
                                         <materialDesign:PackIcon Kind="Delete" Width="20" Height="20"/>
                                     </Button>
                                 </DataTemplate>
@@ -75,7 +75,7 @@
             <materialDesign:Card Grid.Row="3" Margin="0,24,0,0" Style="{StaticResource AppCard}" Padding="12" Background="{StaticResource AppSurfaceBrush}">
                 <StackPanel Orientation="Horizontal">
                     <materialDesign:PackIcon Kind="Information" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource AppPrimaryBrush}" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding StatusMessage}" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"/>
                 </StackPanel>
             </materialDesign:Card>
         </Grid>

@@ -4,135 +4,114 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-             mc:Ignorable="d" 
-             d:DesignHeight="800" d:DesignWidth="1100">
+             mc:Ignorable="d" d:DesignHeight="800" d:DesignWidth="1100">
     <UserControl.Resources>
         <Style x:Key="MetricCardButtonStyle" TargetType="Button" BasedOn="{StaticResource MaterialDesignFlatButton}">
             <Setter Property="Padding" Value="0"/>
-            <Setter Property="Margin" Value="{StaticResource Margin.Bottom.md}"/>
             <Setter Property="Height" Value="Auto"/>
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
             <Setter Property="VerticalContentAlignment" Value="Stretch"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
             <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Opacity" Value="0.9"/>
-                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True"><Setter Property="Opacity" Value="0.9"/></Trigger>
             </Style.Triggers>
         </Style>
     </UserControl.Resources>
-
     <Grid Background="{StaticResource AppBackgroundBrush}">
-        <Grid Margin="{StaticResource Spacing.lg}">
+        <Grid Margin="{StaticResource PagePadding}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
-
-            <!-- Header Section -->
-            <StackPanel Grid.Row="0" Margin="{StaticResource Margin.Bottom.lg}">
+            <StackPanel Grid.Row="0" Margin="{StaticResource SectionBottomMargin}">
                 <TextBlock Text="Dashboard" Style="{StaticResource TypographyH1}"/>
-                <TextBlock Text="Tổng quan hoạt động kinh doanh và hiệu suất hệ thống thời gian thực" Style="{StaticResource TypographyCaption}"/>
+                <TextBlock Text="Tổng quan hoạt động kinh doanh" Style="{StaticResource TypographyCaption}"/>
             </StackPanel>
-
             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                 <StackPanel>
-                    <!-- Main Metrics Grid -->
-                    <UniformGrid Columns="4">
-                        <!-- Inventory Card -->
-                        <Button Command="{Binding NavigateToProductsCommand}" Style="{StaticResource MetricCardButtonStyle}">
-                            <materialDesign:Card Padding="{StaticResource Spacing.md}">
+                    <UniformGrid Columns="4" Margin="0,0,0,24">
+                        <Button Command="{Binding NavigateToProductsCommand}" Style="{StaticResource MetricCardButtonStyle}" Margin="0,0,12,12">
+                            <materialDesign:Card Padding="16">
                                 <StackPanel>
-                                    <Border Background="#F1F5F9" Width="40" Height="40" CornerRadius="{StaticResource Radius.md}" HorizontalAlignment="Left">
-                                        <materialDesign:PackIcon Kind="PackageVariant" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
+                                    <Border Background="#EDE9FE" Width="40" Height="40" CornerRadius="5" HorizontalAlignment="Left">
+                                        <materialDesign:PackIcon Kind="PackageVariantClosed" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource DashProductIconBrush}"/>
                                     </Border>
-                                    <TextBlock Text="TỔNG HÀNG TỒN" Style="{StaticResource TypographyLabel}" Margin="0,16,0,4"/>
-                                    <TextBlock Text="{Binding Stats.TotalInventoryCount, StringFormat='N0'}" Style="{StaticResource TypographyH2}"/>
+                                    <TextBlock Text="SẢN PHẨM" Style="{StaticResource TypographyLabel}" Margin="0,14,0,4"/>
+                                    <TextBlock Text="{Binding Stats.TotalInventoryCount, StringFormat='N0'}" Style="{StaticResource TypographyStatNumber}"/>
                                     <TextBlock Text="Sản phẩm trong kho" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
                                 </StackPanel>
                             </materialDesign:Card>
                         </Button>
-
-                        <!-- Stock In Month -->
-                        <Button Command="{Binding NavigateToStockInCommand}" Style="{StaticResource MetricCardButtonStyle}">
-                            <materialDesign:Card Padding="{StaticResource Spacing.md}">
+                        <Button Command="{Binding NavigateToStockInCommand}" Style="{StaticResource MetricCardButtonStyle}" Margin="0,0,12,12">
+                            <materialDesign:Card Padding="16">
                                 <StackPanel>
-                                    <Border Background="#DCFCE7" Width="40" Height="40" CornerRadius="{StaticResource Radius.md}" HorizontalAlignment="Left">
-                                        <materialDesign:PackIcon Kind="ArrowDownBox" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="#166534"/>
+                                    <Border Background="#DCFCE7" Width="40" Height="40" CornerRadius="5" HorizontalAlignment="Left">
+                                        <materialDesign:PackIcon Kind="TrayArrowDown" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource DashStockInIconBrush}"/>
                                     </Border>
-                                    <TextBlock Text="NHẬP KHO (THÁNG)" Style="{StaticResource TypographyLabel}" Margin="0,16,0,4"/>
-                                    <TextBlock Text="{Binding Stats.StockInMonthCount}" Style="{StaticResource TypographyH2}"/>
+                                    <TextBlock Text="PHIẾU NHẬP (THÁNG)" Style="{StaticResource TypographyLabel}" Margin="0,14,0,4"/>
+                                    <TextBlock Text="{Binding Stats.StockInMonthCount}" Style="{StaticResource TypographyStatNumber}"/>
                                     <TextBlock Text="Phiếu nhập mới" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
                                 </StackPanel>
                             </materialDesign:Card>
                         </Button>
-
-                        <!-- Sales Month -->
-                        <Button Command="{Binding NavigateToSalesInvoicesCommand}" Style="{StaticResource MetricCardButtonStyle}">
-                            <materialDesign:Card Padding="{StaticResource Spacing.md}">
+                        <Button Command="{Binding NavigateToSalesInvoicesCommand}" Style="{StaticResource MetricCardButtonStyle}" Margin="0,0,12,12">
+                            <materialDesign:Card Padding="16">
                                 <StackPanel>
-                                    <Border Background="#DBEAFE" Width="40" Height="40" CornerRadius="{StaticResource Radius.md}" HorizontalAlignment="Left">
-                                        <materialDesign:PackIcon Kind="FileDocumentOutline" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="#1E40AF"/>
+                                    <Border Background="#FEF3C7" Width="40" Height="40" CornerRadius="5" HorizontalAlignment="Left">
+                                        <materialDesign:PackIcon Kind="TrayArrowUp" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource DashStockOutIconBrush}"/>
                                     </Border>
-                                    <TextBlock Text="ĐƠN BÁN (THÁNG)" Style="{StaticResource TypographyLabel}" Margin="0,16,0,4"/>
-                                    <TextBlock Text="{Binding Stats.SalesInvoiceMonthCount}" Style="{StaticResource TypographyH2}"/>
-                                    <TextBlock Text="Đã hoàn thành" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBlock Text="PHIẾU XUẤT (THÁNG)" Style="{StaticResource TypographyLabel}" Margin="0,14,0,4"/>
+                                    <TextBlock Text="{Binding Stats.SalesInvoiceMonthCount}" Style="{StaticResource TypographyStatNumber}"/>
+                                    <TextBlock Text="Phiếu xuất tháng này" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
                                 </StackPanel>
                             </materialDesign:Card>
                         </Button>
-
-                        <!-- Revenue Month -->
-                        <Button Command="{Binding NavigateToSalesInvoicesCommand}" Style="{StaticResource MetricCardButtonStyle}">
-                            <materialDesign:Card Padding="{StaticResource Spacing.md}">
+                        <Button Command="{Binding NavigateToSalesInvoicesCommand}" Style="{StaticResource MetricCardButtonStyle}" Margin="0,0,0,12">
+                            <materialDesign:Card Padding="16">
                                 <StackPanel>
-                                    <Border Background="#F5F3FF" Width="40" Height="40" CornerRadius="{StaticResource Radius.md}" HorizontalAlignment="Left">
-                                        <materialDesign:PackIcon Kind="CashMultiple" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
+                                    <Border Background="#F5F3FF" Width="40" Height="40" CornerRadius="5" HorizontalAlignment="Left">
+                                        <materialDesign:PackIcon Kind="CashMultiple" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource PrimaryPurpleBrush}"/>
                                     </Border>
-                                    <TextBlock Text="DOANH THU (THÁNG)" Style="{StaticResource TypographyLabel}" Margin="0,16,0,4"/>
-                                    <TextBlock Text="{Binding Stats.RevenueMonth, StringFormat='N0'}" Style="{StaticResource TypographyH2}"/>
+                                    <TextBlock Text="DOANH THU (THÁNG)" Style="{StaticResource TypographyLabel}" Margin="0,14,0,4"/>
+                                    <TextBlock Text="{Binding Stats.RevenueMonth, StringFormat='N0'}" Style="{StaticResource TypographyStatNumber}"/>
                                     <TextBlock Text="VNĐ (Tổng thu)" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
                                 </StackPanel>
                             </materialDesign:Card>
                         </Button>
                     </UniformGrid>
-
-                    <!-- Charts & Activity Section -->
-                    <Grid Margin="{StaticResource Margin.Top.sm}">
+                    <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="2*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-
-                        <!-- Growth Chart Card -->
-                        <materialDesign:Card Grid.Column="0" Margin="{StaticResource Margin.Right.md}" Padding="{StaticResource Spacing.lg}">
+                        <materialDesign:Card Grid.Column="0" Margin="0,0,12,0" Padding="20">
                             <StackPanel>
-                                <TextBlock Text="Biểu Đồ Tăng Trưởng" Style="{StaticResource TypographyH2}" Margin="{StaticResource Margin.Bottom.lg}"/>
-                                <Border Height="340" Background="#F8FAFC" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource Radius.md}">
+                                <TextBlock Text="Biểu đồ tăng trưởng" Style="{StaticResource TypographyH2}" Margin="0,0,0,20"/>
+                                <Border Height="340" Background="{StaticResource SurfaceMutedBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="5">
                                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                        <materialDesign:PackIcon Kind="ChartLine" Width="48" Height="48" Foreground="#CBD5E1"/>
+                                        <materialDesign:PackIcon Kind="ChartLine" Width="48" Height="48" Foreground="{StaticResource TextDisabledBrush}"/>
                                         <TextBlock Text="Dữ liệu biểu đồ đang được cập nhật..." Style="{StaticResource TypographyCaption}" Margin="0,12,0,0"/>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
                         </materialDesign:Card>
-
-                        <!-- Recent Activity Card -->
-                        <materialDesign:Card Grid.Column="1" Padding="{StaticResource Spacing.lg}">
+                        <materialDesign:Card Grid.Column="1" Padding="20">
                             <StackPanel>
-                                <TextBlock Text="Hoạt Động Gần Đây" Style="{StaticResource TypographyH2}" Margin="{StaticResource Margin.Bottom.lg}"/>
+                                <TextBlock Text="Hoạt động gần đây" Style="{StaticResource TypographyH2}" Margin="0,0,0,20"/>
                                 <ItemsControl ItemsSource="{Binding Stats.Activities}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Grid Margin="{StaticResource Margin.Bottom.md}">
+                                            <Grid Margin="0,0,0,14">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="Auto"/>
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
-                                                <Border Background="#F1F5F9" Width="36" Height="36" CornerRadius="18">
+                                                <Border Background="{StaticResource SurfaceMutedBrush}" Width="36" Height="34" CornerRadius="18">
                                                     <materialDesign:PackIcon Kind="{Binding IconKind}" Width="18" Height="18" Foreground="{Binding IconColor}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
-                                                <StackPanel Grid.Column="1" Margin="{StaticResource Margin.Left.md}" VerticalAlignment="Center">
+                                                <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
                                                     <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" FontSize="13"/>
                                                     <TextBlock Text="{Binding TimeAgo}" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
                                                 </StackPanel>

@@ -8,7 +8,7 @@
              d:DesignHeight="800" d:DesignWidth="1100">
     
     <Grid Background="{StaticResource AppBackgroundBrush}">
-        <Grid Margin="{StaticResource Spacing.lg}">
+        <Grid Margin="{StaticResource PagePadding}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -20,7 +20,7 @@
                 <Grid>
                     <StackPanel Orientation="Horizontal">
                         <materialDesign:PackIcon Kind="ChartBar" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
-                        <TextBlock Text="BÁO CÁO DOANH THU &amp; LỢI NHUẬN" Style="{StaticResource TypographyH2}" Foreground="{StaticResource AppPrimaryBrush}" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="BÁO CÁO DOANH THU &amp; LỢI NHUẬN" Style="{StaticResource TypographyH2}" Margin="12,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
                     
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
@@ -45,7 +45,7 @@
                 <materialDesign:Card Grid.Column="0" Margin="{StaticResource Margin.Right.md}" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.lg}">
                     <StackPanel>
                         <TextBlock Text="TỔNG DOANH THU" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppSecondaryBrush}"/>
-                        <TextBlock Text="{Binding TotalRevenue, StringFormat=N0}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource AppPrimaryBrush}" Margin="0,8,0,0"/>
+                        <TextBlock Text="{Binding TotalRevenue, StringFormat=N0}" FontSize="24" FontWeight="Bold" Margin="0,8,0,0"/>
                         <TextBlock Text="VNĐ" Style="{StaticResource TypographyCaption}" Foreground="{StaticResource AppSecondaryBrush}" HorizontalAlignment="Right"/>
                     </StackPanel>
                 </materialDesign:Card>
@@ -61,8 +61,8 @@
                 <materialDesign:Card Grid.Column="2" Margin="{StaticResource Margin.Left.md}" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.lg}">
                     <StackPanel>
                         <TextBlock Text="TỔNG CHI PHÍ" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppSecondaryBrush}"/>
-                        <TextBlock Text="{Binding TotalCost, StringFormat=N0}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource AppErrorBrush}" Margin="0,8,0,0"/>
-                        <TextBlock Text="VNĐ" Style="{StaticResource TypographyCaption}" Foreground="{StaticResource AppErrorBrush}" HorizontalAlignment="Right"/>
+                        <TextBlock Text="{Binding TotalCost, StringFormat=N0}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource DangerTextBrush}" Margin="0,8,0,0"/>
+                        <TextBlock Text="VNĐ" Style="{StaticResource TypographyCaption}" Foreground="{StaticResource DangerTextBrush}" HorizontalAlignment="Right"/>
                     </StackPanel>
                 </materialDesign:Card>
             </Grid>
@@ -78,7 +78,7 @@
                     <Border Padding="{StaticResource Spacing.md}" Background="{StaticResource AppSurfaceBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="TableLarge" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
-                            <TextBlock Text="CHI TIẾT DOANH THU THEO NGÀY" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Left.md}" Foreground="{StaticResource AppPrimaryBrush}"/>
+                            <TextBlock Text="CHI TIẾT DOANH THU THEO NGÀY" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Left.md}"/>
                         </StackPanel>
                     </Border>
 

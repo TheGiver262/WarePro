@@ -8,7 +8,7 @@
              d:DesignHeight="800" d:DesignWidth="1200">
 
     <Grid Background="{StaticResource AppBackgroundBrush}">
-        <Grid Margin="{StaticResource Spacing.lg}">
+        <Grid Margin="{StaticResource PagePadding}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -19,7 +19,7 @@
             <Grid Grid.Row="0" Margin="{StaticResource Margin.Bottom.md}">
                 <StackPanel Orientation="Horizontal">
                     <materialDesign:PackIcon Kind="ShieldCheck" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
-                    <TextBlock Text="QUẢN LÝ BẢO HÀNH" Style="{StaticResource TypographyH2}" Foreground="{StaticResource AppPrimaryBrush}" Margin="{StaticResource Margin.Left.md}" VerticalAlignment="Center"/>
+                    <TextBlock Text="QUẢN LÝ BẢO HÀNH" Style="{StaticResource TypographyH2}" Margin="{StaticResource Margin.Left.md}" VerticalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <Button Content="TẠO PHIẾU MỚI" Command="{Binding CreateWarrantyCommand}" Style="{StaticResource AppPrimaryButton}"/>
@@ -98,7 +98,7 @@
 
                         <StackPanel Orientation="Horizontal" Margin="{StaticResource Margin.Bottom.lg}">
                             <materialDesign:PackIcon Kind="Information" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
-                            <TextBlock Text="CHI TIẾT PHIẾU BẢO HÀNH" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppPrimaryBrush}" Margin="{StaticResource Margin.Left.sm}" VerticalAlignment="Center"/>
+                            <TextBlock Text="CHI TIẾT PHIẾU BẢO HÀNH" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Left.sm}" VerticalAlignment="Center"/>
                         </StackPanel>
 
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">

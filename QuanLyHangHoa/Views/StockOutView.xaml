@@ -13,7 +13,7 @@
     </UserControl.DataContext>
 
     <Grid Background="{StaticResource AppBackgroundBrush}">
-        <Grid Margin="{StaticResource Spacing.lg}">
+        <Grid Margin="{StaticResource PagePadding}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -34,7 +34,7 @@
                             <materialDesign:PackIcon Kind="ArrowUpBox" Width="24" Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource TextOnPrimaryBrush}"/>
                         </Border>
                         <StackPanel Margin="{StaticResource Margin.Left.md}" VerticalAlignment="Center">
-                            <TextBlock Text="XUẤT KHO HÀNG HÓA" Style="{StaticResource TypographyH2}" Foreground="{StaticResource AppPrimaryBrush}"/>
+                            <TextBlock Text="XUẤT KHO HÀNG HÓA" Style="{StaticResource TypographyH2}"/>
                             <TextBlock Text="Lập phiếu xuất kho và giảm trừ số lượng tồn kho" Style="{StaticResource TypographyCaption}"/>
                         </StackPanel>
                     </StackPanel>
@@ -87,7 +87,7 @@
 
                     <StackPanel Orientation="Horizontal" Grid.Column="0" Margin="{StaticResource Margin.Right.lg}" VerticalAlignment="Center">
                         <materialDesign:PackIcon Kind="FileDocumentEditOutline" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
-                        <TextBlock Text="PHIẾU XUẤT" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppPrimaryBrush}" Margin="{StaticResource Margin.Left.sm}" VerticalAlignment="Center"/>
+                        <TextBlock Text="PHIẾU XUẤT" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Left.sm}" VerticalAlignment="Center"/>
                     </StackPanel>
 
                     <Grid Grid.Column="1">
@@ -156,7 +156,7 @@
                             <DataGridTemplateColumn Header="" Width="60">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Button Style="{StaticResource MaterialDesignIconButton}" Foreground="{StaticResource AppErrorBrush}" Width="32" Height="32" Padding="0"
+                                        <Button Style="{StaticResource MaterialDesignIconButton}" Foreground="{StaticResource DangerTextBrush}" Width="32" Height="32" Padding="0"
                                                 Command="{Binding DataContext.RemoveLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
                                             <materialDesign:PackIcon Kind="DeleteOutline" Width="20" Height="20"/>
                                         </Button>

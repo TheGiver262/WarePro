@@ -2,22 +2,25 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
 
+    <!-- WarePro UI Design Guideline — Sidebar Navigation §6 -->
+
     <!-- Sidebar Container Style -->
     <Style x:Key="SidebarContainer" TargetType="Border">
-        <Setter Property="Background" Value="{StaticResource AppPrimaryBrush}"/>
-        <Setter Property="BorderThickness" Value="0,0,1,0"/>
-        <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
+        <Setter Property="Background" Value="{StaticResource SidebarBgBrush}"/>
+        <Setter Property="BorderThickness" Value="0"/>
     </Style>
 
-    <!-- Sidebar Item Style (RadioButton) -->
+    <!-- Sidebar Item Style (RadioButton) §6.2 + §6.3 -->
     <Style x:Key="SidebarItemStyle" TargetType="RadioButton">
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="Height" Value="40"/>
+        <Setter Property="Height" Value="36"/>
         <Setter Property="Margin" Value="8,2"/>
         <Setter Property="FontSize" Value="14"/>
+        <Setter Property="FontWeight" Value="Medium"/>
         <Setter Property="HorizontalAlignment" Value="Stretch"/>
         <Setter Property="GroupName" Value="SidebarMenu"/>
+        <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="RadioButton">
@@ -31,29 +34,33 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource AppTertiaryBrush}"/>
+                            <Setter TargetName="border" Property="Background" Value="{StaticResource SidebarActiveBrush}"/>
                             <Setter Property="Foreground" Value="{StaticResource TextOnPrimaryBrush}"/>
                             <Setter Property="FontWeight" Value="SemiBold"/>
                         </Trigger>
                         <Trigger Property="IsChecked" Value="False">
-                            <Setter Property="Foreground" Value="#94A3B8"/> <!-- TextDisabled -->
+                            <Setter Property="Foreground" Value="{StaticResource SidebarTextBrush}"/>
                         </Trigger>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="#1E293B"/>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" Value="True"/>
+                                <Condition Property="IsChecked" Value="False"/>
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="border" Property="Background" Value="{StaticResource SidebarHoverBrush}"/>
                             <Setter Property="Foreground" Value="{StaticResource TextOnPrimaryBrush}"/>
-                        </Trigger>
+                        </MultiTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
 
-    <!-- Sidebar Section Header -->
+    <!-- Sidebar Section Header §6.3 -->
     <Style x:Key="SidebarSectionHeader" TargetType="TextBlock">
         <Setter Property="Foreground" Value="{StaticResource TextDisabledBrush}"/>
         <Setter Property="FontSize" Value="11"/>
         <Setter Property="FontWeight" Value="Bold"/>
-        <Setter Property="Margin" Value="16,24,0,8"/>
+        <Setter Property="Margin" Value="16,20,0,8"/>
     </Style>
 
 </ResourceDictionary>
