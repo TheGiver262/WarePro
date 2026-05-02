@@ -1,10 +1,11 @@
 using System.Windows.Controls;
+using QuanLyHangHoa.ViewModels;
 
 namespace QuanLyHangHoa.Views
 {
-    public partial class InvoicePaymentView : UserControl
+    public partial class WarrantyClaimView : UserControl
     {
-        public InvoicePaymentView()
+        public WarrantyClaimView()
         {
             InitializeComponent();
         }

@@ -2,15 +2,15 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
 
-    <!-- Global TextBox Style Override -->
-    <Style TargetType="TextBox" BasedOn="{StaticResource MaterialDesignOutlinedTextBox}">
+    <!-- Outlined Styles (Use explicitly for Forms) -->
+    <Style x:Key="AppTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource MaterialDesignOutlinedTextBox}">
         <Setter Property="materialDesign:TextFieldAssist.HasClearButton" Value="True"/>
         <Setter Property="materialDesign:TextFieldAssist.TextFieldCornerRadius" Value="{StaticResource Radius.sm}"/>
         <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
         <Setter Property="Padding" Value="12,10"/>
         <Setter Property="Height" Value="Auto"/>
-        <Setter Property="MinHeight" Value="40"/>
-        <Setter Property="Margin" Value="0,0,0,16"/>
+        <Setter Property="MinHeight" Value="48"/>
+        <Setter Property="Margin" Value="{StaticResource Margin.Bottom.md}"/>
         <Style.Triggers>
             <Trigger Property="IsFocused" Value="True">
                 <Setter Property="BorderBrush" Value="{StaticResource AppTertiaryBrush}"/>
@@ -19,22 +19,45 @@
         </Style.Triggers>
     </Style>
 
-    <!-- Global ComboBox Style Override -->
-    <Style TargetType="ComboBox" BasedOn="{StaticResource MaterialDesignOutlinedComboBox}">
-        <Setter Property="materialDesign:TextFieldAssist.TextFieldCornerRadius" Value="{StaticResource Radius.sm}"/>
-        <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
-        <Setter Property="Padding" Value="12,8"/>
-        <Setter Property="Height" Value="40"/>
-        <Setter Property="Margin" Value="0,0,0,16"/>
-    </Style>
-
-    <!-- Global PasswordBox Style Override -->
-    <Style TargetType="PasswordBox" BasedOn="{StaticResource MaterialDesignOutlinedPasswordBox}">
+    <Style x:Key="AppComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource MaterialDesignOutlinedComboBox}">
         <Setter Property="materialDesign:TextFieldAssist.TextFieldCornerRadius" Value="{StaticResource Radius.sm}"/>
         <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
         <Setter Property="Padding" Value="12,10"/>
-        <Setter Property="Height" Value="40"/>
-        <Setter Property="Margin" Value="0,0,0,16"/>
+        <Setter Property="Height" Value="Auto"/>
+        <Setter Property="MinHeight" Value="48"/>
+        <Setter Property="Margin" Value="{StaticResource Margin.Bottom.md}"/>
     </Style>
 
+    <Style x:Key="AppPasswordBoxStyle" TargetType="PasswordBox" BasedOn="{StaticResource MaterialDesignOutlinedPasswordBox}">
+        <Setter Property="materialDesign:TextFieldAssist.TextFieldCornerRadius" Value="{StaticResource Radius.sm}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
+        <Setter Property="Padding" Value="12,10"/>
+        <Setter Property="Height" Value="Auto"/>
+        <Setter Property="MinHeight" Value="48"/>
+        <Setter Property="Margin" Value="{StaticResource Margin.Bottom.md}"/>
+    </Style>
+
+    <Style x:Key="AppDatePickerStyle" TargetType="DatePicker" BasedOn="{StaticResource MaterialDesignOutlinedDatePicker}">
+        <Setter Property="materialDesign:TextFieldAssist.TextFieldCornerRadius" Value="{StaticResource Radius.sm}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
+        <Setter Property="Padding" Value="12,10"/>
+        <Setter Property="Height" Value="Auto"/>
+        <Setter Property="MinHeight" Value="48"/>
+        <Setter Property="Margin" Value="{StaticResource Margin.Bottom.md}"/>
+    </Style>
+
+    <!-- Default Implicit Styles (Simple/Plain) -->
+    <Style TargetType="TextBox" BasedOn="{StaticResource MaterialDesignTextBox}">
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+
+    <Style TargetType="ComboBox" BasedOn="{StaticResource MaterialDesignComboBox}">
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+    </Style>
+
+    <Style TargetType="DatePicker" BasedOn="{StaticResource MaterialDesignDatePicker}">
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+    </Style>
 </ResourceDictionary>

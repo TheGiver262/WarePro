@@ -25,6 +25,8 @@
             <!-- CONVERTERS -->
             <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
             <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
+            <converters:InverseBooleanConverter x:Key="InverseBooleanConverter" />
+            <converters:BooleanToStatusConverter x:Key="BooleanToStatusConverter" />
 
             <!-- DATA GRID CUSTOM COLUMN STYLES -->
             <Style x:Key="MaterialDesignDataGridTextColumnElementStyle" TargetType="TextBlock" BasedOn="{StaticResource MaterialDesignDataGridTextColumnStyle}">

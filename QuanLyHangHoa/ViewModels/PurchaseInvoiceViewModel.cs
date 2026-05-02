@@ -41,12 +41,8 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _invoiceCode = string.Empty;
         [ObservableProperty] private Supplier? _selectedSupplier;
         [ObservableProperty] private DateTime _invoiceDate = DateTime.Now;
-        [ObservableProperty] private decimal _paidAmount;
         [ObservableProperty] private string _notes = string.Empty;
-
         [ObservableProperty] private decimal _totalPurchaseAmount;
-        [ObservableProperty] private decimal _totalPaidAmount;
-        [ObservableProperty] private decimal _totalDebtAmount;
         [ObservableProperty] private int _totalPurchaseCount;
         [ObservableProperty] private string _searchText = string.Empty;
 
@@ -89,20 +85,9 @@ namespace QuanLyHangHoa.ViewModels
         {
             TotalPurchaseCount = allInvoices.Count();
             TotalPurchaseAmount = allInvoices.Sum(i => i.GrandTotal);
-            TotalPaidAmount = allInvoices.Sum(i => i.PaidAmount);
-            TotalDebtAmount = TotalPurchaseAmount - TotalPaidAmount;
         }
 
-        [RelayCommand]
-        private void OpenPayment()
-        {
-            if (SelectedInvoice == null) return;
-            
-            if (_mainViewModel != null)
-            {
-                _mainViewModel.OpenInvoicePaymentView(SelectedInvoice.Id, false);
-            }
-        }
+
 
         [RelayCommand]
         private void AddLine()
@@ -138,7 +123,6 @@ namespace QuanLyHangHoa.ViewModels
                     InvoiceCode = InvoiceCode,
                     SupplierId = SelectedSupplier.Id,
                     InvoiceDate = InvoiceDate,
-                    PaidAmount = PaidAmount,
                     Notes = Notes,
                     CreatedAt = DateTime.Now,
                     Lines = Lines.Select(l => new PurchaseInvoiceLine
@@ -167,7 +151,6 @@ namespace QuanLyHangHoa.ViewModels
             InvoiceCode = $"PINV-{DateTime.Now:yyyyMMddHHmmss}";
             SelectedSupplier = null;
             InvoiceDate = DateTime.Now;
-            PaidAmount = 0;
             Notes = string.Empty;
             Lines.Clear();
             Lines.Add(new PurchaseInvoiceLineEditor());

@@ -32,15 +32,6 @@ namespace QuanLyHangHoa.Models
         [Column(TypeName = "decimal(18,2)")]
         public decimal GrandTotal { get; set; }
         
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal PaidAmount { get; set; } = 0;
-        
-        [Required]
-        [MaxLength(50)]
-        public string PaymentStatus { get; set; } = "Unpaid"; // Unpaid, Partial, Paid
-        
-        public DateTime DueDate { get; set; }
-        
         public string? Notes { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 

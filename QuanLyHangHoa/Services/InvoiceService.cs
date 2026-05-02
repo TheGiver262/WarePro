@@ -52,7 +52,6 @@ namespace QuanLyHangHoa.Services
             invoice.SubTotal = invoice.Lines.Sum(line => line.SubTotal);
             invoice.TaxAmount = invoice.Lines.Sum(line => line.TaxAmount);
             invoice.GrandTotal = invoice.Lines.Sum(line => line.GrandTotal);
-            invoice.PaymentStatus = GetPaymentStatus(invoice.PaidAmount, invoice.GrandTotal);
         }
 
         private static void CalculatePurchaseInvoice(PurchaseInvoice invoice)
@@ -70,7 +69,6 @@ namespace QuanLyHangHoa.Services
             invoice.SubTotal = invoice.Lines.Sum(line => line.SubTotal);
             invoice.TaxAmount = invoice.Lines.Sum(line => line.TaxAmount);
             invoice.GrandTotal = invoice.Lines.Sum(line => line.GrandTotal);
-            invoice.PaymentStatus = GetPaymentStatus(invoice.PaidAmount, invoice.GrandTotal);
         }
 
         private static void CalculateLine(
@@ -123,19 +121,5 @@ namespace QuanLyHangHoa.Services
                 .ToList();
         }
 
-        private static string GetPaymentStatus(decimal paidAmount, decimal grandTotal)
-        {
-            if (paidAmount < 0 || paidAmount > grandTotal)
-            {
-                throw new InvalidOperationException("Số tiền đã thanh toán phải nằm trong khoảng từ 0 đến tổng tiền.");
-            }
-
-            if (paidAmount == 0)
-            {
-                return "Chưa thanh toán";
-            }
-
-            return paidAmount >= grandTotal ? "Đã thanh toán" : "Thanh toán một phần";
-        }
     }
 }

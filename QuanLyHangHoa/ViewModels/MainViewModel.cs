@@ -104,35 +104,7 @@ namespace QuanLyHangHoa.ViewModels
             CurrentViewSubtitle = "Quản lý hóa đơn bán lẻ cho khách hàng";
         }
 
-        public void OpenInvoicePaymentView(int invoiceId, bool isSales)
-        {
-            var viewModel = new InvoicePaymentViewModel(CurrentUser);
-            viewModel.IsSalesMode = isSales;
-            viewModel.InvoiceIdText = invoiceId.ToString();
-            
-            var view = new InvoicePaymentView { DataContext = viewModel };
-            CurrentView = view;
-            CurrentViewTitle = "THANH TOÁN";
-            CurrentViewSubtitle = isSales ? $"Thanh toán hóa đơn bán #{invoiceId}" : $"Thanh toán hóa đơn mua #{invoiceId}";
-        }
 
-        [RelayCommand]
-        private void OpenInvoicePaymentView()
-        {
-            var view = new InvoicePaymentView { DataContext = new InvoicePaymentViewModel(CurrentUser) };
-            CurrentView = view;
-            CurrentViewTitle = "THANH TOÁN";
-            CurrentViewSubtitle = "Thực hiện thanh toán hóa đơn";
-        }
-
-        [RelayCommand]
-        private void OpenDebtReportView()
-        {
-            var view = new DebtReportView { DataContext = new DebtReportViewModel() };
-            CurrentView = view;
-            CurrentViewTitle = "CÔNG NỢ";
-            CurrentViewSubtitle = "Theo dõi báo cáo công nợ khách hàng";
-        }
 
         [RelayCommand]
         private void OpenWarrantyView()

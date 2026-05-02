@@ -38,16 +38,17 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="Tìm kiếm theo mã HĐ, khách hàng, ghi chú..." 
-                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                         Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                         Margin="{StaticResource Margin.Right.sm}">
-                    <TextBox.InputBindings>
-                        <KeyBinding Key="Enter" Command="{Binding LoadDataCommand}"/>
-                    </TextBox.InputBindings>
-                </TextBox>
+                <Border Grid.Column="0" Height="40" Background="White" CornerRadius="{StaticResource Radius.sm}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" Margin="{StaticResource Margin.Right.sm}">
+                    <TextBox materialDesign:HintAssist.Hint="Tìm kiếm theo mã HĐ, khách hàng, ghi chú..." 
+                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             BorderThickness="0" Background="Transparent" VerticalContentAlignment="Center" Padding="12,0">
+                        <TextBox.InputBindings>
+                            <KeyBinding Key="Enter" Command="{Binding LoadDataCommand}"/>
+                        </TextBox.InputBindings>
+                    </TextBox>
+                </Border>
                 <Button Grid.Column="1" Command="{Binding LoadDataCommand}"
-                        Style="{StaticResource AppPrimaryButton}" Padding="16,0">
+                        Style="{StaticResource AppPrimaryButton}" Padding="16,0" Height="40">
                     <StackPanel Orientation="Horizontal">
                         <materialDesign:PackIcon Kind="Search" Width="20" Height="20"/>
                         <TextBlock Text="TÌM KIẾM" Margin="8,0,0,0" VerticalAlignment="Center"/>
@@ -60,8 +61,6 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
                 <materialDesign:Card Grid.Column="0" Margin="{StaticResource Margin.Right.md}" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.md}">
@@ -71,24 +70,10 @@
                     </StackPanel>
                 </materialDesign:Card>
 
-                <materialDesign:Card Grid.Column="1" Margin="{StaticResource Margin.Horizontal.md}" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.md}">
+                <materialDesign:Card Grid.Column="1" Margin="{StaticResource Margin.Left.md}" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.md}">
                     <StackPanel>
                         <TextBlock Text="TỔNG TIỀN XUẤT" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppSecondaryBrush}"/>
                         <TextBlock Text="{Binding TotalSalesAmount, StringFormat='N0'}" Style="{StaticResource TypographyH1}" Foreground="{StaticResource AppPrimaryBrush}" Margin="{StaticResource Margin.Top.sm}"/>
-                    </StackPanel>
-                </materialDesign:Card>
-
-                <materialDesign:Card Grid.Column="2" Margin="{StaticResource Margin.Horizontal.md}" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.md}">
-                    <StackPanel>
-                        <TextBlock Text="ĐÃ THANH TOÁN" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppSecondaryBrush}"/>
-                        <TextBlock Text="{Binding TotalPaidAmount, StringFormat='N0'}" Style="{StaticResource TypographyH1}" Foreground="{StaticResource AppSuccessBrush}" Margin="{StaticResource Margin.Top.sm}"/>
-                    </StackPanel>
-                </materialDesign:Card>
-
-                <materialDesign:Card Grid.Column="3" Margin="{StaticResource Margin.Left.md}" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.md}">
-                    <StackPanel>
-                        <TextBlock Text="CÒN NỢ" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppSecondaryBrush}"/>
-                        <TextBlock Text="{Binding TotalDebtAmount, StringFormat='N0'}" Style="{StaticResource TypographyH1}" Foreground="{StaticResource AppErrorBrush}" Margin="{StaticResource Margin.Top.sm}"/>
                     </StackPanel>
                 </materialDesign:Card>
             </Grid>
@@ -130,54 +115,7 @@
                                         <DataGridTextColumn Header="NGÀY" Binding="{Binding InvoiceDate, StringFormat='dd/MM/yyyy'}" Width="Auto" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
                                         <DataGridTextColumn Header="KHÁCH HÀNG" Binding="{Binding Customer.DisplayName}" Width="*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
                                         <DataGridTextColumn Header="TỔNG TIỀN" Binding="{Binding GrandTotal, StringFormat='N0'}" Width="Auto" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnRightElementStyle}"/>
-                                        <DataGridTemplateColumn Header="TRẠNG THÁI" Width="Auto">
-                                            <DataGridTemplateColumn.CellTemplate>
-                                                <DataTemplate>
-                                                    <Border Padding="4,1" CornerRadius="{StaticResource Radius.sm}" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                        <Border.Style>
-                                                            <Style TargetType="Border">
-                                                                <Setter Property="Background" Value="Transparent"/>
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding PaymentStatus}" Value="Paid">
-                                                                        <Setter Property="Background" Value="#DCFCE7"/>
-                                                                    </DataTrigger>
-                                                                    <DataTrigger Binding="{Binding PaymentStatus}" Value="Đã thanh toán">
-                                                                        <Setter Property="Background" Value="#DCFCE7"/>
-                                                                    </DataTrigger>
-                                                                    <DataTrigger Binding="{Binding PaymentStatus}" Value="Partial">
-                                                                        <Setter Property="Background" Value="#FEF9C3"/>
-                                                                    </DataTrigger>
-                                                                    <DataTrigger Binding="{Binding PaymentStatus}" Value="Thanh toán một phần">
-                                                                        <Setter Property="Background" Value="#FEF9C3"/>
-                                                                    </DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </Border.Style>
-                                                        <TextBlock Text="{Binding PaymentStatus}" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center">
-                                                            <TextBlock.Style>
-                                                                <Style TargetType="TextBlock">
-                                                                    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
-                                                                    <Style.Triggers>
-                                                                        <DataTrigger Binding="{Binding PaymentStatus}" Value="Paid">
-                                                                            <Setter Property="Foreground" Value="#166534"/>
-                                                                        </DataTrigger>
-                                                                        <DataTrigger Binding="{Binding PaymentStatus}" Value="Đã thanh toán">
-                                                                            <Setter Property="Foreground" Value="#166534"/>
-                                                                        </DataTrigger>
-                                                                        <DataTrigger Binding="{Binding PaymentStatus}" Value="Partial">
-                                                                            <Setter Property="Foreground" Value="#854D0E"/>
-                                                                        </DataTrigger>
-                                                                        <DataTrigger Binding="{Binding PaymentStatus}" Value="Thanh toán một phần">
-                                                                            <Setter Property="Foreground" Value="#854D0E"/>
-                                                                        </DataTrigger>
-                                                                    </Style.Triggers>
-                                                                </Style>
-                                                            </TextBlock.Style>
-                                                        </TextBlock>
-                                                    </Border>
-                                                </DataTemplate>
-                                            </DataGridTemplateColumn.CellTemplate>
-                                        </DataGridTemplateColumn>
+
                                     </DataGrid.Columns>
                                 </DataGrid>
                             </Grid>
@@ -219,9 +157,9 @@
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
                                             
-                                            <TextBox Grid.Column="0" Margin="{StaticResource Margin.Right.md}" materialDesign:HintAssist.Hint="Mã hóa đơn" Text="{Binding InvoiceCode}" Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
-                                            <ComboBox Grid.Column="1" Margin="{StaticResource Margin.Right.md}" materialDesign:HintAssist.Hint="Khách hàng" ItemsSource="{Binding AvailableCustomers}" SelectedItem="{Binding SelectedCustomer}" DisplayMemberPath="DisplayName" Style="{StaticResource MaterialDesignOutlinedComboBox}"/>
-                                            <DatePicker Grid.Column="2" materialDesign:HintAssist.Hint="Ngày lập" SelectedDate="{Binding InvoiceDate}" Style="{StaticResource MaterialDesignOutlinedDatePicker}"/>
+                                            <TextBox Grid.Column="0" Margin="{StaticResource Margin.Right.md}" materialDesign:HintAssist.Hint="Mã hóa đơn" Text="{Binding InvoiceCode}" Style="{StaticResource AppTextBoxStyle}"/>
+                                            <ComboBox Grid.Column="1" Margin="{StaticResource Margin.Right.md}" materialDesign:HintAssist.Hint="Khách hàng" ItemsSource="{Binding AvailableCustomers}" SelectedItem="{Binding SelectedCustomer}" DisplayMemberPath="DisplayName" Style="{StaticResource AppComboBoxStyle}"/>
+                                            <DatePicker Grid.Column="2" materialDesign:HintAssist.Hint="Ngày lập" SelectedDate="{Binding InvoiceDate}" Style="{StaticResource AppDatePickerStyle}"/>
                                         </Grid>
 
                                         <Border Background="{StaticResource AppBackgroundBrush}" CornerRadius="{StaticResource Radius.md}" Padding="{StaticResource Spacing.md}" Margin="{StaticResource Margin.Bottom.md}">
@@ -260,15 +198,9 @@
                                             </StackPanel>
                                         </Border>
 
-                                        <TextBox materialDesign:HintAssist.Hint="Ghi chú hóa đơn" Text="{Binding Notes}" Style="{StaticResource MaterialDesignOutlinedTextBox}" Height="80" AcceptsReturn="True" TextWrapping="Wrap" VerticalContentAlignment="Top"/>
+                                        <TextBox materialDesign:HintAssist.Hint="Ghi chú hóa đơn" Text="{Binding Notes}" Style="{StaticResource AppTextBoxStyle}" Height="80" AcceptsReturn="True" TextWrapping="Wrap" VerticalContentAlignment="Top"/>
                                         
                                         <Grid Margin="{StaticResource Margin.Top.md}">
-                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                                                <materialDesign:PackIcon Kind="CashMultiple" Foreground="{StaticResource AppSuccessBrush}" VerticalAlignment="Center" Width="24" Height="24"/>
-                                                <TextBlock Text="KHÁCH TRẢ:" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.sm}" Style="{StaticResource TypographyLabel}"/>
-                                                <TextBox Text="{Binding PaidAmount, UpdateSourceTrigger=PropertyChanged, StringFormat='N0'}" Width="150" FontSize="18" FontWeight="Bold" Foreground="{StaticResource AppSuccessBrush}" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.md}" Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
-                                            </StackPanel>
-                                            
                                             <Button HorizontalAlignment="Right" Content="LƯU HÓA ĐƠN" Command="{Binding SaveInvoiceCommand}" Style="{StaticResource AppPrimaryButton}" Width="160"/>
                                         </Grid>
                                     </StackPanel>
@@ -294,9 +226,9 @@
 
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                             <StackPanel>
-                                <TextBox materialDesign:HintAssist.Hint="Mã HĐ" Text="{Binding SelectedInvoice.InvoiceCode}" IsReadOnly="True" Margin="{StaticResource Margin.Bottom.md}" Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
-                                <TextBox materialDesign:HintAssist.Hint="Khách hàng" Text="{Binding SelectedInvoice.Customer.DisplayName}" IsReadOnly="True" Margin="{StaticResource Margin.Bottom.md}" Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
-                                <TextBox materialDesign:HintAssist.Hint="Ngày lập" Text="{Binding SelectedInvoice.InvoiceDate, StringFormat='dd/MM/yyyy HH:mm'}" IsReadOnly="True" Margin="{StaticResource Margin.Bottom.lg}" Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                                <TextBox materialDesign:HintAssist.Hint="Mã HĐ" Text="{Binding SelectedInvoice.InvoiceCode}" IsReadOnly="True" Margin="{StaticResource Margin.Bottom.md}" Style="{StaticResource AppTextBoxStyle}"/>
+                                <TextBox materialDesign:HintAssist.Hint="Khách hàng" Text="{Binding SelectedInvoice.Customer.DisplayName}" IsReadOnly="True" Margin="{StaticResource Margin.Bottom.md}" Style="{StaticResource AppTextBoxStyle}"/>
+                                <TextBox materialDesign:HintAssist.Hint="Ngày lập" Text="{Binding SelectedInvoice.InvoiceDate, StringFormat='dd/MM/yyyy HH:mm'}" IsReadOnly="True" Margin="{StaticResource Margin.Bottom.lg}" Style="{StaticResource AppTextBoxStyle}"/>
                                 
                                 <Separator Margin="{StaticResource Margin.Bottom.lg}" Background="{StaticResource AppBorderBrush}"/>
                                 
@@ -315,10 +247,7 @@
 
                                 <Separator Margin="{StaticResource Margin.Bottom.lg}" Background="{StaticResource AppBorderBrush}"/>
 
-                                <Grid Margin="{StaticResource Margin.Bottom.md}">
-                                    <TextBlock Text="Đã thu:" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                    <TextBlock Text="{Binding SelectedInvoice.PaidAmount, StringFormat='N0'}" HorizontalAlignment="Right" FontSize="20" FontWeight="Bold" Foreground="{StaticResource AppSuccessBrush}"/>
-                                </Grid>
+
                                 
                                 <Border Background="{StaticResource AppBackgroundBrush}" CornerRadius="{StaticResource Radius.md}" Padding="{StaticResource Spacing.md}" Margin="{StaticResource Margin.Bottom.md}">
                                     <StackPanel>
@@ -342,10 +271,7 @@
                                     </StackPanel>
                                 </Border>
 
-                                <Button Content="XUẤT PHIẾU THU" 
-                                        Command="{Binding DataContext.OpenPaymentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                        CommandParameter="{Binding SelectedInvoice}"
-                                        Style="{StaticResource AppPrimaryButton}"/>
+
                             </StackPanel>
                         </ScrollViewer>
                     </Grid>

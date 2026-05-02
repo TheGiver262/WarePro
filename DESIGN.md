@@ -11,13 +11,22 @@
 ```yaml
 version: 1.1.0
 name: Antigravity Logistics Design System
-description: "Safe, shipping-ready, infinitely remixable. Neutral slate foundation with indigo action."
-theme: Professional Slate / Indigo Modern
-philosophy:
-  - Minimalism: "Neutral slate, indigo action, clear type hierarchy. Nothing to prove."
-  - Precision: Every pixel must serve a functional purpose.
-  - Stability: Predictable layouts for long-term consistency.
-  - Negative Space: "Let Neutral carry the composition — negative space is a feature."
+description: "Safe, shipping-ready, infinitely remixable. Neutral slate# Software Design Document - Antigravity Pro Max Kit
+
+# 1. Core Philosophy: Inventory & Warranty Focused
+
+The system is optimized for **Stock Control** and **Warranty Lifecycle Tracking**. Financial liability tracking (Debt, Partial Payments) is intentionally removed to keep the system lightweight and specialized.
+
+### 1.1 Pay-in-Full Model
+- All transactions (Sales/Purchase) are assumed "Paid in Full" at the moment of document creation.
+- No partial payment tracking or debt management logic.
+- Total amounts include taxes and sub-totals, but payments are handled externally or implicitly as full payments.
+
+### 1.2 Auditability over Accounting
+- The `AuditLog` and `StockLedger` are the primary sources of truth for document history and stock movements.
+- `Transactions` table tracks document changes for accountability, not financial balancing.
+- Minimum commercial details (prices, tax) are kept for record-keeping and inventory valuation only.
+"
 ```
 
 ---

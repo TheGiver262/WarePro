@@ -18,16 +18,7 @@
     </Window.DataContext>
 
     <Window.Resources>
-        <!-- Local override for Login TextBoxes -->
-        <Style x:Key="LoginTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource MaterialDesignOutlinedTextBox}">
-            <Setter Property="materialDesign:TextFieldAssist.HasClearButton" Value="False"/>
-            <Setter Property="materialDesign:HintAssist.IsFloating" Value="True"/>
-            <Setter Property="materialDesign:HintAssist.FloatingScale" Value="0.85"/>
-            <Setter Property="FontSize" Value="15"/>
-            <Setter Property="Margin" Value="{StaticResource Margin.Bottom.md}"/>
-            <Setter Property="Height" Value="Auto"/>
-
-        </Style>
+        <!-- Standard converters and resources -->
     </Window.Resources>
 
     <Border Background="{StaticResource AppBackgroundBrush}" CornerRadius="{StaticResource Radius.lg}" Margin="{StaticResource Spacing.md}">
@@ -69,18 +60,14 @@
 
                 <!-- Login Form -->
                 <StackPanel Grid.Row="2" VerticalAlignment="Center">
-                    <TextBox Style="{StaticResource LoginTextBoxStyle}"
+                    <TextBox Style="{StaticResource AppTextBoxStyle}"
                              materialDesign:HintAssist.Hint="Tên đăng nhập"
                              Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"/>
 
                     <PasswordBox x:Name="txtPassword"
-                                 Style="{StaticResource MaterialDesignOutlinedPasswordBox}"
+                                 Style="{StaticResource AppPasswordBoxStyle}"
                                  materialDesign:HintAssist.Hint="Mật khẩu"
-                                 materialDesign:HintAssist.IsFloating="True"
-                                 materialDesign:HintAssist.FloatingScale="0.85"
-                                 PasswordChanged="TxtPassword_PasswordChanged"
-                                 FontSize="15" Margin="{StaticResource Margin.Bottom.sm}"
-                                 BorderBrush="{StaticResource AppBorderBrush}"/>
+                                 PasswordChanged="TxtPassword_PasswordChanged"/>
                 </StackPanel>
 
                 <!-- Error Message -->

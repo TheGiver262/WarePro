@@ -47,8 +47,7 @@
                         <TextBlock Text="HÓA ĐƠN" Style="{StaticResource SidebarSectionHeader}"/>
                         <RadioButton Content="Hóa Đơn Bán" Tag="FileDocumentOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenSalesInvoiceViewCommand}"/>
                         <RadioButton Content="Hóa Đơn Mua" Tag="FileImportOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenPurchaseInvoiceViewCommand}"/>
-                        <RadioButton Content="Thanh Toán" Tag="CashMultiple" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenInvoicePaymentViewCommand}"/>
-                        <RadioButton Content="Báo Cáo Công Nợ" Tag="AccountClock" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenDebtReportViewCommand}"/>
+
 
                         <TextBlock Text="BẢO HÀNH" Style="{StaticResource SidebarSectionHeader}"/>
                         <RadioButton Content="Quản Lý Bảo Hành" Tag="ShieldCheck" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenWarrantyViewCommand}"/>

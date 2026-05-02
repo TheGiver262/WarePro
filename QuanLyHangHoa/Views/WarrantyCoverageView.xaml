@@ -1,0 +1,131 @@
+<UserControl x:Class="QuanLyHangHoa.Views.WarrantyCoverageView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             mc:Ignorable="d" 
+             d:DesignHeight="800" d:DesignWidth="1200">
+
+    <Grid Background="{StaticResource AppBackgroundBrush}">
+        <Grid Margin="{StaticResource Spacing.lg}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/> <!-- Row 0: Header -->
+                <RowDefinition Height="Auto"/> <!-- Row 1: Search -->
+                <RowDefinition Height="Auto"/> <!-- Row 2: Action Form -->
+                <RowDefinition Height="*"/>    <!-- Row 3: DataGrid -->
+            </Grid.RowDefinitions>
+
+            <!-- Row 0: Header Section -->
+            <Grid Grid.Row="0" Margin="{StaticResource Margin.Bottom.md}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="{StaticResource AppTertiaryBrush}" Width="40" Height="40" CornerRadius="{StaticResource Radius.md}">
+                        <materialDesign:PackIcon Kind="ShieldCheck" Width="24" Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource TextOnPrimaryBrush}"/>
+                    </Border>
+                    <TextBlock Text="THÔNG TIN BẢO HÀNH" Style="{StaticResource TypographyH2}" Foreground="{StaticResource AppPrimaryBrush}" Margin="{StaticResource Margin.Left.md}" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- Row 1: Search Row -->
+            <Grid Grid.Row="1" Margin="{StaticResource Margin.Bottom.md}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="Tìm kiếm theo serial, khách hàng, sản phẩm..." 
+                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                         Margin="{StaticResource Margin.Right.sm}">
+                    <TextBox.InputBindings>
+                        <KeyBinding Key="Enter" Command="{Binding LoadDataCommand}"/>
+                    </TextBox.InputBindings>
+                </TextBox>
+                <Button Grid.Column="1" Command="{Binding LoadDataCommand}"
+                        Style="{StaticResource AppPrimaryButton}" Padding="16,0">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="Search" Width="20" Height="20"/>
+                        <TextBlock Text="TÌM KIẾM" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </Grid>
+
+            <!-- Row 2: Action Form Row (Horizontal) -->
+            <materialDesign:Card Grid.Row="2" Margin="{StaticResource Margin.Bottom.md}" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.md}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*"/> <!-- Serial -->
+                        <ColumnDefinition Width="1.5*"/> <!-- Start Date -->
+                        <ColumnDefinition Width="1.5*"/> <!-- End Date -->
+                        <ColumnDefinition Width="1.5*"/> <!-- Status -->
+                        <ColumnDefinition Width="Auto"/> <!-- Buttons -->
+                    </Grid.ColumnDefinitions>
+
+                    <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="Serial / IMEI" Margin="{StaticResource Margin.Right.sm}"
+                             Text="{Binding SerialNumber}" IsReadOnly="True"
+                             />
+
+                    <DatePicker Grid.Column="1"  
+                                materialDesign:HintAssist.Hint="Ngày bắt đầu" Margin="{StaticResource Margin.Right.sm}"
+                                SelectedDate="{Binding SelectedCoverage.WarrantyStartDate}"/>
+
+                    <DatePicker Grid.Column="2"  
+                                materialDesign:HintAssist.Hint="Ngày kết thúc" Margin="{StaticResource Margin.Right.sm}"
+                                SelectedDate="{Binding SelectedCoverage.WarrantyEndDate}"/>
+
+                    <ComboBox Grid.Column="3"  
+                              materialDesign:HintAssist.Hint="Trạng thái" Margin="{StaticResource Margin.Right.sm}"
+                              SelectedItem="{Binding SelectedCoverage.CoverageStatus}">
+                        <ComboBoxItem Content="Active"/>
+                        <ComboBoxItem Content="Expired"/>
+                        <ComboBoxItem Content="Voided"/>
+                    </ComboBox>
+
+                    <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Content="LƯU" Command="{Binding SaveCoverageCommand}" 
+                                Style="{StaticResource AppPrimaryButton}" Margin="{StaticResource Margin.Right.sm}"/>
+                        <Button Content="XÓA" Command="{Binding DeleteCoverageCommand}" 
+                                Style="{StaticResource AppDangerButton}"/>
+                    </StackPanel>
+                </Grid>
+            </materialDesign:Card>
+
+            <!-- Row 3: Data Table -->
+            <materialDesign:Card Grid.Row="3" Style="{StaticResource AppCard}" Padding="0">
+                <DataGrid ItemsSource="{Binding Coverages}" SelectedItem="{Binding SelectedCoverage}"
+                           AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                           BorderThickness="0" RowHeight="40">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="SERIAL / IMEI" Binding="{Binding ProductSerial.SerialNumber}" Width="150" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+                        <DataGridTextColumn Header="SẢN PHẨM" Binding="{Binding ProductSerial.Product.Name}" Width="*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+                        <DataGridTextColumn Header="KHÁCH HÀNG" Binding="{Binding Customer.FullName}" Width="150" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+                        <DataGridTextColumn Header="BẮT ĐẦU" Binding="{Binding WarrantyStartDate, StringFormat=dd/MM/yyyy}" Width="Auto" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
+                        <DataGridTextColumn Header="KẾT THÚC" Binding="{Binding WarrantyEndDate, StringFormat=dd/MM/yyyy}" Width="Auto" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
+                        <DataGridTextColumn Header="TRẠNG THÁI" Binding="{Binding CoverageStatus}" Width="Auto">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}">
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding CoverageStatus}" Value="Active">
+                                            <Setter Property="Foreground" Value="{StaticResource AppSuccessBrush}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding CoverageStatus}" Value="Expired">
+                                            <Setter Property="Foreground" Value="{StaticResource TextDisabledBrush}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding CoverageStatus}" Value="Voided">
+                                            <Setter Property="Foreground" Value="{StaticResource AppErrorBrush}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </materialDesign:Card>
+        </Grid>
+    </Grid>
+</UserControl>

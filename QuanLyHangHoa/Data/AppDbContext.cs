@@ -20,7 +20,6 @@ namespace QuanLyHangHoa.Data
         public DbSet<Warehouse> Warehouses { get; set; }
         public DbSet<Product> Products { get; set; }
         public DbSet<ProductUnit> ProductUnits { get; set; }
-        public DbSet<InvoicePayment> InvoicePayments { get; set; } = null!;
 
         // Inventory & Tracking
         public DbSet<StockBalance> StockBalances { get; set; }
