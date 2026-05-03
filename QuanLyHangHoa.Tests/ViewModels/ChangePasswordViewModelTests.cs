@@ -1,5 +1,6 @@
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.ViewModels;
+using Xunit;
 
 namespace QuanLyHangHoa.Tests.ViewModels;
 
@@ -8,15 +9,15 @@ public class ChangePasswordViewModelTests
     [Fact]
     public void ChangePasswordPassesCurrentUserAndFormValuesToService()
     {
-        string? username = null;
+        int? userId = null;
         string? currentPassword = null;
         string? newPassword = null;
 
         var viewModel = new ChangePasswordViewModel(
-            new Employee { Username = "tester" },
-            (user, current, next) =>
+            new AppUser { Id = 42, Username = "tester" },
+            (id, current, next) =>
             {
-                username = user;
+                userId = id;
                 currentPassword = current;
                 newPassword = next;
             },
@@ -27,10 +28,10 @@ public class ChangePasswordViewModelTests
 
         viewModel.ChangePasswordCommand.Execute(null);
 
-        Assert.Equal("tester", username);
+        Assert.Equal(42, userId);
         Assert.Equal("old-pass", currentPassword);
         Assert.Equal("new-pass", newPassword);
-        Assert.Equal("Da doi mat khau.", viewModel.StatusMessage);
+        Assert.Equal("Đã đổi mật khẩu thành công.", viewModel.StatusMessage);
         Assert.Equal(string.Empty, viewModel.CurrentPassword);
         Assert.Equal(string.Empty, viewModel.NewPassword);
         Assert.Equal(string.Empty, viewModel.ConfirmPassword);
@@ -41,7 +42,7 @@ public class ChangePasswordViewModelTests
     {
         var called = false;
         var viewModel = new ChangePasswordViewModel(
-            new Employee { Username = "tester" },
+            new AppUser { Username = "tester" },
             (_, _, _) => called = true,
             (_, _) => { });
         viewModel.CurrentPassword = "old-pass";
@@ -51,6 +52,6 @@ public class ChangePasswordViewModelTests
         viewModel.ChangePasswordCommand.Execute(null);
 
         Assert.False(called);
-        Assert.Equal("Mat khau moi va xac nhan khong khop.", viewModel.StatusMessage);
+        Assert.Equal("Mật khẩu mới và xác nhận không khớp.", viewModel.StatusMessage);
     }
 }

@@ -1,6 +1,9 @@
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
 using QuanLyHangHoa.ViewModels;
+using Xunit;
+using System;
+using System.Collections.Generic;
 
 namespace QuanLyHangHoa.Tests.ViewModels
 {
@@ -9,16 +12,16 @@ namespace QuanLyHangHoa.Tests.ViewModels
         [Fact]
         public void LoadProductLedgerUsesSelectedProduct()
         {
-            var product = new Product { Id = 7, Name = "Laptop" };
+            var product = new Product { Id = 7, ProductCode = "P7", DisplayName = "Laptop" };
             var entry = new AuditTimelineEntry(
                 AuditTimelineEntryKind.StockLedger,
-                Guid.NewGuid(),
+                101, // EntityId (int)
                 new DateTime(2026, 4, 28),
                 "IN",
                 1,
                 7,
                 1,
-                3);
+                3m);
 
             var viewModel = new AuditQueryViewModel(
                 () => new[] { product },

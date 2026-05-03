@@ -156,6 +156,38 @@ namespace QuanLyHangHoa.ViewModels
             CurrentViewSubtitle = "Quản lý thông tin khách hàng";
         }
 
+        [RelayCommand]
+        private void OpenInventoryView()
+        {
+            CurrentView = new InventoryView();
+            CurrentViewTitle = "TỒN KHO";
+            CurrentViewSubtitle = "Theo dõi số lượng và giá trị hàng hóa hiện có";
+        }
+
+        [RelayCommand]
+        private void OpenProductSerialView()
+        {
+            CurrentView = new ProductSerialView();
+            CurrentViewTitle = "QUẢN LÝ SERIAL";
+            CurrentViewSubtitle = "Quản lý số Serial và IMEI sản phẩm";
+        }
+
+        [RelayCommand]
+        private void OpenWarrantyCoverageView()
+        {
+            CurrentView = new WarrantyCoverageView();
+            CurrentViewTitle = "QUYỀN BẢO HÀNH";
+            CurrentViewSubtitle = "Thiết lập các gói và điều kiện bảo hành";
+        }
+
+        [RelayCommand]
+        private void OpenReportView()
+        {
+            CurrentView = new ReportView { DataContext = new ReportViewModel() };
+            CurrentViewTitle = "BÁO CÁO";
+            CurrentViewSubtitle = "Phân tích hiệu quả kinh doanh và tài chính";
+        }
+
         // ── Administration ─────────────────────────────────────────────────────
         [RelayCommand]
         private void OpenAppUserView()

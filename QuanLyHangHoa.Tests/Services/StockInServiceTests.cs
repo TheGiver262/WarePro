@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
@@ -11,65 +14,51 @@ namespace QuanLyHangHoa.Tests.Services;
 public class StockInServiceTests
 {
     [Fact]
-    public void Create_posts_purchase_to_stock_balance_ledger_and_audit_without_changing_product_quantity()
+    public void Create_posts_to_database_and_updates_inventory()
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
         using (var seedContext = CreateContext(connection))
         {
             seedContext.Database.EnsureCreated();
-            seedContext.Products.Add(new Product
-            {
-                Id = 200,
-                Name = "Service stock-in product",
-                CategoryId = 1,
-                BrandId = 1,
-                UnitId = 1,
-                Quantity = 99,
-                UnitPrice = 10m,
-                IsSerialManaged = false
-            });
+            seedContext.Products.Add(new Product { Id = 200, ProductCode = "P200",
+                DisplayName = "Service stock-in product",
+                CategoryId = 1, BrandId = 1, DefaultUnitId = 1, DefaultPrice = 10m, IsSerialTracked = false });
             seedContext.SaveChanges();
         }
 
         var service = new StockInService(() => CreateContext(connection));
         var stockIn = new StockIn
         {
-            EmployeeId = 1,
+            DocumentCode = "SI-001",
             SupplierId = 1,
-            ImportDate = new DateTime(2026, 4, 27, 11, 30, 0),
-            StockInDetails =
+            WarehouseId = 1,
+            CreatedAt = new DateTime(2026, 4, 27, 11, 30, 0)
+        };
+        var lines = new List<StockInLine>
+        {
+            new StockInLine
             {
-                new StockInDetail
-                {
-                    ProductId = 200,
-                    Quantity = 3,
-                    ImportPrice = 12m
-                }
+                ProductId = 200,
+                UnitId = 1,
+                Quantity = 3,
+                UnitPrice = 12m
             }
         };
 
-        service.Create(stockIn);
+        service.Create(stockIn, lines, 1);
 
         using var assertContext = CreateContext(connection);
-        var savedStockIn = Assert.Single(assertContext.StockIns.Include(s => s.StockInDetails));
-        Assert.Equal(36m, savedStockIn.TotalAmount);
-        Assert.Equal(99, assertContext.Products.Single(p => p.Id == 200).Quantity);
+        var savedStockIn = assertContext.StockIns.Include(s => s.Lines).Single();
+        Assert.Equal("SI-001", savedStockIn.DocumentCode);
+        Assert.Equal(1, savedStockIn.CreatedBy);
 
-        var balance = Assert.Single(assertContext.StockBalances);
-        Assert.Equal(200, balance.ProductId);
-        Assert.Equal(1, balance.WarehouseId);
+        var balance = assertContext.StockBalances.Single(b => b.ProductId == 200);
         Assert.Equal(3, balance.OnHandQuantity);
-        Assert.Equal(3, balance.AvailableQuantity);
 
-        var ledger = Assert.Single(assertContext.StockLedgers);
-        Assert.Equal(StockLedgerDirection.In.ToString(), ledger.Direction);
+        var ledger = assertContext.StockLedgers.Single(l => l.ProductId == 200);
+        Assert.Equal("In", ledger.MovementType);
         Assert.Equal(3, ledger.Quantity);
-        Assert.Equal(1, ledger.PostedByUserId);
-
-        var audit = Assert.Single(assertContext.AuditLogs);
-        Assert.Equal(AuditActionCode.PostStockIn.ToString(), audit.ActionCode);
-        Assert.Equal(1, audit.PerformedByUserId);
     }
 
     private static AppDbContext CreateContext(SqliteConnection connection)

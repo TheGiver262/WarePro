@@ -6,9 +6,9 @@ THIẾT KẾ PHẦN MỀM QUẢN LÝ HÀNG HÓA VÀ BẢO HÀNH
 		- Hàng không quản lý serial.
 		- Hàng quản lý serial theo từng thiết bị/đơn vị bán.
 	1.3 Quản lý nhập kho, nhập tồn đầu kỳ từ Excel/CSV, xuất kho, kiểm kê, điều chỉnh tồn, đảo nghiệp vụ và truy vết lịch sử kho.
-	1.4 Quản lý hóa đơn mua và hóa đơn bán để theo dõi tiền trước thuế, tiền thuế, tổng thanh toán, công nợ, hạn thanh toán và trạng thái thanh toán tổng hợp.
+	1.4 Quản lý hóa đơn mua và hóa đơn bán để theo dõi tiền trước thuế, tiền thuế và tổng thanh toán của giao dịch thương mại.
 	1.5 Quản lý quyền bảo hành của sản phẩm đã bán và toàn bộ hồ sơ yêu cầu bảo hành phát sinh sau bán hàng.
-	1.6 Cung cấp báo cáo tồn kho, nhập xuất tồn, doanh thu, công nợ, tình trạng bảo hành và nhật ký thay đổi nghiệp vụ.
+	1.6 Cung cấp báo cáo tồn kho, nhập xuất tồn, doanh thu, tình trạng bảo hành và nhật ký thay đổi nghiệp vụ.
 	1.7 Hỗ trợ tìm kiếm và sắp xếp dữ liệu trên các màn hình danh mục, sản phẩm, serial, chứng từ kho, import đầu kỳ, hóa đơn, bảo hành và báo cáo.
 
 2. Phạm vi nghiệp vụ và quyết định nền tảng
@@ -30,12 +30,10 @@ THIẾT KẾ PHẦN MỀM QUẢN LÝ HÀNG HÓA VÀ BẢO HÀNH
 	2.8 Product.Quantity không còn được coi là nguồn chuẩn cho tồn vật lý; nếu tồn tại ở code thì chỉ là giá trị cache hoặc trường hỗ trợ hiển thị.
 	2.9 Hóa đơn thương mại và chứng từ kho là hai khái niệm riêng:
 		- Chứng từ kho dùng để làm thay đổi tồn.
-		- Hóa đơn dùng để ghi nhận giao dịch thương mại và công nợ.
+		- Hóa đơn dùng để ghi nhận giao dịch thương mại (giá trị hàng hóa, thuế).
 		- Chứng từ nhập đầu kỳ `OpeningBalance` không mặc định sinh hóa đơn mua.
 		- Chứng từ bảo hành/đổi mới không mặc định sinh hóa đơn thương mại.
-	2.10 Hệ thống phase này không bổ sung bảng Payment riêng.
-		- PurchaseInvoice và SalesInvoice chỉ theo dõi PaidAmount, PaymentStatus, DueDate ở mức tổng hợp.
-		- Nếu sau này cần nhiều lần thanh toán thì mở rộng bằng InvoicePayment ở phase sau.
+		- Mọi hóa đơn được coi là đã thanh toán đầy đủ tại thời điểm phát sinh. Hệ thống không theo dõi thanh toán từng phần hay công nợ tồn đọng.
 	2.11 Nghiệp vụ nhập tồn đầu kỳ từ Excel/CSV được ánh xạ vào chứng từ `StockIn` loại `OpeningBalance`.
 		- Phase này không bổ sung các bảng ImportBatch, ImportRowError hay lưu file import gốc.
 		- Import chỉ là workflow ở tầng ứng dụng để sinh dữ liệu chuẩn vào các bảng lõi hiện có.
@@ -70,12 +68,12 @@ THIẾT KẾ PHẦN MỀM QUẢN LÝ HÀNG HÓA VÀ BẢO HÀNH
 		- Không được tạo tài khoản Quản trị viên, không được tự nâng quyền thành Quản trị viên và không được sửa quyền của Quản trị viên.
 		- Duyệt chứng từ nhập, xuất, kiểm kê, điều chỉnh.
 		- Phê duyệt quyết định đặc biệt của bảo hành như đổi mới hoặc từ chối bảo hành.
-		- Xem báo cáo tồn kho, công nợ, doanh thu, bảo hành và audit.
+		- Xem báo cáo tồn kho, doanh thu, bảo hành và audit.
 	4.3 Nhân viên kho
 		- Lập phiếu nhập kho, nhập tồn đầu kỳ từ Excel/CSV, phiếu xuất kho, phiên kiểm kê, chứng từ điều chỉnh và hóa đơn mua.
 		- Ghi sổ chứng từ kho sau khi đã được duyệt.
 		- Quét, chọn và cập nhật serial ở các nghiệp vụ kho.
-		- Theo dõi công nợ nhà cung cấp ở mức hóa đơn mua tổng hợp.
+		- Lưu trữ và tra cứu lịch sử mua hàng qua hóa đơn mua.
 		- Xuất serial thay thế trong bảo hành đổi mới đã được phê duyệt.
 	4.4 Nhân viên bán hàng
 		- Lập phiếu xuất kho trực tiếp theo quy trình doanh nghiệp.
@@ -102,7 +100,7 @@ THIẾT KẾ PHẦN MỀM QUẢN LÝ HÀNG HÓA VÀ BẢO HÀNH
 		- Quản trị viên kế thừa toàn bộ quyền của tất cả tác nhân còn lại.
 		- Quản lý kế thừa toàn bộ quyền của Nhân viên kho, Nhân viên bán hàng và Nhân viên bảo hành.
 		- Kế thừa quyền không làm mất hiệu lực các rule kiểm soát nội bộ như tách người duyệt và người ghi sổ khi doanh nghiệp bật kiểm soát nội bộ.
-		- Người lập và người duyệt có thể là cùng một người nếu quy trình doanh nghiệp cho phép; phase này không ép tách hai vai trò đó.
+		- Người lập và người duyệt có thể là cùng một người, đặc biệt đối với vai trò Quản trị viên và Quản lý.
 
 5. Quy tắc nghiệp vụ cốt lõi
 	5.1 Quy tắc chứng từ kho
@@ -115,7 +113,7 @@ THIẾT KẾ PHẦN MỀM QUẢN LÝ HÀNG HÓA VÀ BẢO HÀNH
 		- Sau khi Posted không được sửa trực tiếp chi tiết chứng từ; nếu sai phải dùng chứng từ điều chỉnh hoặc chứng từ đảo nghiệp vụ.
 		- Locked là trạng thái đóng kỳ hoặc chốt chứng từ; không cho phép thay đổi tiếp.
 		- Người lập và người duyệt không bắt buộc phải là hai người khác nhau.
-		- Nếu bật kiểm soát nội bộ, người duyệt và người ghi sổ không được là cùng một người.
+		- Nếu bật kiểm soát nội bộ, người duyệt và người ghi sổ không được là cùng một người (ngoại trừ vai trò Quản trị viên và Quản lý có quyền override).
 	5.2 Quy tắc kho và tồn
 		- Mọi biến động tồn phải đồng thời cập nhật StockBalance, StockLedger và AuditLog trong cùng transaction.
 		- Tồn phải được quản lý theo Product trong từng Warehouse.
@@ -137,11 +135,11 @@ THIẾT KẾ PHẦN MỀM QUẢN LÝ HÀNG HÓA VÀ BẢO HÀNH
 		- Chênh lệch kiểm kê không làm thay đổi tồn ngay; phải sinh chứng từ điều chỉnh và được duyệt/ghi sổ.
 		- Điều chỉnh sau ghi sổ hoặc đảo nghiệp vụ phải tham chiếu chứng từ nguồn và lý do điều chỉnh.
 	5.5 Quy tắc hóa đơn
-		- Hóa đơn mua/hóa đơn bán theo dõi tối thiểu SubTotal, TaxAmount, GrandTotal, PaidAmount, PaymentStatus, DueDate.
-		- PurchaseInvoiceLine và SalesInvoiceLine là dòng thương mại chi tiết của hóa đơn, lưu ProductId, UnitId, Quantity, UnitPrice, SubTotal, TaxRate, TaxAmount, GrandTotal.
+		- Hóa đơn mua/hóa đơn bán theo dõi SubTotal, TaxAmount và GrandTotal.
+		- PurchaseInvoiceLine và SalesInvoiceLine lưu ProductId, UnitId, Quantity, UnitPrice, SubTotal, TaxRate, TaxAmount, GrandTotal.
 		- Dòng hóa đơn có thể tham chiếu ngược về StockInLine hoặc StockOutLine tương ứng nếu doanh nghiệp cần đối soát chi tiết.
-		- Phase này không hỗ trợ nhiều bản ghi thanh toán chi tiết.
-		- Phase này chỉ hỗ trợ thuế cơ bản phục vụ tính tiền và in hóa đơn; không xử lý giá đã gồm thuế, nhiều lớp thuế hay bút toán kế toán thuế.
+		- Hệ thống mặc định hóa đơn đã được thanh toán đầy đủ.
+		- Phase này chỉ hỗ trợ thuế cơ bản phục vụ tính tiền và in hóa đơn.
 		- Hóa đơn mua có thể liên kết phiếu nhập đã ghi sổ.
 		- Hóa đơn bán có thể liên kết phiếu xuất đã ghi sổ.
 		- Nếu SalesInvoice được tạo sau StockOut loại Sale, hệ thống phải backfill WarrantyCoverage.SalesInvoiceId cho các coverage đã sinh từ phiếu xuất đó khi xác định được hóa đơn bán tương ứng.
@@ -226,9 +224,9 @@ THIẾT KẾ PHẦN MỀM QUẢN LÝ HÀNG HÓA VÀ BẢO HÀNH
 		- StockCountSession / StockCountLine: phiên kiểm kê và số liệu chênh lệch, gồm `WarehouseId`, CreatedBy, ApprovedBy, PostedBy, CountDate, ApprovedAt, PostedAt.
 		- StockAdjustment / StockAdjustmentLine: chứng từ điều chỉnh tồn hoặc đảo nghiệp vụ sau ghi sổ, gồm `WarehouseId`, CreatedBy, ApprovedBy, PostedBy, ApprovedAt, PostedAt.
 	6.5 Hóa đơn
-		- PurchaseInvoice: hóa đơn mua, công nợ nhà cung cấp, liên kết phiếu nhập nếu có, lưu SubTotal, TaxAmount, GrandTotal.
+		- PurchaseInvoice: hóa đơn mua, liên kết phiếu nhập nếu có, lưu SubTotal, TaxAmount, GrandTotal.
 		- PurchaseInvoiceLine: dòng chi tiết hóa đơn mua, có thể tham chiếu StockInLine khi cần đối soát, lưu SubTotal, TaxRate, TaxAmount, GrandTotal.
-		- SalesInvoice: hóa đơn bán, công nợ khách hàng, liên kết phiếu xuất nếu có, lưu SubTotal, TaxAmount, GrandTotal.
+		- SalesInvoice: hóa đơn bán, liên kết phiếu xuất nếu có, lưu SubTotal, TaxAmount, GrandTotal.
 		- SalesInvoiceLine: dòng chi tiết hóa đơn bán, có thể tham chiếu StockOutLine khi cần đối soát, lưu SubTotal, TaxRate, TaxAmount, GrandTotal.
 	6.6 Bảo hành
 		- WarrantyCoverage: quyền bảo hành của serial đã bán.
@@ -399,10 +397,7 @@ THIẾT KẾ PHẦN MỀM QUẢN LÝ HÀNG HÓA VÀ BẢO HÀNH
 	11.2 Optional for phase 2
 		- Mở rộng workflow giữ chỗ hoặc đặt hàng.
 		- Mở rộng báo cáo đa chiều.
-		- Tự động hóa duyệt nhiều cấp.
-	11.3 Future enhancement
-		- Role/Permission động.
-		- InvoicePayment nhiều lần thanh toán.
+		- Mở rộng báo cáo đa chiều.
 		- Tích hợp hãng bảo hành qua API.
 		- Nếu dữ liệu báo cáo tăng lớn theo tháng/quý/năm, cân nhắc bổ sung indexed view hoặc bảng summary theo ngày cho ReportingService để tối ưu hiệu năng mà không khóa UI WPF.
 
@@ -414,7 +409,7 @@ THIẾT KẾ PHẦN MỀM QUẢN LÝ HÀNG HÓA VÀ BẢO HÀNH
 	12.5 Nhập kho.
 	12.6 Xuất kho.
 	12.7 Kiểm kê, điều chỉnh và đảo nghiệp vụ.
-	12.8 Hóa đơn, công nợ và thuế cơ bản.
+	12.8 Hóa đơn và thuế cơ bản.
 	12.9 Bảo hành.
 	12.10 Báo cáo và audit viewer.
 

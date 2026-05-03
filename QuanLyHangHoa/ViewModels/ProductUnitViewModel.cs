@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
+using System.Collections.Generic;
 
 namespace QuanLyHangHoa.ViewModels
 {
@@ -21,12 +22,17 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private ObservableCollection<Unit> _availableUnits = new();
         [ObservableProperty] private int _selectedUnitId;
         [ObservableProperty] private decimal _conversionFactor = 1;
+        [ObservableProperty] private string _statusMessage = string.Empty;
 
-        public ProductUnitViewModel()
+        public ProductUnitViewModel() : this(new ProductUnitService(), new ProductService(), new ReferenceDataService())
         {
-            _service = new ProductUnitService();
-            _productService = new ProductService();
-            _refDataService = new ReferenceDataService();
+        }
+
+        public ProductUnitViewModel(ProductUnitService service, ProductService productService, ReferenceDataService refDataService)
+        {
+            _service = service;
+            _productService = productService;
+            _refDataService = refDataService;
             
             LoadProducts();
             LoadUnits();
@@ -62,7 +68,11 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void Save()
         {
-            if (SelectedProduct == null || SelectedUnitId == 0) return;
+            if (SelectedProduct == null || SelectedUnitId == 0)
+            {
+                StatusMessage = "Chưa chọn hàng hóa hoặc đơn vị.";
+                return;
+            }
 
             if (SelectedProductUnit == null)
             {
@@ -81,6 +91,7 @@ namespace QuanLyHangHoa.ViewModels
                 _service.Update(SelectedProductUnit);
             }
 
+            StatusMessage = "Đã lưu đơn vị quy đổi.";
             LoadProductUnits(SelectedProduct.Id);
             Clear();
         }
@@ -91,6 +102,7 @@ namespace QuanLyHangHoa.ViewModels
             if (SelectedProductUnit != null && SelectedProduct != null)
             {
                 _service.Delete(SelectedProductUnit.Id);
+                StatusMessage = "Đã xóa đơn vị quy đổi.";
                 LoadProductUnits(SelectedProduct.Id);
                 Clear();
             }

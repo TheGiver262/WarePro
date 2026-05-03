@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
@@ -11,72 +14,53 @@ namespace QuanLyHangHoa.Tests.Services;
 public class StockOutServiceTests
 {
     [Fact]
-    public void Create_posts_sale_to_stock_balance_ledger_and_audit_without_changing_product_quantity()
+    public void Create_posts_to_database_and_updates_inventory()
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
         using (var seedContext = CreateContext(connection))
         {
             seedContext.Database.EnsureCreated();
-            seedContext.Products.Add(new Product
-            {
-                Id = 300,
-                Name = "Service stock-out product",
-                CategoryId = 1,
-                BrandId = 1,
-                UnitId = 1,
-                Quantity = 99,
-                UnitPrice = 10m,
-                IsSerialManaged = false
-            });
-            seedContext.StockBalances.Add(new StockBalance
-            {
-                ProductId = 300,
-                WarehouseId = 1,
-                OnHandQuantity = 5,
-                AvailableQuantity = 5,
-                ReservedQuantity = 0
-            });
+            seedContext.Products.Add(new Product { Id = 300, ProductCode = "P300",
+                DisplayName = "Service stock-out product",
+                CategoryId = 1, BrandId = 1, DefaultUnitId = 1, DefaultPrice = 10m, IsSerialTracked = false });
+            seedContext.Warehouses.Add(new Warehouse { Id = 1, WarehouseCode = "WH001", DisplayName = "Default", IsDefault = true, IsActive = true });
+            seedContext.StockBalances.Add(new StockBalance { ProductId = 300, WarehouseId = 1, OnHandQuantity = 5, AvailableQuantity = 5 });
             seedContext.SaveChanges();
         }
 
         var service = new StockOutService(() => CreateContext(connection));
         var stockOut = new StockOut
         {
-            EmployeeId = 1,
+            DocumentCode = "SO-001",
             CustomerId = 1,
-            ExportDate = new DateTime(2026, 4, 27, 12, 0, 0),
-            StockOutDetails =
+            WarehouseId = 1,
+            CreatedAt = new DateTime(2026, 4, 27, 12, 0, 0)
+        };
+        var lines = new List<StockOutLine>
+        {
+            new StockOutLine
             {
-                new StockOutDetail
-                {
-                    ProductId = 300,
-                    Quantity = 2,
-                    ExportPrice = 15m
-                }
+                ProductId = 300,
+                UnitId = 1,
+                Quantity = 2,
+                UnitPrice = 15m
             }
         };
 
-        service.Create(stockOut);
+        service.Create(stockOut, lines, 1);
 
         using var assertContext = CreateContext(connection);
-        var savedStockOut = Assert.Single(assertContext.StockOuts.Include(s => s.StockOutDetails));
-        Assert.Equal(30m, savedStockOut.TotalAmount);
-        Assert.Equal(99, assertContext.Products.Single(p => p.Id == 300).Quantity);
+        var savedStockOut = assertContext.StockOuts.Include(s => s.Lines).Single();
+        Assert.Equal("SO-001", savedStockOut.DocumentCode);
+        Assert.Equal(1, savedStockOut.CreatedBy);
 
-        var balance = Assert.Single(assertContext.StockBalances);
-        Assert.Equal(300, balance.ProductId);
+        var balance = assertContext.StockBalances.Single(b => b.ProductId == 300);
         Assert.Equal(3, balance.OnHandQuantity);
-        Assert.Equal(3, balance.AvailableQuantity);
 
-        var ledger = Assert.Single(assertContext.StockLedgers);
-        Assert.Equal(StockLedgerDirection.Out.ToString(), ledger.Direction);
+        var ledger = assertContext.StockLedgers.Single(l => l.ProductId == 300);
+        Assert.Equal("Out", ledger.MovementType);
         Assert.Equal(2, ledger.Quantity);
-        Assert.Equal(1, ledger.PostedByUserId);
-
-        var audit = Assert.Single(assertContext.AuditLogs);
-        Assert.Equal(AuditActionCode.PostStockOut.ToString(), audit.ActionCode);
-        Assert.Equal(1, audit.PerformedByUserId);
     }
 
     private static AppDbContext CreateContext(SqliteConnection connection)

@@ -16,7 +16,7 @@ public class ProductSerialViewModelTests
             status = inputStatus;
             return new List<ProductSerial>
             {
-                new() { Id = 1, SerialNumber = "ABC-001", Status = "InStock" }
+                new() { Id = 1, SerialNumber = "ABC-001", CurrentStatus = "InStock" }
             };
         });
         viewModel.SearchText = "ABC";

@@ -14,7 +14,7 @@ public class PostStockOutTests
         store.Serials["SALE-001"] = new ProductSerialSnapshot("SALE-001", 30, 1, SerialStatus.InStock);
         store.Serials["SALE-002"] = new ProductSerialSnapshot("SALE-002", 30, 1, SerialStatus.InStock);
         var service = new InventoryPostingService(store, new FixedWarehouseProvider(1), new FixedClock(new DateTime(2026, 4, 26, 10, 0, 0)));
-        var command = new PostStockOutCommand(
+        var command = new PostStockOutCommand(WarehouseId: 1, 
             DocumentId: Guid.Parse("44444444-4444-4444-4444-444444444444"),
             Kind: StockOutKind.Sale,
             Status: StockDocumentStatus.Approved,
@@ -53,7 +53,7 @@ public class PostStockOutTests
         store.Balances[(30, 1)] = new StockBalanceSnapshot(30, 1, 3, 3, 0);
         store.Serials["WR-001"] = new ProductSerialSnapshot("WR-001", 30, 1, SerialStatus.InStock);
         var service = new InventoryPostingService(store, new FixedWarehouseProvider(1), new FixedClock(new DateTime(2026, 4, 26, 10, 0, 0)));
-        var command = new PostStockOutCommand(
+        var command = new PostStockOutCommand(WarehouseId: 1, 
             DocumentId: Guid.Parse("55555555-5555-5555-5555-555555555555"),
             Kind: StockOutKind.WarrantyReplacement,
             Status: StockDocumentStatus.Approved,
@@ -83,7 +83,7 @@ public class PostStockOutTests
         store.Products[40] = new ProductSnapshot(40, false);
         store.Balances[(40, 1)] = new StockBalanceSnapshot(40, 1, 1, 1, 0);
         var service = new InventoryPostingService(store, new FixedWarehouseProvider(1), new FixedClock(new DateTime(2026, 4, 26, 10, 30, 0)));
-        var command = new PostStockOutCommand(
+        var command = new PostStockOutCommand(WarehouseId: 1, 
             DocumentId: Guid.Parse("55555555-5555-5555-5555-555555555555"),
             Kind: StockOutKind.Sale,
             Status: StockDocumentStatus.Approved,
@@ -110,7 +110,7 @@ public class PostStockOutTests
         var store = new InMemoryInventoryStore();
         store.Products[41] = new ProductSnapshot(41, false);
         var service = new InventoryPostingService(store, new FixedWarehouseProvider(1), new FixedClock(new DateTime(2026, 4, 26, 10, 45, 0)));
-        var command = new PostStockOutCommand(
+        var command = new PostStockOutCommand(WarehouseId: 1, 
             DocumentId: Guid.Parse("99999999-9999-9999-9999-999999999999"),
             Kind: StockOutKind.Sale,
             Status: StockDocumentStatus.Approved,

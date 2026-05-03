@@ -1,54 +1,55 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
-using QuanLyHangHoa.Services.DataImport;
 
-namespace QuanLyHangHoa.Models
+namespace QuanLyHangHoa.Models;
+
+public partial class Product
 {
-    public class Product
-    {
-        public int Id { get; set; }
-        
-        [Required]
-        [MaxLength(50)]
-        [ImportKey]
-        public string ProductCode { get; set; } = string.Empty;
-        
-        [Required]
-        [MaxLength(200)]
-        public string DisplayName { get; set; } = string.Empty;
-        
-        public int CategoryId { get; set; }
-        [ForeignKey("CategoryId")]
-        public virtual Category? Category { get; set; }
+    public int Id { get; set; }
 
-        public int BrandId { get; set; }
-        [ForeignKey("BrandId")]
-        public virtual Brand? Brand { get; set; }
+    public string ProductCode { get; set; } = null!;
 
-        public int DefaultUnitId { get; set; }
-        [ForeignKey("DefaultUnitId")]
-        public virtual Unit? DefaultUnit { get; set; }
-        
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal DefaultPrice { get; set; } = 0;
-        
-        [MaxLength(100)]
-        public string? OriginCountry { get; set; }
-        
-        public int WarrantyPeriodMonths { get; set; } = 0;
-        public bool IsSerialTracked { get; set; } = false;
-        public bool IsActive { get; set; } = true;
-        
-        [NotMapped]
-        public decimal TotalQuantity => StockBalances?.Sum(sb => sb.OnHandQuantity) ?? 0;
+    public string DisplayName { get; set; } = null!;
 
-        // Navigation properties
-        public virtual ICollection<ProductUnit>? ProductUnits { get; set; }
-        public virtual ICollection<StockBalance>? StockBalances { get; set; }
-        public virtual ICollection<StockLedger>? StockLedgers { get; set; }
-        public virtual ICollection<ProductSerial>? ProductSerials { get; set; }
-    }
+    public int CategoryId { get; set; }
+
+    public int BrandId { get; set; }
+
+    public int DefaultUnitId { get; set; }
+
+    public decimal DefaultPrice { get; set; }
+
+    public string? OriginCountry { get; set; }
+
+    public int WarrantyPeriodMonths { get; set; }
+
+    public bool IsSerialTracked { get; set; }
+
+    public bool IsActive { get; set; }
+
+    public virtual Brand Brand { get; set; } = null!;
+
+    public virtual Category Category { get; set; } = null!;
+
+    public virtual Unit DefaultUnit { get; set; } = null!;
+
+    public virtual ICollection<ProductSerial> ProductSerials { get; set; } = new List<ProductSerial>();
+
+    public virtual ProductUnit? ProductUnit { get; set; }
+
+    public virtual ICollection<PurchaseInvoiceLine> PurchaseInvoiceLines { get; set; } = new List<PurchaseInvoiceLine>();
+
+    public virtual ICollection<SalesInvoiceLine> SalesInvoiceLines { get; set; } = new List<SalesInvoiceLine>();
+
+    public virtual ICollection<StockAdjustmentLine> StockAdjustmentLines { get; set; } = new List<StockAdjustmentLine>();
+
+    public virtual ICollection<StockBalance> StockBalances { get; set; } = new List<StockBalance>();
+
+    public virtual ICollection<StockCountLine> StockCountLines { get; set; } = new List<StockCountLine>();
+
+    public virtual ICollection<StockInLine> StockInLines { get; set; } = new List<StockInLine>();
+
+    public virtual ICollection<StockLedger> StockLedgers { get; set; } = new List<StockLedger>();
+
+    public virtual ICollection<StockOutLine> StockOutLines { get; set; } = new List<StockOutLine>();
 }

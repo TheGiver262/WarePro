@@ -31,6 +31,7 @@
         <Setter Property="MinHeight" Value="34"/>
         <Setter Property="FontSize" Value="13"/>
         <Setter Property="Margin" Value="{StaticResource Margin.Bottom.md}"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
     </Style>
 
     <!-- Outlined Form PasswordBox -->

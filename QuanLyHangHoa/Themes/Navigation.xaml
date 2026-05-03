@@ -26,7 +26,7 @@
                 <ControlTemplate TargetType="RadioButton">
                     <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="{StaticResource Radius.md}" Padding="12,0">
                         <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" 
+                            <materialDesign:PackIcon Kind="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource SafePackIconKindConverter}}" 
                                                      Width="20" Height="20" VerticalAlignment="Center" 
                                                      Foreground="{TemplateBinding Foreground}"/>
                             <ContentPresenter VerticalAlignment="Center" Margin="12,0,0,0"/>

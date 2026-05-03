@@ -10,7 +10,7 @@ public class AuthorizationServiceTests
     public void Admin_can_perform_every_known_action()
     {
         var service = new AuthorizationService();
-        var admin = new Employee { Role = "Admin" };
+        var admin = new AppUser { RoleCode = "Admin", IsActive = true };
 
         Assert.True(service.CanPerform(admin, PermissionAction.ManageUsers));
         Assert.True(service.CanPerform(admin, PermissionAction.PostStockAdjustment));
@@ -18,24 +18,21 @@ public class AuthorizationServiceTests
     }
 
     [Fact]
-    public void Sales_staff_can_create_sales_invoice_but_cannot_post_stock_adjustment()
+    public void Staff_can_create_sales_invoice_but_cannot_manage_users()
     {
         var service = new AuthorizationService();
-        var sales = new Employee { Role = "SalesStaff" };
+        var staff = new AppUser { RoleCode = "Staff", IsActive = true };
 
-        Assert.True(service.CanPerform(sales, PermissionAction.CreateSalesInvoice));
-        Assert.False(service.CanPerform(sales, PermissionAction.PostStockAdjustment));
+        Assert.True(service.CanPerform(staff, PermissionAction.CreateSalesInvoice));
+        Assert.False(service.CanPerform(staff, PermissionAction.ManageUsers));
     }
 
     [Fact]
-    public void Warehouse_staff_can_post_stock_documents_and_create_purchase_invoice()
+    public void Inactive_user_cannot_perform_any_action()
     {
         var service = new AuthorizationService();
-        var warehouse = new Employee { Role = "WarehouseStaff" };
+        var inactiveAdmin = new AppUser { RoleCode = "Admin", IsActive = false };
 
-        Assert.True(service.CanPerform(warehouse, PermissionAction.PostStockIn));
-        Assert.True(service.CanPerform(warehouse, PermissionAction.PostStockOut));
-        Assert.True(service.CanPerform(warehouse, PermissionAction.CreatePurchaseInvoice));
-        Assert.False(service.CanPerform(warehouse, PermissionAction.ManageUsers));
+        Assert.False(service.CanPerform(inactiveAdmin, PermissionAction.ManageUsers));
     }
 }

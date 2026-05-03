@@ -1,24 +1,31 @@
+﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 
-namespace QuanLyHangHoa.Models
+namespace QuanLyHangHoa.Models;
+
+public partial class Warehouse
 {
-    public class Warehouse
-    {
-        public int Id { get; set; }
-        
-        [Required]
-        [MaxLength(50)]
-        public string WarehouseCode { get; set; } = string.Empty;
-        
-        [Required]
-        [MaxLength(200)]
-        public string DisplayName { get; set; } = string.Empty;
-        
-        public bool IsDefault { get; set; } = false;
-        public bool IsActive { get; set; } = true;
+    public int Id { get; set; }
 
-        public virtual ICollection<StockBalance>? StockBalances { get; set; }
-        public virtual ICollection<ProductSerial>? ProductSerials { get; set; }
-    }
+    public string WarehouseCode { get; set; } = null!;
+
+    public string DisplayName { get; set; } = null!;
+
+    public bool IsDefault { get; set; }
+
+    public bool IsActive { get; set; }
+
+    public virtual ICollection<ProductSerial> ProductSerials { get; set; } = new List<ProductSerial>();
+
+    public virtual ICollection<StockAdjustment> StockAdjustments { get; set; } = new List<StockAdjustment>();
+
+    public virtual ICollection<StockBalance> StockBalances { get; set; } = new List<StockBalance>();
+
+    public virtual ICollection<StockCountSession> StockCountSessions { get; set; } = new List<StockCountSession>();
+
+    public virtual ICollection<StockIn> StockIns { get; set; } = new List<StockIn>();
+
+    public virtual ICollection<StockLedger> StockLedgers { get; set; } = new List<StockLedger>();
+
+    public virtual ICollection<StockOut> StockOuts { get; set; } = new List<StockOut>();
 }

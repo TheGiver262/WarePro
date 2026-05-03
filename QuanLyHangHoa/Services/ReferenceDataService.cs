@@ -8,13 +8,13 @@ namespace QuanLyHangHoa.Services
     public class ReferenceDataService
     {
         // ── UNITS ──────────────────────────────────────────────────────────────
-        public List<Unit> GetAllUnits()
+        public virtual List<Unit> GetAllUnits()
         {
             using var db = new AppDbContext();
             return db.Units.Where(u => u.IsActive).ToList();
         }
-        public void AddUnit(Unit u) { using var db = new AppDbContext(); db.Units.Add(u); db.SaveChanges(); }
-        public void UpdateUnit(Unit updated)
+        public virtual void AddUnit(Unit u) { using var db = new AppDbContext(); db.Units.Add(u); db.SaveChanges(); }
+        public virtual void UpdateUnit(Unit updated)
         {
             using var db = new AppDbContext();
             var u = db.Units.Find(updated.Id);
@@ -23,7 +23,7 @@ namespace QuanLyHangHoa.Services
             u.UnitCode = updated.UnitCode;
             db.SaveChanges();
         }
-        public void DeactivateUnit(int id)
+        public virtual void DeactivateUnit(int id)
         {
             using var db = new AppDbContext();
             var u = db.Units.Find(id);
@@ -33,13 +33,13 @@ namespace QuanLyHangHoa.Services
         }
 
         // ── CATEGORIES ────────────────────────────────────────────────────────
-        public List<Category> GetAllCategories()
+        public virtual List<Category> GetAllCategories()
         {
             using var db = new AppDbContext();
             return db.Categories.Where(c => c.IsActive).ToList();
         }
-        public void AddCategory(Category c) { using var db = new AppDbContext(); db.Categories.Add(c); db.SaveChanges(); }
-        public void UpdateCategory(Category updated)
+        public virtual void AddCategory(Category c) { using var db = new AppDbContext(); db.Categories.Add(c); db.SaveChanges(); }
+        public virtual void UpdateCategory(Category updated)
         {
             using var db = new AppDbContext();
             var c = db.Categories.Find(updated.Id);
@@ -48,7 +48,7 @@ namespace QuanLyHangHoa.Services
             c.CategoryCode = updated.CategoryCode;
             db.SaveChanges();
         }
-        public void DeactivateCategory(int id)
+        public virtual void DeactivateCategory(int id)
         {
             using var db = new AppDbContext();
             var c = db.Categories.Find(id);
@@ -58,13 +58,13 @@ namespace QuanLyHangHoa.Services
         }
 
         // ── BRANDS ────────────────────────────────────────────────────────────
-        public List<Brand> GetAllBrands()
+        public virtual List<Brand> GetAllBrands()
         {
             using var db = new AppDbContext();
             return db.Brands.Where(b => b.IsActive).ToList();
         }
-        public void AddBrand(Brand b) { using var db = new AppDbContext(); db.Brands.Add(b); db.SaveChanges(); }
-        public void UpdateBrand(Brand updated)
+        public virtual void AddBrand(Brand b) { using var db = new AppDbContext(); db.Brands.Add(b); db.SaveChanges(); }
+        public virtual void UpdateBrand(Brand updated)
         {
             using var db = new AppDbContext();
             var b = db.Brands.Find(updated.Id);
@@ -74,7 +74,7 @@ namespace QuanLyHangHoa.Services
             b.OriginCountry = updated.OriginCountry;
             db.SaveChanges();
         }
-        public void DeactivateBrand(int id)
+        public virtual void DeactivateBrand(int id)
         {
             using var db = new AppDbContext();
             var b = db.Brands.Find(id);
@@ -84,13 +84,13 @@ namespace QuanLyHangHoa.Services
         }
 
         // ── SUPPLIERS ─────────────────────────────────────────────────────────
-        public List<Supplier> GetAllSuppliers()
+        public virtual List<Supplier> GetAllSuppliers()
         {
             using var db = new AppDbContext();
             return db.Suppliers.Where(s => s.IsActive).ToList();
         }
-        public void AddSupplier(Supplier s) { using var db = new AppDbContext(); db.Suppliers.Add(s); db.SaveChanges(); }
-        public void UpdateSupplier(Supplier updated)
+        public virtual void AddSupplier(Supplier s) { using var db = new AppDbContext(); db.Suppliers.Add(s); db.SaveChanges(); }
+        public virtual void UpdateSupplier(Supplier updated)
         {
             using var db = new AppDbContext();
             var s = db.Suppliers.Find(updated.Id);
@@ -102,7 +102,7 @@ namespace QuanLyHangHoa.Services
             s.Email = updated.Email;
             db.SaveChanges();
         }
-        public void DeactivateSupplier(int id)
+        public virtual void DeactivateSupplier(int id)
         {
             using var db = new AppDbContext();
             var s = db.Suppliers.Find(id);
@@ -112,13 +112,13 @@ namespace QuanLyHangHoa.Services
         }
 
         // ── CUSTOMERS ─────────────────────────────────────────────────────────
-        public List<Customer> GetAllCustomers()
+        public virtual List<Customer> GetAllCustomers()
         {
             using var db = new AppDbContext();
             return db.Customers.Where(c => c.IsActive).ToList();
         }
-        public void AddCustomer(Customer c) { using var db = new AppDbContext(); db.Customers.Add(c); db.SaveChanges(); }
-        public void UpdateCustomer(Customer updated)
+        public virtual void AddCustomer(Customer c) { using var db = new AppDbContext(); db.Customers.Add(c); db.SaveChanges(); }
+        public virtual void UpdateCustomer(Customer updated)
         {
             using var db = new AppDbContext();
             var c = db.Customers.Find(updated.Id);
@@ -130,7 +130,7 @@ namespace QuanLyHangHoa.Services
             c.Email = updated.Email;
             db.SaveChanges();
         }
-        public void DeactivateCustomer(int id)
+        public virtual void DeactivateCustomer(int id)
         {
             using var db = new AppDbContext();
             var c = db.Customers.Find(id);

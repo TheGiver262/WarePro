@@ -10,31 +10,37 @@
     <Grid Background="{StaticResource AppBackgroundBrush}">
         <Grid Margin="{StaticResource PagePadding}">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/> <!-- Header -->
+                <RowDefinition Height="Auto"/> <!-- Stats/Filter -->
+                <RowDefinition Height="*"/>    <!-- Data -->
             </Grid.RowDefinitions>
 
-            <!-- Header Section -->
-            <materialDesign:Card Grid.Row="0" Margin="{StaticResource Margin.Bottom.lg}" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.md}">
-                <Grid>
-                    <StackPanel Orientation="Horizontal">
-                        <materialDesign:PackIcon Kind="ChartBar" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
-                        <TextBlock Text="BÁO CÁO DOANH THU &amp; LỢI NHUẬN" Style="{StaticResource TypographyH2}" Margin="12,0,0,0" VerticalAlignment="Center"/>
-                    </StackPanel>
-                    
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <DatePicker Width="160" materialDesign:HintAssist.Hint="Từ ngày" SelectedDate="{Binding FromDate}" 
-                                    Style="{StaticResource MaterialDesignOutlinedDatePicker}" Margin="{StaticResource Margin.Right.md}"/>
-                        <DatePicker Width="160" materialDesign:HintAssist.Hint="Đến ngày" SelectedDate="{Binding ToDate}" 
-                                    Style="{StaticResource MaterialDesignOutlinedDatePicker}" Margin="{StaticResource Margin.Right.md}"/>
-                        <Button Content="XUẤT BÁO CÁO" Command="{Binding RefreshCommand}" 
-                                Style="{StaticResource AppPrimaryButton}" Height="40" Padding="20,0"/>
-                    </StackPanel>
-                </Grid>
-            </materialDesign:Card>
+            <!-- Row 0: Header Section -->
+            <Grid Grid.Row="0" Margin="{StaticResource SectionBottomMargin}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
 
-            <!-- Summary Tiles -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <materialDesign:PackIcon Kind="ChartBar" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
+                    <StackPanel Margin="16,0,0,0">
+                        <TextBlock Text="BÁO CÁO DOANH THU &amp; LỢI NHUẬN" Style="{StaticResource TypographyH2}"/>
+                        <TextBlock Text="Phân tích hiệu quả kinh doanh theo thời gian" Style="{StaticResource TypographyCaption}"/>
+                    </StackPanel>
+                </StackPanel>
+                
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <DatePicker Width="160" materialDesign:HintAssist.Hint="Từ ngày" SelectedDate="{Binding FromDate}" 
+                                Style="{StaticResource AppDatePickerStyle}" Height="40" Margin="0,0,12,0"/>
+                    <DatePicker Width="160" materialDesign:HintAssist.Hint="Đến ngày" SelectedDate="{Binding ToDate}" 
+                                Style="{StaticResource AppDatePickerStyle}" Height="40" Margin="0,0,12,0"/>
+                    <Button Content="XEM BÁO CÁO" Command="{Binding RefreshCommand}" 
+                            Style="{StaticResource AppPrimaryButton}" Height="40" Padding="20,0"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- Row 1: Summary Stats -->
             <Grid Grid.Row="1" Margin="{StaticResource Margin.Bottom.lg}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -42,32 +48,32 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <materialDesign:Card Grid.Column="0" Margin="{StaticResource Margin.Right.md}" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.lg}">
+                <materialDesign:Card Grid.Column="0" Margin="0,0,12,0" Style="{StaticResource AppCard}" Padding="20">
                     <StackPanel>
                         <TextBlock Text="TỔNG DOANH THU" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppSecondaryBrush}"/>
-                        <TextBlock Text="{Binding TotalRevenue, StringFormat=N0}" FontSize="24" FontWeight="Bold" Margin="0,8,0,0"/>
+                        <TextBlock Text="{Binding TotalRevenue, StringFormat=N0}" FontSize="28" FontWeight="Bold" Margin="0,12,0,0"/>
                         <TextBlock Text="VNĐ" Style="{StaticResource TypographyCaption}" Foreground="{StaticResource AppSecondaryBrush}" HorizontalAlignment="Right"/>
                     </StackPanel>
                 </materialDesign:Card>
 
-                <materialDesign:Card Grid.Column="1" Margin="{StaticResource Margin.X.md}" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.lg}">
+                <materialDesign:Card Grid.Column="1" Margin="12,0,12,0" Style="{StaticResource AppCard}" Padding="20">
                     <StackPanel>
                         <TextBlock Text="TỔNG LỢI NHUẬN" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppSecondaryBrush}"/>
-                        <TextBlock Text="{Binding TotalProfit, StringFormat=N0}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource AppSuccessBrush}" Margin="0,8,0,0"/>
+                        <TextBlock Text="{Binding TotalProfit, StringFormat=N0}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource AppSuccessBrush}" Margin="0,12,0,0"/>
                         <TextBlock Text="VNĐ" Style="{StaticResource TypographyCaption}" Foreground="{StaticResource AppSuccessBrush}" HorizontalAlignment="Right"/>
                     </StackPanel>
                 </materialDesign:Card>
 
-                <materialDesign:Card Grid.Column="2" Margin="{StaticResource Margin.Left.md}" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.lg}">
+                <materialDesign:Card Grid.Column="2" Margin="12,0,0,0" Style="{StaticResource AppCard}" Padding="20">
                     <StackPanel>
                         <TextBlock Text="TỔNG CHI PHÍ" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppSecondaryBrush}"/>
-                        <TextBlock Text="{Binding TotalCost, StringFormat=N0}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource DangerTextBrush}" Margin="0,8,0,0"/>
+                        <TextBlock Text="{Binding TotalCost, StringFormat=N0}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource DangerTextBrush}" Margin="0,12,0,0"/>
                         <TextBlock Text="VNĐ" Style="{StaticResource TypographyCaption}" Foreground="{StaticResource DangerTextBrush}" HorizontalAlignment="Right"/>
                     </StackPanel>
                 </materialDesign:Card>
             </Grid>
 
-            <!-- Data Table -->
+            <!-- Row 2: Data Table -->
             <materialDesign:Card Grid.Row="2" Style="{StaticResource AppCard}" Padding="0">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -75,15 +81,15 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <Border Padding="{StaticResource Spacing.md}" Background="{StaticResource AppSurfaceBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1">
+                    <Border Padding="16,12" Background="{StaticResource AppSurfaceBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="TableLarge" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
-                            <TextBlock Text="CHI TIẾT DOANH THU THEO NGÀY" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Left.md}"/>
+                            <TextBlock Text="CHI TIẾT DOANH THU THEO NGÀY" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}" Margin="12,0,0,0"/>
                         </StackPanel>
                     </Border>
 
                     <DataGrid Grid.Row="1" ItemsSource="{Binding DailyReports}" AutoGenerateColumns="False" CanUserAddRows="False" 
-                              IsReadOnly="True" BorderThickness="0" RowHeight="28">
+                              IsReadOnly="True" BorderThickness="0" RowHeight="48" Background="Transparent">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="NGÀY" Binding="{Binding Date, StringFormat=dd/MM/yyyy}" Width="*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
                             <DataGridTextColumn Header="DOANH THU" Binding="{Binding Revenue, StringFormat=N0}" Width="*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnRightElementStyle}"/>

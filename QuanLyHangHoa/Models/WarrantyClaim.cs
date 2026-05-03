@@ -1,65 +1,53 @@
 using System;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+using System.Collections.Generic;
 
-namespace QuanLyHangHoa.Models
+namespace QuanLyHangHoa.Models;
+
+public partial class WarrantyClaim
 {
-    public class WarrantyClaim
-    {
-        public int Id { get; set; }
-        
-        [Required]
-        [MaxLength(50)]
-        public string ClaimCode { get; set; } = string.Empty;
+    public int Id { get; set; }
 
-        public int WarrantyCoverageId { get; set; }
-        [ForeignKey("WarrantyCoverageId")]
-        public virtual WarrantyCoverage? WarrantyCoverage { get; set; }
+    public string ClaimCode { get; set; } = null!;
 
-        public int ProductSerialId { get; set; }
-        [ForeignKey("ProductSerialId")]
-        public virtual ProductSerial? ProductSerial { get; set; }
+    public int WarrantyCoverageId { get; set; }
 
-        public int? ReplacementSerialId { get; set; }
-        [ForeignKey("ReplacementSerialId")]
-        public virtual ProductSerial? ReplacementSerial { get; set; }
+    public int ProductSerialId { get; set; }
 
-        public int? ReplacementStockOutId { get; set; }
-        [ForeignKey("ReplacementStockOutId")]
-        public virtual StockOut? ReplacementStockOut { get; set; }
+    public int? ReplacementSerialId { get; set; }
 
-        public DateTime ReceivedDate { get; set; } = DateTime.UtcNow;
-        
-        [MaxLength(1000)]
-        public string? ProblemDescription { get; set; }
-        
-        [MaxLength(1000)]
-        public string? TechnicalConclusion { get; set; }
-        
-        [MaxLength(1000)]
-        public string? ManufacturerResult { get; set; }
-        
-        [MaxLength(1000)]
-        public string? RejectionReason { get; set; }
-        
-        [MaxLength(1000)]
-        public string? ProcessingNote { get; set; }
-        
-        [MaxLength(50)]
-        public string? ResolutionType { get; set; } // Repair, Replace, Refund, Reject
-        
-        [Required]
-        [MaxLength(50)]
-        public string Status { get; set; } = "Open"; // Open, Processing, ManufacturerWait, Ready, Closed, Rejected
+    public int? ReplacementStockOutId { get; set; }
 
-        public int? ApprovedBy { get; set; }
-        [ForeignKey("ApprovedBy")]
-        public virtual AppUser? Approver { get; set; }
-        
-        public int ProcessedBy { get; set; }
-        [ForeignKey("ProcessedBy")]
-        public virtual AppUser? Processor { get; set; }
-        
-        public DateTime? ClosedDate { get; set; }
-    }
+    public DateTime ReceivedDate { get; set; }
+
+    public string? ProblemDescription { get; set; }
+
+    public string? TechnicalConclusion { get; set; }
+
+    public string? ManufacturerResult { get; set; }
+
+    public string? RejectionReason { get; set; }
+
+    public string? ProcessingNote { get; set; }
+
+    public string? ResolutionType { get; set; }
+
+    public string Status { get; set; } = null!;
+
+    public int? ApprovedBy { get; set; }
+
+    public int ProcessedBy { get; set; }
+
+    public DateTime? ClosedDate { get; set; }
+
+    public virtual AppUser? Approver { get; set; }
+
+    public virtual AppUser Processor { get; set; } = null!;
+
+    public virtual ProductSerial ProductSerial { get; set; } = null!;
+
+    public virtual ProductSerial? ReplacementSerial { get; set; }
+
+    public virtual StockOut? ReplacementStockOut { get; set; }
+
+    public virtual WarrantyCoverage WarrantyCoverage { get; set; } = null!;
 }

@@ -1,43 +1,37 @@
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System;
+using System.Collections.Generic;
 
-namespace QuanLyHangHoa.Models
+namespace QuanLyHangHoa.Models;
+
+public partial class SalesInvoiceLine
 {
-    public class SalesInvoiceLine
-    {
-        public int Id { get; set; }
+    public int Id { get; set; }
 
-        public int SalesInvoiceId { get; set; }
-        [ForeignKey("SalesInvoiceId")]
-        public virtual SalesInvoice? SalesInvoice { get; set; }
+    public int SalesInvoiceId { get; set; }
 
-        public int ProductId { get; set; }
-        [ForeignKey("ProductId")]
-        public virtual Product? Product { get; set; }
+    public int ProductId { get; set; }
 
-        public int UnitId { get; set; }
-        [ForeignKey("UnitId")]
-        public virtual Unit? Unit { get; set; }
+    public int UnitId { get; set; }
 
-        public int? StockOutLineId { get; set; }
-        [ForeignKey("StockOutLineId")]
-        public virtual StockOutLine? StockOutLine { get; set; }
+    public int? StockOutLineId { get; set; }
 
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal Quantity { get; set; }
-        
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal UnitPrice { get; set; }
-        
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal SubTotal { get; set; }
-        
-        [Column(TypeName = "decimal(9,4)")]
-        public decimal TaxRate { get; set; } = 0;
-        
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal TaxAmount { get; set; } = 0;
-        
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal GrandTotal { get; set; }
-    }
+    public decimal Quantity { get; set; }
+
+    public decimal UnitPrice { get; set; }
+
+    public decimal SubTotal { get; set; }
+
+    public decimal TaxRate { get; set; }
+
+    public decimal TaxAmount { get; set; }
+
+    public decimal GrandTotal { get; set; }
+
+    public virtual Product Product { get; set; } = null!;
+
+    public virtual SalesInvoice SalesInvoice { get; set; } = null!;
+
+    public virtual StockOutLine? StockOutLine { get; set; }
+
+    public virtual Unit Unit { get; set; } = null!;
 }

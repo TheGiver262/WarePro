@@ -1,42 +1,35 @@
 using System;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+using System.Collections.Generic;
 
-namespace QuanLyHangHoa.Models
+namespace QuanLyHangHoa.Models;
+
+public partial class StockLedger
 {
-    public class StockLedger
-    {
-        public int Id { get; set; }
-        
-        public int WarehouseId { get; set; }
-        [ForeignKey("WarehouseId")]
-        public virtual Warehouse? Warehouse { get; set; }
-        
-        public int ProductId { get; set; }
-        [ForeignKey("ProductId")]
-        public virtual Product? Product { get; set; }
-        
-        public int? ProductSerialId { get; set; }
-        [ForeignKey("ProductSerialId")]
-        public virtual ProductSerial? ProductSerial { get; set; }
-        
-        [Required]
-        [MaxLength(50)]
-        public string SourceDocumentType { get; set; } = string.Empty; // StockIn, StockOut, StockAdjustment
-        
-        public int SourceDocumentId { get; set; }
-        
-        [Required]
-        [MaxLength(50)]
-        public string MovementType { get; set; } = string.Empty; // In, Out
-        
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal Quantity { get; set; }
-        
-        public int PostedBy { get; set; }
-        [ForeignKey("PostedBy")]
-        public virtual AppUser? Poster { get; set; }
-        
-        public DateTime PostedAt { get; set; } = DateTime.UtcNow;
-    }
+    public int Id { get; set; }
+
+    public int WarehouseId { get; set; }
+
+    public int ProductId { get; set; }
+
+    public int? ProductSerialId { get; set; }
+
+    public string SourceDocumentType { get; set; } = null!;
+
+    public int SourceDocumentId { get; set; }
+
+    public string MovementType { get; set; } = null!;
+
+    public decimal Quantity { get; set; }
+
+    public int PostedBy { get; set; }
+
+    public DateTime PostedAt { get; set; }
+
+    public virtual AppUser Poster { get; set; } = null!;
+
+    public virtual Product Product { get; set; } = null!;
+
+    public virtual ProductSerial? ProductSerial { get; set; }
+
+    public virtual Warehouse Warehouse { get; set; } = null!;
 }

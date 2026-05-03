@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
@@ -10,23 +13,20 @@ namespace QuanLyHangHoa.Tests.Services;
 public class InvoiceServiceTests
 {
     [Fact]
-    public void SaveSalesInvoice_calculates_line_totals_invoice_totals_and_payment_status()
+    public void SaveSalesInvoice_calculates_line_totals_and_invoice_totals()
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
         using (var seedContext = CreateContext(connection))
         {
             seedContext.Database.EnsureCreated();
-            seedContext.Products.Add(new Product
-            {
-                Id = 900,
-                Name = "Invoice product",
+            seedContext.Products.Add(new Product { Id = 900, ProductCode = "P900",
+                DisplayName = "Invoice product",
                 CategoryId = 1,
                 BrandId = 1,
-                UnitId = 1,
-                Quantity = 99,
-                UnitPrice = 100m
-            });
+                DefaultUnitId = 1,
+                DefaultPrice = 100m
+                 });
             seedContext.SaveChanges();
         }
 
@@ -36,9 +36,7 @@ public class InvoiceServiceTests
             InvoiceCode = "SI-0001",
             CustomerId = 1,
             InvoiceDate = new DateTime(2026, 4, 28, 9, 0, 0),
-            DueDate = new DateTime(2026, 5, 28, 9, 0, 0),
-            PaidAmount = 50m,
-            Lines =
+            Lines = new List<SalesInvoiceLine>
             {
                 new SalesInvoiceLine
                 {
@@ -58,33 +56,28 @@ public class InvoiceServiceTests
         Assert.Equal(200m, saved.SubTotal);
         Assert.Equal(20m, saved.TaxAmount);
         Assert.Equal(220m, saved.GrandTotal);
-        Assert.Equal(50m, saved.PaidAmount);
-        Assert.Equal("Partial", saved.PaymentStatus);
 
-        var line = Assert.Single(saved.Lines);
+        var line = Assert.Single(saved.Lines!);
         Assert.Equal(200m, line.SubTotal);
         Assert.Equal(20m, line.TaxAmount);
         Assert.Equal(220m, line.GrandTotal);
     }
 
     [Fact]
-    public void SavePurchaseInvoice_marks_invoice_paid_when_paid_amount_covers_total()
+    public void SavePurchaseInvoice_calculates_totals_correctly()
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
         using (var seedContext = CreateContext(connection))
         {
             seedContext.Database.EnsureCreated();
-            seedContext.Products.Add(new Product
-            {
-                Id = 901,
-                Name = "Purchase invoice product",
+            seedContext.Products.Add(new Product { Id = 901, ProductCode = "P901",
+                DisplayName = "Purchase invoice product",
                 CategoryId = 1,
                 BrandId = 1,
-                UnitId = 1,
-                Quantity = 99,
-                UnitPrice = 100m
-            });
+                DefaultUnitId = 1,
+                DefaultPrice = 100m
+                 });
             seedContext.SaveChanges();
         }
 
@@ -94,9 +87,7 @@ public class InvoiceServiceTests
             InvoiceCode = "PI-0001",
             SupplierId = 1,
             InvoiceDate = new DateTime(2026, 4, 28, 9, 30, 0),
-            DueDate = new DateTime(2026, 5, 28, 9, 30, 0),
-            PaidAmount = 110m,
-            Lines =
+            Lines = new List<PurchaseInvoiceLine>
             {
                 new PurchaseInvoiceLine
                 {
@@ -116,7 +107,6 @@ public class InvoiceServiceTests
         Assert.Equal(100m, saved.SubTotal);
         Assert.Equal(10m, saved.TaxAmount);
         Assert.Equal(110m, saved.GrandTotal);
-        Assert.Equal("Paid", saved.PaymentStatus);
     }
 
     private static AppDbContext CreateContext(SqliteConnection connection)

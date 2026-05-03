@@ -11,9 +11,10 @@ namespace QuanLyHangHoa.ViewModels
     public partial class StockReversalViewModel : ObservableObject
     {
         private readonly AppUser _currentUser;
-        private readonly Func<Guid, string, int, int> _reverseDocument;
+        private readonly Func<string, int, int, int> _reverseDocument;
         private readonly Action<string, string> _showMessage;
 
+        [ObservableProperty] private string _documentType = "StockIn";
         [ObservableProperty] private string _documentIdText = string.Empty;
         [ObservableProperty] private string _reason = "WrongPosting";
         [ObservableProperty] private string _statusMessage = string.Empty;
@@ -28,7 +29,7 @@ namespace QuanLyHangHoa.ViewModels
 
         public StockReversalViewModel(
             AppUser currentUser,
-            Func<Guid, string, int, int> reverseDocument,
+            Func<string, int, int, int> reverseDocument,
             Action<string, string> showMessage)
         {
             _currentUser = currentUser;
@@ -39,30 +40,30 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void ReverseDocument()
         {
-            if (!Guid.TryParse(DocumentIdText, out var documentId))
+            if (!int.TryParse(DocumentIdText, out var documentId))
             {
-                StatusMessage = "DocumentId khong hop le.";
-                _showMessage(StatusMessage, "Canh bao");
+                StatusMessage = "DocumentId không hợp lệ.";
+                _showMessage(StatusMessage, "Cảnh báo");
                 return;
             }
 
             if (string.IsNullOrWhiteSpace(Reason))
             {
-                StatusMessage = "Vui long nhap ly do dao chung tu.";
-                _showMessage(StatusMessage, "Canh bao");
+                StatusMessage = "Vui lòng nhập lý do đảo chứng từ.";
+                _showMessage(StatusMessage, "Cảnh báo");
                 return;
             }
 
             try
             {
-                var adjustmentId = _reverseDocument(documentId, Reason.Trim(), _currentUser.Id);
-                StatusMessage = $"Da dao chung tu kho, adjustment #{adjustmentId}.";
-                _showMessage(StatusMessage, "Thong bao");
+                var adjustmentId = _reverseDocument(DocumentType, documentId, _currentUser.Id);
+                StatusMessage = $"Đã đảo chứng từ kho, adjustment #{adjustmentId}.";
+                _showMessage(StatusMessage, "Thông báo");
             }
-            catch (InventoryDomainException ex)
+            catch (Exception ex)
             {
                 StatusMessage = ex.Message;
-                _showMessage(ex.Message, "Loi dao chung tu");
+                _showMessage(ex.Message, "Lỗi đảo chứng từ");
             }
         }
     }

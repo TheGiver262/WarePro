@@ -1,26 +1,23 @@
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System;
+using System.Collections.Generic;
 
-namespace QuanLyHangHoa.Models
+namespace QuanLyHangHoa.Models;
+
+public partial class StockCountLine
 {
-    public class StockCountLine
-    {
-        public int Id { get; set; }
+    public int Id { get; set; }
 
-        public int SessionId { get; set; }
-        [ForeignKey("SessionId")]
-        public virtual StockCountSession? StockCountSession { get; set; }
+    public int SessionId { get; set; }
 
-        public int ProductId { get; set; }
-        [ForeignKey("ProductId")]
-        public virtual Product? Product { get; set; }
+    public int ProductId { get; set; }
 
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal SystemQuantity { get; set; }
-        
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal CountedQuantity { get; set; }
-        
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal VarianceQuantity { get; set; }
-    }
+    public decimal SystemQuantity { get; set; }
+
+    public decimal CountedQuantity { get; set; }
+
+    public decimal VarianceQuantity { get; set; }
+
+    public virtual Product Product { get; set; } = null!;
+
+    public virtual StockCountSession Session { get; set; } = null!;
 }

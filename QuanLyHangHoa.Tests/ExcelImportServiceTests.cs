@@ -23,7 +23,7 @@ namespace QuanLyHangHoa.Tests
                     var worksheet = workbook.Worksheets.Add("Sheet1");
                     
                     // Headers
-                    worksheet.Cell(1, 1).Value = "Name";
+                    worksheet.Cell(1, 1).Value = "DisplayName";
                     
                     // Data
                     worksheet.Cell(2, 1).Value = "Danh Muc Excel 1";
@@ -39,8 +39,8 @@ namespace QuanLyHangHoa.Tests
                 Assert.NotNull(result);
                 Assert.Equal(2, result.ImportedItems.Count);
                 Assert.Empty(result.Errors);
-                Assert.Equal("Danh Muc Excel 1", result.ImportedItems[0].Name);
-                Assert.Equal("Danh Muc Excel 2", result.ImportedItems[1].Name);
+                Assert.Equal("Danh Muc Excel 1", result.ImportedItems[0].DisplayName);
+                Assert.Equal("Danh Muc Excel 2", result.ImportedItems[1].DisplayName);
             }
             finally
             {
@@ -78,8 +78,8 @@ namespace QuanLyHangHoa.Tests
                 // Our simple mapper just sets values if it finds the column header matching the property Name.
                 Assert.NotNull(result);
                 Assert.Single(result.ImportedItems);
-                // Name should be empty because 'InvalidHeaderName' doesn't map to 'Name' and it initializes to string.Empty
-                Assert.Empty(result.ImportedItems[0].Name);
+                // DisplayName should be empty because 'InvalidHeaderName' doesn't map to 'DisplayName' and it initializes to string.Empty
+                Assert.Empty(result.ImportedItems[0].DisplayName);
             }
             finally
             {

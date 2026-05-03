@@ -26,7 +26,7 @@
 
                     <StackPanel Orientation="Horizontal">
                         <materialDesign:PackIcon Kind="History" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
-                        <TextBlock Text="{Binding ReportTitle}" Style="{StaticResource TypographyH2}" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.md}"/>
+                        <TextBlock Text="{Binding ReportTitle}" Style="{DynamicResource TypographyH2}" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.md}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal">

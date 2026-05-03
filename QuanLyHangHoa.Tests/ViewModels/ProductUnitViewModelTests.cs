@@ -1,51 +1,61 @@
+using Moq;
 using QuanLyHangHoa.Models;
+using QuanLyHangHoa.Services;
 using QuanLyHangHoa.ViewModels;
+using Xunit;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace QuanLyHangHoa.Tests.ViewModels;
 
 public class ProductUnitViewModelTests
 {
     [Fact]
-    public void SaveProductUnitPassesSelectedProductUnitAndRateToService()
+    public void SaveCommand_AddsNewProductUnit_WhenSelectedProductUnitIsNull()
     {
-        ProductUnit? savedProductUnit = null;
-        var viewModel = new ProductUnitViewModel(
-            () => new List<Product> { new() { Id = 10, Name = "May in" } },
-            () => new List<Unit> { new() { Id = 20, Name = "Thung" } },
-            _ => new List<ProductUnit>(),
-            productUnit => savedProductUnit = productUnit,
-            _ => { },
-            (_, _) => { });
-        viewModel.SelectedProduct = viewModel.AvailableProducts.Single();
-        viewModel.SelectedUnit = viewModel.AvailableUnits.Single();
-        viewModel.ConversionRateToBaseUnit = 12m;
-        viewModel.IsBaseUnit = false;
+        // Arrange
+        var mockProductUnitService = new Mock<ProductUnitService>();
+        var mockProductService = new Mock<ProductService>();
+        var mockRefDataService = new Mock<ReferenceDataService>();
 
-        viewModel.SaveProductUnitCommand.Execute(null);
+        var products = new List<Product> { new() { Id = 10, DisplayName = "May in" } };
+        var units = new List<Unit> { new() { Id = 20, DisplayName = "Thung" } };
 
-        Assert.NotNull(savedProductUnit);
-        Assert.Equal(10, savedProductUnit.ProductId);
-        Assert.Equal(20, savedProductUnit.UnitId);
-        Assert.Equal(12m, savedProductUnit.ConversionRateToBaseUnit);
-        Assert.False(savedProductUnit.IsBaseUnit);
-        Assert.Equal("Da luu don vi quy doi.", viewModel.StatusMessage);
+        mockProductService.Setup(s => s.GetAllProducts()).Returns(products);
+        mockRefDataService.Setup(s => s.GetAllUnits()).Returns(units);
+        mockProductUnitService.Setup(s => s.GetByProductId(It.IsAny<int>())).Returns(new List<ProductUnit>());
+
+        var viewModel = new ProductUnitViewModel(mockProductUnitService.Object, mockProductService.Object, mockRefDataService.Object);
+        viewModel.SelectedProduct = products.First();
+        viewModel.SelectedUnitId = 20;
+        viewModel.ConversionFactor = 12m;
+
+        // Act
+        viewModel.SaveCommand.Execute(null);
+
+        // Assert
+        mockProductUnitService.Verify(s => s.Add(It.Is<ProductUnit>(pu => 
+            pu.ProductId == 10 && 
+            pu.UnitId == 20 && 
+            pu.ConversionFactor == 12m)), Times.Once);
+        Assert.Equal("Đã lưu đơn vị quy đổi.", viewModel.StatusMessage);
     }
 
     [Fact]
-    public void SaveProductUnitRejectsMissingProductOrUnit()
+    public void SaveCommand_RejectsMissingProductOrUnit()
     {
-        var called = false;
-        var viewModel = new ProductUnitViewModel(
-            () => new List<Product>(),
-            () => new List<Unit>(),
-            _ => new List<ProductUnit>(),
-            _ => called = true,
-            _ => { },
-            (_, _) => { });
+        // Arrange
+        var mockProductUnitService = new Mock<ProductUnitService>();
+        var mockProductService = new Mock<ProductService>();
+        var mockRefDataService = new Mock<ReferenceDataService>();
 
-        viewModel.SaveProductUnitCommand.Execute(null);
+        var viewModel = new ProductUnitViewModel(mockProductUnitService.Object, mockProductService.Object, mockRefDataService.Object);
 
-        Assert.False(called);
-        Assert.Equal("Chua chon hang hoa hoac don vi.", viewModel.StatusMessage);
+        // Act
+        viewModel.SaveCommand.Execute(null);
+
+        // Assert
+        mockProductUnitService.Verify(s => s.Add(It.IsAny<ProductUnit>()), Times.Never);
+        Assert.Equal("Chưa chọn hàng hóa hoặc đơn vị.", viewModel.StatusMessage);
     }
 }

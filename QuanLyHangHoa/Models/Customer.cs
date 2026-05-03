@@ -1,34 +1,26 @@
+using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using QuanLyHangHoa.Services.DataImport;
 
-namespace QuanLyHangHoa.Models
+namespace QuanLyHangHoa.Models;
+
+public partial class Customer
 {
-    public class Customer
-    {
-        public int Id { get; set; }
-        
-        [Required]
-        [MaxLength(50)]
-        [ImportKey]
-        public string CustomerCode { get; set; } = string.Empty;
-        
-        [Required]
-        [MaxLength(200)]
-        public string DisplayName { get; set; } = string.Empty;
-        
-        [MaxLength(30)]
-        public string? Phone { get; set; }
-        
-        [MaxLength(255)]
-        public string? Email { get; set; }
-        
-        [MaxLength(500)]
-        public string? Address { get; set; }
-        
-        public bool IsActive { get; set; } = true;
-        
-        public virtual ICollection<StockOut>? StockOuts { get; set; }
-        public virtual ICollection<SalesInvoice>? SalesInvoices { get; set; }
-    }
+    public int Id { get; set; }
+
+    public string CustomerCode { get; set; } = null!;
+
+    public string DisplayName { get; set; } = null!;
+
+    public string? Phone { get; set; }
+
+    public string? Email { get; set; }
+    public string? Address { get; set; }
+
+    public bool IsActive { get; set; }
+
+    public virtual ICollection<SalesInvoice> SalesInvoices { get; set; } = new List<SalesInvoice>();
+
+    public virtual ICollection<StockOut> StockOuts { get; set; } = new List<StockOut>();
+
+    public virtual ICollection<WarrantyCoverage> WarrantyCoverages { get; set; } = new List<WarrantyCoverage>();
 }

@@ -8,16 +8,25 @@ namespace QuanLyHangHoa.Services
 {
     public class StockCountService
     {
+        private readonly Func<AppDbContext> _contextFactory;
+
+        public StockCountService() : this(() => new AppDbContext()) { }
+
+        public StockCountService(Func<AppDbContext> contextFactory)
+        {
+            _contextFactory = contextFactory;
+        }
+
         public void CreateSession(StockCountSession session)
         {
-            using var db = new AppDbContext();
+            using var db = _contextFactory();
             db.StockCountSessions.Add(session);
             db.SaveChanges();
         }
 
         public void ProcessResults(int sessionId, int userId)
         {
-            using var db = new AppDbContext();
+            using var db = _contextFactory();
             var session = db.StockCountSessions
                 .Include(s => s.Lines)
                 .FirstOrDefault(s => s.Id == sessionId);

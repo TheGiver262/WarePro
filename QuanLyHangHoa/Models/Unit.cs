@@ -1,25 +1,27 @@
+﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using QuanLyHangHoa.Services.DataImport;
 
-namespace QuanLyHangHoa.Models
+namespace QuanLyHangHoa.Models;
+
+public partial class Unit
 {
-    public class Unit
-    {
-        public int Id { get; set; }
-        
-        [Required]
-        [MaxLength(50)]
-        [ImportKey]
-        public string UnitCode { get; set; } = string.Empty;
-        
-        [Required]
-        [MaxLength(100)]
-        public string DisplayName { get; set; } = string.Empty;
-        
-        public bool IsActive { get; set; } = true;
-        
-        public virtual ICollection<Product>? Products { get; set; }
-        public virtual ICollection<ProductUnit>? ProductUnits { get; set; }
-    }
+    public int Id { get; set; }
+
+    public string UnitCode { get; set; } = null!;
+
+    public string DisplayName { get; set; } = null!;
+
+    public bool IsActive { get; set; }
+
+    public virtual ICollection<ProductUnit> ProductUnits { get; set; } = new List<ProductUnit>();
+
+    public virtual ICollection<Product> Products { get; set; } = new List<Product>();
+
+    public virtual ICollection<PurchaseInvoiceLine> PurchaseInvoiceLines { get; set; } = new List<PurchaseInvoiceLine>();
+
+    public virtual ICollection<SalesInvoiceLine> SalesInvoiceLines { get; set; } = new List<SalesInvoiceLine>();
+
+    public virtual ICollection<StockInLine> StockInLines { get; set; } = new List<StockInLine>();
+
+    public virtual ICollection<StockOutLine> StockOutLines { get; set; } = new List<StockOutLine>();
 }

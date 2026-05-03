@@ -1,40 +1,33 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
-namespace QuanLyHangHoa.Models
+namespace QuanLyHangHoa.Models;
+
+public partial class SalesInvoice
 {
-    public class SalesInvoice
-    {
-        public int Id { get; set; }
-        
-        [Required]
-        [MaxLength(50)]
-        public string InvoiceCode { get; set; } = string.Empty;
+    public int Id { get; set; }
 
-        public int CustomerId { get; set; }
-        [ForeignKey("CustomerId")]
-        public virtual Customer? Customer { get; set; }
+    public string InvoiceCode { get; set; } = null!;
 
-        public int? StockOutId { get; set; }
-        [ForeignKey("StockOutId")]
-        public virtual StockOut? StockOut { get; set; }
+    public int CustomerId { get; set; }
 
-        public DateTime InvoiceDate { get; set; } = DateTime.UtcNow;
+    public int? StockOutId { get; set; }
 
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal SubTotal { get; set; }
-        
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal TaxAmount { get; set; } = 0;
-        
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal GrandTotal { get; set; }
-        
-        public string? Notes { get; set; }
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime InvoiceDate { get; set; }
 
-        public virtual ICollection<SalesInvoiceLine>? Lines { get; set; }
-    }
+    public decimal SubTotal { get; set; }
+
+    public decimal TaxAmount { get; set; }
+
+    public decimal GrandTotal { get; set; }
+    public string? Notes { get; set; }
+    public DateTime CreatedAt { get; set; }
+
+    public virtual Customer Customer { get; set; } = null!;
+
+    public virtual ICollection<SalesInvoiceLine> Lines { get; set; } = new List<SalesInvoiceLine>();
+
+    public virtual StockOut? StockOut { get; set; }
+
+    public virtual ICollection<WarrantyCoverage> WarrantyCoverages { get; set; } = new List<WarrantyCoverage>();
 }

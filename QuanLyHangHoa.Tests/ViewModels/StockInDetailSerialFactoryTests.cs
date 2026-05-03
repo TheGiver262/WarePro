@@ -1,33 +1,36 @@
-using QuanLyHangHoa.Models;
-using QuanLyHangHoa.ViewModels;
+using System.Linq;
+using QuanLyHangHoa.Services;
 using Xunit;
 
 namespace QuanLyHangHoa.Tests.ViewModels;
 
-public class StockInDetailSerialFactoryTests
+public class StockInSerialParsingTests
 {
     [Fact]
-    public void CreateSerials_without_user_input_returns_no_serials()
+    public void ParseSerialRange_empty_input_returns_empty_list()
     {
-        var product = new Product { Id = 10, IsSerialManaged = false };
-
-        var serials = StockInDetailSerialFactory.CreateSerials(product, string.Empty);
-
+        var serials = StockInService.ParseSerialRange(string.Empty);
         Assert.Empty(serials);
     }
 
     [Fact]
-    public void CreateSerials_with_user_input_returns_entered_serials()
+    public void ParseSerialRange_comma_separated_returns_list()
     {
-        var product = new Product { Id = 20, IsSerialManaged = true };
+        var serials = StockInService.ParseSerialRange("SN-001, SN-002");
+        Assert.Equal(new[] { "SN-001", "SN-002" }, serials);
+    }
 
-        var serials = StockInDetailSerialFactory.CreateSerials(product, "SN-001, SN-002");
+    [Fact]
+    public void ParseSerialRange_supports_numeric_ranges()
+    {
+        var serials = StockInService.ParseSerialRange("SN-001-003");
+        Assert.Equal(new[] { "SN-001", "SN-002", "SN-003" }, serials);
+    }
 
-        Assert.Equal(new[] { "SN-001", "SN-002" }, serials.Select(s => s.SerialNumber));
-        Assert.All(serials, serial =>
-        {
-            Assert.Equal(20, serial.ProductId);
-            Assert.Equal("InStock", serial.Status);
-        });
+    [Fact]
+    public void ParseSerialRange_supports_mixed_input()
+    {
+        var serials = StockInService.ParseSerialRange("SN-001-002, MANUAL-01");
+        Assert.Equal(new[] { "SN-001", "SN-002", "MANUAL-01" }, serials);
     }
 }

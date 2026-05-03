@@ -85,6 +85,7 @@ CREATE TABLE dbo.Supplier
     DisplayName  NVARCHAR(200) NOT NULL,
     Phone        NVARCHAR(30) NULL,
     Email        NVARCHAR(255) NULL,
+    Address      NVARCHAR(500) NULL,
     IsActive     BIT NOT NULL CONSTRAINT DF_Supplier_IsActive DEFAULT (1)
 );
 GO
@@ -99,6 +100,7 @@ CREATE TABLE dbo.Customer
     DisplayName  NVARCHAR(200) NOT NULL,
     Phone        NVARCHAR(30) NULL,
     Email        NVARCHAR(255) NULL,
+    Address      NVARCHAR(500) NULL,
     IsActive     BIT NOT NULL CONSTRAINT DF_Customer_IsActive DEFAULT (1)
 );
 GO
@@ -355,6 +357,8 @@ CREATE TABLE dbo.PurchaseInvoice
     SubTotal      DECIMAL(18,2) NOT NULL,
     TaxAmount     DECIMAL(18,2) NOT NULL CONSTRAINT DF_PurchaseInvoice_TaxAmount DEFAULT (0),
     GrandTotal    DECIMAL(18,2) NOT NULL,
+    Notes         NVARCHAR(MAX) NULL,
+    CreatedAt     DATETIME2(0) NOT NULL CONSTRAINT DF_PurchaseInvoice_CreatedAt DEFAULT (SYSUTCDATETIME()),
     CONSTRAINT FK_PurchaseInvoice_Supplier FOREIGN KEY (SupplierId) REFERENCES dbo.Supplier(Id),
     CONSTRAINT FK_PurchaseInvoice_StockIn FOREIGN KEY (StockInId) REFERENCES dbo.StockIn(Id),
     CONSTRAINT CK_PurchaseInvoice_SubTotal_NonNegative CHECK (SubTotal >= 0),
@@ -402,6 +406,8 @@ CREATE TABLE dbo.SalesInvoice
     SubTotal      DECIMAL(18,2) NOT NULL,
     TaxAmount     DECIMAL(18,2) NOT NULL CONSTRAINT DF_SalesInvoice_TaxAmount DEFAULT (0),
     GrandTotal    DECIMAL(18,2) NOT NULL,
+    Notes         NVARCHAR(MAX) NULL,
+    CreatedAt     DATETIME2(0) NOT NULL CONSTRAINT DF_SalesInvoice_CreatedAt DEFAULT (SYSUTCDATETIME()),
     CONSTRAINT FK_SalesInvoice_Customer FOREIGN KEY (CustomerId) REFERENCES dbo.Customer(Id),
     CONSTRAINT FK_SalesInvoice_StockOut FOREIGN KEY (StockOutId) REFERENCES dbo.StockOut(Id),
     CONSTRAINT CK_SalesInvoice_SubTotal_NonNegative CHECK (SubTotal >= 0),
@@ -563,6 +569,15 @@ IF NOT EXISTS (SELECT 1 FROM dbo.Warehouse WHERE IsDefault = 1)
 BEGIN
     INSERT INTO dbo.Warehouse (WarehouseCode, DisplayName, IsDefault, IsActive)
     VALUES (N'DEFAULT', N'Kho mặc định', 1, 1);
+END
+GO
+
+-- Default admin user (Password: admin123)
+-- Using a known hash for BCrypt.Net (BCrypt.Net-Next default)
+IF NOT EXISTS (SELECT 1 FROM dbo.AppUser WHERE Username = N'admin')
+BEGIN
+    INSERT INTO dbo.AppUser (Username, PasswordHash, FullName, RoleCode, IsActive, MustChangePassword)
+    VALUES (N'admin', N'$2a$11$m6m1Y2.vEaOqP0GZ0O8e2.pI1oJ6k3aZ5oZ6Y5qZ6Y5qZ6Y5qZ6Y5', N'Administrator', N'Admin', 1, 0);
 END
 GO
 

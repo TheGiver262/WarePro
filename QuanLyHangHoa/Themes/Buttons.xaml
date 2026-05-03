@@ -32,7 +32,8 @@
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
         <Setter Property="Background" Value="White"/>
         <Setter Property="Height" Value="34"/>
-        <Setter Property="MinWidth" Value="64"/>
+        <Setter Property="MinWidth" Value="88"/>
+        <Setter Property="Padding" Value="14,0"/>
         <Setter Property="FontSize" Value="13"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="Cursor" Value="Hand"/>

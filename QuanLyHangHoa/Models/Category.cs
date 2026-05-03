@@ -1,24 +1,17 @@
+﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using QuanLyHangHoa.Services.DataImport;
 
-namespace QuanLyHangHoa.Models
+namespace QuanLyHangHoa.Models;
+
+public partial class Category
 {
-    public class Category
-    {
-        public int Id { get; set; }
-        
-        [Required]
-        [MaxLength(50)]
-        [ImportKey]
-        public string CategoryCode { get; set; } = string.Empty;
-        
-        [Required]
-        [MaxLength(200)]
-        public string DisplayName { get; set; } = string.Empty;
-        
-        public bool IsActive { get; set; } = true;
-        
-        public virtual ICollection<Product>? Products { get; set; }
-    }
+    public int Id { get; set; }
+
+    public string CategoryCode { get; set; } = null!;
+
+    public string DisplayName { get; set; } = null!;
+
+    public bool IsActive { get; set; }
+
+    public virtual ICollection<Product> Products { get; set; } = new List<Product>();
 }

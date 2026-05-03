@@ -22,7 +22,7 @@ namespace QuanLyHangHoa.Services
             _contextFactory = contextFactory;
         }
 
-        public List<Product> GetAllProducts()
+        public virtual List<Product> GetAllProducts()
         {
             using var db = _contextFactory();
             return db.Products
@@ -34,14 +34,14 @@ namespace QuanLyHangHoa.Services
                 .ToList();
         }
 
-        public void AddProduct(Product p)
+        public virtual void AddProduct(Product p)
         {
             using var db = _contextFactory();
             db.Products.Add(p);
             db.SaveChanges();
         }
 
-        public void UpdateProduct(Product updated)
+        public virtual void UpdateProduct(Product updated)
         {
             using var db = _contextFactory();
             var p = db.Products.Find(updated.Id);
@@ -61,7 +61,7 @@ namespace QuanLyHangHoa.Services
             db.SaveChanges();
         }
 
-        public void DeactivateProduct(int id)
+        public virtual void DeactivateProduct(int id)
         {
             using var db = _contextFactory();
             var p = db.Products.Find(id);
@@ -70,7 +70,7 @@ namespace QuanLyHangHoa.Services
             db.SaveChanges();
         }
 
-        public void AddInitialStock(int productId, List<string> serialNumbers)
+        public virtual void AddInitialStock(int productId, List<string> serialNumbers)
         {
             using var db = _contextFactory();
             var product = db.Products.Find(productId);

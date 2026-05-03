@@ -1,8 +1,11 @@
+using System;
+using System.Linq;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
+using Xunit;
 
 namespace QuanLyHangHoa.Tests.Services;
 
@@ -25,12 +28,12 @@ public class ProductSerialServiceTests
 
         var serial = Assert.Single(serials);
         Assert.Equal("ABC-001", serial.SerialNumber);
-        Assert.Equal("Serial product", serial.Product?.Name);
-        Assert.Equal("Main warehouse", serial.CurrentWarehouse?.Name);
+        Assert.Equal("Serial product", serial.Product?.DisplayName);
+        Assert.Equal("Main warehouse", serial.CurrentWarehouse?.DisplayName);
     }
 
     [Fact]
-    public void SearchSerials_filters_by_status_and_ignores_deleted_serials()
+    public void SearchSerials_filters_by_status()
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
@@ -46,45 +49,33 @@ public class ProductSerialServiceTests
 
         var serial = Assert.Single(serials);
         Assert.Equal("SOLD-001", serial.SerialNumber);
-        Assert.Equal("Sold", serial.Status);
+        Assert.Equal("Sold", serial.CurrentStatus);
     }
 
     private static void SeedSerials(AppDbContext context)
     {
-        context.Products.Add(new Product
-        {
-            Id = 1300,
-            Name = "Serial product",
+        context.Products.Add(new Product { Id = 1300, ProductCode = "P1300",
+            DisplayName = "Serial product",
             CategoryId = 1,
             BrandId = 1,
-            UnitId = 1,
-            Quantity = 0,
-            UnitPrice = 10m,
-            IsSerialManaged = true
-        });
+            DefaultUnitId = 1,
+            DefaultPrice = 10m,
+            IsSerialTracked = true
+             });
+        context.Warehouses.Add(new Warehouse { Id = 1, WarehouseCode = "W1", DisplayName = "Main warehouse", IsActive = true });
         context.ProductSerials.AddRange(
-            new ProductSerial
-            {
-                ProductId = 1300,
+            new ProductSerial { ProductId = 1300,
                 SerialNumber = "ABC-001",
-                Status = "InStock",
-                CurrentWarehouseId = 1
-            },
-            new ProductSerial
-            {
-                ProductId = 1300,
+                CurrentStatus = "InStock",
+                CurrentWarehouseId = 1,
+                LastStockInLineId = 0 // Dummy or valid id
+                 },
+            new ProductSerial { ProductId = 1300,
                 SerialNumber = "SOLD-001",
-                Status = "Sold",
-                CurrentWarehouseId = null
-            },
-            new ProductSerial
-            {
-                ProductId = 1300,
-                SerialNumber = "DELETED-001",
-                Status = "Sold",
+                CurrentStatus = "Sold",
                 CurrentWarehouseId = null,
-                IsDeleted = true
-            });
+                LastStockInLineId = 0
+                 });
         context.SaveChanges();
     }
 

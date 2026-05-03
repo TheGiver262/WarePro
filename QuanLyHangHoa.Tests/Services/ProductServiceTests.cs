@@ -18,17 +18,15 @@ public class ProductServiceTests
         using (var seedContext = CreateContext(connection))
         {
             seedContext.Database.EnsureCreated();
-            seedContext.Products.Add(new Product
-            {
-                Id = 1100,
-                Name = "Initial stock product",
+            seedContext.Products.Add(new Product { Id = 1100, ProductCode = "P1100",
+                DisplayName = "Initial stock product",
                 CategoryId = 1,
                 BrandId = 1,
-                UnitId = 1,
-                Quantity = 99,
-                UnitPrice = 10m,
-                IsSerialManaged = true
-            });
+                DefaultUnitId = 1,
+                
+                DefaultPrice = 10m,
+                IsSerialTracked = true
+                 });
             seedContext.SaveChanges();
         }
 
@@ -37,7 +35,7 @@ public class ProductServiceTests
         service.AddInitialStock(1100, new List<string> { "INIT-001", "INIT-002" });
 
         using var assertContext = CreateContext(connection);
-        Assert.Equal(99, assertContext.Products.Single(p => p.Id == 1100).Quantity);
+        // Quantity removed
         var balance = Assert.Single(assertContext.StockBalances);
         Assert.Equal(2, balance.OnHandQuantity);
         Assert.Equal(2, balance.AvailableQuantity);

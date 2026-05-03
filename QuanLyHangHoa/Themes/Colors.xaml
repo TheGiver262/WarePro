@@ -6,24 +6,24 @@
     <!-- ═══════════════════════════════════════════════════════ -->
 
     <!-- Core Colors -->
-    <Color x:Key="AppPrimaryColor">#1E293B</Color>          <!-- SidebarBg -->
-    <Color x:Key="AppSecondaryColor">#6F667C</Color>        <!-- TextSecondary -->
-    <Color x:Key="AppTertiaryColor">#7C3AED</Color>         <!-- PrimaryPurple -->
+    <Color x:Key="AppPrimaryColor">#211733</Color>          <!-- SidebarBg -->
+    <Color x:Key="AppSecondaryColor">#756B82</Color>        <!-- TextSecondary -->
+    <Color x:Key="AppTertiaryColor">#4F46E5</Color>         <!-- PrimaryIndigo -->
     <Color x:Key="AppSurfaceColor">#FFFFFF</Color>          <!-- Surface -->
-    <Color x:Key="AppBackgroundColor">#F7F6FA</Color>       <!-- PageBg -->
-    <Color x:Key="AppBorderColor">#DDD8E7</Color>           <!-- Border -->
+    <Color x:Key="AppBackgroundColor">#F7F7FA</Color>       <!-- PageBg -->
+    <Color x:Key="AppBorderColor">#DED9E8</Color>           <!-- Border -->
     <Color x:Key="AppDividerColor">#E4DFEA</Color>          <!-- TopBar divider -->
 
     <!-- Semantic Colors -->
-    <Color x:Key="AppSuccessColor">#15803D</Color>
-    <Color x:Key="AppWarningColor">#B45309</Color>
-    <Color x:Key="AppErrorColor">#DC2626</Color>
+    <Color x:Key="AppSuccessColor">#16A34A</Color>
+    <Color x:Key="AppWarningColor">#D97706</Color>
+    <Color x:Key="AppErrorColor">#EF4444</Color>
     <Color x:Key="AppInfoColor">#2563EB</Color>
 
     <!-- Text Colors -->
-    <Color x:Key="TextPrimaryColor">#26212E</Color>
-    <Color x:Key="TextSecondaryColor">#6F667C</Color>
-    <Color x:Key="TextDisabledColor">#8B819A</Color>        <!-- TextMuted -->
+    <Color x:Key="TextPrimaryColor">#2A2533</Color>
+    <Color x:Key="TextSecondaryColor">#756B82</Color>
+    <Color x:Key="TextDisabledColor">#8A8095</Color>        <!-- TextMuted -->
     <Color x:Key="TextOnPrimaryColor">#FFFFFF</Color>
 
     <!-- ═══════════════════════════════ -->
@@ -58,16 +58,22 @@
     <!-- ═══════════════════════════════════════════════════════ -->
 
     <!-- Sidebar §3.1 + §6 -->
-    <SolidColorBrush x:Key="SidebarBgBrush" Color="#1E293B" />
-    <SolidColorBrush x:Key="SidebarBrush" Color="#1E293B" />
-    <SolidColorBrush x:Key="SidebarBgDarkerBrush" Color="#0F172A" />
-    <SolidColorBrush x:Key="SidebarHoverBrush" Color="#334155" />
-    <SolidColorBrush x:Key="SidebarActiveBrush" Color="#7C3AED" />
-    <SolidColorBrush x:Key="SidebarTextBrush" Color="#DCD5EA" />
+    <SolidColorBrush x:Key="SidebarBgBrush" Color="#211733" />
+    <SolidColorBrush x:Key="SidebarBrush" Color="#211733" />
+    <SolidColorBrush x:Key="SidebarBgDarkerBrush" Color="#1A102A" />
+    <SolidColorBrush x:Key="SidebarHoverBrush" Color="#34264D" />
+    <SolidColorBrush x:Key="SidebarActiveBrush" Color="#4F46E5" />
+    <SolidColorBrush x:Key="SidebarTextBrush" Color="#D8D0E6" />
+    <SolidColorBrush x:Key="SidebarMutedTextBrush" Color="#8B7A9F" />
 
-    <!-- Primary Purple variant -->
-    <SolidColorBrush x:Key="PrimaryPurpleBrush" Color="#7C3AED" />
-    <SolidColorBrush x:Key="PrimaryPurpleHoverBrush" Color="#6D28D9" />
+    <!-- Primary Indigo variant (Replacements for Purple) -->
+    <SolidColorBrush x:Key="PrimaryIndigoSoftBrush" Color="#EEF2FF" />
+    <SolidColorBrush x:Key="PrimaryIndigoHoverBrush" Color="#4338CA" />
+    
+    <!-- Maintain names for compatibility but use indigo -->
+    <SolidColorBrush x:Key="PrimaryPurpleBrush" Color="#4F46E5" />
+    <SolidColorBrush x:Key="PrimaryPurpleHoverBrush" Color="#4338CA" />
+    <SolidColorBrush x:Key="PrimaryPurpleSoftBrush" Color="#EEF2FF" />
 
     <!-- Table/Surface §11 -->
     <SolidColorBrush x:Key="SurfaceMutedBrush" Color="#F3F1F7" />
@@ -84,7 +90,7 @@
 
     <!-- Success: Hoạt động, Đã TT, Trong kho, Đã sửa -->
     <SolidColorBrush x:Key="SuccessBgBrush" Color="#DCFCE7" />
-    <SolidColorBrush x:Key="SuccessTextBrush" Color="#15803D" />
+    <SolidColorBrush x:Key="SuccessTextBrush" Color="#16A34A" />
 
     <!-- Info: Đã duyệt, Đã bán, Tiếp nhận -->
     <SolidColorBrush x:Key="InfoBgBrush" Color="#DBEAFE" />
@@ -92,11 +98,11 @@
 
     <!-- Warning: Đang xử lý, TT một phần -->
     <SolidColorBrush x:Key="WarningBgBrush" Color="#FEF3C7" />
-    <SolidColorBrush x:Key="WarningTextBrush" Color="#B45309" />
+    <SolidColorBrush x:Key="WarningTextBrush" Color="#D97706" />
 
     <!-- Danger: Chưa TT, Từ chối -->
     <SolidColorBrush x:Key="DangerBgBrush" Color="#FEE2E2" />
-    <SolidColorBrush x:Key="DangerTextBrush" Color="#DC2626" />
+    <SolidColorBrush x:Key="DangerTextBrush" Color="#EF4444" />
 
     <!-- Neutral: Nháp, Ngừng HĐ, Đã đóng -->
     <SolidColorBrush x:Key="NeutralBgBrush" Color="#E5E7EB" />
@@ -108,7 +114,7 @@
     <SolidColorBrush x:Key="DashProductIconBrush" Color="#2F80ED" />
     <SolidColorBrush x:Key="DashStockInIconBrush" Color="#22C55E" />
     <SolidColorBrush x:Key="DashStockOutIconBrush" Color="#F97316" />
-    <SolidColorBrush x:Key="DashWarrantyIconBrush" Color="#A855F7" />
+    <SolidColorBrush x:Key="DashWarrantyIconBrush" Color="#6366F1" /> <!-- Indigo -->
     <SolidColorBrush x:Key="DashPurchaseUnpaidIconBrush" Color="#EF4444" />
     <SolidColorBrush x:Key="DashSalesUnpaidIconBrush" Color="#EAB308" />
 

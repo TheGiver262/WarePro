@@ -1,5 +1,7 @@
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.ViewModels;
+using Xunit;
+using System;
 
 namespace QuanLyHangHoa.Tests.ViewModels
 {
@@ -14,7 +16,7 @@ namespace QuanLyHangHoa.Tests.ViewModels
             int? receivedBy = null;
 
             var viewModel = new WarrantyViewModel(
-                new Employee { Id = 42, FullName = "Nhan vien" },
+                new AppUser { Id = 42, FullName = "Nhan vien" },
                 (code, serial, problem, userId) =>
                 {
                     claimCode = code;
@@ -34,7 +36,7 @@ namespace QuanLyHangHoa.Tests.ViewModels
             Assert.Equal("SERIAL-001", serialNumber);
             Assert.Equal("Loi man hinh", problemDescription);
             Assert.Equal(42, receivedBy);
-            Assert.Equal("Da tao phieu bao hanh #123.", viewModel.StatusMessage);
+            Assert.Equal("Đã tạo phiếu bảo hành #123.", viewModel.StatusMessage);
             Assert.Equal(string.Empty, viewModel.SerialNumber);
             Assert.Equal(string.Empty, viewModel.ProblemDescription);
         }
@@ -47,7 +49,7 @@ namespace QuanLyHangHoa.Tests.ViewModels
             int? processedBy = null;
 
             var viewModel = new WarrantyViewModel(
-                new Employee { Id = 42 },
+                new AppUser { Id = 42 },
                 (_, _, _, _) => 1,
                 (id, inputConclusion, userId) =>
                 {
@@ -67,7 +69,7 @@ namespace QuanLyHangHoa.Tests.ViewModels
             Assert.Equal(9, claimId);
             Assert.Equal("Fixed screen", conclusion);
             Assert.Equal(42, processedBy);
-            Assert.Equal("Da hoan tat sua bao hanh.", viewModel.StatusMessage);
+            Assert.Equal("Đã hoàn tất sửa bảo hành.", viewModel.StatusMessage);
         }
     }
 }

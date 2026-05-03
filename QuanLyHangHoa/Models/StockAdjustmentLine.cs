@@ -1,32 +1,27 @@
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System;
+using System.Collections.Generic;
 
-namespace QuanLyHangHoa.Models
+namespace QuanLyHangHoa.Models;
+
+public partial class StockAdjustmentLine
 {
-    public class StockAdjustmentLine
-    {
-        public int Id { get; set; }
+    public int Id { get; set; }
 
-        public int AdjustmentId { get; set; }
-        [ForeignKey("AdjustmentId")]
-        public virtual StockAdjustment? StockAdjustment { get; set; }
+    public int AdjustmentId { get; set; }
 
-        public int ProductId { get; set; }
-        [ForeignKey("ProductId")]
-        public virtual Product? Product { get; set; }
+    public int ProductId { get; set; }
 
-        public int? ProductSerialId { get; set; }
-        [ForeignKey("ProductSerialId")]
-        public virtual ProductSerial? ProductSerial { get; set; }
+    public int? ProductSerialId { get; set; }
 
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal QuantityDelta { get; set; }
-        
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal BaseQuantityDelta { get; set; }
-        
-        [Required]
-        [MaxLength(20)]
-        public string Direction { get; set; } = string.Empty; // In, Out
-    }
+    public decimal QuantityDelta { get; set; }
+
+    public decimal BaseQuantityDelta { get; set; }
+
+    public string Direction { get; set; } = null!;
+
+    public virtual StockAdjustment Adjustment { get; set; } = null!;
+
+    public virtual Product Product { get; set; } = null!;
+
+    public virtual ProductSerial? ProductSerial { get; set; }
 }

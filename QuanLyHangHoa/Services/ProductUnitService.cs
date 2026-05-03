@@ -9,25 +9,34 @@ namespace QuanLyHangHoa.Services
 {
     public class ProductUnitService
     {
-        public List<ProductUnit> GetByProductId(int productId)
+        private readonly Func<AppDbContext> _contextFactory;
+
+        public ProductUnitService() : this(() => new AppDbContext()) { }
+
+        public ProductUnitService(Func<AppDbContext> contextFactory)
         {
-            using var db = new AppDbContext();
+            _contextFactory = contextFactory;
+        }
+
+        public virtual List<ProductUnit> GetByProductId(int productId)
+        {
+            using var db = _contextFactory();
             return db.ProductUnits
                 .Include(pu => pu.Unit)
                 .Where(pu => pu.ProductId == productId)
                 .ToList();
         }
 
-        public void Add(ProductUnit pu)
+        public virtual void Add(ProductUnit pu)
         {
-            using var db = new AppDbContext();
+            using var db = _contextFactory();
             db.ProductUnits.Add(pu);
             db.SaveChanges();
         }
 
-        public void Update(ProductUnit updated)
+        public virtual void Update(ProductUnit updated)
         {
-            using var db = new AppDbContext();
+            using var db = _contextFactory();
             var pu = db.ProductUnits.Find(updated.Id);
             if (pu == null) return;
 
@@ -40,18 +49,18 @@ namespace QuanLyHangHoa.Services
             db.SaveChanges();
         }
 
-        public void Delete(int id)
+        public virtual void Delete(int id)
         {
-            using var db = new AppDbContext();
+            using var db = _contextFactory();
             var pu = db.ProductUnits.Find(id);
             if (pu == null) return;
             db.ProductUnits.Remove(pu);
             db.SaveChanges();
         }
 
-        public decimal ConvertToBaseUnit(int productId, int sourceUnitId, decimal quantity)
+        public virtual decimal ConvertToBaseUnit(int productId, int sourceUnitId, decimal quantity)
         {
-            using var db = new AppDbContext();
+            using var db = _contextFactory();
             var units = db.ProductUnits.Where(pu => pu.ProductId == productId).ToList();
             var source = units.FirstOrDefault(u => u.UnitId == sourceUnitId);
             
@@ -59,9 +68,9 @@ namespace QuanLyHangHoa.Services
             return quantity * source.ConversionFactor;
         }
 
-        public decimal ConvertFromBaseUnit(int productId, int targetUnitId, decimal quantity)
+        public virtual decimal ConvertFromBaseUnit(int productId, int targetUnitId, decimal quantity)
         {
-            using var db = new AppDbContext();
+            using var db = _contextFactory();
             var units = db.ProductUnits.Where(pu => pu.ProductId == productId).ToList();
             var target = units.FirstOrDefault(u => u.UnitId == targetUnitId);
             

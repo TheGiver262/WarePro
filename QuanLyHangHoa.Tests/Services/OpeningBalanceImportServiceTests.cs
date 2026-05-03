@@ -28,14 +28,14 @@ public class OpeningBalanceImportServiceTests
             {
                 RowNumber = 2,
                 ProductId = 1400,
-                Quantity = 3,
+                
                 SerialNumbers = string.Empty
             },
             new OpeningBalanceImportRow
             {
                 RowNumber = 3,
                 ProductId = 1401,
-                Quantity = 2,
+                
                 SerialNumbers = "SER-001,SER-002"
             }
         }, postedByUserId: 9);
@@ -74,7 +74,7 @@ public class OpeningBalanceImportServiceTests
             {
                 RowNumber = 5,
                 ProductId = 1401,
-                Quantity = 2,
+                
                 SerialNumbers = "ONLY-ONE"
             }
         }, postedByUserId: 9);
@@ -93,28 +93,24 @@ public class OpeningBalanceImportServiceTests
     private static void SeedProducts(AppDbContext context)
     {
         context.Products.AddRange(
-            new Product
-            {
-                Id = 1400,
-                Name = "Opening non serial",
+            new Product { Id = 1400, ProductCode = "P1400",
+                DisplayName = "Opening non serial",
                 CategoryId = 1,
                 BrandId = 1,
-                UnitId = 1,
-                Quantity = 0,
-                UnitPrice = 10m,
-                IsSerialManaged = false
-            },
-            new Product
-            {
-                Id = 1401,
-                Name = "Opening serial",
+                DefaultUnitId = 1,
+                
+                DefaultPrice = 10m,
+                IsSerialTracked = false
+                 },
+            new Product { Id = 1401, ProductCode = "P1401",
+                DisplayName = "Opening serial",
                 CategoryId = 1,
                 BrandId = 1,
-                UnitId = 1,
-                Quantity = 0,
-                UnitPrice = 10m,
-                IsSerialManaged = true
-            });
+                DefaultUnitId = 1,
+                
+                DefaultPrice = 10m,
+                IsSerialTracked = true
+                 });
         context.SaveChanges();
     }
 

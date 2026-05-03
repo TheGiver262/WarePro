@@ -11,7 +11,7 @@ public class PostStockInTests
         var store = new InMemoryInventoryStore();
         store.Products[10] = new ProductSnapshot(10, false);
         var service = new InventoryPostingService(store, new FixedWarehouseProvider(1), new FixedClock(new DateTime(2026, 4, 26, 8, 30, 0)));
-        var command = new PostStockInCommand(
+        var command = new PostStockInCommand(WarehouseId: 1, 
             DocumentId: Guid.Parse("11111111-1111-1111-1111-111111111111"),
             Kind: StockInKind.OpeningBalance,
             Status: StockDocumentStatus.Approved,
@@ -42,7 +42,7 @@ public class PostStockInTests
         var store = new InMemoryInventoryStore();
         store.Products[10] = new ProductSnapshot(10, false);
         var service = new InventoryPostingService(store, new FixedWarehouseProvider(1), new FixedClock(new DateTime(2026, 4, 26, 8, 30, 0)));
-        var command = new PostStockInCommand(
+        var command = new PostStockInCommand(WarehouseId: 1, 
             DocumentId: Guid.Parse("22222222-2222-2222-2222-222222222222"),
             Kind: StockInKind.Purchase,
             Status: StockDocumentStatus.Approved,
@@ -70,7 +70,7 @@ public class PostStockInTests
         var store = new InMemoryInventoryStore();
         store.Products[10] = new ProductSnapshot(10, false);
         var service = new InventoryPostingService(store, new FixedWarehouseProvider(1), new FixedClock(new DateTime(2026, 4, 26, 8, 30, 0)));
-        var command = new PostStockInCommand(
+        var command = new PostStockInCommand(WarehouseId: 1, 
             DocumentId: Guid.Parse("33333333-3333-3333-3333-333333333333"),
             Kind: StockInKind.OpeningBalance,
             Status: StockDocumentStatus.Draft,
@@ -81,7 +81,7 @@ public class PostStockInTests
 
         var ex = Assert.Throws<InventoryDomainException>(() => service.PostStockIn(command));
 
-        Assert.Equal("Only approved stock-in documents can be posted.", ex.Message);
+        Assert.Equal("Only approved or ready-to-post stock-in documents can be posted.", ex.Message);
     }
 
     [Theory]
@@ -92,7 +92,7 @@ public class PostStockInTests
         var store = new InMemoryInventoryStore();
         store.Products[10] = new ProductSnapshot(10, false);
         var service = new InventoryPostingService(store, new FixedWarehouseProvider(1), new FixedClock(new DateTime(2026, 4, 26, 8, 30, 0)));
-        var command = new PostStockInCommand(
+        var command = new PostStockInCommand(WarehouseId: 1, 
             DocumentId: Guid.Parse("44444444-4444-4444-4444-444444444444"),
             Kind: StockInKind.OpeningBalance,
             Status: StockDocumentStatus.Approved,
@@ -112,7 +112,7 @@ public class PostStockInTests
         var store = new InMemoryInventoryStore();
         store.Products[10] = new ProductSnapshot(10, false);
         var service = new InventoryPostingService(store, new FixedWarehouseProvider(1), new FixedClock(new DateTime(2026, 4, 26, 8, 30, 0)));
-        var command = new PostStockInCommand(
+        var command = new PostStockInCommand(WarehouseId: 1, 
             DocumentId: Guid.Parse("55555555-5555-5555-5555-555555555555"),
             Kind: StockInKind.OpeningBalance,
             Status: StockDocumentStatus.Approved,
@@ -132,7 +132,7 @@ public class PostStockInTests
         var store = new InMemoryInventoryStore();
         store.Products[20] = new ProductSnapshot(20, true);
         var service = new InventoryPostingService(store, new FixedWarehouseProvider(1), new FixedClock(new DateTime(2026, 4, 26, 9, 0, 0)));
-        var command = new PostStockInCommand(
+        var command = new PostStockInCommand(WarehouseId: 1, 
             DocumentId: Guid.Parse("22222222-2222-2222-2222-222222222222"),
             Kind: StockInKind.OpeningBalance,
             Status: StockDocumentStatus.Approved,
@@ -156,7 +156,7 @@ public class PostStockInTests
         var store = new InMemoryInventoryStore();
         store.Products[21] = new ProductSnapshot(21, true);
         var service = new InventoryPostingService(store, new FixedWarehouseProvider(1), new FixedClock(new DateTime(2026, 4, 26, 9, 15, 0)));
-        var command = new PostStockInCommand(
+        var command = new PostStockInCommand(WarehouseId: 1, 
             DocumentId: Guid.Parse("33333333-3333-3333-3333-333333333333"),
             Kind: StockInKind.OpeningBalance,
             Status: StockDocumentStatus.Approved,
@@ -181,7 +181,7 @@ public class PostStockInTests
         store.Products[10] = new ProductSnapshot(10, false);
         store.Balances[(10, 1)] = new StockBalanceSnapshot(10, 1, 3, 1, 2);
         var service = new InventoryPostingService(store, new FixedWarehouseProvider(1), new FixedClock(new DateTime(2026, 4, 26, 8, 30, 0)));
-        var command = new PostStockInCommand(
+        var command = new PostStockInCommand(WarehouseId: 1, 
             DocumentId: Guid.Parse("66666666-6666-6666-6666-666666666666"),
             Kind: StockInKind.OpeningBalance,
             Status: StockDocumentStatus.Approved,

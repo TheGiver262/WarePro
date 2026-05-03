@@ -15,17 +15,15 @@ public class StockAdjustmentPersistenceTests
         connection.Open();
         using var context = CreateContext(connection);
         context.Database.EnsureCreated();
-        context.Products.Add(new Product
-        {
-            Id = 400,
-            Name = "Adjustment product",
+        context.Products.Add(new Product { Id = 400, ProductCode = "P400",
+            DisplayName = "Adjustment product",
             CategoryId = 1,
             BrandId = 1,
-            UnitId = 1,
-            Quantity = 99,
-            UnitPrice = 10m,
-            IsSerialManaged = false
-        });
+            DefaultUnitId = 1,
+            
+            DefaultPrice = 10m,
+            IsSerialTracked = false
+             });
         context.SaveChanges();
 
         context.StockAdjustments.Add(new StockAdjustment
@@ -39,7 +37,7 @@ public class StockAdjustmentPersistenceTests
             CreatedBy = 1,
             PostedBy = 1,
             PostedAt = new DateTime(2026, 4, 27, 14, 0, 0),
-            Lines =
+            Lines = new List<StockAdjustmentLine>
             {
                 new StockAdjustmentLine
                 {
@@ -55,6 +53,7 @@ public class StockAdjustmentPersistenceTests
         var adjustment = Assert.Single(context.StockAdjustments.Include(a => a.Lines));
         Assert.Equal("ADJ-0001", adjustment.DocumentCode);
         Assert.Equal(1, adjustment.WarehouseId);
+        Assert.NotNull(adjustment.Lines);
         var line = Assert.Single(adjustment.Lines);
         Assert.Equal(400, line.ProductId);
         Assert.Equal(3m, line.QuantityDelta);

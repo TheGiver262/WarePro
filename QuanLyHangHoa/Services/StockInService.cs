@@ -23,7 +23,7 @@ namespace QuanLyHangHoa.Services
             _contextFactory = contextFactory;
         }
 
-        public List<StockIn> GetAll()
+        public virtual List<StockIn> GetAll()
         {
             using var db = _contextFactory();
             return db.StockIns
@@ -37,7 +37,7 @@ namespace QuanLyHangHoa.Services
                 .ToList();
         }
 
-        public void Create(StockIn stockIn, List<StockInLine> lines, int userId)
+        public virtual void Create(StockIn stockIn, List<StockInLine> lines, int userId)
         {
             stockIn.Lines = lines;
             stockIn.CreatedBy = userId;
@@ -105,7 +105,7 @@ namespace QuanLyHangHoa.Services
             foreach (var part in parts)
             {
                 var trimmed = part.Trim();
-                var rangeMatch = Regex.Match(trimmed, @"^([A-Za-z]*)(\d+)-[A-Za-z]*(\d+)$");
+                var rangeMatch = Regex.Match(trimmed, @"^(.+?)(\d+)-[^\d]*(\d+)$");
                 if (rangeMatch.Success)
                 {
                     string prefix = rangeMatch.Groups[1].Value;

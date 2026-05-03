@@ -19,6 +19,16 @@ namespace QuanLyHangHoa.Services.DataImport
                 PrepareHeaderForMatch = args => args.Header?.ToLowerInvariant() ?? string.Empty,
                 HeaderValidated = null,
                 MissingFieldFound = null,
+                ReadingExceptionOccurred = args =>
+                {
+                    result.Errors.Add(new RowError 
+                    { 
+                        RowNumber = args.Exception.Context.Parser?.Row ?? 0, 
+                        Data = args.Exception.Context.Parser?.RawRecord ?? string.Empty, 
+                        ErrorMessage = $"Lỗi phân tích: {args.Exception.Message}" 
+                    });
+                    return false; // Return false to ignore the exception and continue reading
+                }
             };
 
             try

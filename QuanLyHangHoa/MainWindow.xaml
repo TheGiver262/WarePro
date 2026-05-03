@@ -29,7 +29,7 @@
 
                 <!-- Logo §6.1 -->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="20,0">
-                    <materialDesign:PackIcon Kind="ViewQuilt" Width="28" Height="28" Foreground="{StaticResource PrimaryPurpleBrush}"/>
+                    <materialDesign:PackIcon Kind="ViewDashboard" Width="28" Height="28" Foreground="{StaticResource PrimaryPurpleBrush}"/>
                     <TextBlock Text="WarePro" Foreground="{StaticResource TextOnPrimaryBrush}" FontWeight="Bold" FontSize="15" VerticalAlignment="Center" Margin="10,0,0,0"/>
                 </StackPanel>
 
@@ -46,12 +46,12 @@
                         <RadioButton Content="Khách hàng" Tag="AccountGroupOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenCustomerViewCommand}"/>
 
                         <TextBlock Text="SẢN PHẨM" Style="{StaticResource SidebarSectionHeader}"/>
-                        <RadioButton Content="Danh sách sản phẩm" Tag="PackageVariantClosed" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenProductViewCommand}"/>
+                        <RadioButton Content="Danh sách sản phẩm" Tag="PackageVariant" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenProductViewCommand}"/>
                         <RadioButton Content="Quản lý Serial" Tag="BarcodeScan" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenProductSerialViewCommand}"/>
 
                         <TextBlock Text="KHO" Style="{StaticResource SidebarSectionHeader}"/>
-                        <RadioButton Content="Nhập kho" Tag="TrayArrowDown" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockInViewCommand}"/>
-                        <RadioButton Content="Xuất kho" Tag="TrayArrowUp" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockOutViewCommand}"/>
+                        <RadioButton Content="Nhập kho" Tag="ArrowDownBold" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockInViewCommand}"/>
+                        <RadioButton Content="Xuất kho" Tag="ArrowUpBold" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockOutViewCommand}"/>
                         <RadioButton Content="Tồn kho" Tag="ChartBar" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenInventoryViewCommand}"/>
                         <RadioButton Content="Điều chỉnh kho" Tag="Tune" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockAdjustmentViewCommand}"/>
                         <RadioButton Content="Kiểm kê" Tag="ClipboardCheckOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockCountViewCommand}"/>
@@ -75,7 +75,7 @@
                 </ScrollViewer>
 
                 <!-- User Footer §6 -->
-                <Border Grid.Row="2" Background="{StaticResource SidebarBgDarkerBrush}" Padding="16" BorderBrush="#2E2144" BorderThickness="0,1,0,0">
+                <Border Grid.Row="2" Background="{StaticResource SidebarBgDarkerBrush}" Padding="16" BorderBrush="{StaticResource SidebarBgDarkerBrush}" BorderThickness="0,1,0,0">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
@@ -87,7 +87,7 @@
                         </Border>
                         <StackPanel Grid.Column="1" Margin="10,0" VerticalAlignment="Center">
                             <TextBlock Text="{Binding CurrentUser.FullName}" Foreground="{StaticResource SidebarTextBrush}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis"/>
-                            <TextBlock Text="{Binding CurrentUser.RoleCode}" Foreground="{StaticResource TextDisabledBrush}" FontSize="11"/>
+                            <TextBlock Text="{Binding CurrentUser.RoleCode}" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="11"/>
                         </StackPanel>
                         <Button Grid.Column="2" Style="{StaticResource MaterialDesignIconButton}" Width="30" Height="30" Foreground="{StaticResource SidebarTextBrush}" Command="{Binding LogoutCommand}" ToolTip="Đăng xuất">
                             <materialDesign:PackIcon Kind="LogoutVariant" Width="18" Height="18"/>

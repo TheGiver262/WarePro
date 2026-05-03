@@ -4,36 +4,46 @@
     <!-- WarePro UI Design Guideline — Spacing §17 -->
 
     <!-- Thickness Tokens -->
+    <Thickness x:Key="Spacing.xs">4</Thickness>
     <Thickness x:Key="Spacing.sm">8</Thickness>
     <Thickness x:Key="Spacing.md">16</Thickness>
-    <Thickness x:Key="Spacing.lg">32</Thickness>
+    <Thickness x:Key="Spacing.lg">24</Thickness>
+    <Thickness x:Key="Spacing.xl">32</Thickness>
+    <Thickness x:Key="Spacing.2xl">48</Thickness>
 
     <!-- Uniform Thickness Tokens -->
     <Thickness x:Key="Padding.sm">8</Thickness>
     <Thickness x:Key="Padding.md">16</Thickness>
-    <Thickness x:Key="Padding.lg">32</Thickness>
+    <Thickness x:Key="Padding.lg">24</Thickness>
+    <Thickness x:Key="Padding.xl">32</Thickness>
 
     <!-- Side-specific Thickness -->
+    <Thickness x:Key="Margin.Bottom.xs">0,0,0,4</Thickness>
     <Thickness x:Key="Margin.Bottom.sm">0,0,0,8</Thickness>
     <Thickness x:Key="Margin.Bottom.md">0,0,0,16</Thickness>
     <Thickness x:Key="Margin.Bottom.lg">0,0,0,32</Thickness>
 
+    <Thickness x:Key="Margin.Top.xs">0,4,0,0</Thickness>
     <Thickness x:Key="Margin.Top.sm">0,8,0,0</Thickness>
     <Thickness x:Key="Margin.Top.md">0,16,0,0</Thickness>
     <Thickness x:Key="Margin.Top.lg">0,32,0,0</Thickness>
 
+    <Thickness x:Key="Margin.Right.xs">0,0,4,0</Thickness>
     <Thickness x:Key="Margin.Right.sm">0,0,8,0</Thickness>
     <Thickness x:Key="Margin.Right.md">0,0,16,0</Thickness>
     <Thickness x:Key="Margin.Right.lg">0,0,32,0</Thickness>
 
+    <Thickness x:Key="Margin.Left.xs">4,0,0,0</Thickness>
     <Thickness x:Key="Margin.Left.sm">8,0,0,0</Thickness>
     <Thickness x:Key="Margin.Left.md">16,0,0,0</Thickness>
     <Thickness x:Key="Margin.Left.lg">32,0,0,0</Thickness>
 
+    <Thickness x:Key="Margin.Horizontal.xs">4,0,4,0</Thickness>
     <Thickness x:Key="Margin.Horizontal.sm">8,0,8,0</Thickness>
     <Thickness x:Key="Margin.Horizontal.md">16,0,16,0</Thickness>
     <Thickness x:Key="Margin.Horizontal.lg">32,0,32,0</Thickness>
 
+    <Thickness x:Key="Margin.Vertical.xs">0,4,0,4</Thickness>
     <Thickness x:Key="Margin.Vertical.sm">0,8,0,8</Thickness>
     <Thickness x:Key="Margin.Vertical.md">0,16,0,16</Thickness>
     <Thickness x:Key="Margin.Vertical.lg">0,32,0,32</Thickness>
@@ -42,7 +52,7 @@
     <Thickness x:Key="PagePadding">24</Thickness>
     <Thickness x:Key="SectionBottomMargin">0,0,0,24</Thickness>
     <Thickness x:Key="ControlRightMargin">0,0,8,0</Thickness>
-    <Thickness x:Key="TableCellPadding">14,0</Thickness>
+    <Thickness x:Key="TableCellPadding">14,10</Thickness>
     <Thickness x:Key="FilterBarPadding">14,16</Thickness>
 
 </ResourceDictionary>

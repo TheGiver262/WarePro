@@ -1,26 +1,23 @@
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System;
+using System.Collections.Generic;
 
-namespace QuanLyHangHoa.Models
+namespace QuanLyHangHoa.Models;
+
+public partial class StockBalance
 {
-    public class StockBalance
-    {
-        public int Id { get; set; }
+    public int Id { get; set; }
 
-        public int WarehouseId { get; set; }
-        [ForeignKey("WarehouseId")]
-        public virtual Warehouse? Warehouse { get; set; }
+    public int WarehouseId { get; set; }
 
-        public int ProductId { get; set; }
-        [ForeignKey("ProductId")]
-        public virtual Product? Product { get; set; }
+    public int ProductId { get; set; }
 
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal OnHandQuantity { get; set; } = 0;
-        
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal AvailableQuantity { get; set; } = 0;
-        
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal ReservedQuantity { get; set; } = 0;
-    }
+    public decimal OnHandQuantity { get; set; }
+
+    public decimal AvailableQuantity { get; set; }
+
+    public decimal ReservedQuantity { get; set; }
+
+    public virtual Product Product { get; set; } = null!;
+
+    public virtual Warehouse Warehouse { get; set; } = null!;
 }

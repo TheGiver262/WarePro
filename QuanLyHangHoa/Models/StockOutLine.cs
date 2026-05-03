@@ -1,34 +1,31 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
 
-namespace QuanLyHangHoa.Models
+namespace QuanLyHangHoa.Models;
+
+public partial class StockOutLine
 {
-    public class StockOutLine
-    {
-        public int Id { get; set; }
-        
-        public int StockOutId { get; set; }
-        [ForeignKey("StockOutId")]
-        public virtual StockOut? StockOut { get; set; }
-        
-        public int ProductId { get; set; }
-        [ForeignKey("ProductId")]
-        public virtual Product? Product { get; set; }
-        
-        public int UnitId { get; set; }
-        [ForeignKey("UnitId")]
-        public virtual Unit? Unit { get; set; }
-        
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal Quantity { get; set; }
-        
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal BaseQuantity { get; set; }
-        
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal UnitPrice { get; set; }
+    public int Id { get; set; }
 
-        public virtual ICollection<ProductSerial>? ProductSerials { get; set; }
-    }
+    public int StockOutId { get; set; }
+
+    public int ProductId { get; set; }
+
+    public int UnitId { get; set; }
+
+    public decimal Quantity { get; set; }
+
+    public decimal BaseQuantity { get; set; }
+
+    public decimal UnitPrice { get; set; }
+
+    public virtual Product Product { get; set; } = null!;
+
+    public virtual ICollection<ProductSerial> ProductSerials { get; set; } = new List<ProductSerial>();
+
+    public virtual ICollection<SalesInvoiceLine> SalesInvoiceLines { get; set; } = new List<SalesInvoiceLine>();
+
+    public virtual StockOut StockOut { get; set; } = null!;
+
+    public virtual Unit Unit { get; set; } = null!;
 }

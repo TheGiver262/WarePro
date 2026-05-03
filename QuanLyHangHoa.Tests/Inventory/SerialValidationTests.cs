@@ -12,7 +12,7 @@ public class SerialValidationTests
         store.Products[50] = new ProductSnapshot(50, true);
         var service = new InventoryPostingService(store, new FixedWarehouseProvider(1), new FixedClock(new DateTime(2026, 4, 26, 11, 0, 0)));
         var command = new PostStockInCommand(
-            Guid.Parse("66666666-6666-6666-6666-666666666666"),
+            Guid.Parse("66666666-6666-6666-6666-666666666666"), WarehouseId: 1,
             StockInKind.OpeningBalance,
             StockDocumentStatus.Approved,
             50,
@@ -35,7 +35,7 @@ public class SerialValidationTests
         store.Serials["EXISTING-001"] = new ProductSerialSnapshot("EXISTING-001", 50, 1, SerialStatus.InStock);
         var service = new InventoryPostingService(store, new FixedWarehouseProvider(1), new FixedClock(new DateTime(2026, 4, 26, 11, 10, 0)));
         var command = new PostStockInCommand(
-            Guid.Parse("88888888-8888-8888-8888-888888888888"),
+            Guid.Parse("88888888-8888-8888-8888-888888888888"), WarehouseId: 1,
             StockInKind.OpeningBalance,
             StockDocumentStatus.Approved,
             50,
@@ -59,7 +59,7 @@ public class SerialValidationTests
         store.Serials["SOLD-001"] = new ProductSerialSnapshot("SOLD-001", 51, null, SerialStatus.Sold);
         var service = new InventoryPostingService(store, new FixedWarehouseProvider(1), new FixedClock(new DateTime(2026, 4, 26, 11, 15, 0)));
         var command = new PostStockOutCommand(
-            Guid.Parse("77777777-7777-7777-7777-777777777777"),
+            Guid.Parse("77777777-7777-7777-7777-777777777777"), WarehouseId: 1,
             StockOutKind.Sale,
             StockDocumentStatus.Approved,
             51,
@@ -69,7 +69,7 @@ public class SerialValidationTests
 
         var ex = Assert.Throws<InventoryDomainException>(() => service.PostStockOut(command));
 
-        Assert.Equal("Serial SOLD-001 is not in the default warehouse.", ex.Message);
+        Assert.Equal("Serial SOLD-001 is not in the specified warehouse.", ex.Message);
         Assert.Empty(store.Ledgers);
         Assert.Empty(store.Audits);
         Assert.False(store.WasCommitted);

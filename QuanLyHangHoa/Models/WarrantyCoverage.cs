@@ -1,33 +1,29 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
-namespace QuanLyHangHoa.Models
+namespace QuanLyHangHoa.Models;
+
+public partial class WarrantyCoverage
 {
-    public class WarrantyCoverage
-    {
-        public int Id { get; set; }
+    public int Id { get; set; }
 
-        public int ProductSerialId { get; set; }
-        [ForeignKey("ProductSerialId")]
-        public virtual ProductSerial? ProductSerial { get; set; }
+    public int ProductSerialId { get; set; }
 
-        public int CustomerId { get; set; }
-        [ForeignKey("CustomerId")]
-        public virtual Customer? Customer { get; set; }
+    public int CustomerId { get; set; }
 
-        public int? SalesInvoiceId { get; set; }
-        [ForeignKey("SalesInvoiceId")]
-        public virtual SalesInvoice? SalesInvoice { get; set; }
+    public int? SalesInvoiceId { get; set; }
 
-        public DateTime WarrantyStartDate { get; set; }
-        public DateTime WarrantyEndDate { get; set; }
-        
-        [Required]
-        [MaxLength(50)]
-        public string CoverageStatus { get; set; } = "Active"; // Active, Expired, Voided
+    public DateTime WarrantyStartDate { get; set; }
 
-        public virtual ICollection<WarrantyClaim>? Claims { get; set; }
-    }
+    public DateTime WarrantyEndDate { get; set; }
+
+    public string CoverageStatus { get; set; } = null!;
+
+    public virtual Customer Customer { get; set; } = null!;
+
+    public virtual ProductSerial ProductSerial { get; set; } = null!;
+
+    public virtual SalesInvoice? SalesInvoice { get; set; }
+
+    public virtual ICollection<WarrantyClaim> WarrantyClaims { get; set; } = new List<WarrantyClaim>();
 }

@@ -4,7 +4,7 @@
 
     <!-- WarePro UI Design Guideline — Cards §9.1 + §10.1 -->
 
-    <Style x:Key="AppCard" TargetType="materialDesign:Card" BasedOn="{StaticResource {x:Type materialDesign:Card}}">
+    <Style x:Key="AppCard" TargetType="materialDesign:Card">
         <Setter Property="Background" Value="{StaticResource AppSurfaceBrush}"/>
         <Setter Property="UniformCornerRadius" Value="6"/>
         <Setter Property="Padding" Value="16"/>
