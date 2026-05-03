@@ -26,14 +26,18 @@ namespace QuanLyHangHoa.Views
         // ── Converters via code ────────────────────────────────────────────────
         public SerialInputWindow(string existingInput = "", IEnumerable<ProductSerial>? available = null)
         {
-            // Register BoolToVisibility converter before InitializeComponent
-            Resources.Add("BoolToVisConverter", new System.Windows.Controls.BooleanToVisibilityConverter());
             InitializeComponent();
             SerialInput = existingInput;
             if (available != null)
                 AvailableSerials.AddRange(available.Select(s => s.SerialNumber));
             DataContext = this;
             UpdatePreview();
+        }
+
+        private void TitleBar_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == System.Windows.Input.MouseButton.Left)
+                DragMove();
         }
 
         private void UpdatePreview()

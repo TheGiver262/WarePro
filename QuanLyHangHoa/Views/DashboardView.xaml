@@ -31,7 +31,8 @@
             </StackPanel>
             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                 <StackPanel>
-                    <UniformGrid Columns="4" Margin="0,0,0,24">
+                    <UniformGrid Columns="6" Margin="0,0,0,24">
+                        <!-- 1. Sản phẩm -->
                         <Button Command="{Binding NavigateToProductsCommand}" Style="{StaticResource MetricCardButtonStyle}" Margin="0,0,12,12">
                             <materialDesign:Card Padding="16">
                                 <StackPanel>
@@ -40,43 +41,77 @@
                                     </Border>
                                     <TextBlock Text="SẢN PHẨM" Style="{StaticResource TypographyLabel}" Margin="0,14,0,4"/>
                                     <TextBlock Text="{Binding Stats.TotalInventoryCount, StringFormat='N0'}" Style="{StaticResource TypographyStatNumber}"/>
-                                    <TextBlock Text="Sản phẩm trong kho" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBlock Text="Sản phẩm trong kho" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
                                 </StackPanel>
                             </materialDesign:Card>
                         </Button>
+                        
+                        <!-- 2. Phiếu nhập -->
                         <Button Command="{Binding NavigateToStockInCommand}" Style="{StaticResource MetricCardButtonStyle}" Margin="0,0,12,12">
                             <materialDesign:Card Padding="16">
                                 <StackPanel>
                                     <Border Background="#DCFCE7" Width="40" Height="40" CornerRadius="5" HorizontalAlignment="Left">
                                         <materialDesign:PackIcon Kind="TrayArrowDown" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource DashStockInIconBrush}"/>
                                     </Border>
-                                    <TextBlock Text="PHIẾU NHẬP (THÁNG)" Style="{StaticResource TypographyLabel}" Margin="0,14,0,4"/>
+                                    <TextBlock Text="PHIẾU NHẬP" Style="{StaticResource TypographyLabel}" Margin="0,14,0,4"/>
                                     <TextBlock Text="{Binding Stats.StockInMonthCount}" Style="{StaticResource TypographyStatNumber}"/>
-                                    <TextBlock Text="Phiếu nhập mới" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBlock Text="Nhập kho tháng này" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
                                 </StackPanel>
                             </materialDesign:Card>
                         </Button>
+
+                        <!-- 3. Phiếu xuất -->
                         <Button Command="{Binding NavigateToSalesInvoicesCommand}" Style="{StaticResource MetricCardButtonStyle}" Margin="0,0,12,12">
                             <materialDesign:Card Padding="16">
                                 <StackPanel>
-                                    <Border Background="#FEF3C7" Width="40" Height="40" CornerRadius="5" HorizontalAlignment="Left">
+                                    <Border Background="#FFF7ED" Width="40" Height="40" CornerRadius="5" HorizontalAlignment="Left">
                                         <materialDesign:PackIcon Kind="TrayArrowUp" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource DashStockOutIconBrush}"/>
                                     </Border>
-                                    <TextBlock Text="PHIẾU XUẤT (THÁNG)" Style="{StaticResource TypographyLabel}" Margin="0,14,0,4"/>
-                                    <TextBlock Text="{Binding Stats.SalesInvoiceMonthCount}" Style="{StaticResource TypographyStatNumber}"/>
-                                    <TextBlock Text="Phiếu xuất tháng này" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBlock Text="PHIẾU XUẤT" Style="{StaticResource TypographyLabel}" Margin="0,14,0,4"/>
+                                    <TextBlock Text="{Binding Stats.StockOutMonthCount}" Style="{StaticResource TypographyStatNumber}"/>
+                                    <TextBlock Text="Xuất kho tháng này" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
                                 </StackPanel>
                             </materialDesign:Card>
                         </Button>
-                        <Button Command="{Binding NavigateToSalesInvoicesCommand}" Style="{StaticResource MetricCardButtonStyle}" Margin="0,0,0,12">
+
+                        <!-- 4. Bảo hành -->
+                        <Button Command="{Binding NavigateToWarrantyCommand}" Style="{StaticResource MetricCardButtonStyle}" Margin="0,0,12,12">
                             <materialDesign:Card Padding="16">
                                 <StackPanel>
                                     <Border Background="#F5F3FF" Width="40" Height="40" CornerRadius="5" HorizontalAlignment="Left">
-                                        <materialDesign:PackIcon Kind="CashMultiple" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource PrimaryPurpleBrush}"/>
+                                        <materialDesign:PackIcon Kind="ShieldSync" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource DashWarrantyIconBrush}"/>
                                     </Border>
-                                    <TextBlock Text="DOANH THU (THÁNG)" Style="{StaticResource TypographyLabel}" Margin="0,14,0,4"/>
-                                    <TextBlock Text="{Binding Stats.RevenueMonth, StringFormat='N0'}" Style="{StaticResource TypographyStatNumber}"/>
-                                    <TextBlock Text="VNĐ (Tổng thu)" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBlock Text="BẢO HÀNH" Style="{StaticResource TypographyLabel}" Margin="0,14,0,4"/>
+                                    <TextBlock Text="{Binding Stats.WarrantyActiveCount}" Style="{StaticResource TypographyStatNumber}"/>
+                                    <TextBlock Text="Yêu cầu đang xử lý" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                </StackPanel>
+                            </materialDesign:Card>
+                        </Button>
+
+                        <!-- 5. Hóa đơn mua chưa thanh toán -->
+                        <Button Command="{Binding NavigateToPurchaseInvoicesCommand}" Style="{StaticResource MetricCardButtonStyle}" Margin="0,0,12,12">
+                            <materialDesign:Card Padding="16">
+                                <StackPanel>
+                                    <Border Background="#FEF2F2" Width="40" Height="40" CornerRadius="5" HorizontalAlignment="Left">
+                                        <materialDesign:PackIcon Kind="ReceiptTextClock" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource DashPurchaseUnpaidIconBrush}"/>
+                                    </Border>
+                                    <TextBlock Text="HĐ MUA NỢ" Style="{StaticResource TypographyLabel}" Margin="0,14,0,4"/>
+                                    <TextBlock Text="{Binding Stats.UnpaidPurchaseInvoiceCount}" Style="{StaticResource TypographyStatNumber}"/>
+                                    <TextBlock Text="Hóa đơn chưa TT" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                </StackPanel>
+                            </materialDesign:Card>
+                        </Button>
+
+                        <!-- 6. Hóa đơn bán chưa thanh toán -->
+                        <Button Command="{Binding NavigateToSalesInvoicesCommand}" Style="{StaticResource MetricCardButtonStyle}" Margin="0,0,0,12">
+                            <materialDesign:Card Padding="16">
+                                <StackPanel>
+                                    <Border Background="#FEFCE8" Width="40" Height="40" CornerRadius="5" HorizontalAlignment="Left">
+                                        <materialDesign:PackIcon Kind="CashClock" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource DashSalesUnpaidIconBrush}"/>
+                                    </Border>
+                                    <TextBlock Text="HĐ BÁN NỢ" Style="{StaticResource TypographyLabel}" Margin="0,14,0,4"/>
+                                    <TextBlock Text="{Binding Stats.UnpaidSalesInvoiceCount}" Style="{StaticResource TypographyStatNumber}"/>
+                                    <TextBlock Text="Khách chưa thanh toán" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
                                 </StackPanel>
                             </materialDesign:Card>
                         </Button>

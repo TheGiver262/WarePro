@@ -14,90 +14,108 @@
     </Window.Resources>
 
     <Border CornerRadius="{StaticResource Radius.lg}" Background="{StaticResource AppSurfaceBrush}" 
-            BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1">
-        <Grid Margin="{StaticResource PagePadding}">
+            BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" ClipToBounds="True">
+        <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/> <!-- Title Bar -->
+                <RowDefinition Height="*"/>    <!-- Content -->
+                <RowDefinition Height="Auto"/> <!-- Footer -->
             </Grid.RowDefinitions>
 
-            <!-- Header -->
-            <StackPanel Grid.Row="0" Margin="{StaticResource Margin.Bottom.md}">
-                <TextBlock Text="NHẬP SERIAL NUMBER" Style="{StaticResource TypographyH2}"/>
-                <Border Height="1" Background="{StaticResource AppBorderBrush}" Margin="{StaticResource Margin.Top.sm}"/>
-            </StackPanel>
-
-            <!-- Instructions -->
-            <Border Grid.Row="1" Background="{StaticResource AppBackgroundBrush}" CornerRadius="{StaticResource Radius.md}" 
-                    Padding="{StaticResource Spacing.md}" Margin="{StaticResource Margin.Bottom.md}">
-                <StackPanel>
-                    <TextBlock TextWrapping="Wrap" Style="{StaticResource TypographyCaption}" Foreground="{StaticResource AppSecondaryBrush}" LineHeight="18">
-                        • Nhập từng serial riêng lẻ (mỗi dòng một mã).<LineBreak/>
-                        • Hoặc nhập dải số: <Bold>EM901-EM930</Bold>.<LineBreak/>
-                        • Cách nhau bằng dấu phẩy hoặc xuống dòng.
-                    </TextBlock>
-                </StackPanel>
+            <!-- Custom Title Bar -->
+            <Border Grid.Row="0" Background="{StaticResource SidebarBgBrush}" Padding="16,12" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <Grid>
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="BarcodeScanner" Foreground="White" Width="20" Height="20" VerticalAlignment="Center"/>
+                        <TextBlock Text="NHẬP SERIAL NUMBER" Foreground="White" FontWeight="Bold" FontSize="14" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <Button HorizontalAlignment="Right" Style="{StaticResource MaterialDesignFlatButton}" 
+                            Padding="0" Width="30" Height="30" Click="Cancel_Click">
+                        <materialDesign:PackIcon Kind="Close" Foreground="White" Width="20" Height="20"/>
+                    </Button>
+                </Grid>
             </Border>
 
-            <!-- Input Area -->
-            <Grid Grid.Row="2">
+            <!-- Content Area -->
+            <Grid Grid.Row="1" Margin="{StaticResource PagePadding}">
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <materialDesign:Card Style="{StaticResource AppCard}" Padding="0" materialDesign:ElevationAssist.Elevation="Dp0" BorderThickness="1">
-                    <TextBox x:Name="SerialTextBox" 
-                             AcceptsReturn="True" 
-                             TextWrapping="Wrap" 
-                             VerticalScrollBarVisibility="Auto"
-                             materialDesign:TextFieldAssist.DecorationVisibility="Collapsed"
-                             BorderThickness="0"
-                             Padding="{StaticResource Spacing.md}"
-                             FontFamily="Consolas"
-                             FontSize="14"
-                             materialDesign:HintAssist.Hint="Dán hoặc nhập danh sách serial tại đây..."
-                             Text="{Binding SerialInput, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
-                </materialDesign:Card>
+                <!-- Instructions -->
+                <Border Grid.Row="0" Background="{StaticResource AppBackgroundBrush}" CornerRadius="{StaticResource Radius.md}" 
+                        Padding="{StaticResource Spacing.md}" Margin="{StaticResource Margin.Bottom.md}">
+                    <StackPanel>
+                        <TextBlock TextWrapping="Wrap" Style="{StaticResource TypographyCaption}" Foreground="{StaticResource TextSecondaryBrush}" LineHeight="18">
+                            • Nhập từng serial riêng lẻ (mỗi dòng một mã).<LineBreak/>
+                            • Hoặc nhập dải số: <Bold>EM901-EM930</Bold>.<LineBreak/>
+                            • Cách nhau bằng dấu phẩy hoặc xuống dòng.
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
 
-                <!-- Available Serials Hint -->
-                <materialDesign:Card Grid.Row="1" Margin="{StaticResource Margin.Top.md}" Style="{StaticResource AppCard}"                                       Visibility="{Binding HasAvailableSerials, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}">
-                    <Expander Header="Serial hiện có trong kho" FontSize="12" Background="#FFF8E1" BorderThickness="0">
-                        <ListBox x:Name="AvailableListBox" MaxHeight="120" BorderThickness="0"
-                                 ItemsSource="{Binding AvailableSerials, RelativeSource={RelativeSource AncestorType=Window}}"
-                                 SelectionChanged="AvailableListBox_SelectionChanged">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding}" Padding="4" Style="{StaticResource TypographyBody}"/>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-                    </Expander>
-                </materialDesign:Card>
+                <!-- Input Area -->
+                <Grid Grid.Row="1">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <materialDesign:Card Style="{StaticResource AppCard}" Padding="0" materialDesign:ElevationAssist.Elevation="Dp0" BorderThickness="1">
+                        <TextBox x:Name="SerialTextBox" 
+                                 AcceptsReturn="True" 
+                                 TextWrapping="Wrap" 
+                                 VerticalScrollBarVisibility="Auto"
+                                 materialDesign:TextFieldAssist.DecorationVisibility="Collapsed"
+                                 BorderThickness="0"
+                                 Padding="{StaticResource Spacing.md}"
+                                 FontFamily="Consolas"
+                                 FontSize="14"
+                                 materialDesign:HintAssist.Hint="Dán hoặc nhập danh sách serial tại đây..."
+                                 Text="{Binding SerialInput, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
+                    </materialDesign:Card>
+
+                    <!-- Available Serials Hint -->
+                    <materialDesign:Card Grid.Row="1" Margin="{StaticResource Margin.Top.md}" Style="{StaticResource AppCard}"
+                                         Visibility="{Binding HasAvailableSerials, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Expander Header="Serial hiện có trong kho" FontSize="12" Background="{StaticResource AppBackgroundBrush}" BorderThickness="0">
+                            <ListBox x:Name="AvailableListBox" MaxHeight="120" BorderThickness="0"
+                                     ItemsSource="{Binding AvailableSerials, RelativeSource={RelativeSource AncestorType=Window}}"
+                                     SelectionChanged="AvailableListBox_SelectionChanged">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding}" Padding="4" Style="{StaticResource TypographyBody}"/>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Expander>
+                    </materialDesign:Card>
+                </Grid>
+
+                <!-- Preview Info -->
+                <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="{StaticResource Margin.Top.md}">
+                    <materialDesign:PackIcon Kind="Counter" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" Width="16" Height="16"/>
+                    <TextBlock x:Name="PreviewLabel" Foreground="{StaticResource TextSecondaryBrush}" Style="{StaticResource TypographyCaption}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                </StackPanel>
             </Grid>
-
-            <!-- Preview Info -->
-            <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="{StaticResource Margin.Y.md}">
-                <materialDesign:PackIcon Kind="Counter" VerticalAlignment="Center" Foreground="{StaticResource AppSecondaryBrush}"/>
-                <TextBlock x:Name="PreviewLabel" Foreground="{StaticResource AppSecondaryBrush}" Style="{StaticResource TypographyCaption}" VerticalAlignment="Center" Margin="8,0,0,0"/>
-            </StackPanel>
 
             <!-- Footer Buttons -->
-            <Grid Grid.Row="4">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+            <Border Grid.Row="2" Background="{StaticResource AppBackgroundBrush}" Padding="{StaticResource PagePadding}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
 
-                <Button Content="HỦY BỎ" Style="{StaticResource MaterialDesignFlatButton}" 
-                        Foreground="{StaticResource AppSecondaryBrush}" Click="Cancel_Click" HorizontalAlignment="Left"/>
+                    <Button Content="HỦY BỎ" Style="{StaticResource MaterialDesignFlatButton}" 
+                            Foreground="{StaticResource TextSecondaryBrush}" Click="Cancel_Click" HorizontalAlignment="Left"/>
 
-                <Button Grid.Column="1" Content="XÁC NHẬN" Style="{StaticResource AppPrimaryButton}" 
-                        Click="Confirm_Click" Width="140" Height="40"/>
-            </Grid>
+                    <Button Grid.Column="1" Content="XÁC NHẬN" Style="{StaticResource AppPrimaryButton}" 
+                            Click="Confirm_Click" Width="140" Height="40"/>
+                </Grid>
+            </Border>
         </Grid>
     </Border>
 </Window>

@@ -60,8 +60,8 @@
     <!-- Sidebar §3.1 + §6 -->
     <SolidColorBrush x:Key="SidebarBgBrush" Color="#1E293B" />
     <SolidColorBrush x:Key="SidebarBrush" Color="#1E293B" />
-    <SolidColorBrush x:Key="SidebarBgDarkerBrush" Color="#1A102A" />
-    <SolidColorBrush x:Key="SidebarHoverBrush" Color="#2E2144" />
+    <SolidColorBrush x:Key="SidebarBgDarkerBrush" Color="#0F172A" />
+    <SolidColorBrush x:Key="SidebarHoverBrush" Color="#334155" />
     <SolidColorBrush x:Key="SidebarActiveBrush" Color="#7C3AED" />
     <SolidColorBrush x:Key="SidebarTextBrush" Color="#DCD5EA" />
 

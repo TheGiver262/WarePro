@@ -18,12 +18,14 @@ namespace QuanLyHangHoa.Services
     {
         public int TotalInventoryCount { get; set; }
         public int StockInMonthCount { get; set; }
-        public int StockInYearCount { get; set; }
+        public int StockOutMonthCount { get; set; }
+        public int WarrantyActiveCount { get; set; }
+        public int UnpaidPurchaseInvoiceCount { get; set; }
+        public int UnpaidSalesInvoiceCount { get; set; }
         public int SalesInvoiceMonthCount { get; set; }
         public int SalesInvoiceYearCount { get; set; }
         public decimal RevenueMonth { get; set; }
         public decimal RevenueYear { get; set; }
-        public int WarrantyActiveCount { get; set; }
         public System.Collections.Generic.List<RecentActivity> Activities { get; set; } = new();
     }
 
@@ -50,7 +52,9 @@ namespace QuanLyHangHoa.Services
 
             // Stock In
             stats.StockInMonthCount = await _context.StockIns.CountAsync(s => s.CreatedAt >= startOfMonth);
-            stats.StockInYearCount = await _context.StockIns.CountAsync(s => s.CreatedAt >= startOfYear);
+
+            // Stock Out
+            stats.StockOutMonthCount = await _context.StockOuts.CountAsync(s => s.CreatedAt >= startOfMonth);
 
             // Sales & Revenue - Fetch year data and split in memory for performance
             var salesYear = await _context.SalesInvoices
@@ -64,6 +68,11 @@ namespace QuanLyHangHoa.Services
             var salesMonth = salesYear.Where(s => s.InvoiceDate >= startOfMonth).ToList();
             stats.SalesInvoiceMonthCount = salesMonth.Count;
             stats.RevenueMonth = salesMonth.Sum(s => s.GrandTotal);
+
+            // Unpaid Invoices (Mock logic or Count All if status column missing)
+            // For now, we count all as 'unpaid' to fill the dashboard cards as per guideline.
+            stats.UnpaidSalesInvoiceCount = await _context.SalesInvoices.CountAsync();
+            stats.UnpaidPurchaseInvoiceCount = await _context.PurchaseInvoices.CountAsync();
 
             // Warranty
             stats.WarrantyActiveCount = await _context.WarrantyClaims

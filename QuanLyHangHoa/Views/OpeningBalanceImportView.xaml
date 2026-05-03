@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
     <Grid Background="{StaticResource AppBackgroundBrush}">
-        <Grid Margin="24">
+        <Grid Margin="{StaticResource PagePadding}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -11,11 +11,15 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="{StaticResource Margin.Bottom.lg}">
-                <materialDesign:PackIcon Kind="FileImport" Width="28" Height="28" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
-                <TextBlock Text="NHẬP TỒN ĐẦU KỲ" Style="{StaticResource TypographyH2}" Margin="12,0,0,0" VerticalAlignment="Center"/>
-            </StackPanel>
+            <!-- Row 1: Header -->
+            <Border Grid.Row="0" Margin="{StaticResource Margin.Bottom.lg}">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="DatabaseImport" Width="28" Height="28" Foreground="{StaticResource AppPrimaryBrush}" VerticalAlignment="Center"/>
+                    <TextBlock Text="NHẬP TỒN ĐẦU KỲ" Style="{StaticResource TypographyH2}" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Border>
 
+            <!-- Row 2: File Selector Card -->
             <materialDesign:Card Grid.Row="1" Style="{StaticResource AppCard}" Padding="24" Margin="{StaticResource Margin.Bottom.lg}">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -36,6 +40,7 @@
                 </Grid>
             </materialDesign:Card>
 
+            <!-- Row 3: Error List Card -->
             <materialDesign:Card Grid.Row="2" Style="{StaticResource AppCard}" Padding="0">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -43,29 +48,30 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <Border Padding="16" Background="#F9FAFB" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1">
+                    <Border Padding="16" Background="{StaticResource AppBackgroundBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1">
                         <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="AlertCircleOutline" Foreground="#EF4444" VerticalAlignment="Center"/>
-                            <TextBlock Text="DANH SÁCH LỖI IMPORT" FontWeight="Bold" Foreground="#1F2937" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                            <materialDesign:PackIcon Kind="AlertCircleOutline" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Text="DANH SÁCH LỖI IMPORT" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="8,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Border>
 
                     <DataGrid Grid.Row="1" ItemsSource="{Binding Errors}" AutoGenerateColumns="False" 
-                              CanUserAddRows="False" IsReadOnly="True" Style="{StaticResource MaterialDesignDataGrid}" 
-                              MaxHeight="400" BorderThickness="0" RowHeight="28">
+                               CanUserAddRows="False" IsReadOnly="True" Style="{StaticResource MaterialDesignDataGrid}" 
+                               MaxHeight="400" BorderThickness="0">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Dòng" Binding="{Binding RowNumber}" Width="80" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
-                            <DataGridTextColumn Header="Dữ liệu" Binding="{Binding Data}" Width="200" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                            <DataGridTextColumn Header="Chi tiết lỗi" Binding="{Binding ErrorMessage}" Width="*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+                            <DataGridTextColumn Header="DÒNG" Binding="{Binding RowNumber}" Width="80" ElementStyle="{StaticResource TextCenterElementStyle}"/>
+                            <DataGridTextColumn Header="DỮ LIỆU GỐC" Binding="{Binding Data}" Width="200"/>
+                            <DataGridTextColumn Header="CHI TIẾT LỖI" Binding="{Binding ErrorMessage}" Width="*" ElementStyle="{StaticResource TextErrorElementStyle}"/>
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>
             </materialDesign:Card>
 
-            <materialDesign:Card Grid.Row="3" Margin="0,24,0,0" UniformCornerRadius="8" Padding="12" Background="{StaticResource PrimaryHueLightBrush}">
+            <!-- Row 4: Status Footer -->
+            <materialDesign:Card Grid.Row="3" Margin="{StaticResource Margin.Top.lg}" Style="{StaticResource AppCard}" Padding="16">
                 <StackPanel Orientation="Horizontal">
-                    <materialDesign:PackIcon Kind="Information" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource AppTertiaryBrush}" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                    <materialDesign:PackIcon Kind="Information" Foreground="{StaticResource AppPrimaryBrush}" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource TextSecondaryBrush}" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"/>
                 </StackPanel>
             </materialDesign:Card>
         </Grid>

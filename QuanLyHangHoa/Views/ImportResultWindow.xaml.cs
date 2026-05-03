@@ -12,8 +12,15 @@ namespace QuanLyHangHoa.Views
         {
             InitializeComponent();
             Errors = errors;
-            TxtSummary.Text = $"Thành công: {successCount} dòng. Thất bại: {errors.Count} dòng.";
+            TxtSuccess.Text = $"Thành công: {successCount}";
+            TxtFailed.Text = $"Thất bại: {errors.Count}";
             DgErrors.ItemsSource = Errors;
+        }
+
+        private void TitleBar_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == System.Windows.Input.MouseButton.Left)
+                DragMove();
         }
 
         private void Close_Click(object sender, RoutedEventArgs e)
