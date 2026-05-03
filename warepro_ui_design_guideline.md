@@ -4,6 +4,53 @@ Tài liệu này dùng làm chỉ dẫn cho Google Antigravity hoặc AI coding 
 
 ---
 
+## 0. Quy tắc bắt buộc — Tránh lỗi WPF / Material Design
+
+### 0.1 Không dùng Tailwind/CSS token trực tiếp trong XAML
+
+Các token web-style (`slate`, `bg-card`, `rounded-lg`, `margin.bottom.md`) **không phải giá trị WPF hợp lệ**.
+
+```xml
+<!-- SAI -->
+<Border Background="slate" />
+<TextBlock Margin="margin.bottom.md" />
+
+<!-- ĐÚNG -->
+<Border Background="{StaticResource SidebarBgBrush}" />
+<TextBlock Margin="{StaticResource SectionBottomMargin}" />
+```
+
+### 0.2 Không dùng `SecondaryColor="BlueGrey"` hoặc `SecondaryColor="Slate"`
+
+Material Design in XAML không có palette `Slate`. Dùng màu hex tự khai báo:
+
+```xml
+<materialDesign:BundledTheme
+    BaseTheme="Light"
+    PrimaryColor="DeepPurple"
+    SecondaryColor="Purple" />
+```
+
+### 0.3 Không dùng style key chưa xác nhận tồn tại
+
+Nếu dùng `BasedOn="{StaticResource MaterialDesignFlatMidPrimaryButton}"` hay bất kỳ key nào không có trong project, app sẽ throw `XamlParseException` lúc runtime. Chỉ dùng các style key đã được định nghĩa trong `Themes/`.
+
+Các style key hợp lệ hiện tại: `AppPrimaryButton`, `AppSecondaryButton`, `AppDangerButton`, `AppCard`, `AppTextBox`, `AppComboBoxStyle`.
+
+### 0.4 Dùng PackIcon với fallback strategy
+
+Nếu một `Kind` không tồn tại trong phiên bản MaterialDesignThemes đang cài, thay bằng `CircleSmall`, `InformationOutline`, hoặc xóa icon. Danh sách icon an toàn:
+
+```
+ViewDashboard, PackageVariant, TagOutline, Domain, CubeOutline,
+AccountGroup, Account, TruckDelivery, ArrowDownBold, ArrowUpBold,
+ChartBar, FileDocumentOutline, ShieldCheckOutline, WrenchOutline,
+AlertOutline, Logout, Magnify, Printer, Plus, Pencil, Delete,
+EyeOutline, CheckCircleOutline, Download, Upload
+```
+
+---
+
 ## 1. Định hướng tổng thể
 
 Thiết kế theo phong cách **modern internal business dashboard**: gọn, phẳng, ít bo góc, ưu tiên dữ liệu, dễ thao tác trong môi trường doanh nghiệp. Không làm kiểu landing page hoặc SaaS quá nhiều khoảng trắng.
@@ -70,26 +117,27 @@ Toàn bộ ứng dụng dùng một **Main Shell Window** cố định gồm 3 v
 |---|---|---|
 | `PrimaryPurple` | `#7C3AED` | Button chính, menu active |
 | `PrimaryPurpleHover` | `#6D28D9` | Hover button chính |
-| `SidebarBg` | `#1E293B` | Nền sidebar |
+| `PrimaryPurpleSoft` | `#EEE7FF` | Background nhạt cho icon/badge tím |
+| `SidebarBg` | `#211733` | Nền sidebar |
 | `SidebarBgDarker` | `#1A102A` | Nền footer/logout sidebar |
-| `SidebarHover` | `#2E2144` | Hover menu sidebar |
+| `SidebarHover` | `#34264D` | Hover menu sidebar |
 | `SidebarActive` | `#7C3AED` | Menu đang chọn |
-| `PageBg` | `#F7F6FA` | Nền vùng content |
+| `PageBg` | `#F7F7FA` | Nền vùng content |
 | `Surface` | `#FFFFFF` | Card, table container |
 | `SurfaceMuted` | `#F3F1F7` | Table header |
-| `Border` | `#DDD8E7` | Viền card/input/table |
-| `TextPrimary` | `#26212E` | Text chính |
-| `TextSecondary` | `#6F667C` | Subtitle, label phụ |
-| `TextMuted` | `#8B819A` | Group heading sidebar |
+| `Border` | `#DED9E8` | Viền card/input/table |
+| `TextPrimary` | `#2A2533` | Text chính |
+| `TextSecondary` | `#756B82` | Subtitle, label phụ |
+| `TextMuted` | `#8A8095` | Group heading sidebar |
 
 ### 3.2 Màu trạng thái
 
 | Status | Background | Text | Dùng cho |
 |---|---|---|---|
-| Success | `#DCFCE7` | `#15803D` | Hoạt động, đã thanh toán, đã sửa |
+| Success | `#DCFCE7` | `#16A34A` | Hoạt động, đã thanh toán, đã sửa |
 | Info | `#DBEAFE` | `#2563EB` | Đã duyệt, đã bán |
-| Warning | `#FEF3C7` | `#B45309` | Đang xử lý, TT một phần |
-| Danger | `#FEE2E2` | `#DC2626` | Chưa TT, từ chối |
+| Warning | `#FEF3C7` | `#D97706` | Đang xử lý, TT một phần |
+| Danger | `#FEE2E2` | `#EF4444` | Chưa TT, từ chối |
 | Neutral | `#E5E7EB` | `#4B5563` | Nháp, ngừng HĐ, đã đóng |
 
 ### 3.3 Màu dashboard card icon
@@ -116,31 +164,33 @@ Nếu dùng WPF + Material Design in XAML, không dùng `SecondaryColor="Slate"`
     <!-- Core palette -->
     <SolidColorBrush x:Key="PrimaryPurpleBrush" Color="#7C3AED" />
     <SolidColorBrush x:Key="PrimaryPurpleHoverBrush" Color="#6D28D9" />
+    <SolidColorBrush x:Key="PrimaryPurpleSoftBrush" Color="#EEE7FF" />
 
-    <SolidColorBrush x:Key="SidebarBgBrush" Color="#1E293B" />
+    <SolidColorBrush x:Key="SidebarBgBrush" Color="#211733" />
     <SolidColorBrush x:Key="SidebarBgDarkerBrush" Color="#1A102A" />
-    <SolidColorBrush x:Key="SidebarHoverBrush" Color="#2E2144" />
+    <SolidColorBrush x:Key="SidebarHoverBrush" Color="#34264D" />
     <SolidColorBrush x:Key="SidebarActiveBrush" Color="#7C3AED" />
 
-    <SolidColorBrush x:Key="PageBgBrush" Color="#F7F6FA" />
+    <SolidColorBrush x:Key="PageBgBrush" Color="#F7F7FA" />
     <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFF" />
     <SolidColorBrush x:Key="SurfaceMutedBrush" Color="#F3F1F7" />
-    <SolidColorBrush x:Key="BorderBrush" Color="#DDD8E7" />
+    <SolidColorBrush x:Key="BorderBrush" Color="#DED9E8" />
 
-    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#26212E" />
-    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#6F667C" />
-    <SolidColorBrush x:Key="TextMutedBrush" Color="#8B819A" />
-    <SolidColorBrush x:Key="SidebarTextBrush" Color="#DCD5EA" />
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#2A2533" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#756B82" />
+    <SolidColorBrush x:Key="TextMutedBrush" Color="#8A8095" />
+    <SolidColorBrush x:Key="SidebarTextBrush" Color="#D8D0E6" />
+    <SolidColorBrush x:Key="SidebarMutedTextBrush" Color="#8B7A9F" />
 
     <!-- Status -->
     <SolidColorBrush x:Key="SuccessBgBrush" Color="#DCFCE7" />
-    <SolidColorBrush x:Key="SuccessTextBrush" Color="#15803D" />
+    <SolidColorBrush x:Key="SuccessTextBrush" Color="#16A34A" />
     <SolidColorBrush x:Key="InfoBgBrush" Color="#DBEAFE" />
     <SolidColorBrush x:Key="InfoTextBrush" Color="#2563EB" />
     <SolidColorBrush x:Key="WarningBgBrush" Color="#FEF3C7" />
-    <SolidColorBrush x:Key="WarningTextBrush" Color="#B45309" />
+    <SolidColorBrush x:Key="WarningTextBrush" Color="#D97706" />
     <SolidColorBrush x:Key="DangerBgBrush" Color="#FEE2E2" />
-    <SolidColorBrush x:Key="DangerTextBrush" Color="#DC2626" />
+    <SolidColorBrush x:Key="DangerTextBrush" Color="#EF4444" />
     <SolidColorBrush x:Key="NeutralBgBrush" Color="#E5E7EB" />
     <SolidColorBrush x:Key="NeutralTextBrush" Color="#4B5563" />
 
@@ -240,10 +290,10 @@ HỆ THỐNG
 
 ### 6.3 Style menu item
 
-- Normal: transparent background, text `#DCD5EA`.
-- Hover: background `#2E2144`.
+- Normal: transparent background, text `#D8D0E6`.
+- Hover: background `#34264D`.
 - Active: background `#7C3AED`, text white.
-- Group heading: uppercase, màu `#8B819A`, letter spacing nhẹ nếu làm được.
+- Group heading: uppercase, màu `#8B7A9F`, letter spacing nhẹ nếu làm được.
 - Icon và text cùng màu trạng thái.
 
 ### 6.4 Icon Material Design đề xuất
@@ -272,6 +322,32 @@ Dùng `materialDesign:PackIcon` nếu project đã cài Material Design in XAML.
 | Báo cáo | `ChartBoxOutline` |
 | Người dùng | `AccountMultipleOutline` |
 | Đăng xuất | `LogoutVariant` |
+
+### 6.5 Sidebar item XAML template
+
+Tránh hardcode `PackIconKind` trực tiếp nhời, bind từ `NavItemViewModel`:
+
+```xml
+<Button Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+        CommandParameter="{Binding}"
+        Height="36" Margin="8,2"
+        Background="Transparent" BorderThickness="0"
+        Foreground="{StaticResource SidebarTextBrush}">
+    <Grid Margin="10,0">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="26" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <materialDesign:PackIcon Grid.Column="0" Kind="{Binding IconKind}"
+                                 Width="16" Height="16" VerticalAlignment="Center" />
+        <TextBlock Grid.Column="1" Text="{Binding Title}"
+                   VerticalAlignment="Center" FontSize="14"
+                   TextTrimming="CharacterEllipsis" />
+    </Grid>
+</Button>
+```
+
+Active/hover state xử lý qua Style Trigger theo `IsSelected`.
 
 ---
 
@@ -552,19 +628,19 @@ Font weight: 600
 
 | Trạng thái | Background | Text |
 |---|---|---|
-| Hoạt động | `#DCFCE7` | `#15803D` |
+| Hoạt động | `#DCFCE7` | `#16A34A` |
 | Ngừng HĐ | `#E5E7EB` | `#4B5563` |
-| Trong kho | `#DCFCE7` | `#15803D` |
+| Trong kho | `#DCFCE7` | `#16A34A` |
 | Đã bán | `#DBEAFE` | `#2563EB` |
 | Nháp | `#E5E7EB` | `#4B5563` |
 | Đã duyệt | `#DBEAFE` | `#2563EB` |
-| Đã TT | `#DCFCE7` | `#15803D` |
-| Chưa TT | `#FEE2E2` | `#DC2626` |
-| TT một phần | `#FEF3C7` | `#B45309` |
+| Đã TT | `#DCFCE7` | `#16A34A` |
+| Chưa TT | `#FEE2E2` | `#EF4444` |
+| TT một phần | `#FEF3C7` | `#D97706` |
 | Tiếp nhận | `#DBEAFE` | `#2563EB` |
-| Đang xử lý | `#FEF3C7` | `#B45309` |
-| Đã sửa | `#DCFCE7` | `#15803D` |
-| Từ chối | `#FEE2E2` | `#DC2626` |
+| Đang xử lý | `#FEF3C7` | `#D97706` |
+| Đã sửa | `#DCFCE7` | `#16A34A` |
+| Từ chối | `#FEE2E2` | `#EF4444` |
 | Đã đóng | `#E5E7EB` | `#4B5563` |
 
 ---
@@ -1199,10 +1275,10 @@ Dùng spacing nhất quán để AI không thiết kế lệch.
 |---|---:|
 | `SpaceXs` | 4px |
 | `SpaceSm` | 8px |
-| `SpaceMd` | 12px |
-| `SpaceLg` | 16px |
-| `SpaceXl` | 24px |
-| `Space2Xl` | 32px |
+| `SpaceMd` | 16px |
+| `SpaceLg` | 24px |
+| `SpaceXl` | 32px |
+| `Space2Xl` | 48px |
 
 Trong WPF:
 
@@ -1210,7 +1286,7 @@ Trong WPF:
 <Thickness x:Key="PagePadding">24</Thickness>
 <Thickness x:Key="SectionBottomMargin">0,0,0,24</Thickness>
 <Thickness x:Key="ControlRightMargin">0,0,8,0</Thickness>
-<Thickness x:Key="TableCellPadding">14,0</Thickness>
+<Thickness x:Key="TableCellPadding">14,10</Thickness>
 ```
 
 ---
@@ -1313,4 +1389,143 @@ Nếu cần màu slate, dùng hex:
 <SolidColorBrush x:Key="Slate600Brush" Color="#475569" />
 ```
 
-Với app trong ảnh, sidebar nên dùng tím đen `#1F1532`, không dùng slate thuần `#1E293B`, vì slate sẽ làm mất chất tím chủ đạo.
+Với app trong ảnh, sidebar nên dùng tím đen `#211733`, không dùng slate thuần `#1E293B`, vì slate sẽ làm mất chất tím chủ đạo.
+
+---
+
+## 23. App.xaml template chuẩn
+
+```xml
+<Application x:Class="WarePro.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             StartupUri="Views/MainWindow.xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <materialDesign:BundledTheme
+                    BaseTheme="Light"
+                    PrimaryColor="DeepPurple"
+                    SecondaryColor="Purple" />
+
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Defaults.xaml" />
+
+                <ResourceDictionary Source="Themes/Colors.xaml" />
+                <ResourceDictionary Source="Themes/Spacing.xaml" />
+                <ResourceDictionary Source="Themes/Typography.xaml" />
+                <ResourceDictionary Source="Themes/Radius.xaml" />
+                <ResourceDictionary Source="Themes/Buttons.xaml" />
+                <ResourceDictionary Source="Themes/Cards.xaml" />
+                <ResourceDictionary Source="Themes/Inputs.xaml" />
+                <ResourceDictionary Source="Themes/Tables.xaml" />
+                <ResourceDictionary Source="Themes/Navigation.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
+```
+
+---
+
+## 24. MVVM Navigation Rules
+
+`MainWindow` không chứa business logic. Dùng cấu trúc:
+
+```txt
+MainViewModel
+├── ObservableCollection<NavGroupViewModel> MenuGroups
+├── NavItemViewModel SelectedNavItem
+├── object CurrentViewModel
+└── ICommand NavigateCommand
+```
+
+Navigation flow:
+
+```txt
+User click sidebar item
+→ NavigateCommand nhận NavItemViewModel
+→ Clear tất cả IsSelected
+→ item được chọn: IsSelected = true
+→ CurrentViewModel = ViewModelFactory.Create(PageKey)
+→ ContentControl hiển thị View tương ứng qua DataTemplate
+```
+
+DataTemplate trong App.xaml hoặc MainWindow.Resources:
+
+```xml
+<DataTemplate DataType="{x:Type vm:CategoryViewModel}">
+    <views:CategoryView />
+</DataTemplate>
+```
+
+---
+
+## 25. Data Loading Rules
+
+Mỗi ViewModel bảng dữ liệu phải expose:
+
+```txt
+ObservableCollection<TItemViewModel> Items
+ICommand SearchCommand
+ICommand ClearFilterCommand
+ICommand AddCommand
+ICommand EditCommand
+ICommand DeleteCommand
+ICommand PrintCommand
+ICommand ExportCsvCommand
+ICommand ImportCsvCommand
+bool IsLoading
+string SearchText (hoặc filter-specific properties)
+int TotalCount
+```
+
+Không đặt database call trong View. Dùng services:
+
+```txt
+CategoryViewModel  → ICategoryService
+ProductViewModel   → IProductService
+StockInViewModel   → IInventoryService
+InvoiceViewModel   → IInvoiceService
+WarrantyViewModel  → IWarrantyService
+```
+
+---
+
+## 26. Final Implementation Checklist
+
+Trước khi generate XAML, kiểm tra:
+
+```txt
+[ ] App.xaml import MaterialDesign3.Defaults.xaml
+[ ] Colors.xaml định nghĩa đầy đủ mọi brush dùng trong XAML
+[ ] Không có Color="BlueGrey" hay Background="slate"
+[ ] Không có SecondaryColor="BlueGrey"
+[ ] Không có Tailwind class name trong XAML
+[ ] Không có CSS variable trong XAML
+[ ] Không dùng StaticResource key chưa xác nhận
+[ ] Tất cả PackIcon Kind đã kiểm tra hoặc có fallback
+[ ] Tables dùng DataGrid, không dùng HTML-like layout
+[ ] Views chỉ bind vào ViewModels
+[ ] Code-behind chỉ xử lý window behavior thuần túy
+[ ] Mọi style key dùng phải có trong Themes/ của project
+```
+
+---
+
+## 27. Thứ tự build đề xuất
+
+Build theo thứ tự này để tạo design foundation trước khi implement màn hình phức tạp:
+
+```txt
+1. MainWindow Shell (Sidebar + Topbar + ContentControl)
+2. Sidebar navigation + NavGroupViewModel
+3. DashboardView với stat cards
+4. Generic DataGrid container style
+5. CategoryView / BrandView / UnitView
+6. ProductView
+7. StockInView / StockOutView
+8. PurchaseInvoiceView / SalesInvoiceView
+9. WarrantyClaimView
+10. ReportView
+```
