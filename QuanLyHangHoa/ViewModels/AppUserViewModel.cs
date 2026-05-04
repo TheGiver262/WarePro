@@ -189,7 +189,7 @@ namespace QuanLyHangHoa.ViewModels
 
             try
             {
-                _userService.ToggleActiveStatus(user.Id, _currentUser.Id);
+                _userService.ToggleUserStatus(user.Id, _currentUser.Id);
                 LoadData();
             }
             catch (Exception ex)

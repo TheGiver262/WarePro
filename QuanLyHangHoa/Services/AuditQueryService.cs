@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using QuanLyHangHoa.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace QuanLyHangHoa.Services
 {
@@ -125,6 +126,68 @@ namespace QuanLyHangHoa.Services
                 .Concat(ledgerEntries.AsEnumerable())
                 .OrderBy(entry => entry.OccurredAt)
                 .ToList();
+        }
+
+        public IReadOnlyList<QuanLyHangHoa.Models.AuditLog> GetAllAuditLogs(
+            string? entityName = null,
+            string? actionCode = null,
+            int? performedBy = null,
+            DateTime? fromDate = null,
+            DateTime? toDate = null,
+            string? searchTerm = null)
+        {
+            using var db = _contextFactory();
+            var query = db.AuditLogs
+                .Include(a => a.Performer)
+                .AsQueryable();
+
+            if (!string.IsNullOrEmpty(entityName))
+                query = query.Where(a => a.EntityName == entityName);
+
+            if (!string.IsNullOrEmpty(actionCode))
+                query = query.Where(a => a.ActionCode == actionCode);
+
+            if (performedBy.HasValue)
+                query = query.Where(a => a.PerformedBy == performedBy.Value);
+
+            if (fromDate.HasValue)
+                query = query.Where(a => a.PerformedAt >= fromDate.Value);
+
+            if (toDate.HasValue)
+                query = query.Where(a => a.PerformedAt <= toDate.Value);
+
+            if (!string.IsNullOrEmpty(searchTerm))
+            {
+                query = query.Where(a => a.EntityId.ToString().Contains(searchTerm) || 
+                                         a.ActionCode.Contains(searchTerm) ||
+                                         a.EntityName.Contains(searchTerm));
+            }
+
+            return query
+                .OrderByDescending(a => a.PerformedAt)
+                .Take(1000) // Limit for performance
+                .ToList();
+        }
+
+        public IReadOnlyList<QuanLyHangHoa.Models.AuditLog> GetOldLogs(int years = 1)
+        {
+            using var db = _contextFactory();
+            var cutoffDate = DateTime.Now.AddYears(-years);
+            return db.AuditLogs
+                .Include(a => a.Performer)
+                .Where(a => a.PerformedAt < cutoffDate)
+                .OrderBy(a => a.PerformedAt)
+                .ToList();
+        }
+
+        public int DeleteLogs(IEnumerable<int> logIds)
+        {
+            using var db = _contextFactory();
+            var logsToRemove = db.AuditLogs.Where(a => logIds.Contains(a.Id));
+            int count = logsToRemove.Count();
+            db.AuditLogs.RemoveRange(logsToRemove);
+            db.SaveChanges();
+            return count;
         }
     }
 }

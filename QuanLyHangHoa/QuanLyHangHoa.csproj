@@ -5,7 +5,16 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
   </PropertyGroup>
+  
+  <ItemGroup>
+    <Compile Remove="obj\**" />
+    <Compile Remove="scratch\**" />
+    <Compile Remove="bin\**" />
+    <Compile Remove="Database\**" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />

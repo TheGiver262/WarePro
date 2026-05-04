@@ -9,11 +9,15 @@ namespace QuanLyHangHoa.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
+            if (value is int index)
+            {
+                return index + 1;
+            }
             if (value is DataGridRow row)
             {
                 return row.GetIndex() + 1;
             }
-            return "";
+            return 1;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

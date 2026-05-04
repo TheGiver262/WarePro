@@ -1,87 +1,214 @@
-using System.Collections.ObjectModel;
-using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.EntityFrameworkCore;
+using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
-using QuanLyHangHoa.Services;
+using QuanLyHangHoa.Views;
+using System;
+using System.Collections.ObjectModel;
+using System.IO;
+using System.Linq;
+using System.Windows;
+using ClosedXML.Excel;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace QuanLyHangHoa.ViewModels
 {
     public partial class CategoryViewModel : ObservableObject
     {
-        private readonly ReferenceDataService _service;
+        private readonly AppDbContext _db;
+        private readonly AppUser _currentUser;
 
         [ObservableProperty] private ObservableCollection<Category> _categories = new();
         [ObservableProperty] private Category? _selectedCategory;
-        [ObservableProperty] private string _searchText = string.Empty;
-        [ObservableProperty] private string _categoryCode = string.Empty;
-        [ObservableProperty] private string _displayName = string.Empty;
 
-        public CategoryViewModel()
+        // Search Filters
+        [ObservableProperty] private string _searchCode = string.Empty;
+        [ObservableProperty] private string _searchName = string.Empty;
+        [ObservableProperty] private string? _searchStatus = "Tất cả";
+        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Đang hoạt động", "Ngừng hoạt động"];
+
+        public CategoryViewModel(AppDbContext db, AppUser currentUser)
         {
-            _service = new ReferenceDataService();
-            LoadData();
+            _db = db;
+            _currentUser = currentUser;
+            LoadCategories();
         }
 
         [RelayCommand]
-        private void LoadData()
+        public void LoadCategories()
         {
-            var data = _service.GetAllCategories();
-            if (!string.IsNullOrWhiteSpace(SearchText))
+            var query = _db.Categories.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(SearchCode))
+                query = query.Where(c => c.CategoryCode.Contains(SearchCode));
+
+            if (!string.IsNullOrWhiteSpace(SearchName))
+                query = query.Where(c => c.DisplayName.Contains(SearchName));
+
+            if (SearchStatus == "Đang hoạt động")
+                query = query.Where(c => c.IsActive);
+            else if (SearchStatus == "Ngừng hoạt động")
+                query = query.Where(c => !c.IsActive);
+
+            var list = query.OrderBy(c => c.CategoryCode).ToList();
+            Categories = new ObservableCollection<Category>(list);
+        }
+
+        partial void OnSearchCodeChanged(string value) => LoadCategories();
+        partial void OnSearchNameChanged(string value) => LoadCategories();
+        partial void OnSearchStatusChanged(string? value) => LoadCategories();
+
+        [RelayCommand]
+        private void OpenAddCategoryDialog()
+        {
+            var vm = new CategoryEditViewModel();
+            var window = new CategoryEditWindow { DataContext = vm };
+            if (window.ShowDialog() == true)
             {
-                var lowerSearch = SearchText.ToLower().Trim();
-                data = data.Where(x => 
-                    (x.DisplayName?.ToLower().Contains(lowerSearch) ?? false) || 
-                    (x.CategoryCode?.ToLower().Contains(lowerSearch) ?? false)).ToList();
+                if (_db.Categories.Any(c => c.CategoryCode == vm.CategoryCode))
+                {
+                    MessageBox.Show($"Mã danh mục '{vm.CategoryCode}' đã tồn tại.", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                var newCat = new Category();
+                vm.ApplyTo(newCat);
+                _db.Categories.Add(newCat);
+                _db.SaveChanges();
+                
+                // Audit Log
+                LogAction("CREATE", newCat.Id, null, Serialize(newCat));
+
+                LoadCategories();
             }
-            Categories = new ObservableCollection<Category>(data);
         }
 
         [RelayCommand]
-        private void Save()
+        private void EditCategory(Category category)
         {
-            if (string.IsNullOrWhiteSpace(DisplayName) || string.IsNullOrWhiteSpace(CategoryCode)) return;
+            var beforeJson = Serialize(category);
+            var vm = new CategoryEditViewModel(category);
+            var window = new CategoryEditWindow { DataContext = vm };
+            if (window.ShowDialog() == true)
+            {
+                vm.ApplyTo(category);
+                _db.SaveChanges();
 
-            if (SelectedCategory == null)
-            {
-                var c = new Category { CategoryCode = CategoryCode, DisplayName = DisplayName, IsActive = true };
-                _service.AddCategory(c);
-            }
-            else
-            {
-                SelectedCategory.CategoryCode = CategoryCode;
-                SelectedCategory.DisplayName = DisplayName;
-                _service.UpdateCategory(SelectedCategory);
-            }
-            LoadData();
-            Clear();
-        }
+                // Audit Log
+                LogAction("UPDATE", category.Id, beforeJson, Serialize(category));
 
-        [RelayCommand]
-        private void Delete()
-        {
-            if (SelectedCategory != null)
-            {
-                _service.DeactivateCategory(SelectedCategory.Id);
-                LoadData();
-                Clear();
+                LoadCategories();
             }
         }
 
         [RelayCommand]
-        private void Clear()
+        private void DeleteCategory(Category category)
         {
-            SelectedCategory = null;
-            CategoryCode = string.Empty;
-            DisplayName = string.Empty;
+            var result = MessageBox.Show($"Bạn có chắc chắn muốn xoá danh mục '{category.DisplayName}'?", "Xác nhận xoá", 
+                MessageBoxButton.YesNo, MessageBoxImage.Question);
+            
+            if (result == MessageBoxResult.Yes)
+            {
+                try 
+                {
+                    var beforeJson = Serialize(category);
+                    int entityId = category.Id;
+
+                    _db.Categories.Remove(category);
+                    _db.SaveChanges();
+
+                    // Audit Log
+                    LogAction("DELETE", entityId, beforeJson, null);
+
+                    LoadCategories();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Không thể xoá danh mục này. Có thể danh mục đang được sử dụng bởi các sản phẩm.\nChi tiết: {ex.Message}", 
+                        "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
         }
 
-        partial void OnSelectedCategoryChanged(Category? value)
+        [RelayCommand]
+        private void ExportToExcel()
         {
-            if (value != null)
+            try
             {
-                CategoryCode = value.CategoryCode;
-                DisplayName = value.DisplayName;
+                var saveFileDialog = new Microsoft.Win32.SaveFileDialog
+                {
+                    Filter = "Excel Workbook (*.xlsx)|*.xlsx",
+                    FileName = $"DanhSachDanhMuc_{DateTime.Now:yyyyMMdd_HHmm}"
+                };
+
+                if (saveFileDialog.ShowDialog() == true)
+                {
+                    using (var workbook = new XLWorkbook())
+                    {
+                        var worksheet = workbook.Worksheets.Add("Categories");
+
+                        // Headers
+                        worksheet.Cell(1, 1).Value = "Mã Danh Mục";
+                        worksheet.Cell(1, 2).Value = "Tên Danh Mục";
+                        worksheet.Cell(1, 3).Value = "Trạng Thái";
+
+                        var headerRange = worksheet.Range(1, 1, 1, 3);
+                        headerRange.Style.Font.Bold = true;
+                        headerRange.Style.Fill.BackgroundColor = XLColor.LightGray;
+
+                        // Data
+                        for (int i = 0; i < Categories.Count; i++)
+                        {
+                            worksheet.Cell(i + 2, 1).Value = Categories[i].CategoryCode;
+                            worksheet.Cell(i + 2, 2).Value = Categories[i].DisplayName;
+                            worksheet.Cell(i + 2, 3).Value = Categories[i].IsActive ? "Đang hoạt động" : "Ngừng hoạt động";
+                        }
+
+                        worksheet.Columns().AdjustToContents();
+                        workbook.SaveAs(saveFileDialog.FileName);
+                    }
+                    MessageBox.Show("Xuất file Excel thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi xuất Excel: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private string Serialize(Category category)
+        {
+            return JsonSerializer.Serialize(new
+            {
+                category.Id,
+                category.CategoryCode,
+                category.DisplayName,
+                category.IsActive
+            });
+        }
+
+        private void LogAction(string action, int entityId, string? before = null, string? after = null)
+        {
+            try
+            {
+                var log = new AuditLog
+                {
+                    EntityName = "Category",
+                    EntityId = entityId,
+                    ActionCode = action,
+                    BeforeJson = before,
+                    AfterJson = after,
+                    PerformedBy = _currentUser.Id,
+                    PerformedAt = DateTime.Now
+                };
+                _db.AuditLogs.Add(log);
+                _db.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                // We don't want to crash the app if logging fails, but maybe log it to console/debug
+                System.Diagnostics.Debug.WriteLine($"Failed to write audit log: {ex.Message}");
             }
         }
     }

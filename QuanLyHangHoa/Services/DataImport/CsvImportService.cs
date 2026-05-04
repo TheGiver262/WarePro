@@ -23,9 +23,9 @@ namespace QuanLyHangHoa.Services.DataImport
                 {
                     result.Errors.Add(new RowError 
                     { 
-                        RowNumber = args.Exception.Context.Parser?.Row ?? 0, 
-                        Data = args.Exception.Context.Parser?.RawRecord ?? string.Empty, 
-                        ErrorMessage = $"Lỗi phân tích: {args.Exception.Message}" 
+                        RowNumber = args.Exception?.Context?.Parser?.Row ?? 0, 
+                        Data = args.Exception?.Context?.Parser?.RawRecord ?? string.Empty, 
+                        ErrorMessage = $"Lỗi phân tích: {args.Exception?.Message ?? "Không rõ lỗi"}" 
                     });
                     return false; // Return false to ignore the exception and continue reading
                 }

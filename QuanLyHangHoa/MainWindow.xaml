@@ -68,6 +68,8 @@
                         <RadioButton Content="Báo cáo" Tag="ChartBoxOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenReportViewCommand}"/>
                         <RadioButton Content="Người dùng" Tag="AccountMultipleOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenAppUserViewCommand}"
                                      Visibility="{Binding IsAdmin, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                        <RadioButton Content="Nhật ký hệ thống" Tag="ShieldHistory" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenAuditLogViewCommand}"
+                                     Visibility="{Binding IsAdmin, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                         <RadioButton Content="Đổi mật khẩu" Tag="KeyVariant" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenChangePasswordViewCommand}"/>
 
                         <Border Height="20"/>
@@ -126,7 +128,7 @@
             </Border>
 
             <!-- Content §2 -->
-            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Disabled">
                 <ContentControl Content="{Binding CurrentView}"/>
             </ScrollViewer>
         </Grid>

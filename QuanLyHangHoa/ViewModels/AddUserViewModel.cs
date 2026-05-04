@@ -16,6 +16,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _fullName = string.Empty;
         [ObservableProperty] private string _username = string.Empty;
         [ObservableProperty] private string _roleCode = "Nhân viên bán hàng";
+        [ObservableProperty] private bool _isActive = true;
         
         public ObservableCollection<string> Roles { get; } = ["Quản trị viên", "Quản lý", "Nhân viên bảo hành", "Nhân viên bán hàng", "Nhân viên kho"];
 
@@ -26,11 +27,11 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
-        private void Confirm(Window window)
+        private void Confirm(Window? window)
         {
             if (string.IsNullOrWhiteSpace(FullName) || string.IsNullOrWhiteSpace(Username))
             {
-                MessageBox.Show("Vui lòng điền đầy đủ thông tin!", "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Vui lòng điền đầy đủ Tên và Tên tài khoản!", "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -38,29 +39,45 @@ namespace QuanLyHangHoa.ViewModels
             {
                 var newUser = new AppUser
                 {
-                    FullName = FullName,
-                    Username = Username,
+                    FullName = FullName.Trim(),
+                    Username = Username.Trim(),
                     RoleCode = RoleCode,
-                    IsActive = true,
-                    MustChangePassword = true // Bắt buộc đổi mật khẩu lần đầu
+                    IsActive = IsActive,
+                    MustChangePassword = true 
                 };
 
                 _userService.AddUser(newUser, _currentUserId);
                 
-                window.DialogResult = true;
-                window.Close();
+                if (window != null)
+                {
+                    window.DialogResult = true;
+                    window.Close();
+                }
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                var fullMessage = ex.Message;
+                if (ex.InnerException != null)
+                {
+                    fullMessage += $"\n\nInner Exception: {ex.InnerException.Message}";
+                    if (ex.InnerException.InnerException != null)
+                    {
+                        fullMessage += $"\n\nDeep Inner Exception: {ex.InnerException.InnerException.Message}";
+                    }
+                }
+                
+                MessageBox.Show($"Không thể tạo người dùng:\n{fullMessage}", "Lỗi hệ thống", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         [RelayCommand]
-        private void Cancel(Window window)
+        private void Cancel(Window? window)
         {
-            window.DialogResult = false;
-            window.Close();
+            if (window != null)
+            {
+                window.DialogResult = false;
+                window.Close();
+            }
         }
     }
 }

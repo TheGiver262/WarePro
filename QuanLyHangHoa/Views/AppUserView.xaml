@@ -110,26 +110,29 @@
                     </Grid.RowDefinitions>
                     
                     <DataGrid Grid.Row="0" ItemsSource="{Binding Users}" SelectedItem="{Binding SelectedUser, Mode=TwoWay}"
+                              AlternationCount="10000" EnableRowVirtualization="False"
                               AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                               RowHeight="48" BorderThickness="0" Background="Transparent">
+                        <DataGrid.ColumnHeaderStyle>
+                            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource MaterialDesignDataGridColumnHeader}">
+                                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                            </Style>
+                        </DataGrid.ColumnHeaderStyle>
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="STT" Width="60" 
-                                                Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowIndexConverter}}"
+                            <DataGridTextColumn Header="STT" Width="60" CanUserSort="False"
+                                                Binding="{Binding (ItemsControl.AlternationIndex), RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowIndexConverter}}"
                                                 ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
                             
                             <DataGridTemplateColumn Width="*" SortMemberPath="FullName">
                                 <DataGridTemplateColumn.Header>
-                                    <StackPanel Orientation="Horizontal">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
                                         <TextBlock Text="HỌ VÀ TÊN" VerticalAlignment="Center"/>
-                                        <materialDesign:PackIcon Kind="Sort" Width="14" Height="14" Margin="4,0,0,0" VerticalAlignment="Center" Opacity="0.5"/>
                                     </StackPanel>
                                 </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
-                                            <materialDesign:PackIcon Kind="AccountCircle" Foreground="{StaticResource AppTertiaryBrush}" Width="24" Height="24" Margin="0,0,12,0"/>
-                                            <TextBlock Text="{Binding FullName}" VerticalAlignment="Center" FontWeight="SemiBold" FontSize="14"/>
-                                        </StackPanel>
+                                        <TextBlock Text="{Binding FullName}" VerticalAlignment="Center" Margin="12,0" FontWeight="SemiBold" FontSize="14"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -137,18 +140,18 @@
                             <DataGridTextColumn Binding="{Binding Username}" Width="150" 
                                                 ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}">
                                 <DataGridTextColumn.Header>
-                                    <StackPanel Orientation="Horizontal">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
                                         <TextBlock Text="TÀI KHOẢN" VerticalAlignment="Center"/>
-                                        <materialDesign:PackIcon Kind="Sort" Width="14" Height="14" Margin="4,0,0,0" VerticalAlignment="Center" Opacity="0.5"/>
                                     </StackPanel>
                                 </DataGridTextColumn.Header>
                             </DataGridTextColumn>
                             
                             <DataGridTemplateColumn Width="170" SortMemberPath="RoleCode">
                                 <DataGridTemplateColumn.Header>
-                                    <StackPanel Orientation="Horizontal">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
                                         <TextBlock Text="VAI TRÒ" VerticalAlignment="Center"/>
-                                        <materialDesign:PackIcon Kind="Sort" Width="14" Height="14" Margin="4,0,0,0" VerticalAlignment="Center" Opacity="0.5"/>
                                     </StackPanel>
                                 </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
@@ -160,36 +163,69 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTextColumn Binding="{Binding CreatedAt, StringFormat=\{0:dd/MM/yyyy\}}" Width="130" 
+                            <DataGridTextColumn Binding="{Binding CreatedAt, StringFormat=\{0:dd/MM/yyyy\}}" Width="120" 
                                                 ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}">
                                 <DataGridTextColumn.Header>
-                                    <StackPanel Orientation="Horizontal">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
                                         <TextBlock Text="NGÀY TẠO" VerticalAlignment="Center"/>
-                                        <materialDesign:PackIcon Kind="Sort" Width="14" Height="14" Margin="4,0,0,0" VerticalAlignment="Center" Opacity="0.5"/>
                                     </StackPanel>
                                 </DataGridTextColumn.Header>
                             </DataGridTextColumn>
 
-                            <DataGridTemplateColumn Header="ĐỔI MK" Width="100">
+                            <DataGridTemplateColumn Header="MK MẶC ĐỊNH" Width="130">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <materialDesign:PackIcon Kind="{Binding MustChangePassword, Converter={StaticResource BooleanToIconConverter}, ConverterParameter=Icon}" 
                                                                  Foreground="{Binding MustChangePassword, Converter={StaticResource BooleanToIconConverter}, ConverterParameter=Color}"
-                                                                 Width="20" Height="20" HorizontalAlignment="Center"/>
+                                                                 Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                             
-                            <DataGridTemplateColumn Header="TRẠNG THÁI" Width="130">
+                            <DataGridTemplateColumn Header="TRẠNG THÁI" Width="180" SortMemberPath="IsActive">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <ToggleButton Style="{StaticResource MaterialDesignSwitchToggleButton}" 
-                                                      IsChecked="{Binding IsActive, Mode=OneWay}"
-                                                      Command="{Binding DataContext.ToggleStatusCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                      CommandParameter="{Binding}"
-                                                      ToolTip="Bật/Tắt trạng thái hoạt động"
-                                                      HorizontalAlignment="Left" VerticalAlignment="Center"
-                                                      Margin="12,0"/>
+                                        <Border Padding="12,4" CornerRadius="12" HorizontalAlignment="Center" VerticalAlignment="Center" >
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="#FEE2E2"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                            <Setter Property="Background" Value="#DCFCE7"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Ellipse Width="8" Height="8" Margin="0,0,8,0">
+                                                    <Ellipse.Style>
+                                                        <Style TargetType="Ellipse">
+                                                            <Setter Property="Fill" Value="#EF4444"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                                    <Setter Property="Fill" Value="#22C55E"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Ellipse.Style>
+                                                </Ellipse>
+                                                <TextBlock FontSize="11" FontWeight="Bold">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Text" Value="NGỪNG HOẠT ĐỘNG"/>
+                                                            <Setter Property="Foreground" Value="#991B1B"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                                    <Setter Property="Text" Value="ĐANG HOẠT ĐỘNG"/>
+                                                                    <Setter Property="Foreground" Value="#166534"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </Border>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -273,7 +309,12 @@
                         </StackPanel>
                         
                         <TextBlock Text="Lưu ý: Tên tài khoản là duy nhất và không thể thay đổi sau khi tạo." 
-                                   Style="{StaticResource TypographyCaption}" Foreground="{StaticResource AppSecondaryBrush}" FontStyle="Italic" TextWrapping="Wrap"/>
+                                   Style="{StaticResource TypographyCaption}" Foreground="{StaticResource AppSecondaryBrush}" FontStyle="Italic" TextWrapping="Wrap"
+                                   Margin="0,0,0,12"/>
+
+                        <CheckBox Content="Đang hoạt động" IsChecked="{Binding CurrentInputUser.IsActive}" 
+                                  Style="{StaticResource MaterialDesignCheckBox}"
+                                  FontWeight="SemiBold" FontSize="14" Foreground="{StaticResource AppPrimaryBrush}"/>
                     </StackPanel>
 
                     <Border Grid.Row="2" Background="{StaticResource AppBackgroundBrush}" Padding="24,16" CornerRadius="0,0,12,12">

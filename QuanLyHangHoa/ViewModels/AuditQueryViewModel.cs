@@ -23,7 +23,7 @@ namespace QuanLyHangHoa.ViewModels
 
         public AuditQueryViewModel()
             : this(
-                new ProductService().GetAllProducts,
+                () => new ProductService().GetAllProducts(),
                 new AuditQueryService().GetProductLedger,
                 new AuditQueryService().GetDocumentTimeline)
         {

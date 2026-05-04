@@ -119,9 +119,9 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void OpenCategoryView()
         {
-            CurrentView = new CategoryView();
-            CurrentViewTitle = "PHÂN LOẠI";
-            CurrentViewSubtitle = "Quản lý nhóm hàng hóa";
+            CurrentView = new CategoryView { DataContext = new CategoryViewModel(_dbContext, CurrentUser!) };
+            CurrentViewTitle = "DANH MỤC";
+            CurrentViewSubtitle = "Quản lý nhóm phân loại sản phẩm";
         }
 
         [RelayCommand]
@@ -197,6 +197,21 @@ namespace QuanLyHangHoa.ViewModels
                 CurrentView = new AppUserView { DataContext = new AppUserViewModel(CurrentUser, _dbContext) };
                 CurrentViewTitle = "NGƯỜI DÙNG";
                 CurrentViewSubtitle = "Quản lý tài khoản hệ thống";
+            }
+            else
+            {
+                System.Windows.MessageBox.Show("Bạn không có quyền truy cập!", "Thông báo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            }
+        }
+
+        [RelayCommand]
+        private void OpenAuditLogView()
+        {
+            if (IsAdmin)
+            {
+                CurrentView = new AuditLogView { DataContext = new AuditLogViewModel(new AuditQueryService(), new AppUserService(_dbContext)) };
+                CurrentViewTitle = "NHẬT KÝ HỆ THỐNG";
+                CurrentViewSubtitle = "Theo dõi lịch sử thay đổi dữ liệu toàn hệ thống";
             }
             else
             {

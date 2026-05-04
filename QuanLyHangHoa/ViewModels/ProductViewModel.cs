@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
+using QuanLyHangHoa.Views;
 
 namespace QuanLyHangHoa.ViewModels
 {
@@ -20,123 +21,170 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private ObservableCollection<Brand> _brands = new();
         [ObservableProperty] private ObservableCollection<Unit> _units = new();
 
-        // Object for editing/input
-        [ObservableProperty] private Product _currentInputProduct = new();
+        // Search Filters
+        [ObservableProperty] private string _searchCode = string.Empty;
+        [ObservableProperty] private string _searchName = string.Empty;
+        [ObservableProperty] private string _searchStatus = "Tất cả";
+        [ObservableProperty] private Category? _selectedCategoryFilter;
 
-        [ObservableProperty] private string _searchText = string.Empty;
+        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Hoạt động", "Dừng hoạt động"];
+
+        [ObservableProperty] private int _lowStockCount;
+        [ObservableProperty] private int _outOfStockCount;
 
         public ProductViewModel()
         {
             _service = new ProductService();
             _refDataService = new ReferenceDataService();
+            
+            Categories = new ObservableCollection<Category>(_refDataService.GetAllCategories(false)); // Include inactive for filtering if needed
+            Brands = new ObservableCollection<Brand>(_refDataService.GetAllBrands());
+            Units = new ObservableCollection<Unit>(_refDataService.GetAllUnits());
+
             LoadData();
-            Clear();
         }
 
         private void LoadData()
         {
-            var results = _service.GetAllProducts();
-            if (!string.IsNullOrWhiteSpace(SearchText))
+            var results = _service.GetAllProducts(onlyActive: false); // We handle filtering in VM
+
+            // Apply Filters
+            if (!string.IsNullOrWhiteSpace(SearchCode))
             {
-                var term = SearchText.ToLower();
-                results = results.Where(p => 
-                    p.DisplayName.ToLower().Contains(term) || 
-                    p.ProductCode.ToLower().Contains(term)).ToList();
+                var term = SearchCode.ToLower();
+                results = results.Where(p => p.ProductCode.ToLower().Contains(term)).ToList();
             }
+
+            if (!string.IsNullOrWhiteSpace(SearchName))
+            {
+                var term = SearchName.ToLower();
+                results = results.Where(p => p.DisplayName.ToLower().Contains(term)).ToList();
+            }
+
+            if (SearchStatus != "Tất cả")
+            {
+                bool active = SearchStatus == "Hoạt động";
+                results = results.Where(p => p.IsActive == active).ToList();
+            }
+
+            if (SelectedCategoryFilter != null)
+            {
+                results = results.Where(p => p.CategoryId == SelectedCategoryFilter.Id).ToList();
+            }
+
             Products = new ObservableCollection<Product>(results);
-            
-            Categories = new ObservableCollection<Category>(_refDataService.GetAllCategories());
-            Brands = new ObservableCollection<Brand>(_refDataService.GetAllBrands());
-            Units = new ObservableCollection<Unit>(_refDataService.GetAllUnits());
+
+            // Update Stats
+            LowStockCount = results.Count(p => p.StockBalances.Sum(sb => sb.OnHandQuantity) > 0 && p.StockBalances.Sum(sb => sb.OnHandQuantity) <= 5);
+            OutOfStockCount = results.Count(p => p.StockBalances.Sum(sb => sb.OnHandQuantity) <= 0);
         }
 
         [RelayCommand]
         private void Search() => LoadData();
 
         [RelayCommand]
-        private void SaveProduct()
+        private void OpenAddProductWindow()
         {
-            if (string.IsNullOrWhiteSpace(CurrentInputProduct.DisplayName) || 
-                string.IsNullOrWhiteSpace(CurrentInputProduct.ProductCode)) 
+            var vm = new ProductEditViewModel();
+            var window = new ProductEditWindow { DataContext = vm };
+            if (window.ShowDialog() == true)
             {
-                MessageBox.Show("Vui lòng nhập đầy đủ Mã và Tên sản phẩm!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
+                LoadData();
             }
-
-            if (SelectedProduct == null)
-            {
-                CurrentInputProduct.IsActive = true;
-                _service.AddProduct(CurrentInputProduct);
-            }
-            else
-            {
-                _service.UpdateProduct(CurrentInputProduct);
-            }
-            LoadData();
-            Clear();
         }
 
         [RelayCommand]
-        private void DeleteProduct()
+        private void OpenEditProductWindow(Product? product)
         {
-            if (SelectedProduct != null)
+            if (product == null) return;
+            var vm = new ProductEditViewModel(product);
+            var window = new ProductEditWindow { DataContext = vm };
+            if (window.ShowDialog() == true)
             {
-                var result = MessageBox.Show($"Bạn có chắc chắn muốn xoá sản phẩm '{SelectedProduct.DisplayName}'?", 
-                    "Xác nhận xoá", MessageBoxButton.YesNo, MessageBoxImage.Question);
-                    
-                if (result == MessageBoxResult.Yes)
+                LoadData();
+            }
+        }
+
+        [RelayCommand]
+        private void DeleteProduct(Product? product)
+        {
+            if (product == null) return;
+            
+            var result = MessageBox.Show($"Bạn có chắc chắn muốn xoá sản phẩm '{product.DisplayName}'?", 
+                "Xác nhận xoá", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                
+            if (result == MessageBoxResult.Yes)
+            {
+                _service.DeactivateProduct(product.Id);
+                LoadData();
+            }
+        }
+
+        [RelayCommand]
+        private void ExportToExcel()
+        {
+            if (Products == null || !Products.Any())
+            {
+                MessageBox.Show("Không có dữ liệu để xuất.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var saveFileDialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "Excel Files (*.xlsx)|*.xlsx",
+                FileName = $"DanhSachSanPham_{DateTime.Now:yyyyMMdd_HHmm}.xlsx",
+                Title = "Xuất danh sách sản phẩm"
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                try
                 {
-                    _service.DeactivateProduct(SelectedProduct.Id);
-                    LoadData();
-                    Clear();
+                    using var workbook = new ClosedXML.Excel.XLWorkbook();
+                    var worksheet = workbook.Worksheets.Add("Products");
+
+                    // Headers
+                    string[] headers = { "Mã sản phẩm", "Tên sản phẩm", "Danh mục", "Thương hiệu", "Đơn vị", "Giá bán", "Tồn kho", "Trạng thái" };
+                    for (int i = 0; i < headers.Length; i++)
+                    {
+                        var cell = worksheet.Cell(1, i + 1);
+                        cell.Value = headers[i];
+                        cell.Style.Font.Bold = true;
+                        cell.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#4A5568");
+                        cell.Style.Font.FontColor = ClosedXML.Excel.XLColor.White;
+                    }
+
+                    // Data
+                    int row = 2;
+                    foreach (var p in Products)
+                    {
+                        worksheet.Cell(row, 1).Value = p.ProductCode;
+                        worksheet.Cell(row, 2).Value = p.DisplayName;
+                        worksheet.Cell(row, 3).Value = p.Category?.DisplayName ?? "N/A";
+                        worksheet.Cell(row, 4).Value = p.Brand?.DisplayName ?? "N/A";
+                        worksheet.Cell(row, 5).Value = p.DefaultUnit?.DisplayName ?? "N/A";
+                        worksheet.Cell(row, 6).Value = p.DefaultPrice;
+                        worksheet.Cell(row, 6).Style.NumberFormat.Format = "#,##0";
+                        worksheet.Cell(row, 7).Value = p.StockBalances.Sum(sb => sb.OnHandQuantity);
+                        worksheet.Cell(row, 8).Value = p.IsActive ? "Hoạt động" : "Dừng hoạt động";
+                        row++;
+                    }
+
+                    worksheet.Columns().AdjustToContents();
+                    workbook.SaveAs(saveFileDialog.FileName);
+                    
+                    MessageBox.Show($"Đã xuất {Products.Count} sản phẩm ra tệp Excel thành công.", "Thành công", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Lỗi khi xuất Excel: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
 
-        [RelayCommand]
-        private void ClearInput() => Clear();
-
-        private void Clear()
-        {
-            SelectedProduct = null;
-            CurrentInputProduct = new Product 
-            { 
-                IsActive = true,
-                CategoryId = Categories.FirstOrDefault()?.Id ?? 0,
-                BrandId = Brands.FirstOrDefault()?.Id ?? 0,
-                DefaultUnitId = Units.FirstOrDefault()?.Id ?? 0
-            };
-        }
-
-        partial void OnSelectedProductChanged(Product? value)
-        {
-            if (value != null)
-            {
-                // Create a copy for editing to avoid direct binding updates to the list item before save
-                CurrentInputProduct = new Product
-                {
-                    Id = value.Id,
-                    ProductCode = value.ProductCode,
-                    DisplayName = value.DisplayName,
-                    CategoryId = value.CategoryId,
-                    BrandId = value.BrandId,
-                    DefaultUnitId = value.DefaultUnitId,
-                    DefaultPrice = value.DefaultPrice,
-                    OriginCountry = value.OriginCountry,
-                    WarrantyPeriodMonths = value.WarrantyPeriodMonths,
-                    IsSerialTracked = value.IsSerialTracked,
-                    IsActive = value.IsActive
-                };
-            }
-            else
-            {
-                Clear();
-            }
-        }
-
-        partial void OnSearchTextChanged(string value)
-        {
-            LoadData();
-        }
+        partial void OnSearchCodeChanged(string value) => LoadData();
+        partial void OnSearchNameChanged(string value) => LoadData();
+        partial void OnSearchStatusChanged(string value) => LoadData();
+        partial void OnSelectedCategoryFilterChanged(Category? value) => LoadData();
     }
 }

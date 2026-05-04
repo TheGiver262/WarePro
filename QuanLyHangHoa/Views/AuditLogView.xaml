@@ -1,0 +1,131 @@
+<UserControl x:Class="QuanLyHangHoa.Views.AuditLogView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:vm="clr-namespace:QuanLyHangHoa.ViewModels"
+             mc:Ignorable="d" 
+             d:DesignHeight="800" d:DesignWidth="1200">
+    
+    <Grid Background="{StaticResource AppBackgroundBrush}">
+        <Grid Margin="{StaticResource PagePadding}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header Section -->
+            <materialDesign:Card Grid.Row="0" Margin="{StaticResource Margin.Bottom.md}" Background="Transparent" materialDesign:ShadowAssist.ShadowDepth="Depth0" Padding="{StaticResource Spacing.sm}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="ShieldCheck" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
+                        <TextBlock Text="NHẬT KÝ HỆ THỐNG" Style="{DynamicResource TypographyH2}" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.md}"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <Button Content="LƯU TRỮ (>1 NĂM)" Command="{Binding ArchiveCommand}" Style="{StaticResource MaterialDesignFlatButton}" Foreground="{StaticResource AppSecondaryBrush}" Margin="{StaticResource Margin.Right.md}">
+                            <Button.ToolTip>Xóa các nhật ký cũ hơn 1 năm để giảm tải hệ thống</Button.ToolTip>
+                        </Button>
+                        <Button Style="{StaticResource MaterialDesignIconButton}" Command="{Binding LoadLogsCommand}">
+                            <materialDesign:PackIcon Kind="Refresh" />
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </materialDesign:Card>
+
+            <!-- Search / Action Row -->
+            <materialDesign:Card Grid.Row="1" Margin="{StaticResource Margin.Bottom.md}" Padding="{StaticResource Spacing.md}" Style="{StaticResource AppCard}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="200"/>
+                        <ColumnDefinition Width="150"/>
+                        <ColumnDefinition Width="150"/>
+                        <ColumnDefinition Width="150"/>
+                        <ColumnDefinition Width="150"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Search Box -->
+                    <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="Tìm kiếm..." Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" 
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}" Margin="{StaticResource Margin.Right.sm}">
+                        <TextBox.InputBindings>
+                            <KeyBinding Key="Enter" Command="{Binding LoadLogsCommand}"/>
+                        </TextBox.InputBindings>
+                    </TextBox>
+
+                    <!-- Entity Filter -->
+                    <ComboBox Grid.Column="1" materialDesign:HintAssist.Hint="Đối tượng" ItemsSource="{Binding EntityNames}" SelectedItem="{Binding SelectedEntity}"
+                              Style="{StaticResource MaterialDesignOutlinedComboBox}" Margin="{StaticResource Margin.Right.sm}"/>
+
+                    <!-- Action Filter -->
+                    <ComboBox Grid.Column="2" materialDesign:HintAssist.Hint="Hành động" ItemsSource="{Binding ActionCodes}" SelectedItem="{Binding SelectedAction}"
+                              Style="{StaticResource MaterialDesignOutlinedComboBox}" Margin="{StaticResource Margin.Right.sm}"/>
+
+                    <!-- User Filter -->
+                    <ComboBox Grid.Column="3" materialDesign:HintAssist.Hint="Nhân viên" ItemsSource="{Binding Users}" SelectedItem="{Binding SelectedUser}"
+                              DisplayMemberPath="FullName" Style="{StaticResource MaterialDesignOutlinedComboBox}" Margin="{StaticResource Margin.Right.sm}"/>
+
+                    <!-- Date Range -->
+                    <DatePicker Grid.Column="4" materialDesign:HintAssist.Hint="Từ ngày" SelectedDate="{Binding FromDate}"
+                                Style="{StaticResource MaterialDesignOutlinedDatePicker}" Margin="{StaticResource Margin.Right.sm}"/>
+
+                    <DatePicker Grid.Column="5" materialDesign:HintAssist.Hint="Đến ngày" SelectedDate="{Binding ToDate}"
+                                Style="{StaticResource MaterialDesignOutlinedDatePicker}" Margin="{StaticResource Margin.Right.sm}"/>
+
+                    <StackPanel Grid.Column="6" Orientation="Horizontal">
+                        <Button Content="LỌC" Command="{Binding LoadLogsCommand}" Style="{StaticResource AppPrimaryButton}" Margin="{StaticResource Margin.Right.sm}"/>
+                        <Button Content="RESET" Command="{Binding ResetFiltersCommand}" Style="{StaticResource MaterialDesignOutlinedButton}"/>
+                    </StackPanel>
+                </Grid>
+            </materialDesign:Card>
+
+            <!-- Main Content Area -->
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="280"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- DataGrid -->
+                <materialDesign:Card Grid.Column="0" Style="{StaticResource AppCard}" Padding="0" Margin="{StaticResource Margin.Right.md}">
+                    <DataGrid ItemsSource="{Binding Logs}" SelectedItem="{Binding SelectedLog}" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                              RowHeight="32" BorderThickness="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="THỜI GIAN" Binding="{Binding PerformedAt, StringFormat='{}{0:dd/MM/yyyy HH:mm}'}" Width="140"/>
+                            <DataGridTextColumn Header="NHÂN VIÊN" Binding="{Binding Performer.FullName}" Width="130"/>
+                            <DataGridTextColumn Header="ĐỐI TƯỢNG" Binding="{Binding EntityName}" Width="100"/>
+                            <DataGridTextColumn Header="HÀNH ĐỘNG" Binding="{Binding ActionCode}" Width="*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </materialDesign:Card>
+
+                <!-- Detail Panel -->
+                <materialDesign:Card Grid.Column="1" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.md}" Width="250">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0" Margin="{StaticResource Margin.Bottom.md}">
+                            <TextBlock Text="CHI TIẾT THAY ĐỔI" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppTertiaryBrush}"/>
+                            <Separator Background="{StaticResource AppBorderBrush}" Margin="{StaticResource Margin.Top.sm}"/>
+                        </StackPanel>
+
+                        <ScrollViewer Grid.Row="1">
+                            <TextBlock Text="{Binding DiffResult}" TextWrapping="Wrap" FontSize="13" FontFamily="Consolas" Foreground="{StaticResource TextSecondaryBrush}"/>
+                        </ScrollViewer>
+                    </Grid>
+                </materialDesign:Card>
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>

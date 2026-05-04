@@ -1,0 +1,137 @@
+<Window x:Class="QuanLyHangHoa.Views.ProductEditWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="{Binding Title}" Height="680" Width="550"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent">
+    
+    <Border Background="{StaticResource AppSurfaceBrush}" CornerRadius="{StaticResource Radius.lg}" BorderThickness="1" BorderBrush="{StaticResource AppBorderBrush}">
+        <Grid Margin="24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <StackPanel Grid.Row="0" Margin="0,0,0,24">
+                <TextBlock Text="{Binding Title}" Style="{StaticResource TypographyH2}"/>
+                <TextBlock Text="Cập nhật thông tin chi tiết cho sản phẩm" Style="{StaticResource TypographyCaption}"/>
+            </StackPanel>
+
+            <!-- Form -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,0,0,16">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                            <TextBlock Text="Mã sản phẩm" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8"/>
+                            <TextBox Style="{StaticResource AppTextBoxStyle}" 
+                                     materialDesign:HintAssist.Hint="Nhập mã SP"
+                                     materialDesign:HintAssist.IsFloating="False"
+                                     Text="{Binding Product.ProductCode, UpdateSourceTrigger=PropertyChanged}"
+                                     Height="50" Margin="0,0,0,20"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                            <TextBlock Text="Tên sản phẩm" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8"/>
+                            <TextBox Style="{StaticResource AppTextBoxStyle}" 
+                                     materialDesign:HintAssist.Hint="Nhập tên SP"
+                                     materialDesign:HintAssist.IsFloating="False"
+                                     Text="{Binding Product.DisplayName, UpdateSourceTrigger=PropertyChanged}"
+                                     Height="50" Margin="0,0,0,20"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock Text="Danh mục" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8"/>
+                    <ComboBox Style="{StaticResource AppComboBoxStyle}" 
+                              materialDesign:HintAssist.Hint="Chọn danh mục"
+                              materialDesign:HintAssist.IsFloating="False"
+                              Height="50" Margin="0,0,0,20"
+                              ItemsSource="{Binding Categories}"
+                              DisplayMemberPath="DisplayName"
+                              SelectedValuePath="Id"
+                              SelectedValue="{Binding Product.CategoryId}"/>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                            <TextBlock Text="Thương hiệu" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8"/>
+                            <ComboBox Style="{StaticResource AppComboBoxStyle}" 
+                                      materialDesign:HintAssist.Hint="Chọn thương hiệu"
+                                      materialDesign:HintAssist.IsFloating="False"
+                                      Height="50" Margin="0,0,0,20"
+                                      ItemsSource="{Binding Brands}"
+                                      DisplayMemberPath="DisplayName"
+                                      SelectedValuePath="Id"
+                                      SelectedValue="{Binding Product.BrandId}"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                            <TextBlock Text="Đơn vị tính" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8"/>
+                            <ComboBox Style="{StaticResource AppComboBoxStyle}" 
+                                      materialDesign:HintAssist.Hint="Chọn đơn vị"
+                                      materialDesign:HintAssist.IsFloating="False"
+                                      Height="50" Margin="0,0,0,20"
+                                      ItemsSource="{Binding Units}"
+                                      DisplayMemberPath="DisplayName"
+                                      SelectedValuePath="Id"
+                                      SelectedValue="{Binding Product.DefaultUnitId}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                            <TextBlock Text="Giá bán mặc định" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8"/>
+                            <TextBox Style="{StaticResource AppTextBoxStyle}" 
+                                     materialDesign:HintAssist.Hint="0"
+                                     materialDesign:HintAssist.IsFloating="False"
+                                     Text="{Binding Product.DefaultPrice, StringFormat=N0}"
+                                     Height="50" Margin="0,0,0,20"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                            <TextBlock Text="Xuất xứ" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8"/>
+                            <TextBox Style="{StaticResource AppTextBoxStyle}" 
+                                     materialDesign:HintAssist.Hint="Nhập xuất xứ"
+                                     materialDesign:HintAssist.IsFloating="False"
+                                     Text="{Binding Product.OriginCountry}"
+                                     Height="50" Margin="0,0,0,20"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <StackPanel Margin="0,0,0,20">
+                        <CheckBox Content="Quản lý theo Serial" IsChecked="{Binding Product.IsSerialTracked}" Style="{StaticResource MaterialDesignCheckBox}"/>
+                        <CheckBox Content="Đang kinh doanh" IsChecked="{Binding Product.IsActive}" Style="{StaticResource MaterialDesignCheckBox}" Margin="0,8,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Actions -->
+            <Grid Grid.Row="2" Margin="0,12,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Button Grid.Column="0" Content="HUỶ BỎ" Style="{StaticResource MaterialDesignFlatButton}" 
+                        Margin="0,0,8,0" Command="{Binding CancelCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}"/>
+                <Button Grid.Column="1" Content="XÁC NHẬN" Style="{StaticResource AppPrimaryButton}" 
+                        Margin="8,0,0,0" Command="{Binding ConfirmCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}"/>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

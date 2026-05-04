@@ -33,10 +33,12 @@ namespace QuanLyHangHoa.Services
         }
 
         // ── CATEGORIES ────────────────────────────────────────────────────────
-        public virtual List<Category> GetAllCategories()
+        public virtual List<Category> GetAllCategories(bool onlyActive = true)
         {
             using var db = new AppDbContext();
-            return db.Categories.Where(c => c.IsActive).ToList();
+            var query = db.Categories.AsQueryable();
+            if (onlyActive) query = query.Where(c => c.IsActive);
+            return query.ToList();
         }
         public virtual void AddCategory(Category c) { using var db = new AppDbContext(); db.Categories.Add(c); db.SaveChanges(); }
         public virtual void UpdateCategory(Category updated)

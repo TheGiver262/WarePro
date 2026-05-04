@@ -38,6 +38,12 @@ namespace QuanLyHangHoa.Services
         {
             var db = _contextFactory();
             
+            // Check for duplicate username
+            if (db.AppUsers.Any(u => u.Username == user.Username))
+            {
+                throw new InvalidOperationException($"Tên tài khoản '{user.Username}' đã tồn tại trong hệ thống. Vui lòng chọn tên khác.");
+            }
+
             // Default password is username if not set
             if (string.IsNullOrWhiteSpace(user.PasswordHash))
             {
@@ -50,38 +56,72 @@ namespace QuanLyHangHoa.Services
 
             user.CreatedBy = performedByUserId;
             user.CreatedAt = DateTime.UtcNow;
-            user.MustChangePassword = true; // Always require password change for new users
+            user.MustChangePassword = true; 
             
-            db.AppUsers.Add(user);
-            db.SaveChanges();
+            try
+            {
+                db.AppUsers.Add(user);
+                db.SaveChanges();
 
-            AddAudit(db, "AppUser", user.Id, "Create", performedByUserId);
-            db.SaveChanges();
+                // Capture the new user state for audit using anonymous object to avoid serialization cycles
+                var newState = new { user.Username, user.FullName, user.RoleCode, user.IsActive };
+                AddAudit(db, "AppUser", user.Id, "CREATE", performedByUserId, null, newState);
+                db.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                var message = ex.InnerException?.Message ?? ex.Message;
+                throw new Exception($"Lỗi khi lưu người dùng: {message}", ex);
+            }
         }
 
         public void UpdateUser(AppUser updatedUser, int performedByUserId)
         {
             var db = _contextFactory();
-            var user = db.AppUsers.Find(updatedUser.Id);
-            if (user == null)
+            var existing = db.AppUsers.Find(updatedUser.Id);
+            if (existing != null)
             {
-                throw new InvalidOperationException("User not found.");
+                // Capture old state
+                var oldState = new { existing.FullName, existing.RoleCode, existing.IsActive };
+                
+                existing.FullName = updatedUser.FullName;
+                existing.RoleCode = updatedUser.RoleCode;
+                existing.IsActive = updatedUser.IsActive;
+
+                // Optional: update password if provided in plaintext (handle with care in UI)
+                if (!string.IsNullOrWhiteSpace(updatedUser.PasswordHash) && !updatedUser.PasswordHash.StartsWith("$2"))
+                {
+                    existing.PasswordHash = BCrypt.Net.BCrypt.HashPassword(updatedUser.PasswordHash);
+                    existing.LastPasswordChangedAt = DateTime.UtcNow;
+                }
+                
+                db.SaveChanges();
+                
+                // Capture new state
+                var newState = new { existing.FullName, existing.RoleCode, existing.IsActive };
+                
+                AddAudit(db, "AppUser", existing.Id, "UPDATE", performedByUserId, oldState, newState);
+                db.SaveChanges();
             }
+        }
 
-            user.FullName = updatedUser.FullName;
-            user.RoleCode = updatedUser.RoleCode;
-            user.IsActive = updatedUser.IsActive;
-
-            // Optional: update password if provided in plaintext (handle with care in UI)
-            if (!string.IsNullOrWhiteSpace(updatedUser.PasswordHash) && !updatedUser.PasswordHash.StartsWith("$2"))
+        public void ToggleUserStatus(int userId, int performedByUserId)
+        {
+            var db = _contextFactory();
+            var user = db.AppUsers.Find(userId);
+            if (user != null)
             {
-                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(updatedUser.PasswordHash);
-                user.LastPasswordChangedAt = DateTime.UtcNow;
+                var oldState = new { user.IsActive, user.Username };
+                user.IsActive = !user.IsActive;
+                
+                string action = user.IsActive ? "ACTIVATE" : "DEACTIVATE";
+                
+                db.SaveChanges();
+                
+                var newState = new { user.IsActive, user.Username };
+                AddAudit(db, "AppUser", user.Id, action, performedByUserId, oldState, newState);
+                db.SaveChanges();
             }
-
-            db.SaveChanges();
-            AddAudit(db, "AppUser", user.Id, "Update", performedByUserId);
-            db.SaveChanges();
         }
 
         public void DeleteUser(int id, int performedByUserId)
@@ -105,39 +145,35 @@ namespace QuanLyHangHoa.Services
 
             try
             {
+                // Capture state before delete for audit
+                var oldState = new { user.Username, user.FullName, user.RoleCode };
+                
                 db.AppUsers.Remove(user);
                 db.SaveChanges();
-                AddAudit(db, "AppUser", id, "Delete", performedByUserId);
+                
+                AddAudit(db, "AppUser", id, "DELETE", performedByUserId, oldState, null);
                 db.SaveChanges();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw new InvalidOperationException("Không thể xoá người dùng này vì đã có dữ liệu giao dịch liên quan. Hãy sử dụng chức năng vô hiệu hoá thay thế.");
+                var message = ex.InnerException?.Message ?? ex.Message;
+                throw new Exception($"Lỗi khi xoá người dùng: {message}", ex);
             }
         }
 
-        public void ToggleActiveStatus(int id, int performedByUserId)
+        private void AddAudit(AppDbContext db, string entityName, int entityId, string action, int userId, object? oldValues = null, object? newValues = null)
         {
-            var db = _contextFactory();
-            var user = db.AppUsers.Find(id);
-            if (user == null) return;
-
-            user.IsActive = !user.IsActive;
-            db.SaveChanges();
-            AddAudit(db, "AppUser", id, user.IsActive ? "Activate" : "Deactivate", performedByUserId);
-            db.SaveChanges();
-        }
-
-        private void AddAudit(AppDbContext db, string entityName, int entityId, string action, int performedByUserId)
-        {
-            db.AuditLogs.Add(new AuditLog
+            var log = new AuditLog
             {
                 EntityName = entityName,
                 EntityId = entityId,
                 ActionCode = action,
-                PerformedBy = performedByUserId,
-                PerformedAt = DateTime.UtcNow
-            });
+                PerformedBy = userId,
+                PerformedAt = DateTime.UtcNow,
+                BeforeJson = oldValues != null ? System.Text.Json.JsonSerializer.Serialize(oldValues) : null,
+                AfterJson = newValues != null ? System.Text.Json.JsonSerializer.Serialize(newValues) : null
+            };
+            db.AuditLogs.Add(log);
         }
     }
 }

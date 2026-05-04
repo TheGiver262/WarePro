@@ -22,11 +22,15 @@ namespace QuanLyHangHoa.Services
             _contextFactory = contextFactory;
         }
 
-        public virtual List<Product> GetAllProducts()
+        public virtual List<Product> GetAllProducts(bool onlyActive = false)
         {
             using var db = _contextFactory();
-            return db.Products
-                .Where(p => p.IsActive)
+            var query = db.Products.AsQueryable();
+            if (onlyActive)
+            {
+                query = query.Where(p => p.IsActive);
+            }
+            return query
                 .Include(p => p.Category)
                 .Include(p => p.Brand)
                 .Include(p => p.DefaultUnit)
