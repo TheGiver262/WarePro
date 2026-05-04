@@ -6,7 +6,7 @@
         WindowStartupLocation="CenterScreen"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent">
     
-    <Border Background="{StaticResource AppBackgroundBrush}" CornerRadius="{StaticResource Radius.lg}" BorderThickness="1" BorderBrush="{StaticResource AppBorderBrush}">
+    <Border Background="{StaticResource AppSurfaceBrush}" CornerRadius="{StaticResource Radius.lg}" BorderThickness="1" BorderBrush="{StaticResource AppBorderBrush}">
         <Grid Margin="24">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>

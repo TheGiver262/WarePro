@@ -21,7 +21,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty]
         private string _currentViewSubtitle = "Tổng quan hoạt động kinh doanh";
 
-        public bool IsAdmin => CurrentUser.RoleCode == "Admin";
+        public bool IsAdmin => CurrentUser.RoleCode == "Quản trị viên";
 
         private readonly Data.AppDbContext _dbContext;
         private readonly DashboardService _dashboardService;

@@ -113,10 +113,17 @@
                               AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                               RowHeight="48" BorderThickness="0" Background="Transparent">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="80" 
+                            <DataGridTextColumn Header="STT" Width="60" 
+                                                Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowIndexConverter}}"
                                                 ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
                             
-                            <DataGridTemplateColumn Header="HỌ VÀ TÊN" Width="*">
+                            <DataGridTemplateColumn Width="*" SortMemberPath="FullName">
+                                <DataGridTemplateColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="HỌ VÀ TÊN" VerticalAlignment="Center"/>
+                                        <materialDesign:PackIcon Kind="Sort" Width="14" Height="14" Margin="4,0,0,0" VerticalAlignment="Center" Opacity="0.5"/>
+                                    </StackPanel>
+                                </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
@@ -127,10 +134,23 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                             
-                            <DataGridTextColumn Header="TÀI KHOẢN" Binding="{Binding Username}" Width="180" 
-                                                ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+                            <DataGridTextColumn Binding="{Binding Username}" Width="150" 
+                                                ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}">
+                                <DataGridTextColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="TÀI KHOẢN" VerticalAlignment="Center"/>
+                                        <materialDesign:PackIcon Kind="Sort" Width="14" Height="14" Margin="4,0,0,0" VerticalAlignment="Center" Opacity="0.5"/>
+                                    </StackPanel>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
                             
-                            <DataGridTemplateColumn Header="VAI TRÒ" Width="120">
+                            <DataGridTemplateColumn Width="170" SortMemberPath="RoleCode">
+                                <DataGridTemplateColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="VAI TRÒ" VerticalAlignment="Center"/>
+                                        <materialDesign:PackIcon Kind="Sort" Width="14" Height="14" Margin="4,0,0,0" VerticalAlignment="Center" Opacity="0.5"/>
+                                    </StackPanel>
+                                </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Border Padding="10,4" CornerRadius="6" Background="#F0F9FF" HorizontalAlignment="Left" VerticalAlignment="Center">
@@ -140,8 +160,15 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTextColumn Header="NGÀY TẠO" Binding="{Binding CreatedAt, StringFormat=\{0:dd/MM/yyyy\}}" Width="120" 
-                                                ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+                            <DataGridTextColumn Binding="{Binding CreatedAt, StringFormat=\{0:dd/MM/yyyy\}}" Width="130" 
+                                                ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}">
+                                <DataGridTextColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="NGÀY TẠO" VerticalAlignment="Center"/>
+                                        <materialDesign:PackIcon Kind="Sort" Width="14" Height="14" Margin="4,0,0,0" VerticalAlignment="Center" Opacity="0.5"/>
+                                    </StackPanel>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
 
                             <DataGridTemplateColumn Header="ĐỔI MK" Width="100">
                                 <DataGridTemplateColumn.CellTemplate>
@@ -153,7 +180,7 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                             
-                            <DataGridTemplateColumn Header="TRẠNG THÁI" Width="140">
+                            <DataGridTemplateColumn Header="TRẠNG THÁI" Width="130">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <ToggleButton Style="{StaticResource MaterialDesignSwitchToggleButton}" 

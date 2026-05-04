@@ -8,4 +8,5 @@
     <converters:BooleanToStatusConverter x:Key="BooleanToStatusConverter" />
     <converters:SafePackIconKindConverter x:Key="SafePackIconKindConverter" />
     <converters:BooleanToIconConverter x:Key="BooleanToIconConverter" />
+    <converters:RowIndexConverter x:Key="RowIndexConverter" />
 </ResourceDictionary>

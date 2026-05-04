@@ -20,14 +20,23 @@ namespace QuanLyHangHoa.Services
     {
         private static readonly Dictionary<string, HashSet<PermissionAction>> RolePermissions = new(StringComparer.OrdinalIgnoreCase)
         {
-            ["Admin"] = AllPermissions(),
-            ["Manager"] = AllPermissionsExcept(PermissionAction.ManageUsers),
-            ["Staff"] = new()
+            ["Quản trị viên"] = AllPermissions(),
+            ["Quản lý"] = AllPermissionsExcept(PermissionAction.ManageUsers),
+            ["Nhân viên bảo hành"] = new()
+            {
+                PermissionAction.CreateWarrantyClaim,
+                PermissionAction.ViewReports
+            },
+            ["Nhân viên bán hàng"] = new()
+            {
+                PermissionAction.CreateSalesInvoice,
+                PermissionAction.ViewReports
+            },
+            ["Nhân viên kho"] = new()
             {
                 PermissionAction.PostStockIn,
                 PermissionAction.PostStockOut,
-                PermissionAction.CreateSalesInvoice,
-                PermissionAction.CreateWarrantyClaim,
+                PermissionAction.PostStockAdjustment,
                 PermissionAction.ViewReports
             }
         };

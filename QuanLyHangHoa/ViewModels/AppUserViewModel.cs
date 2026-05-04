@@ -30,14 +30,14 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private DateTime? _searchDate;
         [ObservableProperty] private bool _isEditPanelOpen;
 
-        public ObservableCollection<string> Roles { get; } = ["Tất cả", "Admin", "Manager", "Staff"];
+        public ObservableCollection<string> Roles { get; } = ["Tất cả", "Quản trị viên", "Quản lý", "Nhân viên bảo hành", "Nhân viên bán hàng", "Nhân viên kho"];
 
         public AppUserViewModel()
             : this(null, new Data.AppDbContext())
         {
         }
 
-        public bool IsAdmin => _currentUser?.RoleCode == "Admin";
+        public bool IsAdmin => _currentUser?.RoleCode == "Quản trị viên";
 
         public AppUserViewModel(AppUser? currentUser, Data.AppDbContext dbContext)
         {
