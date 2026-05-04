@@ -23,33 +23,78 @@ namespace QuanLyHangHoa.ViewModels
         private AppUser? _selectedUser;
 
         [ObservableProperty] private AppUser _currentInputUser = new();
-        [ObservableProperty] private string _searchText = string.Empty;
+        
+        [ObservableProperty] private string _searchFullName = string.Empty;
+        [ObservableProperty] private string _searchUsername = string.Empty;
+        [ObservableProperty] private string _searchRole = "Tất cả";
+        [ObservableProperty] private DateTime? _searchDate;
+        [ObservableProperty] private bool _isEditPanelOpen;
+
+        public ObservableCollection<string> Roles { get; } = ["Tất cả", "Admin", "Manager", "Staff"];
 
         public AppUserViewModel()
             : this(null, new Data.AppDbContext())
         {
         }
 
+        public bool IsAdmin => _currentUser?.RoleCode == "Admin";
+
         public AppUserViewModel(AppUser? currentUser, Data.AppDbContext dbContext)
         {
             _currentUser = currentUser;
             _userService = new AppUserService(dbContext);
-            CurrentInputUser = new AppUser();
+            
             LoadData();
+        }
+
+        [RelayCommand]
+        private void OpenAddUserDialog()
+        {
+            if (_currentUser == null) return;
+
+            var vm = new AddUserViewModel(_currentUser.Id, _userService);
+            var window = new AddUserWindow { DataContext = vm };
+            
+            if (window.ShowDialog() == true)
+            {
+                LoadData();
+            }
         }
 
         private void LoadData()
         {
             var list = _userService.GetAllUsers();
-            if (!string.IsNullOrWhiteSpace(SearchText))
+            
+            // Apply Filters
+            if (!string.IsNullOrWhiteSpace(SearchFullName))
             {
-                var term = SearchText.ToLower();
-                list = list.Where(u => 
-                    (u.FullName != null && u.FullName.ToLower().Contains(term)) || 
-                    (u.Username != null && u.Username.ToLower().Contains(term))
-                ).ToList();
+                var term = SearchFullName.ToLower();
+                list = list.Where(u => u.FullName != null && u.FullName.ToLower().Contains(term)).ToList();
             }
+
+            if (!string.IsNullOrWhiteSpace(SearchUsername))
+            {
+                var term = SearchUsername.ToLower();
+                list = list.Where(u => u.Username != null && u.Username.ToLower().Contains(term)).ToList();
+            }
+
+            if (SearchRole != "Tất cả")
+            {
+                list = list.Where(u => string.Equals(u.RoleCode, SearchRole, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+
+            if (SearchDate.HasValue)
+            {
+                list = list.Where(u => u.CreatedAt.Date == SearchDate.Value.Date).ToList();
+            }
+
             Users = new ObservableCollection<AppUser>(list);
+        }
+
+        [RelayCommand]
+        public void Search()
+        {
+            LoadData();
         }
 
         [RelayCommand]
@@ -57,6 +102,25 @@ namespace QuanLyHangHoa.ViewModels
         {
             CurrentInputUser = new AppUser();
             SelectedUser = null;
+            IsEditPanelOpen = false;
+        }
+
+        [RelayCommand]
+        private void EditUser(AppUser? user)
+        {
+            if (user == null) return;
+            
+            SelectedUser = user;
+            CurrentInputUser = new AppUser 
+            {
+                Id = user.Id,
+                Username = user.Username,
+                FullName = user.FullName,
+                RoleCode = user.RoleCode,
+                IsActive = user.IsActive,
+                PasswordHash = "" 
+            };
+            IsEditPanelOpen = true;
         }
 
         [RelayCommand]
@@ -86,7 +150,8 @@ namespace QuanLyHangHoa.ViewModels
                 }
 
                 LoadData();
-                ClearInput();
+                IsEditPanelOpen = false;
+                SelectedUser = null;
             }
             catch (Exception ex)
             {
@@ -95,15 +160,20 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
-        private void DeactivateUser()
+        private void DeleteUser(AppUser? user)
         {
-            if (SelectedUser != null && SelectedUser.Id > 0 && _currentUser != null)
+            if (user == null || _currentUser == null) return;
+
+            var result = System.Windows.MessageBox.Show($"Bạn có chắc chắn muốn xoá người dùng '{user.Username}' khỏi hệ thống không?\nThao tác này không thể hoàn tác.", 
+                "Xác nhận xoá", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning);
+
+            if (result == System.Windows.MessageBoxResult.Yes)
             {
                 try
                 {
-                    _userService.DeleteUser(SelectedUser.Id, _currentUser.Id);
+                    _userService.DeleteUser(user.Id, _currentUser.Id);
                     LoadData();
-                    ClearInput();
+                    if (SelectedUser?.Id == user.Id) ClearInput();
                 }
                 catch (Exception ex)
                 {
@@ -112,24 +182,29 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
-        partial void OnSelectedUserChanged(AppUser? value)
+        [RelayCommand]
+        private void ToggleStatus(AppUser? user)
         {
-            if (value != null)
+            if (user == null || _currentUser == null) return;
+
+            try
             {
-                CurrentInputUser = new AppUser 
-                {
-                    Id = value.Id,
-                    Username = value.Username,
-                    FullName = value.FullName,
-                    RoleCode = value.RoleCode,
-                    IsActive = value.IsActive,
-                    PasswordHash = "" // Clear for UI safety, though service handles hash detection
-                };
+                _userService.ToggleActiveStatus(user.Id, _currentUser.Id);
+                LoadData();
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show(ex.Message, "Lỗi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
-        partial void OnSearchTextChanged(string value)
+
+        partial void OnSelectedUserChanged(AppUser? value)
         {
-            LoadData();
+            // Do nothing automatically to avoid popups when just clicking rows
         }
+        partial void OnSearchFullNameChanged(string value) => LoadData();
+        partial void OnSearchUsernameChanged(string value) => LoadData();
+        partial void OnSearchRoleChanged(string value) => LoadData();
+        partial void OnSearchDateChanged(DateTime? value) => LoadData();
     }
 }

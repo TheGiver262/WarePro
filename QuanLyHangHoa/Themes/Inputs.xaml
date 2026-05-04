@@ -48,7 +48,7 @@
     <Style x:Key="AppDatePickerStyle" TargetType="DatePicker" BasedOn="{StaticResource MaterialDesignOutlinedDatePicker}">
         <Setter Property="materialDesign:TextFieldAssist.TextFieldCornerRadius" Value="{StaticResource Radius.sm}"/>
         <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
-        <Setter Property="Padding" Value="10,6"/>
+        <Setter Property="Padding" Value="0,0"/>
         <Setter Property="Height" Value="Auto"/>
         <Setter Property="MinHeight" Value="34"/>
         <Setter Property="Margin" Value="{StaticResource Margin.Bottom.md}"/>

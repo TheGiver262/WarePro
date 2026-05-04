@@ -2,8 +2,10 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:converters="clr-namespace:QuanLyHangHoa.Converters">
     <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
     <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
     <converters:InverseBooleanConverter x:Key="InverseBooleanConverter" />
     <converters:BooleanToStatusConverter x:Key="BooleanToStatusConverter" />
     <converters:SafePackIconKindConverter x:Key="SafePackIconKindConverter" />
+    <converters:BooleanToIconConverter x:Key="BooleanToIconConverter" />
 </ResourceDictionary>

@@ -1,0 +1,64 @@
+<Window x:Class="QuanLyHangHoa.Views.AddUserWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="Thêm người dùng mới" Height="450" Width="400"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent">
+    
+    <Border Background="{StaticResource AppBackgroundBrush}" CornerRadius="{StaticResource Radius.lg}" BorderThickness="1" BorderBrush="{StaticResource AppBorderBrush}">
+        <Grid Margin="24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <StackPanel Grid.Row="0" Margin="0,0,0,24">
+                <TextBlock Text="THÊM NGƯỜI DÙNG" Style="{StaticResource TypographyH2}"/>
+                <TextBlock Text="Điền thông tin để tạo tài khoản mới" Style="{StaticResource TypographyCaption}"/>
+            </StackPanel>
+
+            <!-- Form -->
+            <StackPanel Grid.Row="1">
+                <TextBlock Text="Họ và tên" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8"/>
+                <TextBox Style="{StaticResource AppTextBoxStyle}" 
+                         materialDesign:HintAssist.Hint="Nhập họ và tên đầy đủ"
+                         materialDesign:HintAssist.IsFloating="False"
+                         Text="{Binding FullName, UpdateSourceTrigger=PropertyChanged}"
+                         Height="50" Margin="0,0,0,20"/>
+
+                <TextBlock Text="Tên tài khoản" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8"/>
+                <TextBox Style="{StaticResource AppTextBoxStyle}" 
+                         materialDesign:HintAssist.Hint="Nhập username đăng nhập"
+                         materialDesign:HintAssist.IsFloating="False"
+                         Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"
+                         Height="50" Margin="0,0,0,20"/>
+
+                <TextBlock Text="Vai trò" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8"/>
+                <ComboBox Style="{StaticResource AppComboBoxStyle}" 
+                          materialDesign:HintAssist.Hint="Chọn vai trò"
+                          materialDesign:HintAssist.IsFloating="False"
+                          Height="50" Margin="0,0,0,20"
+                          ItemsSource="{Binding Roles}"
+                          SelectedItem="{Binding RoleCode}"/>
+                
+                <TextBlock Text="* Mật khẩu mặc định sẽ giống tên tài khoản" 
+                           Style="{StaticResource TypographyCaption}" Foreground="{StaticResource AppSecondaryBrush}" FontStyle="Italic"/>
+            </StackPanel>
+
+            <!-- Actions -->
+            <Grid Grid.Row="2" Margin="0,12,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Button Grid.Column="0" Content="HUỶ BỎ" Style="{StaticResource MaterialDesignFlatButton}" 
+                        Margin="0,0,8,0" Command="{Binding CancelCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}"/>
+                <Button Grid.Column="1" Content="XÁC NHẬN" Style="{StaticResource AppPrimaryButton}" 
+                        Margin="8,0,0,0" Command="{Binding ConfirmCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}"/>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

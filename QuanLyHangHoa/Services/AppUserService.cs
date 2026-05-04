@@ -50,6 +50,7 @@ namespace QuanLyHangHoa.Services
 
             user.CreatedBy = performedByUserId;
             user.CreatedAt = DateTime.UtcNow;
+            user.MustChangePassword = true; // Always require password change for new users
             
             db.AppUsers.Add(user);
             db.SaveChanges();
@@ -87,7 +88,12 @@ namespace QuanLyHangHoa.Services
         {
             if (id == 1) // Prevent deleting super admin
             {
-                throw new InvalidOperationException("Cannot delete the system administrator.");
+                throw new InvalidOperationException("Không thể xoá tài khoản quản trị hệ thống.");
+            }
+
+            if (id == performedByUserId)
+            {
+                throw new InvalidOperationException("Bạn không thể tự xoá tài khoản của chính mình.");
             }
 
             var db = _contextFactory();
@@ -97,12 +103,28 @@ namespace QuanLyHangHoa.Services
                 return;
             }
 
-            // Soft delete or hard delete? Schema doesn't have IsDeleted for AppUser.
-            // But we can deactivate it.
-            user.IsActive = false;
-            
+            try
+            {
+                db.AppUsers.Remove(user);
+                db.SaveChanges();
+                AddAudit(db, "AppUser", id, "Delete", performedByUserId);
+                db.SaveChanges();
+            }
+            catch (Exception)
+            {
+                throw new InvalidOperationException("Không thể xoá người dùng này vì đã có dữ liệu giao dịch liên quan. Hãy sử dụng chức năng vô hiệu hoá thay thế.");
+            }
+        }
+
+        public void ToggleActiveStatus(int id, int performedByUserId)
+        {
+            var db = _contextFactory();
+            var user = db.AppUsers.Find(id);
+            if (user == null) return;
+
+            user.IsActive = !user.IsActive;
             db.SaveChanges();
-            AddAudit(db, "AppUser", id, "Deactivate", performedByUserId);
+            AddAudit(db, "AppUser", id, user.IsActive ? "Activate" : "Deactivate", performedByUserId);
             db.SaveChanges();
         }
 

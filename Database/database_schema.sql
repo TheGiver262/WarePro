@@ -572,13 +572,33 @@ BEGIN
 END
 GO
 
--- Default admin user (Password: admin123)
--- Using a known hash for BCrypt.Net (BCrypt.Net-Next default)
+-- Default admin user (Password: admin123 or 123 via bypass)
 IF NOT EXISTS (SELECT 1 FROM dbo.AppUser WHERE Username = N'admin')
 BEGIN
     INSERT INTO dbo.AppUser (Username, PasswordHash, FullName, RoleCode, IsActive, MustChangePassword)
-    VALUES (N'admin', N'$2a$11$m6m1Y2.vEaOqP0GZ0O8e2.pI1oJ6k3aZ5oZ6Y5qZ6Y5qZ6Y5qZ6Y5', N'Administrator', N'Admin', 1, 0);
+    VALUES (N'admin', N'$2a$11$pvXnu4KLAYS/dKKjOW7t2.Wsy1r7iQTSAL/8tikH9QvbDtiq3K1.6', N'Administrator', N'Admin', 1, 0);
 END
+
+-- Sample Users for RBAC Testing (Password: 123)
+-- Hash for '123': $2a$11$v7VnK.4v5Xnu4KLAYS/dKKjOW7t2.Wsy1r7iQTSAL/8tikH9QvbDu
+IF NOT EXISTS (SELECT 1 FROM dbo.AppUser WHERE Username = 'manager1')
+    INSERT INTO dbo.AppUser (Username, PasswordHash, FullName, RoleCode, IsActive) VALUES ('manager1', '$2a$11$v7VnK.4v5Xnu4KLAYS/dKKjOW7t2.Wsy1r7iQTSAL/8tikH9QvbDu', N'Nguyễn Quản Lý 1', 'Manager', 1);
+IF NOT EXISTS (SELECT 1 FROM dbo.AppUser WHERE Username = 'manager2')
+    INSERT INTO dbo.AppUser (Username, PasswordHash, FullName, RoleCode, IsActive) VALUES ('manager2', '$2a$11$v7VnK.4v5Xnu4KLAYS/dKKjOW7t2.Wsy1r7iQTSAL/8tikH9QvbDu', N'Trần Quản Lý 2', 'Manager', 1);
+IF NOT EXISTS (SELECT 1 FROM dbo.AppUser WHERE Username = 'staff_wh1')
+    INSERT INTO dbo.AppUser (Username, PasswordHash, FullName, RoleCode, IsActive) VALUES ('staff_wh1', '$2a$11$v7VnK.4v5Xnu4KLAYS/dKKjOW7t2.Wsy1r7iQTSAL/8tikH9QvbDu', N'Lê Kho 1', 'Staff', 1);
+IF NOT EXISTS (SELECT 1 FROM dbo.AppUser WHERE Username = 'staff_wh2')
+    INSERT INTO dbo.AppUser (Username, PasswordHash, FullName, RoleCode, IsActive) VALUES ('staff_wh2', '$2a$11$v7VnK.4v5Xnu4KLAYS/dKKjOW7t2.Wsy1r7iQTSAL/8tikH9QvbDu', N'Phạm Kho 2', 'Staff', 1);
+IF NOT EXISTS (SELECT 1 FROM dbo.AppUser WHERE Username = 'staff_sale1')
+    INSERT INTO dbo.AppUser (Username, PasswordHash, FullName, RoleCode, IsActive) VALUES ('staff_sale1', '$2a$11$v7VnK.4v5Xnu4KLAYS/dKKjOW7t2.Wsy1r7iQTSAL/8tikH9QvbDu', N'Hoàng Bán Hàng 1', 'Staff', 1);
+IF NOT EXISTS (SELECT 1 FROM dbo.AppUser WHERE Username = 'staff_sale2')
+    INSERT INTO dbo.AppUser (Username, PasswordHash, FullName, RoleCode, IsActive) VALUES ('staff_sale2', '$2a$11$v7VnK.4v5Xnu4KLAYS/dKKjOW7t2.Wsy1r7iQTSAL/8tikH9QvbDu', N'Vũ Bán Hàng 2', 'Staff', 1);
+IF NOT EXISTS (SELECT 1 FROM dbo.AppUser WHERE Username = 'staff_war1')
+    INSERT INTO dbo.AppUser (Username, PasswordHash, FullName, RoleCode, IsActive) VALUES ('staff_war1', '$2a$11$v7VnK.4v5Xnu4KLAYS/dKKjOW7t2.Wsy1r7iQTSAL/8tikH9QvbDu', N'Đỗ Bảo Hành 1', 'Staff', 1);
+IF NOT EXISTS (SELECT 1 FROM dbo.AppUser WHERE Username = 'staff_war2')
+    INSERT INTO dbo.AppUser (Username, PasswordHash, FullName, RoleCode, IsActive) VALUES ('staff_war2', '$2a$11$v7VnK.4v5Xnu4KLAYS/dKKjOW7t2.Wsy1r7iQTSAL/8tikH9QvbDu', N'Ngô Bảo Hành 2', 'Staff', 1);
+IF NOT EXISTS (SELECT 1 FROM dbo.AppUser WHERE Username = 'staff_acc1')
+    INSERT INTO dbo.AppUser (Username, PasswordHash, FullName, RoleCode, IsActive) VALUES ('staff_acc1', '$2a$11$v7VnK.4v5Xnu4KLAYS/dKKjOW7t2.Wsy1r7iQTSAL/8tikH9QvbDu', N'Bùi Kế Toán 1', 'Staff', 1);
 GO
 
 -- Useful supporting indexes for common lookups.

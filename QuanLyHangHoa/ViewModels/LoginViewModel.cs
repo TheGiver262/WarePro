@@ -51,6 +51,17 @@ namespace QuanLyHangHoa.ViewModels
                     {
                         MainWindow main = new MainWindow(result.User, _dbContext);
                         main.Show();
+
+                        if (result.User.MustChangePassword)
+                        {
+                            MessageBox.Show("Đây là lần đầu bạn đăng nhập. Vui lòng đổi mật khẩu để tiếp tục!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                            // Sử dụng command OpenChangePassword trong ViewModel của MainWindow
+                            if (main.DataContext is MainViewModel mainVm)
+                            {
+                                mainVm.OpenChangePasswordViewCommand.Execute(null);
+                            }
+                        }
+                        
                         currentWindow?.Close();
                     }
                     break;
