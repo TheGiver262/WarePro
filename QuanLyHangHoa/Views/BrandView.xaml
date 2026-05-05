@@ -6,13 +6,13 @@
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:vm="clr-namespace:QuanLyHangHoa.ViewModels"
              mc:Ignorable="d" d:DesignHeight="800" d:DesignWidth="1100">
-    <UserControl.DataContext><vm:BrandViewModel /></UserControl.DataContext>
+
     <Grid Background="{StaticResource AppBackgroundBrush}">
         <Grid Margin="{StaticResource PagePadding}">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/> <!-- Header -->
+                <RowDefinition Height="Auto"/> <!-- Search -->
+                <RowDefinition Height="*"/>    <!-- Table -->
             </Grid.RowDefinitions>
 
             <!-- Row 0: Header Section -->
@@ -21,47 +21,85 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <StackPanel VerticalAlignment="Center">
-                    <StackPanel Orientation="Horizontal">
-                        <materialDesign:PackIcon Kind="Trademark" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
-                        <TextBlock Text="THƯƠNG HIỆU" Style="{StaticResource TypographyH2}" Margin="{StaticResource Margin.Left.md}" VerticalAlignment="Center"/>
+
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <materialDesign:PackIcon Kind="Trademark" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
+                    <StackPanel Margin="16,0,0,0">
+                        <TextBlock Text="THƯƠNG HIỆU" Style="{StaticResource TypographyH2}"/>
+                        <TextBlock Text="Quản lý nhãn hiệu và các nhà sản xuất hệ thống" Style="{StaticResource TypographyCaption}"/>
                     </StackPanel>
-                    <TextBlock Text="Quản lý nhãn hiệu và thương hiệu hệ thống" Style="{StaticResource TypographyCaption}" Margin="42,0,0,0"/>
                 </StackPanel>
+                
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Command="{Binding ClearCommand}" Style="{StaticResource AppPrimaryButton}" Height="36">
+                    <Button Command="{Binding AddNewCommand}" Style="{StaticResource AppPrimaryButton}" Height="40" Padding="20,0">
                         <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="Trademark" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <TextBlock Text="THÊM MỚI" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold"/>
+                            <materialDesign:PackIcon Kind="PlusCircle" Width="20" Height="20" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock Text="THÊM THƯƠNG HIỆU" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
             </Grid>
 
-            <!-- Row 1: Search Row (Standardized) -->
+            <!-- Row 1: Search Row (Standardized Multi-field) -->
             <Border Grid.Row="1" Background="{StaticResource AppSurfaceBrush}" CornerRadius="{StaticResource Radius.md}" 
-                    BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" Margin="{StaticResource Margin.Bottom.md}" Height="48">
-                <Grid>
+                    BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" Margin="{StaticResource Margin.Bottom.md}" Padding="16,10">
+                <Grid VerticalAlignment="Center">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>     <!-- Code -->
+                        <ColumnDefinition Width="*"/>     <!-- Name -->
+                        <ColumnDefinition Width="*"/>     <!-- Status -->
+                        <ColumnDefinition Width="Auto"/>  <!-- Export -->
                     </Grid.ColumnDefinitions>
-                    <materialDesign:PackIcon Kind="Search" VerticalAlignment="Center" Margin="14,0" Foreground="{StaticResource TextSecondaryBrush}" Width="20" Height="20"/>
-                    <TextBox Grid.Column="1" VerticalAlignment="Center" BorderThickness="0" 
-                             materialDesign:TextFieldAssist.DecorationVisibility="Collapsed" 
-                             materialDesign:HintAssist.Hint="Tìm kiếm theo mã hoặc tên thương hiệu..." FontSize="14" Background="Transparent"
-                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}">
-                        <TextBox.InputBindings>
-                            <KeyBinding Key="Enter" Command="{Binding LoadDataCommand}"/>
-                        </TextBox.InputBindings>
-                    </TextBox>
-                    <Button Grid.Column="2" Content="TÌM KIẾM" Command="{Binding LoadDataCommand}" 
-                            Style="{StaticResource AppSecondaryButton}" Margin="4" Height="40"/>
+
+                    <!-- Code -->
+                    <StackPanel Grid.Column="0" Margin="0,0,12,0" VerticalAlignment="Top">
+                        <TextBlock Text="Mã thương hiệu" Style="{StaticResource TypographyCaption}" Margin="0,0,0,6"/>
+                        <TextBox Style="{StaticResource SearchTextBoxStyle}" 
+                                 Height="50" materialDesign:TextFieldAssist.TextFieldCornerRadius="{StaticResource Radius.sm}"
+                                 Text="{Binding SearchCode, UpdateSourceTrigger=PropertyChanged}"
+                                 Padding="12,0,10,0"
+                                 materialDesign:HintAssist.IsFloating="False"
+                                 materialDesign:HintAssist.Hint="Tìm theo mã..."/>
+                    </StackPanel>
+
+                    <!-- Name -->
+                    <StackPanel Grid.Column="1" Margin="0,0,12,0" VerticalAlignment="Top">
+                        <TextBlock Text="Tên thương hiệu" Style="{StaticResource TypographyCaption}" Margin="0,0,0,6"/>
+                        <TextBox Style="{StaticResource SearchTextBoxStyle}" 
+                                 Height="50" materialDesign:TextFieldAssist.TextFieldCornerRadius="{StaticResource Radius.sm}"
+                                 Text="{Binding SearchName, UpdateSourceTrigger=PropertyChanged}"
+                                 Padding="12,0,10,0"
+                                 materialDesign:HintAssist.IsFloating="False"
+                                 materialDesign:HintAssist.Hint="Tìm theo tên..."/>
+                    </StackPanel>
+
+                    <!-- Status -->
+                    <StackPanel Grid.Column="2" Margin="0,0,12,0" VerticalAlignment="Top">
+                        <TextBlock Text="Trạng thái" Style="{StaticResource TypographyCaption}" Margin="0,0,0,6"/>
+                        <ComboBox Style="{StaticResource MaterialDesignOutlinedComboBox}" 
+                                  Margin="0" Height="50" Padding="12,0"
+                                  materialDesign:HintAssist.IsFloating="False"
+                                  materialDesign:TextFieldAssist.TextFieldCornerRadius="{StaticResource Radius.sm}"
+                                  ItemsSource="{Binding StatusOptions}" 
+                                  SelectedItem="{Binding SearchStatus, UpdateSourceTrigger=PropertyChanged}"
+                                  VerticalContentAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Export -->
+                    <StackPanel Grid.Column="3" VerticalAlignment="Top">
+                        <TextBlock Text="Thao tác" Style="{StaticResource TypographyCaption}" Margin="0,0,0,6" Opacity="0"/>
+                        <Button Style="{StaticResource AppSecondaryButton}" Command="{Binding ExportToExcelCommand}" 
+                                Height="50" Padding="16,0" materialDesign:ButtonAssist.CornerRadius="{StaticResource Radius.sm}">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="FileExcel" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
                 </Grid>
             </Border>
 
-            <!-- Row 2: Content Area (DataGrid inside Card) -->
+            <!-- Row 2: Content Area (DataGrid) -->
             <materialDesign:Card Grid.Row="2" Style="{StaticResource AppCard}" Padding="0">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -70,22 +108,59 @@
                     </Grid.RowDefinitions>
                     
                     <DataGrid Grid.Row="0" ItemsSource="{Binding Brands}" SelectedItem="{Binding SelectedBrand, Mode=TwoWay}"
+                              AlternationCount="10000" EnableRowVirtualization="False"
                               AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                              RowHeight="48" BorderThickness="0" Background="Transparent">
+                              RowHeight="54" BorderThickness="0" Background="Transparent">
+                        <DataGrid.ColumnHeaderStyle>
+                            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource MaterialDesignDataGridColumnHeader}">
+                                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                            </Style>
+                        </DataGrid.ColumnHeaderStyle>
+                        
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="MÃ THƯƠNG HIỆU" Binding="{Binding BrandCode}" Width="150" 
-                                                ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}" FontWeight="SemiBold"/>
-                            <DataGridTextColumn Header="TÊN THƯƠNG HIỆU" Binding="{Binding DisplayName}" Width="*" 
-                                                ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                            <DataGridTextColumn Header="XUẤT XỨ" Binding="{Binding OriginCountry}" Width="200" 
-                                                ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                            <DataGridTemplateColumn Header="TRẠNG THÁI" Width="150">
+                            <!-- Index Column -->
+                            <DataGridTextColumn Header="STT" Width="60" CanUserSort="False"
+                                                Binding="{Binding (ItemsControl.AlternationIndex), RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowIndexConverter}}"
+                                                ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
+
+                            <!-- Code Column -->
+                            <DataGridTextColumn Binding="{Binding BrandCode}" Width="200" 
+                                                ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}">
+                                <DataGridTextColumn.Header>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="MÃ THƯƠNG HIỆU" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+
+                            <!-- Name Column -->
+                            <DataGridTemplateColumn Width="*" SortMemberPath="DisplayName">
+                                <DataGridTemplateColumn.Header>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="TÊN THƯƠNG HIỆU" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Border Padding="8,4" CornerRadius="12" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" Margin="12,0" FontWeight="SemiBold" FontSize="14"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <!-- Origin Column -->
+                            <DataGridTextColumn Header="XUẤT XỨ" Binding="{Binding OriginCountry}" Width="200" 
+                                                ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+
+                            <!-- Status Column (Pro Max Chips) -->
+                            <DataGridTemplateColumn Header="TRẠNG THÁI" Width="180" SortMemberPath="IsActive">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border Padding="12,4" CornerRadius="12" HorizontalAlignment="Center" VerticalAlignment="Center" >
                                             <Border.Style>
                                                 <Style TargetType="Border">
-                                                    <Setter Property="Background" Value="#F3F4F6"/>
+                                                    <Setter Property="Background" Value="#FEE2E2"/>
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding IsActive}" Value="True">
                                                             <Setter Property="Background" Value="#DCFCE7"/>
@@ -93,34 +168,53 @@
                                                     </Style.Triggers>
                                                 </Style>
                                             </Border.Style>
-                                            <TextBlock Text="{Binding IsActive, Converter={StaticResource BooleanToStatusConverter}}" 
-                                                       FontSize="12" FontWeight="SemiBold">
-                                                <TextBlock.Style>
-                                                    <Style TargetType="TextBlock">
-                                                        <Setter Property="Foreground" Value="#6B7280"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                                                  <Setter Property="Foreground" Value="#166534"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </TextBlock.Style>
-                                            </TextBlock>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Ellipse Width="8" Height="8" Margin="0,0,8,0">
+                                                    <Ellipse.Style>
+                                                        <Style TargetType="Ellipse">
+                                                            <Setter Property="Fill" Value="#EF4444"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                                    <Setter Property="Fill" Value="#22C55E"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Ellipse.Style>
+                                                </Ellipse>
+                                                <TextBlock FontSize="11" FontWeight="Bold">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Text" Value="NGỪNG HOẠT ĐỘNG"/>
+                                                            <Setter Property="Foreground" Value="#991B1B"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                                    <Setter Property="Text" Value="ĐANG HOẠT ĐỘNG"/>
+                                                                    <Setter Property="Foreground" Value="#166534"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </StackPanel>
                                         </Border>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
+
+                            <!-- Actions Column -->
                             <DataGridTemplateColumn Header="THAO TÁC" Width="120">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                            <Button Style="{StaticResource MaterialDesignIconButton}" Width="32" Height="32" ToolTip="Sửa"
-                                                    Command="{Binding DataContext.SaveCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
-                                                <materialDesign:PackIcon Kind="PencilOutline" Width="18" Height="18" Foreground="{StaticResource AppTertiaryBrush}"/>
+                                            <Button Style="{StaticResource MaterialDesignIconButton}" Width="38" Height="38" ToolTip="Chỉnh sửa"
+                                                    Command="{Binding DataContext.EditBrandCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}">
+                                                <materialDesign:PackIcon Kind="PencilOutline" Width="22" Height="22" Foreground="{StaticResource AppTertiaryBrush}"/>
                                             </Button>
-                                            <Button Style="{StaticResource MaterialDesignIconButton}" Width="32" Height="32" ToolTip="Xóa"
-                                                    Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
-                                                <materialDesign:PackIcon Kind="TrashCanOutline" Width="18" Height="18" Foreground="{StaticResource DangerTextBrush}"/>
+                                            <Button Style="{StaticResource MaterialDesignIconButton}" Width="38" Height="38" ToolTip="Xoá thương hiệu"
+                                                    Command="{Binding DataContext.DeleteBrandCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}">
+                                                <materialDesign:PackIcon Kind="TrashCanOutline" Width="22" Height="22" Foreground="{StaticResource DangerTextBrush}"/>
                                             </Button>
                                         </StackPanel>
                                     </DataTemplate>
@@ -129,11 +223,11 @@
                         </DataGrid.Columns>
                     </DataGrid>
 
-                    <!-- Pagination/Footer -->
-                    <Border Grid.Row="1" Padding="16,10" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
-                        <TextBlock FontSize="12" Foreground="{StaticResource TextSecondaryBrush}">
+                    <!-- Footer -->
+                    <Border Grid.Row="1" Padding="20,12" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
+                        <TextBlock FontSize="13" Foreground="{StaticResource AppSecondaryBrush}">
                             <TextBlock.Text>
-                                <MultiBinding StringFormat="{}Hiển thị {0} thương hiệu sản phẩm">
+                                <MultiBinding StringFormat="{}Hiện có {0} thương hiệu trong hệ thống">
                                     <Binding Path="Brands.Count"/>
                                 </MultiBinding>
                             </TextBlock.Text>
@@ -142,5 +236,69 @@
                 </Grid>
             </materialDesign:Card>
         </Grid>
+
+        <!-- Overlay Edit Panel -->
+        <Border Background="#40000000" Visibility="{Binding IsEditing, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <materialDesign:Card Width="500" VerticalAlignment="Center" HorizontalAlignment="Center" 
+                                UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp12">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Panel Header -->
+                    <Border Background="{StaticResource AppSurfaceBrush}" Padding="20,16" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Trademark" Foreground="{StaticResource AppPrimaryBrush}" Width="24" Height="24" VerticalAlignment="Center"/>
+                            <TextBlock Text="THÔNG TIN THƯƠNG HIỆU" Style="{StaticResource TypographyH3}" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Panel Content -->
+                    <StackPanel Grid.Row="1" Margin="24">
+                        <StackPanel Margin="0,0,0,16">
+                            <TextBlock Text="Mã thương hiệu" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8" FontWeight="SemiBold"/>
+                            <TextBox Style="{StaticResource AppTextBoxStyle}" Height="54" VerticalContentAlignment="Center"
+                                     materialDesign:HintAssist.IsFloating="False"
+                                     materialDesign:HintAssist.Hint="Nhập mã thương hiệu (viết liền, không dấu)"
+                                     Text="{Binding EditBrandCode, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,0,16">
+                            <TextBlock Text="Tên thương hiệu" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8" FontWeight="SemiBold"/>
+                            <TextBox Style="{StaticResource AppTextBoxStyle}" Height="54" VerticalContentAlignment="Center"
+                                     materialDesign:HintAssist.IsFloating="False"
+                                     materialDesign:HintAssist.Hint="Nhập tên hiển thị thương hiệu"
+                                     Text="{Binding EditDisplayName, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+
+                        <StackPanel Margin="0,0,0,16">
+                            <TextBlock Text="Xuất xứ" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8" FontWeight="SemiBold"/>
+                            <TextBox Style="{StaticResource AppTextBoxStyle}" Height="54" VerticalContentAlignment="Center"
+                                     materialDesign:HintAssist.IsFloating="False"
+                                     materialDesign:HintAssist.Hint="Nhập quốc gia xuất xứ"
+                                     Text="{Binding EditOriginCountry, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+
+                        <CheckBox Content="Đang hoạt động" IsChecked="{Binding EditIsActive}" 
+                                  Style="{StaticResource MaterialDesignCheckBox}"
+                                  FontWeight="SemiBold" FontSize="14" Foreground="{StaticResource AppPrimaryBrush}"
+                                  Margin="0,8,0,0"/>
+                    </StackPanel>
+
+                    <!-- Panel Footer -->
+                    <Border Grid.Row="2" Background="{StaticResource AppBackgroundBrush}" Padding="24,16" CornerRadius="0,0,12,12">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button Style="{StaticResource MaterialDesignOutlinedButton}" Content="HUỶ" Width="100" Height="40" Margin="0,0,12,0"
+                                    Command="{Binding CancelCommand}"/>
+                            <Button Style="{StaticResource AppPrimaryButton}" Content="LƯU THÔNG TIN" Width="150" Height="41" 
+                                    Command="{Binding SaveCommand}"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </materialDesign:Card>
+        </Border>
     </Grid>
 </UserControl>

@@ -1529,3 +1529,55 @@ Build theo thứ tự này để tạo design foundation trước khi implement 
 9. WarrantyClaimView
 10. ReportView
 ```
+## 14. "Pro Max" Design System (Update 2026)
+
+Đây là các quy chuẩn thiết kế nâng cao đã được kiểm chứng và hoàn thiện qua hai module **Category** và **User Management**. Tất cả các View tiếp theo phải tuân thủ nghiêm ngặt các quy tắc này.
+
+### 14.1 Bố cục 3 hàng (Standard 3-Row Layout)
+Mỗi View chính (UserControl) phải chia Grid thành 3 hàng:
+- **Hàng 0 (Auto)**: Header section (Tiêu đề trang, icon module, nút thêm mới nhanh).
+- **Hàng 1 (Auto)**: Search/Filter section (Ô tìm kiếm, dropdown lọc, nút xuất báo cáo).
+- **Hàng 2 (*)**: Content section (DataGrid chứa dữ liệu).
+
+### 14.2 Quy chuẩn DataGrid "Pro Max"
+Để đảm bảo tính ổn định và thẩm mỹ, DataGrid phải cấu hình như sau:
+
+- **Row Virtualization**: Phải đặt `EnableRowVirtualization="False"`. Đây là bắt buộc để cột số thứ tự (STT) không bị nhảy số khi cuộn chuột.
+- **AlternationCount**: Đặt `AlternationCount="10000"` để hỗ trợ đánh số thứ tự.
+- **Tiêu đề cột (Column Headers)**:
+    - **Căn giữa**: Phải đặt `HorizontalContentAlignment="Center"` trong `DataGrid.ColumnHeaderStyle`.
+    - **Icon bộ lọc**: Mỗi tiêu đề cột phải chứa một `PackIcon` loại `Filter` (size 14x14, Opacity 0.6) nằm bên trái văn bản.
+    - **XAML Template**:
+      ```xml
+      <DataGridTemplateColumn.Header>
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+              <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+              <TextBlock Text="TÊN CỘT" VerticalAlignment="Center" FontWeight="SemiBold"/>
+          </StackPanel>
+      </DataGridTemplateColumn.Header>
+      ```
+
+### 14.3 Cột Số Thứ Tự (STT)
+Mọi bảng dữ liệu phải có cột STT ở vị trí đầu tiên:
+- **Đặc điểm**: Rộng 50-70px, không cho phép sắp xếp (`CanUserSort="False"`).
+- **Binding**: Dùng `AlternationIndex` kết hợp với `RowIndexConverter`.
+- **Style**: Căn giữa nội dung.
+
+### 14.4 Trạng thái (Status Chip Pro Max)
+Thiết kế chip trạng thái hiện đại hơn với chấm chỉ thị (Dot indicator):
+- **Cấu trúc**: `Border` (bo góc 12px) -> `StackPanel` (Horizontal) -> `Ellipse` (Dot) + `TextBlock` (Text).
+- **Màu sắc**:
+    - **Đang hoạt động**: Nền `#DCFCE7`, Chữ `#166534`, Chấm `#22C55E`.
+    - **Ngừng hoạt động**: Nền `#FEE2E2`, Chữ `#991B1B`, Chấm `#EF4444`.
+
+### 14.5 Thao tác (Row Actions)
+Cột thao tác cuối cùng phải dùng `MaterialDesignIconButton` với icon rõ ràng:
+- **Sửa**: `PencilOutline` hoặc `AccountEditOutline` (màu Tertiary/Secondary).
+- **Xóa**: `TrashCanOutline` (màu Error/Danger).
+- **Kích thước**: Button 36x36 hoặc 38x38, Icon 20-22px.
+
+### 14.6 Form Chỉnh sửa (Edit Panel)
+Đối với các form chỉnh sửa nhanh (Overlay/Popup):
+- **Trạng thái**: Thêm CheckBox "Đang hoạt động" ở góc dưới bên trái, trên các nút lưu/hủy.
+- **Vị trí nút**: Nút "LƯU THAY ĐỔI" (Primary) và "HUỶ" (Outlined) đặt ở góc dưới bên phải.
+- **Input**: Độ cao chuẩn 50px, có nhãn (Label) phía trên.

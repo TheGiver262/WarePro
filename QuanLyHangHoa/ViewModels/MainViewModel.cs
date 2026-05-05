@@ -127,7 +127,7 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void OpenBrandView()
         {
-            CurrentView = new BrandView();
+            CurrentView = new BrandView { DataContext = new BrandViewModel(_dbContext, CurrentUser!) };
             CurrentViewTitle = "THƯƠNG HIỆU";
             CurrentViewSubtitle = "Quản lý các hãng sản xuất";
         }

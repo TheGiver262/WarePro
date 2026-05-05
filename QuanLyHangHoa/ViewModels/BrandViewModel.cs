@@ -1,87 +1,257 @@
+using System;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.EntityFrameworkCore;
+using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
-using QuanLyHangHoa.Services;
+using System.Text.Json;
+using ClosedXML.Excel;
 
 namespace QuanLyHangHoa.ViewModels
 {
     public partial class BrandViewModel : ObservableObject
     {
-        private readonly ReferenceDataService _service;
+        private readonly AppDbContext _db;
+        private readonly AppUser _currentUser;
 
         [ObservableProperty] private ObservableCollection<Brand> _brands = new();
         [ObservableProperty] private Brand? _selectedBrand;
-        [ObservableProperty] private string _searchText = string.Empty;
-        [ObservableProperty] private string _brandCode = string.Empty;
-        [ObservableProperty] private string _displayName = string.Empty;
+        
+        // Search Filters
+        [ObservableProperty] private string _searchCode = string.Empty;
+        [ObservableProperty] private string _searchName = string.Empty;
+        [ObservableProperty] private string? _searchStatus = "Tất cả";
+        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Đang hoạt động", "Ngừng hoạt động"];
 
-        public BrandViewModel()
+        // Edit Properties
+        [ObservableProperty] private bool _isEditing;
+        [ObservableProperty] private string _editBrandCode = string.Empty;
+        [ObservableProperty] private string _editDisplayName = string.Empty;
+        [ObservableProperty] private string _editOriginCountry = string.Empty;
+        [ObservableProperty] private bool _editIsActive = true;
+
+        public BrandViewModel(AppDbContext db, AppUser currentUser)
         {
-            _service = new ReferenceDataService();
-            LoadData();
+            _db = db;
+            _currentUser = currentUser;
+            LoadBrands();
         }
 
         [RelayCommand]
-        private void LoadData()
+        public void LoadBrands()
         {
-            var data = _service.GetAllBrands();
-            if (!string.IsNullOrWhiteSpace(SearchText))
-            {
-                var lowerSearch = SearchText.ToLower().Trim();
-                data = data.Where(x => 
-                    (x.DisplayName?.ToLower().Contains(lowerSearch) ?? false) || 
-                    (x.BrandCode?.ToLower().Contains(lowerSearch) ?? false)).ToList();
-            }
-            Brands = new ObservableCollection<Brand>(data);
+            var query = _db.Brands.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(SearchCode))
+                query = query.Where(b => b.BrandCode.Contains(SearchCode));
+
+            if (!string.IsNullOrWhiteSpace(SearchName))
+                query = query.Where(b => b.DisplayName.Contains(SearchName));
+
+            if (SearchStatus == "Đang hoạt động")
+                query = query.Where(b => b.IsActive);
+            else if (SearchStatus == "Ngừng hoạt động")
+                query = query.Where(b => !b.IsActive);
+
+            var list = query.OrderBy(b => b.BrandCode).ToList();
+            Brands = new ObservableCollection<Brand>(list);
+        }
+
+        partial void OnSearchCodeChanged(string value) => LoadBrands();
+        partial void OnSearchNameChanged(string value) => LoadBrands();
+        partial void OnSearchStatusChanged(string? value) => LoadBrands();
+
+        [RelayCommand]
+        private void AddNew()
+        {
+            SelectedBrand = null;
+            EditBrandCode = string.Empty;
+            EditDisplayName = string.Empty;
+            EditOriginCountry = string.Empty;
+            EditIsActive = true;
+            IsEditing = true;
+        }
+
+        [RelayCommand]
+        private void EditBrand(Brand brand)
+        {
+            SelectedBrand = brand;
+            EditBrandCode = brand.BrandCode;
+            EditDisplayName = brand.DisplayName;
+            EditOriginCountry = brand.OriginCountry ?? string.Empty;
+            EditIsActive = brand.IsActive;
+            IsEditing = true;
         }
 
         [RelayCommand]
         private void Save()
         {
-            if (string.IsNullOrWhiteSpace(DisplayName) || string.IsNullOrWhiteSpace(BrandCode)) return;
+            if (string.IsNullOrWhiteSpace(EditBrandCode) || string.IsNullOrWhiteSpace(EditDisplayName))
+            {
+                MessageBox.Show("Vui lòng nhập đầy đủ Mã và Tên thương hiệu.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
 
-            if (SelectedBrand == null)
+            try
             {
-                var b = new Brand { BrandCode = BrandCode, DisplayName = DisplayName, IsActive = true };
-                _service.AddBrand(b);
+                if (SelectedBrand == null) // New
+                {
+                    if (_db.Brands.Any(b => b.BrandCode == EditBrandCode))
+                    {
+                        MessageBox.Show($"Mã thương hiệu '{EditBrandCode}' đã tồn tại.", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
+                    var newBrand = new Brand
+                    {
+                        BrandCode = EditBrandCode,
+                        DisplayName = EditDisplayName,
+                        OriginCountry = EditOriginCountry,
+                        IsActive = EditIsActive
+                    };
+
+                    _db.Brands.Add(newBrand);
+                    _db.SaveChanges();
+                    LogAction("CREATE", newBrand.Id, null, Serialize(newBrand));
+                }
+                else // Update
+                {
+                    var beforeJson = Serialize(SelectedBrand);
+                    SelectedBrand.BrandCode = EditBrandCode;
+                    SelectedBrand.DisplayName = EditDisplayName;
+                    SelectedBrand.OriginCountry = EditOriginCountry;
+                    SelectedBrand.IsActive = EditIsActive;
+
+                    _db.SaveChanges();
+                    LogAction("UPDATE", SelectedBrand.Id, beforeJson, Serialize(SelectedBrand));
+                }
+
+                IsEditing = false;
+                LoadBrands();
             }
-            else
+            catch (Exception ex)
             {
-                SelectedBrand.BrandCode = BrandCode;
-                SelectedBrand.DisplayName = DisplayName;
-                _service.UpdateBrand(SelectedBrand);
+                MessageBox.Show($"Lỗi khi lưu dữ liệu: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
             }
-            LoadData();
-            Clear();
         }
 
         [RelayCommand]
-        private void Delete()
+        private void Cancel()
         {
-            if (SelectedBrand != null)
+            IsEditing = false;
+        }
+
+        [RelayCommand]
+        private void DeleteBrand(Brand brand)
+        {
+            var result = MessageBox.Show($"Bạn có chắc chắn muốn xoá thương hiệu '{brand.DisplayName}'?", "Xác nhận xoá", 
+                MessageBoxButton.YesNo, MessageBoxImage.Question);
+            
+            if (result == MessageBoxResult.Yes)
             {
-                _service.DeactivateBrand(SelectedBrand.Id);
-                LoadData();
-                Clear();
+                try 
+                {
+                    var beforeJson = Serialize(brand);
+                    int entityId = brand.Id;
+
+                    _db.Brands.Remove(brand);
+                    _db.SaveChanges();
+
+                    LogAction("DELETE", entityId, beforeJson, null);
+                    LoadBrands();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Không thể xoá thương hiệu này. Có thể thương hiệu đang được sử dụng.\nChi tiết: {ex.Message}", 
+                        "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
         }
 
         [RelayCommand]
-        private void Clear()
+        private void ExportToExcel()
         {
-            SelectedBrand = null;
-            BrandCode = string.Empty;
-            DisplayName = string.Empty;
+            try
+            {
+                var saveFileDialog = new Microsoft.Win32.SaveFileDialog
+                {
+                    Filter = "Excel Workbook (*.xlsx)|*.xlsx",
+                    FileName = $"DanhSachThuongHieu_{DateTime.Now:yyyyMMdd_HHmm}"
+                };
+
+                if (saveFileDialog.ShowDialog() == true)
+                {
+                    using (var workbook = new XLWorkbook())
+                    {
+                        var worksheet = workbook.Worksheets.Add("Brands");
+
+                        // Headers
+                        worksheet.Cell(1, 1).Value = "Mã Thương Hiệu";
+                        worksheet.Cell(1, 2).Value = "Tên Thương Hiệu";
+                        worksheet.Cell(1, 3).Value = "Xuất Xứ";
+                        worksheet.Cell(1, 4).Value = "Trạng Thái";
+
+                        var headerRange = worksheet.Range(1, 1, 1, 4);
+                        headerRange.Style.Font.Bold = true;
+                        headerRange.Style.Fill.BackgroundColor = XLColor.LightGray;
+
+                        // Data
+                        for (int i = 0; i < Brands.Count; i++)
+                        {
+                            worksheet.Cell(i + 2, 1).Value = Brands[i].BrandCode;
+                            worksheet.Cell(i + 2, 2).Value = Brands[i].DisplayName;
+                            worksheet.Cell(i + 2, 3).Value = Brands[i].OriginCountry;
+                            worksheet.Cell(i + 2, 4).Value = Brands[i].IsActive ? "Đang hoạt động" : "Ngừng hoạt động";
+                        }
+
+                        worksheet.Columns().AdjustToContents();
+                        workbook.SaveAs(saveFileDialog.FileName);
+                    }
+                    MessageBox.Show("Xuất file Excel thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi xuất Excel: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
-        partial void OnSelectedBrandChanged(Brand? value)
+        private string Serialize(Brand brand)
         {
-            if (value != null)
+            return JsonSerializer.Serialize(new
             {
-                BrandCode = value.BrandCode;
-                DisplayName = value.DisplayName;
+                brand.Id,
+                brand.BrandCode,
+                brand.DisplayName,
+                brand.OriginCountry,
+                brand.IsActive
+            });
+        }
+
+        private void LogAction(string action, int entityId, string? before = null, string? after = null)
+        {
+            try
+            {
+                var log = new AuditLog
+                {
+                    EntityName = "Brand",
+                    EntityId = entityId,
+                    ActionCode = action,
+                    BeforeJson = before,
+                    AfterJson = after,
+                    PerformedBy = _currentUser.Id,
+                    PerformedAt = DateTime.Now
+                };
+                _db.AuditLogs.Add(log);
+                _db.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to write audit log: {ex.Message}");
             }
         }
     }
