@@ -25,7 +25,7 @@
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <Border Background="{StaticResource AppTertiaryBrush}" Width="40" Height="40" CornerRadius="{StaticResource Radius.md}">
-                        <materialDesign:PackIcon Kind="ShieldCheck" Width="24" Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource TextOnPrimaryBrush}"/>
+                        <materialDesign:PackIcon Kind="ShieldCheckOutline" Width="24" Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource TextOnPrimaryBrush}"/>
                     </Border>
                     <TextBlock Text="THÔNG TIN BẢO HÀNH" Style="{StaticResource TypographyH2}" Margin="{StaticResource Margin.Left.md}" VerticalAlignment="Center"/>
                 </StackPanel>

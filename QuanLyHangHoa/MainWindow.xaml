@@ -39,7 +39,7 @@
                         <RadioButton Content="Dashboard" Tag="ViewDashboardOutline" Style="{StaticResource SidebarItemStyle}" IsChecked="True" Command="{Binding OpenDashboardCommand}"/>
 
                         <TextBlock Text="DANH MỤC" Style="{StaticResource SidebarSectionHeader}"/>
-                        <RadioButton Content="Loại hàng" Tag="TagOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenCategoryViewCommand}"/>
+                        <RadioButton Content="Loại sản phẩm" Tag="TagOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenCategoryViewCommand}"/>
                         <RadioButton Content="Thương hiệu" Tag="Domain" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenBrandViewCommand}"/>
                         <RadioButton Content="Đơn vị tính" Tag="CubeOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenUnitViewCommand}"/>
                         <RadioButton Content="Nhà cung cấp" Tag="TruckOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenSupplierViewCommand}"/>
@@ -68,7 +68,7 @@
                         <RadioButton Content="Báo cáo" Tag="ChartBoxOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenReportViewCommand}"/>
                         <RadioButton Content="Người dùng" Tag="AccountMultipleOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenAppUserViewCommand}"
                                      Visibility="{Binding IsAdmin, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                        <RadioButton Content="Nhật ký hệ thống" Tag="ShieldHistory" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenAuditLogViewCommand}"
+                        <RadioButton Content="Nhật ký hệ thống" Tag="ShieldCheck" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenAuditLogViewCommand}"
                                      Visibility="{Binding IsAdmin, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                         <RadioButton Content="Đổi mật khẩu" Tag="KeyVariant" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenChangePasswordViewCommand}"/>
 

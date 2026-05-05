@@ -28,7 +28,7 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <materialDesign:PackIcon Kind="ClipboardCheck" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
+                    <materialDesign:PackIcon Kind="ClipboardCheckOutline" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
                     <StackPanel Margin="16,0,0,0">
                         <TextBlock Text="KIỂM KÊ KHO" Style="{StaticResource TypographyH2}"/>
                         <TextBlock Text="Đối soát số lượng thực tế tại kho và cập nhật hệ thống" Style="{StaticResource TypographyCaption}"/>

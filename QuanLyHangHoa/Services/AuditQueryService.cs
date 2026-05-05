@@ -180,6 +180,26 @@ namespace QuanLyHangHoa.Services
                 .ToList();
         }
 
+        public IReadOnlyList<QuanLyHangHoa.Models.AuditLog> GetLogsBefore(DateTime cutoffDate)
+        {
+            using var db = _contextFactory();
+            return db.AuditLogs
+                .Include(a => a.Performer)
+                .Where(a => a.PerformedAt < cutoffDate)
+                .OrderBy(a => a.PerformedAt)
+                .ToList();
+        }
+
+        public IReadOnlyList<QuanLyHangHoa.Models.AuditLog> GetLogsBetween(DateTime start, DateTime end)
+        {
+            using var db = _contextFactory();
+            return db.AuditLogs
+                .Include(a => a.Performer)
+                .Where(a => a.PerformedAt >= start && a.PerformedAt <= end)
+                .OrderBy(a => a.PerformedAt)
+                .ToList();
+        }
+
         public int DeleteLogs(IEnumerable<int> logIds)
         {
             using var db = _contextFactory();

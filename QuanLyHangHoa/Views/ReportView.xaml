@@ -23,7 +23,7 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <materialDesign:PackIcon Kind="ChartBar" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
+                    <materialDesign:PackIcon Kind="ChartBoxOutline" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
                     <StackPanel Margin="16,0,0,0">
                         <TextBlock Text="BÁO CÁO DOANH THU &amp; LỢI NHUẬN" Style="{StaticResource TypographyH2}"/>
                         <TextBlock Text="Phân tích hiệu quả kinh doanh theo thời gian" Style="{StaticResource TypographyCaption}"/>

@@ -27,7 +27,7 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <materialDesign:PackIcon Kind="FileExport" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
+                    <materialDesign:PackIcon Kind="FileDocumentOutline" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
                     <StackPanel Margin="16,0,0,0">
                         <TextBlock Text="HÓA ĐƠN XUẤT HÀNG" Style="{DynamicResource TypographyH1}"/>
                         <TextBlock Text="Quản lý lịch sử bán hàng và lập hóa đơn mới" Style="{DynamicResource TypographyCaption}"/>

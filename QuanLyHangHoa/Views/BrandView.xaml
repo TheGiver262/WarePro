@@ -23,7 +23,7 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <materialDesign:PackIcon Kind="Trademark" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
+                    <materialDesign:PackIcon Kind="Shield" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
                     <StackPanel Margin="16,0,0,0">
                         <TextBlock Text="THƯƠNG HIỆU" Style="{StaticResource TypographyH2}"/>
                         <TextBlock Text="Quản lý nhãn hiệu và các nhà sản xuất hệ thống" Style="{StaticResource TypographyCaption}"/>
@@ -33,7 +33,7 @@
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button Command="{Binding AddNewCommand}" Style="{StaticResource AppPrimaryButton}" Height="40" Padding="20,0">
                         <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="PlusCircle" Width="20" Height="20" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <materialDesign:PackIcon Kind="Plus" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
                             <TextBlock Text="THÊM THƯƠNG HIỆU" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold"/>
                         </StackPanel>
                     </Button>
@@ -88,7 +88,7 @@
                     <!-- Export -->
                     <StackPanel Grid.Column="3" VerticalAlignment="Top">
                         <TextBlock Text="Thao tác" Style="{StaticResource TypographyCaption}" Margin="0,0,0,6" Opacity="0"/>
-                        <Button Style="{StaticResource AppSecondaryButton}" Command="{Binding ExportToExcelCommand}" 
+                        <Button Style="{StaticResource AppPrimaryButton}" Command="{Binding ExportToExcelCommand}" 
                                 Height="50" Padding="16,0" materialDesign:ButtonAssist.CornerRadius="{StaticResource Radius.sm}">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="FileExcel" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
@@ -113,7 +113,7 @@
                               RowHeight="54" BorderThickness="0" Background="Transparent">
                         <DataGrid.ColumnHeaderStyle>
                             <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource MaterialDesignDataGridColumnHeader}">
-                                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Left"/>
                             </Style>
                         </DataGrid.ColumnHeaderStyle>
                         
@@ -125,9 +125,9 @@
 
                             <!-- Code Column -->
                             <DataGridTextColumn Binding="{Binding BrandCode}" Width="200" 
-                                                ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}">
+                                                ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}">
                                 <DataGridTextColumn.Header>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                                         <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
                                         <TextBlock Text="MÃ THƯƠNG HIỆU" VerticalAlignment="Center"/>
                                     </StackPanel>
@@ -137,7 +137,7 @@
                             <!-- Name Column -->
                             <DataGridTemplateColumn Width="*" SortMemberPath="DisplayName">
                                 <DataGridTemplateColumn.Header>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                                         <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
                                         <TextBlock Text="TÊN THƯƠNG HIỆU" VerticalAlignment="Center"/>
                                     </StackPanel>

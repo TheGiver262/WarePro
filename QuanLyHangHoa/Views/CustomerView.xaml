@@ -10,9 +10,9 @@
     <Grid Background="{StaticResource AppBackgroundBrush}">
         <Grid Margin="{StaticResource PagePadding}">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/> <!-- Header -->
+                <RowDefinition Height="Auto"/> <!-- Search -->
+                <RowDefinition Height="*"/>    <!-- Table -->
             </Grid.RowDefinitions>
 
             <!-- Row 0: Header Section -->
@@ -21,55 +21,77 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <StackPanel VerticalAlignment="Center">
-                    <StackPanel Orientation="Horizontal">
-                        <materialDesign:PackIcon Kind="AccountGroupOutline" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
-                        <TextBlock Text="KHÁCH HÀNG" Style="{StaticResource TypographyH2}" Margin="{StaticResource Margin.Left.md}" VerticalAlignment="Center"/>
+
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <materialDesign:PackIcon Kind="AccountGroupOutline" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
+                    <StackPanel Margin="16,0,0,0">
+                        <TextBlock Text="KHÁCH HÀNG" Style="{StaticResource TypographyH2}"/>
+                        <TextBlock Text="Quản lý thông tin và lịch sử giao dịch khách hàng" Style="{StaticResource TypographyCaption}"/>
                     </StackPanel>
-                    <TextBlock Text="Quản lý thông tin và lịch sử giao dịch khách hàng" Style="{StaticResource TypographyCaption}" Margin="42,0,0,0"/>
                 </StackPanel>
+                
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Command="{Binding ImportDataCommand}" Style="{StaticResource AppSecondaryButton}" Height="36" Margin="0,0,12,0">
+                    <Button Command="{Binding ClearCommand}" Style="{StaticResource AppPrimaryButton}" Height="40" Padding="20,0">
                         <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="FileExcel" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <TextBlock Text="NHẬP EXCEL" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold"/>
-                        </StackPanel>
-                    </Button>
-                    <!-- Using SearchCommand as a placeholder for 'New' if no Clear command exists, 
-                         or just rely on row-based pencil icons for editing. -->
-                    <Button Command="{Binding SearchCommand}" Style="{StaticResource AppPrimaryButton}" Height="36">
-                        <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="Plus" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <materialDesign:PackIcon Kind="Plus" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
                             <TextBlock Text="THÊM MỚI" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
             </Grid>
 
-            <!-- Row 1: Search Row (Standardized) -->
             <Border Grid.Row="1" Background="{StaticResource AppSurfaceBrush}" CornerRadius="{StaticResource Radius.md}" 
-                    BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" Margin="{StaticResource Margin.Bottom.md}" Height="48">
-                <Grid>
+                    BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" Margin="{StaticResource Margin.Bottom.md}" Padding="16,10">
+                <Grid VerticalAlignment="Center">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="180"/>
+                        <ColumnDefinition Width="250"/>
+                        <ColumnDefinition Width="200"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <materialDesign:PackIcon Kind="Search" VerticalAlignment="Center" Margin="14,0" Foreground="{StaticResource TextSecondaryBrush}" Width="20" Height="20"/>
-                    <TextBox Grid.Column="1" VerticalAlignment="Center" BorderThickness="0" 
-                             materialDesign:TextFieldAssist.DecorationVisibility="Collapsed" 
-                             materialDesign:HintAssist.Hint="Tìm kiếm theo mã, tên, điện thoại hoặc địa chỉ khách hàng..." FontSize="14" Background="Transparent"
-                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}">
-                        <TextBox.InputBindings>
-                            <KeyBinding Key="Enter" Command="{Binding SearchCommand}"/>
-                        </TextBox.InputBindings>
-                    </TextBox>
-                    <Button Grid.Column="2" Content="TÌM KIẾM" Command="{Binding SearchCommand}" 
-                            Style="{StaticResource AppSecondaryButton}" Margin="4" Height="40"/>
+
+                    <!-- Search Code -->
+                    <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                        <TextBlock Text="Mã khách hàng" Style="{StaticResource TypographyCaption}" Margin="0,0,0,6"/>
+                        <TextBox Style="{StaticResource SearchTextBoxStyle}" 
+                                 Height="50" materialDesign:TextFieldAssist.TextFieldCornerRadius="{StaticResource Radius.sm}"
+                                 Text="{Binding SearchCode, UpdateSourceTrigger=PropertyChanged}"
+                                 materialDesign:HintAssist.Hint="Tìm theo mã..."/>
+                    </StackPanel>
+
+                    <!-- Search Name -->
+                    <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                        <TextBlock Text="Tên khách hàng" Style="{StaticResource TypographyCaption}" Margin="0,0,0,6"/>
+                        <TextBox Style="{StaticResource SearchTextBoxStyle}" 
+                                 Height="50" materialDesign:TextFieldAssist.TextFieldCornerRadius="{StaticResource Radius.sm}"
+                                 Text="{Binding SearchName, UpdateSourceTrigger=PropertyChanged}"
+                                 materialDesign:HintAssist.Hint="Tìm theo tên..."/>
+                    </StackPanel>
+
+                    <!-- Search Phone -->
+                    <StackPanel Grid.Column="2" Margin="0,0,12,0">
+                        <TextBlock Text="Số điện thoại" Style="{StaticResource TypographyCaption}" Margin="0,0,0,6"/>
+                        <TextBox Style="{StaticResource SearchTextBoxStyle}" 
+                                 Height="50" materialDesign:TextFieldAssist.TextFieldCornerRadius="{StaticResource Radius.sm}"
+                                 Text="{Binding SearchPhone, UpdateSourceTrigger=PropertyChanged}"
+                                 materialDesign:HintAssist.Hint="Tìm theo SĐT..."/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="4" VerticalAlignment="Bottom">
+                        <Button Style="{StaticResource AppPrimaryButton}" 
+                                Command="{Binding ExportToExcelCommand}"
+                                Height="50" Padding="24,0">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="FileExcelOutline" Width="20" Height="20" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
                 </Grid>
             </Border>
 
-            <!-- Row 2: Content Area (DataGrid inside Card) -->
+            <!-- Row 2: Data Table -->
             <materialDesign:Card Grid.Row="2" Style="{StaticResource AppCard}" Padding="0">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -78,30 +100,143 @@
                     </Grid.RowDefinitions>
                     
                     <DataGrid Grid.Row="0" ItemsSource="{Binding Customers}" SelectedItem="{Binding SelectedCustomer, Mode=TwoWay}"
-                              AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                              RowHeight="48" BorderThickness="0" Background="Transparent">
+                               AlternationCount="10000" EnableRowVirtualization="False"
+                               AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                               RowHeight="52" BorderThickness="0" Background="Transparent">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="MÃ KH" Binding="{Binding CustomerCode}" Width="120" 
-                                                ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}" FontWeight="SemiBold"/>
-                            <DataGridTextColumn Header="TÊN KHÁCH HÀNG" Binding="{Binding DisplayName}" Width="*" 
-                                                ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                            <DataGridTextColumn Header="ĐIỆN THOẠI" Binding="{Binding Phone}" Width="150" 
-                                                ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                            <DataGridTextColumn Header="EMAIL" Binding="{Binding Email}" Width="200" 
-                                                ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                            <DataGridTextColumn Header="ĐỊA CHỈ" Binding="{Binding Address}" Width="1.5*" 
-                                                ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                            <DataGridTemplateColumn Header="THAO TÁC" Width="120">
+                            <!-- Index Column -->
+                            <DataGridTextColumn Header="STT" Width="70" CanUserSort="False"
+                                                Binding="{Binding (ItemsControl.AlternationIndex), RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowIndexConverter}}"
+                                                ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
+                            
+                            <!-- Customer Code Column -->
+                            <DataGridTemplateColumn Width="130" SortMemberPath="CustomerCode">
+                                <DataGridTemplateColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="MÃ KH" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    </StackPanel>
+                                </DataGridTemplateColumn.Header>
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding CustomerCode}" VerticalAlignment="Center" Margin="12,0" FontWeight="SemiBold" Foreground="{StaticResource AppPrimaryBrush}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <!-- Display Name Column -->
+                            <DataGridTemplateColumn Width="*" SortMemberPath="DisplayName">
+                                <DataGridTemplateColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="TÊN KHÁCH HÀNG" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    </StackPanel>
+                                </DataGridTemplateColumn.Header>
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" Margin="12,0" FontSize="14"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <!-- Phone Column -->
+                            <DataGridTemplateColumn Width="150" SortMemberPath="Phone">
+                                <DataGridTemplateColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="ĐIỆN THOẠI" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    </StackPanel>
+                                </DataGridTemplateColumn.Header>
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Phone}" VerticalAlignment="Center" Margin="12,0"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <!-- Email Column -->
+                            <DataGridTemplateColumn Width="200" SortMemberPath="Email">
+                                <DataGridTemplateColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="EMAIL" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    </StackPanel>
+                                </DataGridTemplateColumn.Header>
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Email}" VerticalAlignment="Center" Margin="12,0"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            
+                            <!-- Status Column -->
+                            <DataGridTemplateColumn Width="180" SortMemberPath="IsActive">
+                                <DataGridTemplateColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="TRẠNG THÁI" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    </StackPanel>
+                                </DataGridTemplateColumn.Header>
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border Padding="12,4" CornerRadius="12" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="12,0">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="#FEE2E2"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                            <Setter Property="Background" Value="#DCFCE7"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Ellipse Width="8" Height="8" Margin="0,0,8,0">
+                                                    <Ellipse.Style>
+                                                        <Style TargetType="Ellipse">
+                                                            <Setter Property="Fill" Value="#EF4444"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                                    <Setter Property="Fill" Value="#22C55E"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Ellipse.Style>
+                                                </Ellipse>
+                                                <TextBlock FontSize="12" FontWeight="Bold">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Text" Value="NGỪNG HOẠT ĐỘNG"/>
+                                                            <Setter Property="Foreground" Value="#991B1B"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                                    <Setter Property="Text" Value="ĐANG HOẠT ĐỘNG"/>
+                                                                    <Setter Property="Foreground" Value="#166534"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <!-- Actions Column -->
+                            <DataGridTemplateColumn Header="THAO TÁC" Width="130">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                            <Button Style="{StaticResource MaterialDesignIconButton}" Width="32" Height="32" ToolTip="Sửa"
-                                                    Command="{Binding DataContext.SaveCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
-                                                <materialDesign:PackIcon Kind="PencilOutline" Width="18" Height="18" Foreground="{StaticResource AppTertiaryBrush}"/>
+                                            <Button Style="{StaticResource MaterialDesignIconButton}" Width="36" Height="36" ToolTip="Chỉnh sửa"
+                                                    Command="{Binding DataContext.SaveCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}">
+                                                <materialDesign:PackIcon Kind="PencilOutline" Width="20" Height="20" Foreground="{StaticResource AppSecondaryBrush}"/>
                                             </Button>
-                                            <Button Style="{StaticResource MaterialDesignIconButton}" Width="32" Height="32" ToolTip="Xóa"
-                                                    Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
-                                                <materialDesign:PackIcon Kind="TrashCanOutline" Width="18" Height="18" Foreground="{StaticResource DangerTextBrush}"/>
+                                            <Button Style="{StaticResource MaterialDesignIconButton}" Width="36" Height="36" ToolTip="Xoá khách hàng"
+                                                    Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}">
+                                                <materialDesign:PackIcon Kind="TrashCanOutline" Width="20" Height="20" Foreground="{StaticResource AppErrorBrush}"/>
                                             </Button>
                                         </StackPanel>
                                     </DataTemplate>
@@ -110,11 +245,11 @@
                         </DataGrid.Columns>
                     </DataGrid>
 
-                    <!-- Pagination/Footer -->
-                    <Border Grid.Row="1" Padding="16,10" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
-                        <TextBlock FontSize="12" Foreground="{StaticResource TextSecondaryBrush}">
+                    <!-- Footer -->
+                    <Border Grid.Row="1" VerticalAlignment="Bottom" Padding="20,12" Background="{StaticResource AppSurfaceBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
+                        <TextBlock FontSize="13" Foreground="{StaticResource AppSecondaryBrush}">
                             <TextBlock.Text>
-                                <MultiBinding StringFormat="{}Hiển thị {0} khách hàng">
+                                <MultiBinding StringFormat="{}Hiện có {0} khách hàng trong hệ thống">
                                     <Binding Path="Customers.Count"/>
                                 </MultiBinding>
                             </TextBlock.Text>

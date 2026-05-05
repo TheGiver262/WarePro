@@ -28,7 +28,7 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <materialDesign:PackIcon Kind="FileImport" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
+                    <materialDesign:PackIcon Kind="CartOutline" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
                     <StackPanel Margin="16,0,0,0">
                         <TextBlock Text="HÓA ĐƠN NHẬP HÀNG" Style="{DynamicResource TypographyH2}"/>
                         <TextBlock Text="Quản lý nhập kho và đối soát nhà cung cấp" Style="{DynamicResource TypographyCaption}"/>

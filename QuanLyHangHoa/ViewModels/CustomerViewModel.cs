@@ -7,22 +7,19 @@ using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
 using QuanLyHangHoa.Services.DataImport;
 using QuanLyHangHoa.Views;
+using ClosedXML.Excel;
+using System.Windows;
 
 namespace QuanLyHangHoa.ViewModels
 {
     public partial class CustomerViewModel : ObservableObject
     {
         private readonly ReferenceDataService _service;
-        private readonly DataImportManager _importManager = new();
-
-        [ObservableProperty]
-        private ObservableCollection<Customer> _customers = new();
-
-        [ObservableProperty]
-        private Customer? _selectedCustomer;
-
-        [ObservableProperty]
-        private string _searchText = string.Empty;
+        [ObservableProperty] private ObservableCollection<Customer> _customers = new();
+        [ObservableProperty] private Customer? _selectedCustomer;
+        [ObservableProperty] private string _searchCode = string.Empty;
+        [ObservableProperty] private string _searchName = string.Empty;
+        [ObservableProperty] private string _searchPhone = string.Empty;
 
         [ObservableProperty]
         private string _displayName = string.Empty;
@@ -47,14 +44,82 @@ namespace QuanLyHangHoa.ViewModels
 
         private void LoadData()
         {
-            var list = _service.GetAllCustomers();
-            if (!string.IsNullOrWhiteSpace(SearchText))
+            var data = _service.GetAllCustomers();
+            
+            if (!string.IsNullOrWhiteSpace(SearchCode))
             {
-                var term = SearchText.ToLower();
-                list = list.Where(c => c.DisplayName.ToLower().Contains(term) || c.CustomerCode.ToLower().Contains(term)).ToList();
+                var lower = SearchCode.ToLower().Trim();
+                data = data.Where(x => x.CustomerCode?.ToLower().Contains(lower) ?? false).ToList();
             }
-            Customers = new ObservableCollection<Customer>(list);
+
+            if (!string.IsNullOrWhiteSpace(SearchName))
+            {
+                var lower = SearchName.ToLower().Trim();
+                data = data.Where(x => x.DisplayName?.ToLower().Contains(lower) ?? false).ToList();
+            }
+
+            if (!string.IsNullOrWhiteSpace(SearchPhone))
+            {
+                var lower = SearchPhone.ToLower().Trim();
+                data = data.Where(x => x.Phone?.ToLower().Contains(lower) ?? false).ToList();
+            }
+
+            Customers = new ObservableCollection<Customer>(data);
         }
+
+        [RelayCommand]
+        private void ExportToExcel()
+        {
+            try
+            {
+                var saveFileDialog = new Microsoft.Win32.SaveFileDialog
+                {
+                    Filter = "Excel Workbook (*.xlsx)|*.xlsx",
+                    FileName = $"DanhSachKhachHang_{DateTime.Now:yyyyMMdd_HHmm}"
+                };
+
+                if (saveFileDialog.ShowDialog() == true)
+                {
+                    using (var workbook = new XLWorkbook())
+                    {
+                        var worksheet = workbook.Worksheets.Add("Customers");
+
+                        // Headers
+                        worksheet.Cell(1, 1).Value = "Mã Khách Hàng";
+                        worksheet.Cell(1, 2).Value = "Tên Khách Hàng";
+                        worksheet.Cell(1, 3).Value = "Số Điện Thoại";
+                        worksheet.Cell(1, 4).Value = "Email";
+                        worksheet.Cell(1, 5).Value = "Địa Chỉ";
+
+                        var headerRange = worksheet.Range(1, 1, 1, 5);
+                        headerRange.Style.Font.Bold = true;
+                        headerRange.Style.Fill.BackgroundColor = XLColor.LightGray;
+
+                        // Data
+                        for (int i = 0; i < Customers.Count; i++)
+                        {
+                            worksheet.Cell(i + 2, 1).Value = Customers[i].CustomerCode;
+                            worksheet.Cell(i + 2, 2).Value = Customers[i].DisplayName;
+                            worksheet.Cell(i + 2, 3).Value = Customers[i].Phone;
+                            worksheet.Cell(i + 2, 4).Value = Customers[i].Email;
+                            worksheet.Cell(i + 2, 5).Value = Customers[i].Address;
+                        }
+
+                        worksheet.Columns().AdjustToContents();
+                        workbook.SaveAs(saveFileDialog.FileName);
+                    }
+                    MessageBox.Show("Xuất file Excel thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi xuất Excel: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        partial void OnSearchCodeChanged(string value) => LoadData();
+        partial void OnSearchNameChanged(string value) => LoadData();
+        partial void OnSearchPhoneChanged(string value) => LoadData();
 
         [RelayCommand]
         private void Save()
@@ -96,36 +161,8 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
-        [RelayCommand]
-        private void ImportData()
-        {
-            var dialog = new Microsoft.Win32.OpenFileDialog
-            {
-                Filter = "Excel Files|*.xlsx;*.xls|CSV Files|*.csv|All Files|*.*"
-            };
-
-            if (dialog.ShowDialog() == true)
-            {
-                try
-                {
-                    var result = _importManager.ProcessFile<Customer>(dialog.FileName);
-                    LoadData();
-                    var reportWin = new ImportResultWindow(result.SuccessCount, result.Errors);
-                    reportWin.ShowDialog();
-                }
-                catch (Exception ex)
-                {
-                    System.Windows.MessageBox.Show(ex.Message, "Lỗi Import", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
-                }
-            }
-        }
 
         [RelayCommand]
-        partial void OnSearchTextChanged(string value) => LoadData();
-
-        [RelayCommand]
-        private void Search() => LoadData();
-
         private void Clear()
         {
             SelectedCustomer = null;

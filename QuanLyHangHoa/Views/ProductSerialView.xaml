@@ -24,7 +24,7 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <materialDesign:PackIcon Kind="Barcode" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
+                    <materialDesign:PackIcon Kind="BarcodeScan" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
                     <StackPanel Margin="16,0,0,0">
                         <TextBlock Text="QUẢN LÝ SERIAL" Style="{DynamicResource TypographyH1}"/>
                         <TextBlock Text="Theo dõi chi tiết số serial sản phẩm trong kho" Style="{DynamicResource TypographyCaption}"/>
@@ -99,10 +99,37 @@
                           AutoGenerateColumns="False"
                           IsReadOnly="True">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="MÃ SẢN PHẨM" Binding="{Binding ProductCode}" Width="150"/>
-                        <DataGridTextColumn Header="TÊN SẢN PHẨM" Binding="{Binding ProductName}" Width="*"/>
-                        <DataGridTextColumn Header="SỐ SERIAL" Binding="{Binding SerialNumber}" Width="200" FontWeight="Bold"/>
-                        <DataGridTemplateColumn Header="TRẠNG THÁI" Width="180">
+                        <DataGridTextColumn Binding="{Binding ProductCode}" Width="150">
+                            <DataGridTextColumn.Header>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                    <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                    <TextBlock Text="MÃ SẢN PHẨM" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                </StackPanel>
+                            </DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding ProductName}" Width="*">
+                            <DataGridTextColumn.Header>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                    <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                    <TextBlock Text="TÊN SẢN PHẨM" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                </StackPanel>
+                            </DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Binding="{Binding SerialNumber}" Width="200" FontWeight="Bold">
+                            <DataGridTextColumn.Header>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                    <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                    <TextBlock Text="SỐ SERIAL" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                </StackPanel>
+                            </DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+                        <DataGridTemplateColumn Width="180">
+                            <DataGridTemplateColumn.Header>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                    <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                    <TextBlock Text="TRẠNG THÁI" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                </StackPanel>
+                            </DataGridTemplateColumn.Header>
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <Border CornerRadius="12" Padding="12,4" HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -148,7 +175,14 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTextColumn Header="NGÀY NHẬP" Binding="{Binding CreatedDate, StringFormat=dd/MM/yyyy}" Width="150"/>
+                        <DataGridTextColumn Binding="{Binding CreatedDate, StringFormat=dd/MM/yyyy}" Width="150">
+                            <DataGridTextColumn.Header>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                    <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                    <TextBlock Text="NGÀY NHẬP" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                </StackPanel>
+                            </DataGridTextColumn.Header>
+                        </DataGridTextColumn>
                     </DataGrid.Columns>
                 </DataGrid>
             </materialDesign:Card>

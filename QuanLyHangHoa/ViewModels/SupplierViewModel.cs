@@ -6,13 +6,15 @@ using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
 using QuanLyHangHoa.Services.DataImport;
 using QuanLyHangHoa.Views;
+using ClosedXML.Excel;
+using System.Windows;
+using System.Linq;
 
 namespace QuanLyHangHoa.ViewModels
 {
     public partial class SupplierViewModel : ObservableObject
     {
         private readonly ReferenceDataService _svc = new();
-        private readonly DataImportManager _importManager = new();
 
         [ObservableProperty] private ObservableCollection<Supplier> _suppliers = new();
         [ObservableProperty] private Supplier? _selectedSupplier;
@@ -21,7 +23,9 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _editAddress = string.Empty;
         [ObservableProperty] private string _editPhone   = string.Empty;
         [ObservableProperty] private string _editEmail   = string.Empty;
-        [ObservableProperty] private string _searchText = string.Empty;
+        [ObservableProperty] private string _searchCode = string.Empty;
+        [ObservableProperty] private string _searchName = string.Empty;
+        [ObservableProperty] private string _searchPhone = string.Empty;
         [ObservableProperty] private string _statusMessage = string.Empty;
 
         public SupplierViewModel() => LoadData();
@@ -30,17 +34,81 @@ namespace QuanLyHangHoa.ViewModels
         private void LoadData()
         {
             var data = _svc.GetAllSuppliers();
-            if (!string.IsNullOrWhiteSpace(SearchText))
+            
+            if (!string.IsNullOrWhiteSpace(SearchCode))
             {
-                var lowerSearch = SearchText.ToLower().Trim();
-                data = data.FindAll(x => 
-                    (x.DisplayName?.ToLower().Contains(lowerSearch) ?? false) || 
-                    (x.SupplierCode?.ToLower().Contains(lowerSearch) ?? false) ||
-                    (x.Phone?.ToLower().Contains(lowerSearch) ?? false) ||
-                    (x.Email?.ToLower().Contains(lowerSearch) ?? false));
+                var lower = SearchCode.ToLower().Trim();
+                data = data.Where(x => x.SupplierCode?.ToLower().Contains(lower) ?? false).ToList();
             }
+
+            if (!string.IsNullOrWhiteSpace(SearchName))
+            {
+                var lower = SearchName.ToLower().Trim();
+                data = data.Where(x => x.DisplayName?.ToLower().Contains(lower) ?? false).ToList();
+            }
+
+            if (!string.IsNullOrWhiteSpace(SearchPhone))
+            {
+                var lower = SearchPhone.ToLower().Trim();
+                data = data.Where(x => x.Phone?.ToLower().Contains(lower) ?? false).ToList();
+            }
+
             Suppliers = new ObservableCollection<Supplier>(data);
         }
+
+        [RelayCommand]
+        private void ExportToExcel()
+        {
+            try
+            {
+                var saveFileDialog = new Microsoft.Win32.SaveFileDialog
+                {
+                    Filter = "Excel Workbook (*.xlsx)|*.xlsx",
+                    FileName = $"DanhSachNhaCungCap_{DateTime.Now:yyyyMMdd_HHmm}"
+                };
+
+                if (saveFileDialog.ShowDialog() == true)
+                {
+                    using (var workbook = new XLWorkbook())
+                    {
+                        var worksheet = workbook.Worksheets.Add("Suppliers");
+
+                        // Headers
+                        worksheet.Cell(1, 1).Value = "Mã Nhà Cung Cấp";
+                        worksheet.Cell(1, 2).Value = "Tên Nhà Cung Cấp";
+                        worksheet.Cell(1, 3).Value = "Số Điện Thoại";
+                        worksheet.Cell(1, 4).Value = "Email";
+                        worksheet.Cell(1, 5).Value = "Địa Chỉ";
+
+                        var headerRange = worksheet.Range(1, 1, 1, 5);
+                        headerRange.Style.Font.Bold = true;
+                        headerRange.Style.Fill.BackgroundColor = XLColor.LightGray;
+
+                        // Data
+                        for (int i = 0; i < Suppliers.Count; i++)
+                        {
+                            worksheet.Cell(i + 2, 1).Value = Suppliers[i].SupplierCode;
+                            worksheet.Cell(i + 2, 2).Value = Suppliers[i].DisplayName;
+                            worksheet.Cell(i + 2, 3).Value = Suppliers[i].Phone;
+                            worksheet.Cell(i + 2, 4).Value = Suppliers[i].Email;
+                            worksheet.Cell(i + 2, 5).Value = Suppliers[i].Address;
+                        }
+
+                        worksheet.Columns().AdjustToContents();
+                        workbook.SaveAs(saveFileDialog.FileName);
+                    }
+                    MessageBox.Show("Xuất file Excel thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi xuất Excel: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        partial void OnSearchCodeChanged(string value) => LoadData();
+        partial void OnSearchNameChanged(string value) => LoadData();
+        partial void OnSearchPhoneChanged(string value) => LoadData();
 
         [RelayCommand]
         private void Add()
@@ -68,29 +136,6 @@ namespace QuanLyHangHoa.ViewModels
             _svc.DeactivateSupplier(SelectedSupplier.Id); LoadData(); StatusMessage = "Đã xoá.";
         }
 
-        [RelayCommand]
-        private void ImportData()
-        {
-            var dialog = new Microsoft.Win32.OpenFileDialog
-            {
-                Filter = "Excel Files|*.xlsx;*.xls|CSV Files|*.csv|All Files|*.*"
-            };
-
-            if (dialog.ShowDialog() == true)
-            {
-                try
-                {
-                    var result = _importManager.ProcessFile<Supplier>(dialog.FileName);
-                    LoadData();
-                    var reportWin = new ImportResultWindow(result.SuccessCount, result.Errors);
-                    reportWin.ShowDialog();
-                }
-                catch (Exception ex)
-                {
-                    System.Windows.MessageBox.Show(ex.Message, "Lỗi Import", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
-                }
-            }
-        }
 
         [RelayCommand]
         private void ClearInput() { EditCode = string.Empty; EditName = string.Empty; EditAddress = string.Empty; EditPhone = string.Empty; EditEmail = string.Empty; SelectedSupplier = null; }

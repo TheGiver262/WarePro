@@ -24,7 +24,7 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <materialDesign:PackIcon Kind="ShieldCheck" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
+                    <materialDesign:PackIcon Kind="WrenchOutline" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
                     <StackPanel Margin="16,0,0,0">
                         <TextBlock Text="QUẢN LÝ BẢO HÀNH" Style="{StaticResource TypographyH2}"/>
                         <TextBlock Text="Theo dõi tình trạng tiếp nhận, sửa chữa và trả máy" Style="{StaticResource TypographyCaption}"/>

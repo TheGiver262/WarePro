@@ -49,6 +49,10 @@ AlertOutline, Logout, Magnify, Printer, Plus, Pencil, Delete,
 EyeOutline, CheckCircleOutline, Download, Upload
 ```
 
+### 0.5 Đồng bộ Icon Header và Sidebar
+
+Icon sử dụng trong Header của mỗi View phải trùng khớp hoàn toàn với Icon được sử dụng cho Menu tương ứng trong Sidebar của MainWindow. Điều này giúp người dùng nhận diện nhanh chóng phân hệ đang thao tác.
+
 ---
 
 ## 1. Định hướng tổng thể
@@ -487,16 +491,19 @@ Page Header
 | Margin top | 20-24px |
 | Width | Stretch |
 
-### 10.2 Search/filter bar
+### 10.2 Search/filter bar (Thanh tìm kiếm & Xuất dữ liệu)
 
-Trong ảnh, filter bar nằm trong card table, phía trên header bảng.
+Trong thiết kế "Pro Max", thanh tìm kiếm nằm trong card table, phía trên header bảng và được chia thành nhiều trường nhập liệu để lọc nhanh (Mã, Tên, SĐT/Email...).
 
-- Label nhỏ nằm trên input.
-- Input height 32px.
-- Các input xếp ngang.
-- Button `Tìm kiếm` màu tím.
-- Button `In` dạng outline/light.
-- Date range dùng 2 DatePicker có dấu `→` ở giữa.
+- **Cấu trúc**: Chia Grid thành các cột cho từng trường tìm kiếm + 1 cột cuối cho nút hành động.
+- **Không dùng nút Reset**: Các View mới sẽ bỏ nút Reset tìm kiếm. Thay vào đó, dùng nút **XUẤT EXCEL** ở cột cuối cùng của hàng tìm kiếm.
+- **Label**: Label nhỏ nằm trên input để tối ưu không gian.
+- **Input height**: 32px.
+- **Nút Xuất Excel**:
+  - Content: "XUẤT EXCEL"
+  - Style: `AppSecondaryButton` (Outline style)
+  - Icon: `FileExcelOutline` hoặc `MicrosoftExcel`
+  - Vị trí: Cột cuối cùng bên phải của hàng tìm kiếm.
 
 #### Kích thước
 
@@ -1581,3 +1588,6 @@ Cột thao tác cuối cùng phải dùng `MaterialDesignIconButton` với icon 
 - **Trạng thái**: Thêm CheckBox "Đang hoạt động" ở góc dưới bên trái, trên các nút lưu/hủy.
 - **Vị trí nút**: Nút "LƯU THAY ĐỔI" (Primary) và "HUỶ" (Outlined) đặt ở góc dưới bên phải.
 - **Input**: Độ cao chuẩn 50px, có nhãn (Label) phía trên.
+
+### 14.7 Đồng bộ Icon (Icon Synchronization)
+Mọi View khi được mở phải hiển thị đúng Icon đã khai báo trong Sidebar. Ví dụ: Nếu Sidebar dùng `TruckOutline` cho Nhà cung cấp, thì `SupplierView` cũng phải dùng `TruckOutline` trong Header.

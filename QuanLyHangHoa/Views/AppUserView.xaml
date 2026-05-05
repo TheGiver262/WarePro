@@ -25,7 +25,7 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <materialDesign:PackIcon Kind="AccountSettings" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
+                    <materialDesign:PackIcon Kind="AccountMultipleOutline" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
                     <StackPanel Margin="16,0,0,0">
                         <TextBlock Text="QUẢN TRỊ NGƯỜI DÙNG" Style="{StaticResource TypographyH2}"/>
                         <TextBlock Text="Thiết lập tài khoản, phân quyền và bảo mật hệ thống" Style="{StaticResource TypographyCaption}"/>
@@ -115,7 +115,7 @@
                               RowHeight="48" BorderThickness="0" Background="Transparent">
                         <DataGrid.ColumnHeaderStyle>
                             <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource MaterialDesignDataGridColumnHeader}">
-                                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Left"/>
                             </Style>
                         </DataGrid.ColumnHeaderStyle>
                         <DataGrid.Columns>
@@ -125,7 +125,7 @@
                             
                             <DataGridTemplateColumn Width="*" SortMemberPath="FullName">
                                 <DataGridTemplateColumn.Header>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                                         <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
                                         <TextBlock Text="HỌ VÀ TÊN" VerticalAlignment="Center"/>
                                     </StackPanel>
@@ -140,7 +140,7 @@
                             <DataGridTextColumn Binding="{Binding Username}" Width="150" 
                                                 ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}">
                                 <DataGridTextColumn.Header>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                                         <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
                                         <TextBlock Text="TÀI KHOẢN" VerticalAlignment="Center"/>
                                     </StackPanel>
@@ -149,7 +149,7 @@
                             
                             <DataGridTemplateColumn Width="170" SortMemberPath="RoleCode">
                                 <DataGridTemplateColumn.Header>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                                         <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
                                         <TextBlock Text="VAI TRÒ" VerticalAlignment="Center"/>
                                     </StackPanel>
@@ -166,14 +166,20 @@
                             <DataGridTextColumn Binding="{Binding CreatedAt, StringFormat=\{0:dd/MM/yyyy\}}" Width="120" 
                                                 ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}">
                                 <DataGridTextColumn.Header>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                                         <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
                                         <TextBlock Text="NGÀY TẠO" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </DataGridTextColumn.Header>
                             </DataGridTextColumn>
 
-                            <DataGridTemplateColumn Header="MK MẶC ĐỊNH" Width="130">
+                            <DataGridTemplateColumn Width="130">
+                                <DataGridTemplateColumn.Header>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="MK MẶC ĐỊNH" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    </StackPanel>
+                                </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <materialDesign:PackIcon Kind="{Binding MustChangePassword, Converter={StaticResource BooleanToIconConverter}, ConverterParameter=Icon}" 
@@ -183,7 +189,13 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                             
-                            <DataGridTemplateColumn Header="TRẠNG THÁI" Width="180" SortMemberPath="IsActive">
+                            <DataGridTemplateColumn Width="180" SortMemberPath="IsActive">
+                                <DataGridTemplateColumn.Header>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="TRẠNG THÁI" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    </StackPanel>
+                                </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Border Padding="12,4" CornerRadius="12" HorizontalAlignment="Center" VerticalAlignment="Center" >
@@ -230,7 +242,13 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                             
-                            <DataGridTemplateColumn Header="THAO TÁC" Width="120">
+                            <DataGridTemplateColumn Width="120">
+                                <DataGridTemplateColumn.Header>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="THAO TÁC" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    </StackPanel>
+                                </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">

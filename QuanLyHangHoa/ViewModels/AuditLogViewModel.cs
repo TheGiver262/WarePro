@@ -30,6 +30,13 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private DateTime? _fromDate;
         [ObservableProperty] private DateTime? _toDate;
         [ObservableProperty] private string _searchText = string.Empty;
+        [ObservableProperty] private int _totalLogs;
+
+        // Archive Dialog
+        [ObservableProperty] private bool _isArchiveDialogOpen;
+        [ObservableProperty] private DateTime _archiveFromDate = new DateTime(DateTime.Now.Year - 1, 1, 1);
+        [ObservableProperty] private DateTime _archiveToDate = new DateTime(DateTime.Now.Year - 1, 12, 31);
+        [ObservableProperty] private string _archiveValidationMessage = string.Empty;
 
         public ObservableCollection<string> EntityNames { get; } = new();
         public ObservableCollection<string> ActionCodes { get; } = new();
@@ -73,13 +80,14 @@ namespace QuanLyHangHoa.ViewModels
 
             Logs.Clear();
             foreach (var log in results) Logs.Add(log);
+            TotalLogs = results.Count;
         }
 
         [RelayCommand]
         private void ResetFilters()
         {
-            SelectedEntity = null;
-            SelectedAction = null;
+            SelectedEntity = "Tất cả";
+            SelectedAction = "Tất cả";
             SelectedUser = null;
             FromDate = null;
             ToDate = null;
@@ -88,16 +96,42 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
-        private void Archive()
+        private void OpenArchiveDialog()
         {
-            var oldLogs = _auditService.GetOldLogs(1);
-            if (!oldLogs.Any())
+            ArchiveFromDate = new DateTime(DateTime.Now.Year - 1, 1, 1);
+            ArchiveToDate = new DateTime(DateTime.Now.Year - 1, 12, 31);
+            ArchiveValidationMessage = string.Empty;
+            IsArchiveDialogOpen = true;
+        }
+
+        [RelayCommand]
+        private void CloseArchiveDialog() => IsArchiveDialogOpen = false;
+
+        [RelayCommand]
+        private void ConfirmArchive()
+        {
+            ArchiveValidationMessage = string.Empty;
+
+            if (ArchiveFromDate.Year >= DateTime.Now.Year || ArchiveToDate.Year >= DateTime.Now.Year)
             {
-                MessageBox.Show("Không có nhật ký nào cũ hơn 1 năm để lưu trữ.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                ArchiveValidationMessage = "Chỉ lưu trữ được dữ liệu trên 1 năm";
                 return;
             }
 
-            var confirm = MessageBox.Show($"Tìm thấy {oldLogs.Count} bản ghi cũ hơn 1 năm. Bạn có muốn xuất ra Excel sau đó xóa chúng khỏi hệ thống không?", 
+            if (ArchiveFromDate > ArchiveToDate)
+            {
+                ArchiveValidationMessage = "Ngày bắt đầu phải nhỏ hơn ngày kết thúc";
+                return;
+            }
+
+            var oldLogs = _auditService.GetLogsBetween(ArchiveFromDate, ArchiveToDate);
+            if (!oldLogs.Any())
+            {
+                MessageBox.Show($"Không có nhật ký nào từ {ArchiveFromDate:dd/MM/yyyy} đến {ArchiveToDate:dd/MM/yyyy} để lưu trữ.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var confirm = MessageBox.Show($"Tìm thấy {oldLogs.Count} bản ghi. Bạn có muốn xuất ra Excel sau đó xóa chúng khỏi hệ thống không?", 
                 "Xác nhận lưu trữ", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
             if (confirm != MessageBoxResult.Yes) return;
@@ -106,7 +140,7 @@ namespace QuanLyHangHoa.ViewModels
             var saveFileDialog = new SaveFileDialog
             {
                 Filter = "Excel Files (*.xlsx)|*.xlsx",
-                FileName = $"AuditLog_Archive_{DateTime.Now:yyyyMMdd_HHmm}.xlsx",
+                FileName = $"AuditLog_Archive_{ArchiveFromDate:yyyyMMdd}_{ArchiveToDate:yyyyMMdd}.xlsx",
                 Title = "Lưu tệp nhật ký lưu trữ"
             };
 
@@ -119,6 +153,7 @@ namespace QuanLyHangHoa.ViewModels
                     // Step 2: Delete from DB
                     int count = _auditService.DeleteLogs(oldLogs.Select(l => l.Id));
                     MessageBox.Show($"Đã xuất tệp thành công và xóa {count} bản ghi nhật ký khỏi hệ thống.", "Thành công", MessageBoxButton.OK, MessageBoxImage.Information);
+                    IsArchiveDialogOpen = false;
                     LoadLogs();
                 }
                 catch (Exception ex)
