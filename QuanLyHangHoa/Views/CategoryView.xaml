@@ -54,26 +54,24 @@
                     <!-- Code Search -->
                     <StackPanel Grid.Column="0" Margin="{StaticResource Margin.Right.md}">
                         <TextBlock Text="MÃ DANH MỤC" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                        <TextBox Style="{StaticResource SearchTextBoxStyle}" 
-                                 Height="32" 
-                                 Text="{Binding SearchCode, UpdateSourceTrigger=PropertyChanged}"
-                                 materialDesign:HintAssist.Hint="Mã..."/>
+                        <TextBox materialDesign:HintAssist.Hint="Mã..." 
+                                 Height="32" VerticalContentAlignment="Center"
+                                 Text="{Binding SearchCode, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
                     <!-- Name Search -->
                     <StackPanel Grid.Column="1" Margin="{StaticResource Margin.Right.md}">
                         <TextBlock Text="TÊN DANH MỤC" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                        <TextBox Style="{StaticResource SearchTextBoxStyle}" 
-                                 Height="32" 
-                                 Text="{Binding SearchName, UpdateSourceTrigger=PropertyChanged}"
-                                 materialDesign:HintAssist.Hint="Nhập tên danh mục cần tìm..."/>
+                        <TextBox materialDesign:HintAssist.Hint="Nhập tên danh mục cần tìm..." 
+                                 Height="32" VerticalContentAlignment="Center"
+                                 Text="{Binding SearchName, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
                     <!-- Status Filter -->
                     <StackPanel Grid.Column="2" Margin="{StaticResource Margin.Right.md}">
                         <TextBlock Text="TRẠNG THÁI" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                        <ComboBox Style="{StaticResource MaterialDesignOutlinedComboBox}" 
-                                  Height="32" Padding="8,0"
+                        <ComboBox  
+                                  Height="32" VerticalContentAlignment="Center"
                                   ItemsSource="{Binding StatusOptions}"
                                   SelectedItem="{Binding SearchStatus, UpdateSourceTrigger=PropertyChanged}"
                                   materialDesign:HintAssist.Hint="Chọn trạng thái..."/>

@@ -51,59 +51,45 @@
             <materialDesign:Card Grid.Row="1" Margin="{StaticResource Margin.Bottom.md}" Padding="{StaticResource Spacing.md}" Style="{StaticResource AppCard}">
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>         <!-- Nội dung tìm kiếm -->
                         <ColumnDefinition Width="Auto"/>      <!-- Đối tượng -->
                         <ColumnDefinition Width="Auto"/>      <!-- Hành động -->
                         <ColumnDefinition Width="Auto"/>      <!-- Nhân viên -->
-                        <ColumnDefinition Width="Auto"/>      <!-- Khoảng ngày -->
+                        <ColumnDefinition Width="*"/>      <!-- Khoảng ngày -->
                         <ColumnDefinition Width="Auto"/>      <!-- Nút hành động -->
                     </Grid.ColumnDefinitions>
 
-                    <!-- Search Box -->
-                    <StackPanel Grid.Column="0" Margin="{StaticResource Margin.Right.md}">
-                        <TextBlock Text="NỘI DUNG TÌM KIẾM" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                        <TextBox materialDesign:HintAssist.Hint="Nhập nội dung cần tìm..." 
-                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" 
-                                 Height="32" VerticalContentAlignment="Center">
-                            <TextBox.InputBindings>
-                                <KeyBinding Key="Enter" Command="{Binding LoadLogsCommand}"/>
-                            </TextBox.InputBindings>
-                        </TextBox>
-                    </StackPanel>
-
                     <!-- Entity Filter -->
-                    <StackPanel Grid.Column="1" Margin="{StaticResource Margin.Right.md}" Width="160">
+                    <StackPanel Grid.Column="0" Margin="{StaticResource Margin.Right.md}" Width="160">
                         <TextBlock Text="ĐỐI TƯỢNG" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
                         <ComboBox ItemsSource="{Binding EntityNames}" SelectedItem="{Binding SelectedEntity}"
                                   Height="32" VerticalContentAlignment="Center"/>
                     </StackPanel>
 
                     <!-- Action Filter -->
-                    <StackPanel Grid.Column="2" Margin="{StaticResource Margin.Right.md}" Width="140">
+                    <StackPanel Grid.Column="1" Margin="{StaticResource Margin.Right.md}" Width="140">
                         <TextBlock Text="HÀNH ĐỘNG" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
                         <ComboBox ItemsSource="{Binding ActionCodes}" SelectedItem="{Binding SelectedAction}"
                                   Height="32" VerticalContentAlignment="Center"/>
                     </StackPanel>
-
                     <!-- User Filter -->
-                    <StackPanel Grid.Column="3" Margin="{StaticResource Margin.Right.md}" Width="160">
+                    <StackPanel Grid.Column="2" Margin="{StaticResource Margin.Right.md}" Width="160">
                         <TextBlock Text="NHÂN VIÊN" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
                         <ComboBox ItemsSource="{Binding Users}" SelectedItem="{Binding SelectedUser}"
                                   DisplayMemberPath="FullName" Height="32" VerticalContentAlignment="Center"/>
                     </StackPanel>
 
                     <!-- Date Range -->
-                    <StackPanel Grid.Column="4" Margin="{StaticResource Margin.Right.md}">
+                    <StackPanel Grid.Column="3" Margin="{StaticResource Margin.Right.md}">
                         <TextBlock Text="KHOẢNG NGÀY" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
                         <StackPanel Orientation="Horizontal">
-                            <DatePicker SelectedDate="{Binding FromDate}" Width="120" Height="32" VerticalContentAlignment="Center"/>
+                            <DatePicker SelectedDate="{Binding FromDate}" Width="200" Height="32" VerticalContentAlignment="Center"/>
                             <TextBlock Text="-" VerticalAlignment="Center" Margin="8,0"/>
-                            <DatePicker SelectedDate="{Binding ToDate}" Width="120" Height="32" VerticalContentAlignment="Center"/>
+                            <DatePicker SelectedDate="{Binding ToDate}" Width="200" Height="32" VerticalContentAlignment="Center"/>
                         </StackPanel>
                     </StackPanel>
 
                     <!-- Action Buttons -->
-                    <StackPanel Grid.Column="5" VerticalAlignment="Bottom">
+                    <StackPanel Grid.Column="4" VerticalAlignment="Bottom">
                         <Button Command="{Binding ExportLogsCommand}" Style="{StaticResource AppPrimaryButton}" Height="32">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="FileExcelOutline" Width="18" Height="18" VerticalAlignment="Center"/>
@@ -127,9 +113,9 @@
                               AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                               RowHeight="40" BorderThickness="0">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="THỜI GIAN" Binding="{Binding PerformedAt, StringFormat='{}{0:dd/MM/yyyy HH:mm}'}" Width="140" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                            <DataGridTextColumn Header="NHÂN VIÊN" Binding="{Binding Performer.FullName}" Width="130" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                            <DataGridTextColumn Header="ĐỐI TƯỢNG" Binding="{Binding EntityName}" Width="100" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+                            <DataGridTextColumn Header="THỜI GIAN" Binding="{Binding PerformedAt, StringFormat='{}{0:dd/MM/yyyy HH:mm}'}" Width="160" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+                            <DataGridTextColumn Header="NHÂN VIÊN" Binding="{Binding Performer.FullName}" Width="160" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+                            <DataGridTextColumn Header="ĐỐI TƯỢNG" Binding="{Binding EntityName}" Width="160" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
                             <DataGridTextColumn Header="HÀNH ĐỘNG" Binding="{Binding ActionCode}" Width="*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
                         </DataGrid.Columns>
                     </DataGrid>

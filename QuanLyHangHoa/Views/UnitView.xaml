@@ -50,19 +50,17 @@
                     <!-- Code -->
                     <StackPanel Grid.Column="0" Margin="{StaticResource Margin.Right.md}">
                         <TextBlock Text="MÃ ĐƠN VỊ" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                        <TextBox Style="{StaticResource SearchTextBoxStyle}" 
-                                 Height="32" 
-                                 Text="{Binding SearchCode, UpdateSourceTrigger=PropertyChanged}"
-                                 materialDesign:HintAssist.Hint="Tìm theo mã..."/>
+                        <TextBox materialDesign:HintAssist.Hint="Tìm theo mã..." 
+                                 Height="32" VerticalContentAlignment="Center"
+                                 Text="{Binding SearchCode, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
                     <!-- Name -->
                     <StackPanel Grid.Column="1" Margin="{StaticResource Margin.Right.md}">
                         <TextBlock Text="TÊN ĐƠN VỊ" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                        <TextBox Style="{StaticResource SearchTextBoxStyle}" 
-                                 Height="32" 
-                                 Text="{Binding SearchName, UpdateSourceTrigger=PropertyChanged}"
-                                 materialDesign:HintAssist.Hint="Tìm theo tên..."/>
+                        <TextBox materialDesign:HintAssist.Hint="Tìm theo tên..." 
+                                 Height="32" VerticalContentAlignment="Center"
+                                 Text="{Binding SearchName, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
                     <!-- Export Button -->

@@ -53,28 +53,25 @@
                     <!-- Search Code -->
                     <StackPanel Grid.Column="0" Margin="{StaticResource Margin.Right.md}">
                         <TextBlock Text="MÃ KHÁCH HÀNG" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                        <TextBox Style="{StaticResource SearchTextBoxStyle}" 
-                                 Height="32" 
-                                 Text="{Binding SearchCode, UpdateSourceTrigger=PropertyChanged}"
-                                 materialDesign:HintAssist.Hint="Mã..."/>
+                        <TextBox materialDesign:HintAssist.Hint="Mã..." 
+                                 Height="32" VerticalContentAlignment="Center"
+                                 Text="{Binding SearchCode, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
                     <!-- Search Name -->
                     <StackPanel Grid.Column="1" Margin="{StaticResource Margin.Right.md}">
                         <TextBlock Text="TÊN KHÁCH HÀNG" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                        <TextBox Style="{StaticResource SearchTextBoxStyle}" 
-                                 Height="32" 
-                                 Text="{Binding SearchName, UpdateSourceTrigger=PropertyChanged}"
-                                 materialDesign:HintAssist.Hint="Nhập tên khách hàng..."/>
+                        <TextBox materialDesign:HintAssist.Hint="Nhập tên khách hàng..." 
+                                 Height="32" VerticalContentAlignment="Center"
+                                 Text="{Binding SearchName, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
                     <!-- Search Phone -->
                     <StackPanel Grid.Column="2" Margin="{StaticResource Margin.Right.md}">
                         <TextBlock Text="SỐ ĐIỆN THOẠI" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                        <TextBox Style="{StaticResource SearchTextBoxStyle}" 
-                                 Height="32" 
-                                 Text="{Binding SearchPhone, UpdateSourceTrigger=PropertyChanged}"
-                                 materialDesign:HintAssist.Hint="Tìm theo SĐT..."/>
+                        <TextBox materialDesign:HintAssist.Hint="Tìm theo SĐT..." 
+                                 Height="32" VerticalContentAlignment="Center"
+                                 Text="{Binding SearchPhone, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
                     <!-- Export Button -->
