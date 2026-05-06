@@ -13,7 +13,8 @@ namespace QuanLyHangHoa.Services
         CreatePurchaseInvoice,
         CreateSalesInvoice,
         CreateWarrantyClaim,
-        ViewReports
+        ViewReports,
+        ManageMasterData
     }
 
     public class AuthorizationService

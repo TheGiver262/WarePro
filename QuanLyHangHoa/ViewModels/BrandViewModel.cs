@@ -17,7 +17,9 @@ namespace QuanLyHangHoa.ViewModels
     {
         private readonly AppDbContext _db;
         private readonly AppUser _currentUser;
+        private readonly AuthorizationService _authService = new();
 
+        [ObservableProperty] private bool _canManage;
         [ObservableProperty] private ObservableCollection<Brand> _brands = new();
         [ObservableProperty] private Brand? _selectedBrand;
         
@@ -39,6 +41,7 @@ namespace QuanLyHangHoa.ViewModels
         {
             _db = db;
             _currentUser = currentUser;
+            CanManage = _authService.CanPerform(_currentUser, PermissionAction.ManageMasterData);
             LoadBrands();
         }
 
@@ -70,7 +73,7 @@ namespace QuanLyHangHoa.ViewModels
         partial void OnSearchOriginChanged(string value) => LoadBrands();
         partial void OnSearchStatusChanged(string? value) => LoadBrands();
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanManage))]
         private void AddNew()
         {
             SelectedBrand = null;
@@ -81,7 +84,7 @@ namespace QuanLyHangHoa.ViewModels
             IsEditing = true;
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanManage))]
         private void EditBrand(Brand brand)
         {
             SelectedBrand = brand;
@@ -92,7 +95,7 @@ namespace QuanLyHangHoa.ViewModels
             IsEditing = true;
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanManage))]
         private void Save()
         {
             if (string.IsNullOrWhiteSpace(EditBrandCode) || string.IsNullOrWhiteSpace(EditDisplayName))
@@ -150,7 +153,7 @@ namespace QuanLyHangHoa.ViewModels
             IsEditing = false;
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanManage))]
         private void DeleteBrand(Brand brand)
         {
             var result = MessageBox.Show($"Bạn có chắc chắn muốn xoá thương hiệu '{brand.DisplayName}'?", "Xác nhận xoá", 

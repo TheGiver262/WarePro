@@ -16,7 +16,9 @@ namespace QuanLyHangHoa.ViewModels
     {
         private readonly AppDbContext _db;
         private readonly AppUser _currentUser;
+        private readonly AuthorizationService _authService = new();
 
+        [ObservableProperty] private bool _canManage;
         [ObservableProperty] private ObservableCollection<Unit> _units = new();
         [ObservableProperty] private Unit? _selectedUnit;
 
@@ -30,6 +32,7 @@ namespace QuanLyHangHoa.ViewModels
         {
             _db = db;
             _currentUser = currentUser;
+            CanManage = _authService.CanPerform(_currentUser, PermissionAction.ManageMasterData);
             LoadData();
         }
 
@@ -57,7 +60,7 @@ namespace QuanLyHangHoa.ViewModels
         partial void OnSearchNameChanged(string value) => LoadData();
         partial void OnSearchStatusChanged(string? value) => LoadData();
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanManage))]
         private void OpenAddUnitDialog()
         {
             var vm = new UnitEditViewModel();
@@ -80,7 +83,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanManage))]
         private void EditUnit(Unit unit)
         {
             var beforeJson = Serialize(unit);
@@ -96,7 +99,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanManage))]
         private void DeleteUnit(Unit unit)
         {
             var result = MessageBox.Show($"Bạn có chắc chắn muốn xoá đơn vị tính '{unit.DisplayName}'?", "Xác nhận xoá", 

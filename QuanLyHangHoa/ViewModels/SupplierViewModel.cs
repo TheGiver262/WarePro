@@ -16,7 +16,9 @@ namespace QuanLyHangHoa.ViewModels
     {
         private readonly AppDbContext _db;
         private readonly AppUser _currentUser;
+        private readonly AuthorizationService _authService = new();
 
+        [ObservableProperty] private bool _canManage;
         [ObservableProperty] private ObservableCollection<Supplier> _suppliers = new();
         [ObservableProperty] private Supplier? _selectedSupplier;
 
@@ -32,6 +34,7 @@ namespace QuanLyHangHoa.ViewModels
         {
             _db = db;
             _currentUser = currentUser;
+            CanManage = _authService.CanPerform(_currentUser, PermissionAction.ManageMasterData);
             LoadData();
         }
 
@@ -67,7 +70,7 @@ namespace QuanLyHangHoa.ViewModels
         partial void OnSearchPhoneChanged(string value) => LoadData();
         partial void OnSearchStatusChanged(string? value) => LoadData();
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanManage))]
         private void OpenAddSupplierDialog()
         {
             var vm = new SupplierEditViewModel();
@@ -90,7 +93,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanManage))]
         private void EditSupplier(Supplier supplier)
         {
             var beforeJson = Serialize(supplier);
@@ -106,7 +109,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanManage))]
         private void DeleteSupplier(Supplier supplier)
         {
             var result = MessageBox.Show($"Bạn có chắc chắn muốn xoá nhà cung cấp '{supplier.DisplayName}'?", "Xác nhận xoá", 

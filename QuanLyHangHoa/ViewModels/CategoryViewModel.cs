@@ -19,7 +19,9 @@ namespace QuanLyHangHoa.ViewModels
     {
         private readonly AppDbContext _db;
         private readonly AppUser _currentUser;
+        private readonly AuthorizationService _authService = new();
 
+        [ObservableProperty] private bool _canManage;
         [ObservableProperty] private ObservableCollection<Category> _categories = new();
         [ObservableProperty] private Category? _selectedCategory;
 
@@ -33,6 +35,7 @@ namespace QuanLyHangHoa.ViewModels
         {
             _db = db;
             _currentUser = currentUser;
+            CanManage = _authService.CanPerform(_currentUser, PermissionAction.ManageMasterData);
             LoadCategories();
         }
 
@@ -60,7 +63,7 @@ namespace QuanLyHangHoa.ViewModels
         partial void OnSearchNameChanged(string value) => LoadCategories();
         partial void OnSearchStatusChanged(string? value) => LoadCategories();
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanManage))]
         private void OpenAddCategoryDialog()
         {
             var vm = new CategoryEditViewModel();
@@ -85,7 +88,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanManage))]
         private void EditCategory(Category category)
         {
             var beforeJson = Serialize(category);
@@ -103,7 +106,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanManage))]
         private void DeleteCategory(Category category)
         {
             var result = MessageBox.Show($"Bạn có chắc chắn muốn xoá danh mục '{category.DisplayName}'?", "Xác nhận xoá", 
