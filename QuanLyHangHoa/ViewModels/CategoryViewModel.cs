@@ -27,7 +27,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _searchCode = string.Empty;
         [ObservableProperty] private string _searchName = string.Empty;
         [ObservableProperty] private string? _searchStatus = "Tất cả";
-        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Đang hoạt động", "Ngừng hoạt động"];
+        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Hoạt động", "Ngưng"];
 
         public CategoryViewModel(AppDbContext db, AppUser currentUser)
         {
@@ -47,9 +47,9 @@ namespace QuanLyHangHoa.ViewModels
             if (!string.IsNullOrWhiteSpace(SearchName))
                 query = query.Where(c => c.DisplayName.Contains(SearchName));
 
-            if (SearchStatus == "Đang hoạt động")
+            if (SearchStatus == "Hoạt động")
                 query = query.Where(c => c.IsActive);
-            else if (SearchStatus == "Ngừng hoạt động")
+            else if (SearchStatus == "Ngưng")
                 query = query.Where(c => !c.IsActive);
 
             var list = query.OrderBy(c => c.CategoryCode).ToList();
@@ -113,6 +113,16 @@ namespace QuanLyHangHoa.ViewModels
             {
                 try 
                 {
+                    // Check for dependencies
+                    bool isUsed = _db.Products.Any(p => p.CategoryId == category.Id);
+
+                    if (isUsed)
+                    {
+                        MessageBox.Show("Không thể xoá danh mục này vì đang có sản phẩm thuộc danh mục này.", 
+                            "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
                     var beforeJson = Serialize(category);
                     int entityId = category.Id;
 
@@ -126,7 +136,7 @@ namespace QuanLyHangHoa.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Không thể xoá danh mục này. Có thể danh mục đang được sử dụng bởi các sản phẩm.\nChi tiết: {ex.Message}", 
+                    MessageBox.Show($"Lỗi khi xoá danh mục: {ex.Message}", 
                         "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
@@ -163,7 +173,7 @@ namespace QuanLyHangHoa.ViewModels
                         {
                             worksheet.Cell(i + 2, 1).Value = Categories[i].CategoryCode;
                             worksheet.Cell(i + 2, 2).Value = Categories[i].DisplayName;
-                            worksheet.Cell(i + 2, 3).Value = Categories[i].IsActive ? "Đang hoạt động" : "Ngừng hoạt động";
+                            worksheet.Cell(i + 2, 3).Value = Categories[i].IsActive ? "Hoạt động" : "Ngưng";
                         }
 
                         worksheet.Columns().AdjustToContents();

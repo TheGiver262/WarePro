@@ -242,11 +242,11 @@
                                                 <TextBlock FontSize="12" FontWeight="Bold">
                                                     <TextBlock.Style>
                                                         <Style TargetType="TextBlock">
-                                                            <Setter Property="Text" Value="NGỪNG HOẠT ĐỘNG"/>
+                                                            <Setter Property="Text" Value="NGƯNG"/>
                                                             <Setter Property="Foreground" Value="#991B1B"/>
                                                             <Style.Triggers>
                                                                 <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                                                    <Setter Property="Text" Value="ĐANG HOẠT ĐỘNG"/>
+                                                                    <Setter Property="Text" Value="HOẠT ĐỘNG"/>
                                                                     <Setter Property="Foreground" Value="#166534"/>
                                                                 </DataTrigger>
                                                             </Style.Triggers>

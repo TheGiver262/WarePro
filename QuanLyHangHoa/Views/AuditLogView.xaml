@@ -27,7 +27,7 @@
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <materialDesign:PackIcon Kind="ShieldCheckOutline" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
                     <StackPanel Margin="16,0,0,0">
-                        <TextBlock Text="NHẬT KÝ HỆ THỐNG" Style="{StaticResource TypographyH2}" Foreground="{StaticResource AppTertiaryBrush}"/>
+                        <TextBlock Text="NHẬT KÝ HỆ THỐNG" Style="{StaticResource TypographyH2}"/>
                         <TextBlock Text="Theo dõi lịch sử thao tác và thay đổi dữ liệu" Style="{StaticResource TypographyCaption}" Opacity="0.7"/>
                     </StackPanel>
                 </StackPanel>

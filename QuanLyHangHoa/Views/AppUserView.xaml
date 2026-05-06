@@ -42,64 +42,73 @@
                 </StackPanel>
             </Grid>
 
-            <!-- Row 1: Search Row (Aligned Multi-field) -->
-            <Border Grid.Row="1" Background="{StaticResource AppSurfaceBrush}" CornerRadius="{StaticResource Radius.md}" 
-                    BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" Margin="{StaticResource Margin.Bottom.md}" Padding="16,10">
-                <Grid VerticalAlignment="Center">
+            <!-- Row 1: Search Row (Standardized Pro Max) -->
+            <materialDesign:Card Grid.Row="1" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.md}" Margin="{StaticResource Margin.Bottom.md}">
+                <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>     <!-- Name -->
-                        <ColumnDefinition Width="*"/>     <!-- Username -->
-                        <ColumnDefinition Width="*"/>     <!-- Role -->
-                        <ColumnDefinition Width="*"/>     <!-- Date -->
+                        <ColumnDefinition Width="*"/>         <!-- Họ và tên -->
+                        <ColumnDefinition Width="180"/>       <!-- Tài khoản -->
+                        <ColumnDefinition Width="180"/>       <!-- Vai trò -->
+                        <ColumnDefinition Width="180"/>       <!-- Ngày tạo -->
+                        <ColumnDefinition Width="150"/>       <!-- Trạng thái -->
+                        <ColumnDefinition Width="Auto"/>      <!-- Nút hành động -->
                     </Grid.ColumnDefinitions>
 
-                    <!-- Name -->
-                    <StackPanel Grid.Column="0" Margin="0,0,12,0" VerticalAlignment="Top">
-                        <TextBlock Text="Họ và tên" Style="{StaticResource TypographyCaption}" Margin="0,0,0,6"/>
-                        <TextBox Style="{StaticResource SearchTextBoxStyle}" 
-                                 Height="50" materialDesign:TextFieldAssist.TextFieldCornerRadius="{StaticResource Radius.sm}"
-                                 Text="{Binding SearchFullName, UpdateSourceTrigger=PropertyChanged}"
-                                 Padding="12,0,10,0"
-                                 materialDesign:HintAssist.IsFloating="False"
-                                 materialDesign:HintAssist.Hint="Tìm theo tên..."/>
+                    <!-- Full Name -->
+                    <StackPanel Grid.Column="0" Margin="{StaticResource Margin.Right.md}">
+                        <TextBlock Text="HỌ VÀ TÊN" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                        <TextBox materialDesign:HintAssist.Hint="Tìm theo tên..." 
+                                 Height="32" VerticalContentAlignment="Center"
+                                 Text="{Binding SearchFullName, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
                     <!-- Username -->
-                    <StackPanel Grid.Column="1" Margin="0,0,12,0" VerticalAlignment="Top">
-                        <TextBlock Text="Tên tài khoản" Style="{StaticResource TypographyCaption}" Margin="0,0,0,6"/>
-                        <TextBox Style="{StaticResource SearchTextBoxStyle}" 
-                                 Height="50" materialDesign:TextFieldAssist.TextFieldCornerRadius="{StaticResource Radius.sm}"
-                                 Text="{Binding SearchUsername, UpdateSourceTrigger=PropertyChanged}"
-                                 Padding="12,0,10,0"
-                                 materialDesign:HintAssist.IsFloating="False"
-                                 materialDesign:HintAssist.Hint="Tìm theo username..."/>
+                    <StackPanel Grid.Column="1" Margin="{StaticResource Margin.Right.md}">
+                        <TextBlock Text="TÀI KHOẢN" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                        <TextBox materialDesign:HintAssist.Hint="Tìm tài khoản..." 
+                                 Height="32" VerticalContentAlignment="Center"
+                                 Text="{Binding SearchUsername, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
                     <!-- Role -->
-                    <StackPanel Grid.Column="2" Margin="0,0,12,0" VerticalAlignment="Top">
-                        <TextBlock Text="Vai trò" Style="{StaticResource TypographyCaption}" Margin="0,0,0,6"/>
-                        <ComboBox Style="{StaticResource MaterialDesignOutlinedComboBox}" 
-                                  Margin="0" Height="50" Padding="12,0"
-                                  materialDesign:HintAssist.IsFloating="False"
-                                  materialDesign:TextFieldAssist.TextFieldCornerRadius="{StaticResource Radius.sm}"
-                                  ItemsSource="{Binding Roles}" 
+                    <StackPanel Grid.Column="2" Margin="{StaticResource Margin.Right.md}">
+                        <TextBlock Text="VAI TRÒ" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                        <ComboBox Height="32" VerticalContentAlignment="Center"
+                                  ItemsSource="{Binding Roles}"
                                   SelectedItem="{Binding SearchRole, UpdateSourceTrigger=PropertyChanged}"
-                                  VerticalContentAlignment="Center"/>
+                                  materialDesign:HintAssist.Hint="Tất cả"/>
                     </StackPanel>
-                    <!-- Date -->
-                    <StackPanel Grid.Column="3" VerticalAlignment="Top">
-                        <TextBlock Text="Ngày tạo" Style="{StaticResource TypographyCaption}" Margin="0,0,0,6"/>
-                        <DatePicker Style="{StaticResource AppDatePickerStyle}" 
-                                    Margin="0" Height="50" Padding="12,0"
-                                    materialDesign:HintAssist.IsFloating="False"
-                                    materialDesign:TextFieldAssist.TextFieldCornerRadius="{StaticResource Radius.sm}"
-                                    materialDesign:HintAssist.Hint=""
+
+                    <!-- Created At -->
+                    <StackPanel Grid.Column="3" Margin="{StaticResource Margin.Right.md}">
+                        <TextBlock Text="NGÀY TẠO" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                        <DatePicker Height="32" VerticalContentAlignment="Center"
                                     SelectedDate="{Binding SearchDate, UpdateSourceTrigger=PropertyChanged}"
-                                    Language="vi-VN"
-                                    VerticalContentAlignment="Center"/>
+                                    materialDesign:HintAssist.Hint="Tất cả thời gian"/>
+                    </StackPanel>
+
+                    <!-- Status -->
+                    <StackPanel Grid.Column="4" Margin="{StaticResource Margin.Right.md}">
+                        <TextBlock Text="TRẠNG THÁI" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                        <ComboBox Height="32" VerticalContentAlignment="Center"
+                                  ItemsSource="{Binding StatusOptions}"
+                                  SelectedItem="{Binding SearchStatus, UpdateSourceTrigger=PropertyChanged}"
+                                  materialDesign:HintAssist.Hint="Tất cả"/>
+                    </StackPanel>
+
+                    <!-- Export Button -->
+                    <StackPanel Grid.Column="5" VerticalAlignment="Bottom">
+                        <Button Style="{StaticResource AppPrimaryButton}" 
+                                Command="{Binding ExportToExcelCommand}"
+                                Height="32" Padding="16,0">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="FileExcelOutline" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
                 </Grid>
-            </Border>
+            </materialDesign:Card>
 
             <!-- Row 2: Content Area -->
             <materialDesign:Card Grid.Row="2" Style="{StaticResource AppCard}" Padding="0">
@@ -225,11 +234,11 @@
                                                 <TextBlock FontSize="11" FontWeight="Bold">
                                                     <TextBlock.Style>
                                                         <Style TargetType="TextBlock">
-                                                            <Setter Property="Text" Value="NGỪNG HOẠT ĐỘNG"/>
+                                                            <Setter Property="Text" Value="NGƯNG"/>
                                                             <Setter Property="Foreground" Value="#991B1B"/>
                                                             <Style.Triggers>
                                                                 <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                                                    <Setter Property="Text" Value="ĐANG HOẠT ĐỘNG"/>
+                                                                    <Setter Property="Text" Value="HOẠT ĐỘNG"/>
                                                                     <Setter Property="Foreground" Value="#166534"/>
                                                                 </DataTrigger>
                                                             </Style.Triggers>
@@ -330,7 +339,7 @@
                                    Style="{StaticResource TypographyCaption}" Foreground="{StaticResource AppSecondaryBrush}" FontStyle="Italic" TextWrapping="Wrap"
                                    Margin="0,0,0,12"/>
 
-                        <CheckBox Content="Đang hoạt động" IsChecked="{Binding CurrentInputUser.IsActive}" 
+                        <CheckBox Content="Hoạt động" IsChecked="{Binding CurrentInputUser.IsActive}" 
                                   Style="{StaticResource MaterialDesignCheckBox}"
                                   FontWeight="SemiBold" FontSize="14" Foreground="{StaticResource AppPrimaryBrush}"/>
                     </StackPanel>

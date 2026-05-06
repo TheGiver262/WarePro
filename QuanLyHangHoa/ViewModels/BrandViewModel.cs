@@ -24,8 +24,9 @@ namespace QuanLyHangHoa.ViewModels
         // Search Filters
         [ObservableProperty] private string _searchCode = string.Empty;
         [ObservableProperty] private string _searchName = string.Empty;
+        [ObservableProperty] private string _searchOrigin = string.Empty;
         [ObservableProperty] private string? _searchStatus = "Tất cả";
-        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Đang hoạt động", "Ngừng hoạt động"];
+        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Hoạt động", "Ngưng"];
 
         // Edit Properties
         [ObservableProperty] private bool _isEditing;
@@ -52,9 +53,12 @@ namespace QuanLyHangHoa.ViewModels
             if (!string.IsNullOrWhiteSpace(SearchName))
                 query = query.Where(b => b.DisplayName.Contains(SearchName));
 
-            if (SearchStatus == "Đang hoạt động")
+            if (!string.IsNullOrWhiteSpace(SearchOrigin))
+                query = query.Where(b => b.OriginCountry != null && b.OriginCountry.Contains(SearchOrigin));
+
+            if (SearchStatus == "Hoạt động")
                 query = query.Where(b => b.IsActive);
-            else if (SearchStatus == "Ngừng hoạt động")
+            else if (SearchStatus == "Ngưng")
                 query = query.Where(b => !b.IsActive);
 
             var list = query.OrderBy(b => b.BrandCode).ToList();
@@ -63,6 +67,7 @@ namespace QuanLyHangHoa.ViewModels
 
         partial void OnSearchCodeChanged(string value) => LoadBrands();
         partial void OnSearchNameChanged(string value) => LoadBrands();
+        partial void OnSearchOriginChanged(string value) => LoadBrands();
         partial void OnSearchStatusChanged(string? value) => LoadBrands();
 
         [RelayCommand]
@@ -155,6 +160,16 @@ namespace QuanLyHangHoa.ViewModels
             {
                 try 
                 {
+                    // Check for dependencies
+                    bool isUsed = _db.Products.Any(p => p.BrandId == brand.Id);
+
+                    if (isUsed)
+                    {
+                        MessageBox.Show("Không thể xoá thương hiệu này vì đang có sản phẩm thuộc thương hiệu này.", 
+                            "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
                     var beforeJson = Serialize(brand);
                     int entityId = brand.Id;
 
@@ -166,7 +181,7 @@ namespace QuanLyHangHoa.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Không thể xoá thương hiệu này. Có thể thương hiệu đang được sử dụng.\nChi tiết: {ex.Message}", 
+                    MessageBox.Show($"Lỗi khi xoá thương hiệu: {ex.Message}", 
                         "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
@@ -205,7 +220,7 @@ namespace QuanLyHangHoa.ViewModels
                             worksheet.Cell(i + 2, 1).Value = Brands[i].BrandCode;
                             worksheet.Cell(i + 2, 2).Value = Brands[i].DisplayName;
                             worksheet.Cell(i + 2, 3).Value = Brands[i].OriginCountry;
-                            worksheet.Cell(i + 2, 4).Value = Brands[i].IsActive ? "Đang hoạt động" : "Ngừng hoạt động";
+                            worksheet.Cell(i + 2, 4).Value = Brands[i].IsActive ? "Hoạt động" : "Ngưng";
                         }
 
                         worksheet.Columns().AdjustToContents();

@@ -6,7 +6,6 @@
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:vm="clr-namespace:QuanLyHangHoa.ViewModels"
              mc:Ignorable="d" d:DesignHeight="800" d:DesignWidth="1100">
-    <UserControl.DataContext><vm:SupplierViewModel /></UserControl.DataContext>
     <Grid Background="{StaticResource AppBackgroundBrush}">
         <Grid Margin="{StaticResource PagePadding}">
             <Grid.RowDefinitions>
@@ -31,7 +30,7 @@
                 </StackPanel>
                 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Command="{Binding ClearInputCommand}" Style="{StaticResource AppPrimaryButton}" Height="40" Padding="20,0">
+                    <Button Command="{Binding OpenAddSupplierDialogCommand}" Style="{StaticResource AppPrimaryButton}" Height="40" Padding="20,0">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Plus" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
                             <TextBlock Text="THÊM MỚI" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold"/>
@@ -44,9 +43,11 @@
             <materialDesign:Card Grid.Row="1" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.md}" Margin="{StaticResource Margin.Bottom.md}">
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="160"/>       <!-- Mã NCC -->
+                        <ColumnDefinition Width="150"/>       <!-- Mã NCC -->
                         <ColumnDefinition Width="*"/>         <!-- Tên NCC -->
-                        <ColumnDefinition Width="180"/>       <!-- Số điện thoại -->
+                        <ColumnDefinition Width="150"/>       <!-- Số điện thoại -->
+                        <ColumnDefinition Width="200"/>       <!-- Email -->
+                        <ColumnDefinition Width="160"/>       <!-- Trạng thái -->
                         <ColumnDefinition Width="Auto"/>      <!-- Nút hành động -->
                     </Grid.ColumnDefinitions>
 
@@ -74,8 +75,25 @@
                                  Text="{Binding SearchPhone, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
+                    <!-- Email Search -->
+                    <StackPanel Grid.Column="3" Margin="{StaticResource Margin.Right.md}">
+                        <TextBlock Text="EMAIL" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                        <TextBox materialDesign:HintAssist.Hint="Tìm theo email..." 
+                                 Height="32" VerticalContentAlignment="Center"
+                                 Text="{Binding SearchEmail, UpdateSourceTrigger=PropertyChanged}"/>
+                    </StackPanel>
+
+                    <!-- Status Filter -->
+                    <StackPanel Grid.Column="4" Margin="{StaticResource Margin.Right.md}">
+                        <TextBlock Text="TRẠNG THÁI" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                        <ComboBox materialDesign:HintAssist.Hint="Chọn trạng thái..."
+                                  Height="32" VerticalContentAlignment="Center"
+                                  ItemsSource="{Binding StatusOptions}"
+                                  SelectedItem="{Binding SearchStatus, UpdateSourceTrigger=PropertyChanged}"/>
+                    </StackPanel>
+
                     <!-- Export Button -->
-                    <StackPanel Grid.Column="3" VerticalAlignment="Bottom">
+                    <StackPanel Grid.Column="5" VerticalAlignment="Bottom">
                         <Button Style="{StaticResource AppPrimaryButton}" 
                                 Command="{Binding ExportToExcelCommand}"
                                 Height="32" Padding="16,0">
@@ -103,8 +121,8 @@
                         <DataGrid.Columns>
                             <!-- Index Column -->
                             <DataGridTextColumn Header="STT" Width="70" CanUserSort="False"
-                                                Binding="{Binding (ItemsControl.AlternationIndex), RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowIndexConverter}}"
-                                                ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
+                                                 Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowIndexConverter}}"
+                                                 ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
                             
                             <!-- Supplier Code Column -->
                             <DataGridTemplateColumn Width="130" SortMemberPath="SupplierCode">
@@ -167,7 +185,7 @@
                             </DataGridTemplateColumn>
                             
                             <!-- Status Column -->
-                            <DataGridTemplateColumn Width="180" SortMemberPath="IsActive">
+                            <DataGridTemplateColumn Width="200" SortMemberPath="IsActive">
                                 <DataGridTemplateColumn.Header>
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
@@ -203,11 +221,11 @@
                                                 <TextBlock FontSize="12" FontWeight="Bold">
                                                     <TextBlock.Style>
                                                         <Style TargetType="TextBlock">
-                                                            <Setter Property="Text" Value="NGỪNG HOẠT ĐỘNG"/>
+                                                            <Setter Property="Text" Value="NGƯNG"/>
                                                             <Setter Property="Foreground" Value="#991B1B"/>
                                                             <Style.Triggers>
                                                                 <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                                                    <Setter Property="Text" Value="ĐANG HOẠT ĐỘNG"/>
+                                                                    <Setter Property="Text" Value="HOẠT ĐỘNG"/>
                                                                     <Setter Property="Foreground" Value="#166534"/>
                                                                 </DataTrigger>
                                                             </Style.Triggers>
@@ -221,17 +239,17 @@
                             </DataGridTemplateColumn>
 
                             <!-- Actions Column -->
-                            <DataGridTemplateColumn Header="THAO TÁC" Width="130">
+                            <DataGridTemplateColumn Header="THAO TÁC" Width="120">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                             <Button Style="{StaticResource MaterialDesignIconButton}" Width="36" Height="36" ToolTip="Chỉnh sửa"
-                                                    Command="{Binding DataContext.SaveEditCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    Command="{Binding DataContext.EditSupplierCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}">
                                                 <materialDesign:PackIcon Kind="PencilOutline" Width="20" Height="20" Foreground="{StaticResource AppSecondaryBrush}"/>
                                             </Button>
                                             <Button Style="{StaticResource MaterialDesignIconButton}" Width="36" Height="36" ToolTip="Xoá nhà cung cấp"
-                                                    Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    Command="{Binding DataContext.DeleteSupplierCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}">
                                                 <materialDesign:PackIcon Kind="TrashCanOutline" Width="20" Height="20" Foreground="{StaticResource AppErrorBrush}"/>
                                             </Button>

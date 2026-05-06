@@ -15,9 +15,12 @@
             </Grid.RowDefinitions>
 
             <!-- Header -->
-            <StackPanel Grid.Row="0" Margin="0,0,0,24">
-                <TextBlock Text="THÊM NGƯỜI DÙNG" Style="{StaticResource TypographyH2}"/>
-                <TextBlock Text="Điền thông tin để tạo tài khoản mới" Style="{StaticResource TypographyCaption}"/>
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,24">
+                <materialDesign:PackIcon Kind="AccountMultipleOutline" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
+                <StackPanel Margin="16,0,0,0">
+                    <TextBlock Text="THÊM NGƯỜI DÙNG" Style="{StaticResource TypographyH2}"/>
+                    <TextBlock Text="Điền thông tin để tạo tài khoản mới" Style="{StaticResource TypographyCaption}"/>
+                </StackPanel>
             </StackPanel>
 
             <!-- Form -->
@@ -47,7 +50,7 @@
                 <TextBlock Text="* Mật khẩu mặc định sẽ giống tên tài khoản" 
                            Style="{StaticResource TypographyCaption}" Foreground="{StaticResource AppSecondaryBrush}" FontStyle="Italic" Margin="0,0,0,12"/>
 
-                <CheckBox Content="Đang hoạt động" IsChecked="{Binding IsActive}" 
+                <CheckBox Content="Hoạt động" IsChecked="{Binding IsActive}" 
                           Style="{StaticResource MaterialDesignCheckBox}"
                           FontWeight="SemiBold" FontSize="14" Foreground="{StaticResource AppPrimaryBrush}"/>
             </StackPanel>

@@ -135,7 +135,7 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void OpenUnitView()
         {
-            CurrentView = new UnitView();
+            CurrentView = new UnitView { DataContext = new UnitViewModel(_dbContext, CurrentUser!) };
             CurrentViewTitle = "ĐƠN VỊ TÍNH";
             CurrentViewSubtitle = "Quản lý đơn vị đo lường";
         }
@@ -143,7 +143,7 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void OpenSupplierView()
         {
-            CurrentView = new SupplierView();
+            CurrentView = new SupplierView { DataContext = new SupplierViewModel(_dbContext, CurrentUser!) };
             CurrentViewTitle = "NHÀ CUNG CẤP";
             CurrentViewSubtitle = "Quản lý đối tác nhập hàng";
         }
@@ -151,7 +151,7 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void OpenCustomerView()
         {
-            CurrentView = new CustomerView();
+            CurrentView = new CustomerView { DataContext = new CustomerViewModel(_dbContext, CurrentUser!) };
             CurrentViewTitle = "KHÁCH HÀNG";
             CurrentViewSubtitle = "Quản lý thông tin khách hàng";
         }

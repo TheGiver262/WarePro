@@ -23,9 +23,9 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <materialDesign:PackIcon Kind="Apps" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
+                    <materialDesign:PackIcon Kind="TagOutline" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
                     <StackPanel Margin="16,0,0,0">
-                        <TextBlock Text="LOẠI SẢN PHẨM" Style="{StaticResource TypographyH2}"/>
+                        <TextBlock Text="DANH MỤC SẢN PHẨM" Style="{StaticResource TypographyH2}"/>
                         <TextBlock Text="Quản lý các nhóm phân loại sản phẩm trong hệ thống" Style="{StaticResource TypographyCaption}"/>
                     </StackPanel>
                 </StackPanel>
@@ -34,7 +34,7 @@
                     <Button Command="{Binding OpenAddCategoryDialogCommand}" Style="{StaticResource AppPrimaryButton}" Height="40" Padding="10,0">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Plus" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                            <TextBlock Text="THÊM DANH MỤC" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold"/>
+                            <TextBlock Text="THÊM MỚI" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -45,7 +45,7 @@
             <materialDesign:Card Grid.Row="1" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.md}" Margin="{StaticResource Margin.Bottom.md}">
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="160"/>       <!-- Mã danh mục -->
+                        <ColumnDefinition Width="170"/>       <!-- Mã danh mục -->
                         <ColumnDefinition Width="*"/>         <!-- Tên danh mục -->
                         <ColumnDefinition Width="180"/>       <!-- Trạng thái -->
                         <ColumnDefinition Width="Auto"/>      <!-- Nút hành động -->
@@ -54,7 +54,7 @@
                     <!-- Code Search -->
                     <StackPanel Grid.Column="0" Margin="{StaticResource Margin.Right.md}">
                         <TextBlock Text="MÃ DANH MỤC" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                        <TextBox materialDesign:HintAssist.Hint="Mã..." 
+                        <TextBox materialDesign:HintAssist.Hint="Mã danh mục..." 
                                  Height="32" VerticalContentAlignment="Center"
                                  Text="{Binding SearchCode, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
@@ -106,8 +106,8 @@
                         <DataGrid.Columns>
                             <!-- Index Column -->
                             <DataGridTextColumn Header="STT" Width="70" CanUserSort="False"
-                                                Binding="{Binding (ItemsControl.AlternationIndex), RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowIndexConverter}}"
-                                                ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
+                                                 Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowIndexConverter}}"
+                                                 ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
                             
                             <!-- Category Code Column with Filter Icon -->
                             <DataGridTemplateColumn Width="180" SortMemberPath="CategoryCode">
@@ -176,11 +176,11 @@
                                                 <TextBlock FontSize="12" FontWeight="Bold">
                                                     <TextBlock.Style>
                                                         <Style TargetType="TextBlock">
-                                                            <Setter Property="Text" Value="NGỪNG HOẠT ĐỘNG"/>
+                                                            <Setter Property="Text" Value="NGƯNG"/>
                                                             <Setter Property="Foreground" Value="#991B1B"/>
                                                             <Style.Triggers>
                                                                 <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                                                    <Setter Property="Text" Value="ĐANG HOẠT ĐỘNG"/>
+                                                                    <Setter Property="Text" Value="HOẠT ĐỘNG"/>
                                                                     <Setter Property="Foreground" Value="#166534"/>
                                                                 </DataTrigger>
                                                             </Style.Triggers>

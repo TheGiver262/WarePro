@@ -9,4 +9,5 @@
     <converters:SafePackIconKindConverter x:Key="SafePackIconKindConverter" />
     <converters:BooleanToIconConverter x:Key="BooleanToIconConverter" />
     <converters:RowIndexConverter x:Key="RowIndexConverter" />
+    <converters:StockSumConverter x:Key="StockSumConverter" />
 </ResourceDictionary>

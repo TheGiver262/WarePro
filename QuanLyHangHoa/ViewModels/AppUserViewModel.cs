@@ -27,10 +27,12 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _searchFullName = string.Empty;
         [ObservableProperty] private string _searchUsername = string.Empty;
         [ObservableProperty] private string _searchRole = "Tất cả";
+        [ObservableProperty] private string? _searchStatus = "Tất cả";
         [ObservableProperty] private DateTime? _searchDate;
         [ObservableProperty] private bool _isEditPanelOpen;
 
         public ObservableCollection<string> Roles { get; } = ["Tất cả", "Quản trị viên", "Quản lý", "Nhân viên bảo hành", "Nhân viên bán hàng", "Nhân viên kho"];
+        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Hoạt động", "Đã khóa"];
 
         public AppUserViewModel()
             : this(null, new Data.AppDbContext())
@@ -86,6 +88,15 @@ namespace QuanLyHangHoa.ViewModels
             if (SearchDate.HasValue)
             {
                 list = list.Where(u => u.CreatedAt.Date == SearchDate.Value.Date).ToList();
+            }
+
+            if (SearchStatus == "Hoạt động")
+            {
+                list = list.Where(u => u.IsActive).ToList();
+            }
+            else if (SearchStatus == "Đã khóa")
+            {
+                list = list.Where(u => !u.IsActive).ToList();
             }
 
             Users = new ObservableCollection<AppUser>(list);
@@ -205,6 +216,57 @@ namespace QuanLyHangHoa.ViewModels
         partial void OnSearchFullNameChanged(string value) => LoadData();
         partial void OnSearchUsernameChanged(string value) => LoadData();
         partial void OnSearchRoleChanged(string value) => LoadData();
+        partial void OnSearchStatusChanged(string? value) => LoadData();
         partial void OnSearchDateChanged(DateTime? value) => LoadData();
+
+        [RelayCommand]
+        private void ExportToExcel()
+        {
+            try
+            {
+                var saveFileDialog = new Microsoft.Win32.SaveFileDialog
+                {
+                    Filter = "Excel Workbook (*.xlsx)|*.xlsx",
+                    FileName = $"DanhSachNguoiDung_{DateTime.Now:yyyyMMdd_HHmm}"
+                };
+
+                if (saveFileDialog.ShowDialog() == true)
+                {
+                    using (var workbook = new ClosedXML.Excel.XLWorkbook())
+                    {
+                        var worksheet = workbook.Worksheets.Add("Users");
+
+                        // Headers
+                        worksheet.Cell(1, 1).Value = "Tên đầy đủ";
+                        worksheet.Cell(1, 2).Value = "Tên tài khoản";
+                        worksheet.Cell(1, 3).Value = "Vai trò";
+                        worksheet.Cell(1, 4).Value = "Ngày tạo";
+                        worksheet.Cell(1, 5).Value = "Trạng thái";
+
+                        var headerRange = worksheet.Range(1, 1, 1, 5);
+                        headerRange.Style.Font.Bold = true;
+                        headerRange.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.LightGray;
+
+                        // Data
+                        for (int i = 0; i < Users.Count; i++)
+                        {
+                            worksheet.Cell(i + 2, 1).Value = Users[i].FullName;
+                            worksheet.Cell(i + 2, 2).Value = Users[i].Username;
+                            worksheet.Cell(i + 2, 3).Value = Users[i].RoleCode;
+                            worksheet.Cell(i + 2, 4).Value = Users[i].CreatedAt.ToString("dd/MM/yyyy HH:mm");
+                            worksheet.Cell(i + 2, 5).Value = Users[i].IsActive ? "Hoạt động" : "Đã khóa";
+                        }
+
+                        worksheet.Columns().AdjustToContents();
+                        workbook.SaveAs(saveFileDialog.FileName);
+                    }
+                    System.Windows.MessageBox.Show("Xuất file Excel thành công!", "Thông báo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show($"Lỗi khi xuất Excel: {ex.Message}", "Lỗi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+        }
     }
 }

@@ -495,15 +495,18 @@ Page Header
 
 Trong thiết kế "Pro Max", thanh tìm kiếm nằm trong card table, phía trên header bảng và được chia thành nhiều trường nhập liệu để lọc nhanh (Mã, Tên, SĐT/Email...).
 
-- **Cấu trúc Grid**: Chia `Grid.ColumnDefinitions` thành các cột tương ứng với số lượng filter. Cột đầu tiên (thường là Search Box) để `Width="*"`, các cột filter khác và nút hành động để `Width="Auto"`.
-- **Label-Aligned Layout**: Mỗi trường tìm kiếm được đặt trong một `StackPanel`. Nhãn (`TextBlock`) nằm ở trên, Input (`TextBox`, `ComboBox`, `DatePicker`) nằm ở dưới.
-- **Không dùng nút Reset/Lọc**: Các View mới sẽ bỏ nút Lọc và Reset. Thay vào đó, dùng nút **XUẤT EXCEL** ở cột cuối cùng. Dữ liệu sẽ tự động lọc qua Binding `UpdateSourceTrigger=PropertyChanged`.
-- **Đồng bộ chiều cao**: Tất cả các control (`TextBox`, `ComboBox`, `DatePicker`, `Button`) phải có `Height="32"`.
+- **Đồng bộ 1-1 với Grid (Bắt buộc)**: Thanh tìm kiếm phải có đủ các trường nhập liệu tương ứng với các cột hiển thị trong DataGrid. Quy tắc: **Có bao nhiêu cột có thể lọc/tìm kiếm trong bảng thì phải có bấy nhiêu trường tìm kiếm tương ứng trên thanh lọc.**
+- **Cấu trúc Grid**: Chia `Grid.ColumnDefinitions` thành các cột tương ứng với số lượng filter. Cột đầu tiên (thường là Search Box chính) để `Width="*"`, các cột filter khác và nút hành động để `Width="Auto"` hoặc `Width="*"` tùy theo độ dài nội dung.
+- **Label-Aligned Layout**: Mỗi trường tìm kiếm được đặt trong một `StackPanel`. Nhãn (`TextBlock`) nằm ở trên (dùng `TypographyLabel`), Input (`TextBox`, `ComboBox`, `DatePicker`) nằm ở dưới.
+- **Loại bỏ nút Reset/Lọc**: Tuyệt đối không dùng nút "Lọc" hoặc "Reset". Dữ liệu phải được tự động lọc ngay khi người dùng nhập liệu bằng cách sử dụng Binding `UpdateSourceTrigger=PropertyChanged` kết hợp với logic xử lý trong `OnSearch...Changed` của ViewModel.
+- **Đồng bộ chiều cao & Style**: 
+  - Tất cả các control (`TextBox`, `ComboBox`, `DatePicker`, `Button`) phải có `Height="32"`.
+  - `TextBox` tìm kiếm sử dụng style **Underline** (không có viền hộp - boxed), gán `materialDesign:TextFieldAssist.HasClearButton="True"`.
 - **Nút Xuất Excel**:
   - Style: `{StaticResource AppPrimaryButton}` (Solid style).
   - Content: "XUẤT EXCEL" (In hoa).
-  - Icon: `FileExcelOutline`.
-  - Vị trí: Cột cuối cùng bên phải, `VerticalAlignment="Bottom"`.
+  - Icon: `FileExcelOutline` hoặc `FileExcel`.
+  - Vị trí: Cột cuối cùng bên phải của thanh tìm kiếm, `VerticalAlignment="Bottom"`.
 
 #### 10.2.1 Cấu trúc XAML mẫu (Audit Log)
 
@@ -1628,3 +1631,15 @@ Cột thao tác cuối cùng phải dùng `MaterialDesignIconButton` với icon 
 
 ### 14.7 Đồng bộ Icon (Icon Synchronization)
 Mọi View khi được mở phải hiển thị đúng Icon đã khai báo trong Sidebar. Ví dụ: Nếu Sidebar dùng `TruckOutline` cho Nhà cung cấp, thì `SupplierView` cũng phải dùng `TruckOutline` trong Header.
+### 14.8 Tương tác Tìm kiếm & Bộ lọc (Pro Max Search Standards)
+ Để nâng cao trải nghiệm người dùng, thanh tìm kiếm trong các module hiện đại phải tuân thủ:
+ - **Đồng bộ 1-1 (Search-to-Column Sync)**: Mỗi cột hiển thị trong DataGrid mà người dùng có nhu cầu tìm kiếm thì PHẢI có một trường nhập liệu tương ứng trên thanh lọc.
+ - **Lọc ngầm định (Implicit Filtering)**: Loại bỏ hoàn toàn các nút "Lọc", "Tìm kiếm" hay "Reset". 
+    - Sử dụng `UpdateSourceTrigger=PropertyChanged` cho mọi Binding trên thanh tìm kiếm.
+    - ViewModel phải triển khai logic tải lại dữ liệu trong các phương thức `On[PropertyName]Changed` (ví dụ: `OnSearchNameChanged`).
+ - **Giao diện chuẩn (Layout Standards)**:
+    - **Chiều cao**: Tất cả control (TextBox, ComboBox, DatePicker) cố định `Height="32"`.
+    - **TextBox**: Chỉ dùng style **Underline** (không dùng Boxed/Outlined) để thanh thoát và không chiếm diện tích. Gán `materialDesign:TextFieldAssist.HasClearButton="True"`.
+    - **ComboBox/DatePicker**: Dùng `materialDesign:TextFieldAssist.TextFieldCornerRadius="2"` để tạo sự đồng nhất.
+    - **Nhãn (Labels)**: Đặt ngay phía trên control, dùng `TypographyLabel` (Size 11-12, Bold, Uppercase).
+ - **Nút Xuất dữ liệu**: Nút "XUẤT EXCEL" luôn là thành phần cuối cùng bên phải của thanh tìm kiếm. Sử dụng `AppPrimaryButton` với icon `FileExcel`.

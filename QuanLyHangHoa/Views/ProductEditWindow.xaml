@@ -15,9 +15,12 @@
             </Grid.RowDefinitions>
 
             <!-- Header -->
-            <StackPanel Grid.Row="0" Margin="0,0,0,24">
-                <TextBlock Text="{Binding Title}" Style="{StaticResource TypographyH2}"/>
-                <TextBlock Text="Cập nhật thông tin chi tiết cho sản phẩm" Style="{StaticResource TypographyCaption}"/>
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,24">
+                <materialDesign:PackIcon Kind="PackageVariant" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
+                <StackPanel Margin="16,0,0,0">
+                    <TextBlock Text="{Binding Title}" Style="{StaticResource TypographyH2}"/>
+                    <TextBlock Text="Cập nhật thông tin chi tiết cho sản phẩm" Style="{StaticResource TypographyCaption}"/>
+                </StackPanel>
             </StackPanel>
 
             <!-- Form -->
