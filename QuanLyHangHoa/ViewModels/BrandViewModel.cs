@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
 using System.Text.Json;
+using QuanLyHangHoa.Services;
 using ClosedXML.Excel;
 
 namespace QuanLyHangHoa.ViewModels

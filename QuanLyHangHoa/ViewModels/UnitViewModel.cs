@@ -9,6 +9,7 @@ using System;
 using System.Windows;
 using ClosedXML.Excel;
 using System.Text.Json;
+using QuanLyHangHoa.Services;
 
 namespace QuanLyHangHoa.ViewModels
 {
