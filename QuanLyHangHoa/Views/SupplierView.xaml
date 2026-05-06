@@ -40,56 +40,56 @@
                 </StackPanel>
             </Grid>
 
-            <Border Grid.Row="1" Background="{StaticResource AppSurfaceBrush}" CornerRadius="{StaticResource Radius.md}" 
-                    BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" Margin="{StaticResource Margin.Bottom.md}" Padding="16,10">
-                <Grid VerticalAlignment="Center">
+            <!-- Row 1: Search Row -->
+            <materialDesign:Card Grid.Row="1" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.md}" Margin="{StaticResource Margin.Bottom.md}">
+                <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="180"/>
-                        <ColumnDefinition Width="250"/>
-                        <ColumnDefinition Width="200"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="160"/>       <!-- Mã NCC -->
+                        <ColumnDefinition Width="*"/>         <!-- Tên NCC -->
+                        <ColumnDefinition Width="180"/>       <!-- Số điện thoại -->
+                        <ColumnDefinition Width="Auto"/>      <!-- Nút hành động -->
                     </Grid.ColumnDefinitions>
 
                     <!-- Search Code -->
-                    <StackPanel Grid.Column="0" Margin="0,0,12,0">
-                        <TextBlock Text="Mã nhà cung cấp" Style="{StaticResource TypographyCaption}" Margin="0,0,0,6"/>
+                    <StackPanel Grid.Column="0" Margin="{StaticResource Margin.Right.md}">
+                        <TextBlock Text="MÃ NHÀ CUNG CẤP" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
                         <TextBox Style="{StaticResource SearchTextBoxStyle}" 
-                                 Height="50" materialDesign:TextFieldAssist.TextFieldCornerRadius="{StaticResource Radius.sm}"
+                                 Height="32" 
                                  Text="{Binding SearchCode, UpdateSourceTrigger=PropertyChanged}"
-                                 materialDesign:HintAssist.Hint="Tìm theo mã..."/>
+                                 materialDesign:HintAssist.Hint="Mã..."/>
                     </StackPanel>
 
                     <!-- Search Name -->
-                    <StackPanel Grid.Column="1" Margin="0,0,12,0">
-                        <TextBlock Text="Tên nhà cung cấp" Style="{StaticResource TypographyCaption}" Margin="0,0,0,6"/>
+                    <StackPanel Grid.Column="1" Margin="{StaticResource Margin.Right.md}">
+                        <TextBlock Text="TÊN NHÀ CUNG CẤP" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
                         <TextBox Style="{StaticResource SearchTextBoxStyle}" 
-                                 Height="50" materialDesign:TextFieldAssist.TextFieldCornerRadius="{StaticResource Radius.sm}"
+                                 Height="32" 
                                  Text="{Binding SearchName, UpdateSourceTrigger=PropertyChanged}"
-                                 materialDesign:HintAssist.Hint="Tìm theo tên..."/>
+                                 materialDesign:HintAssist.Hint="Nhập tên nhà cung cấp..."/>
                     </StackPanel>
 
                     <!-- Search Phone -->
-                    <StackPanel Grid.Column="2" Margin="0,0,12,0">
-                        <TextBlock Text="Số điện thoại" Style="{StaticResource TypographyCaption}" Margin="0,0,0,6"/>
+                    <StackPanel Grid.Column="2" Margin="{StaticResource Margin.Right.md}">
+                        <TextBlock Text="SỐ ĐIỆN THOẠI" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
                         <TextBox Style="{StaticResource SearchTextBoxStyle}" 
-                                 Height="50" materialDesign:TextFieldAssist.TextFieldCornerRadius="{StaticResource Radius.sm}"
+                                 Height="32" 
                                  Text="{Binding SearchPhone, UpdateSourceTrigger=PropertyChanged}"
                                  materialDesign:HintAssist.Hint="Tìm theo SĐT..."/>
                     </StackPanel>
 
-                    <StackPanel Grid.Column="4" VerticalAlignment="Bottom">
+                    <!-- Export Button -->
+                    <StackPanel Grid.Column="3" VerticalAlignment="Bottom">
                         <Button Style="{StaticResource AppPrimaryButton}" 
                                 Command="{Binding ExportToExcelCommand}"
-                                Height="50" Padding="24,0">
+                                Height="32" Padding="16,0">
                             <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="FileExcelOutline" Width="20" Height="20" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <materialDesign:PackIcon Kind="FileExcelOutline" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                 <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center" FontWeight="SemiBold"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>
                 </Grid>
-            </Border>
+            </materialDesign:Card>
 
             <!-- Row 2: Data Table -->
             <materialDesign:Card Grid.Row="2" Style="{StaticResource AppCard}" Padding="0">

@@ -40,64 +40,57 @@
                 </StackPanel>
             </Grid>
 
-            <!-- Row 1: Search Row (Standardized Multi-field) -->
-            <Border Grid.Row="1" Background="{StaticResource AppSurfaceBrush}" CornerRadius="{StaticResource Radius.md}" 
-                    BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" Margin="{StaticResource Margin.Bottom.md}" Padding="16,10">
-                <Grid VerticalAlignment="Center">
+            <!-- Row 1: Search Row (Standardized) -->
+            <materialDesign:Card Grid.Row="1" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.md}" Margin="{StaticResource Margin.Bottom.md}">
+                <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>     <!-- Code -->
-                        <ColumnDefinition Width="*"/>     <!-- Name -->
-                        <ColumnDefinition Width="*"/>     <!-- Status -->
-                        <ColumnDefinition Width="Auto"/>  <!-- Export -->
+                        <ColumnDefinition Width="160"/>       <!-- Mã -->
+                        <ColumnDefinition Width="*"/>         <!-- Tên -->
+                        <ColumnDefinition Width="180"/>       <!-- Trạng thái -->
+                        <ColumnDefinition Width="Auto"/>      <!-- Nút hành động -->
                     </Grid.ColumnDefinitions>
 
-                    <!-- Code -->
-                    <StackPanel Grid.Column="0" Margin="0,0,12,0" VerticalAlignment="Top">
-                        <TextBlock Text="Mã thương hiệu" Style="{StaticResource TypographyCaption}" Margin="0,0,0,6"/>
+                    <!-- Code Search -->
+                    <StackPanel Grid.Column="0" Margin="{StaticResource Margin.Right.md}">
+                        <TextBlock Text="MÃ THƯƠNG HIỆU" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
                         <TextBox Style="{StaticResource SearchTextBoxStyle}" 
-                                 Height="50" materialDesign:TextFieldAssist.TextFieldCornerRadius="{StaticResource Radius.sm}"
+                                 Height="32" 
                                  Text="{Binding SearchCode, UpdateSourceTrigger=PropertyChanged}"
-                                 Padding="12,0,10,0"
-                                 materialDesign:HintAssist.IsFloating="False"
-                                 materialDesign:HintAssist.Hint="Tìm theo mã..."/>
+                                 materialDesign:HintAssist.Hint="Mã..."/>
                     </StackPanel>
 
-                    <!-- Name -->
-                    <StackPanel Grid.Column="1" Margin="0,0,12,0" VerticalAlignment="Top">
-                        <TextBlock Text="Tên thương hiệu" Style="{StaticResource TypographyCaption}" Margin="0,0,0,6"/>
+                    <!-- Name Search -->
+                    <StackPanel Grid.Column="1" Margin="{StaticResource Margin.Right.md}">
+                        <TextBlock Text="TÊN THƯƠNG HIỆU" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
                         <TextBox Style="{StaticResource SearchTextBoxStyle}" 
-                                 Height="50" materialDesign:TextFieldAssist.TextFieldCornerRadius="{StaticResource Radius.sm}"
+                                 Height="32" 
                                  Text="{Binding SearchName, UpdateSourceTrigger=PropertyChanged}"
-                                 Padding="12,0,10,0"
-                                 materialDesign:HintAssist.IsFloating="False"
                                  materialDesign:HintAssist.Hint="Tìm theo tên..."/>
                     </StackPanel>
 
-                    <!-- Status -->
-                    <StackPanel Grid.Column="2" Margin="0,0,12,0" VerticalAlignment="Top">
-                        <TextBlock Text="Trạng thái" Style="{StaticResource TypographyCaption}" Margin="0,0,0,6"/>
+                    <!-- Status Filter -->
+                    <StackPanel Grid.Column="2" Margin="{StaticResource Margin.Right.md}">
+                        <TextBlock Text="TRẠNG THÁI" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
                         <ComboBox Style="{StaticResource MaterialDesignOutlinedComboBox}" 
-                                  Margin="0" Height="50" Padding="12,0"
-                                  materialDesign:HintAssist.IsFloating="False"
-                                  materialDesign:TextFieldAssist.TextFieldCornerRadius="{StaticResource Radius.sm}"
-                                  ItemsSource="{Binding StatusOptions}" 
+                                  Height="32" Padding="8,0"
+                                  ItemsSource="{Binding StatusOptions}"
                                   SelectedItem="{Binding SearchStatus, UpdateSourceTrigger=PropertyChanged}"
-                                  VerticalContentAlignment="Center"/>
+                                  materialDesign:HintAssist.Hint="Chọn trạng thái..."/>
                     </StackPanel>
 
-                    <!-- Export -->
-                    <StackPanel Grid.Column="3" VerticalAlignment="Top">
-                        <TextBlock Text="Thao tác" Style="{StaticResource TypographyCaption}" Margin="0,0,0,6" Opacity="0"/>
-                        <Button Style="{StaticResource AppPrimaryButton}" Command="{Binding ExportToExcelCommand}" 
-                                Height="50" Padding="16,0" materialDesign:ButtonAssist.CornerRadius="{StaticResource Radius.sm}">
+                    <!-- Export Button -->
+                    <StackPanel Grid.Column="3" VerticalAlignment="Bottom">
+                        <Button Style="{StaticResource AppPrimaryButton}" 
+                                Command="{Binding ExportToExcelCommand}"
+                                Height="32" Padding="16,0">
                             <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="FileExcel" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold"/>
+                                <materialDesign:PackIcon Kind="FileExcelOutline" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center" FontWeight="SemiBold"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>
                 </Grid>
-            </Border>
+            </materialDesign:Card>
 
             <!-- Row 2: Content Area (DataGrid) -->
             <materialDesign:Card Grid.Row="2" Style="{StaticResource AppCard}" Padding="0">
