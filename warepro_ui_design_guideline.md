@@ -495,17 +495,54 @@ Page Header
 
 Trong thiết kế "Pro Max", thanh tìm kiếm nằm trong card table, phía trên header bảng và được chia thành nhiều trường nhập liệu để lọc nhanh (Mã, Tên, SĐT/Email...).
 
-- **Cấu trúc**: Chia Grid thành các cột cho từng trường tìm kiếm + 1 cột cuối cho nút hành động.
-- **Không dùng nút Reset**: Các View mới sẽ bỏ nút Reset tìm kiếm. Thay vào đó, dùng nút **XUẤT EXCEL** ở cột cuối cùng của hàng tìm kiếm.
-- **Label**: Label nhỏ nằm trên input để tối ưu không gian.
-- **Input height**: 32px.
+- **Cấu trúc Grid**: Chia `Grid.ColumnDefinitions` thành các cột tương ứng với số lượng filter. Cột đầu tiên (thường là Search Box) để `Width="*"`, các cột filter khác và nút hành động để `Width="Auto"`.
+- **Label-Aligned Layout**: Mỗi trường tìm kiếm được đặt trong một `StackPanel`. Nhãn (`TextBlock`) nằm ở trên, Input (`TextBox`, `ComboBox`, `DatePicker`) nằm ở dưới.
+- **Không dùng nút Reset/Lọc**: Các View mới sẽ bỏ nút Lọc và Reset. Thay vào đó, dùng nút **XUẤT EXCEL** ở cột cuối cùng. Dữ liệu sẽ tự động lọc qua Binding `UpdateSourceTrigger=PropertyChanged`.
+- **Đồng bộ chiều cao**: Tất cả các control (`TextBox`, `ComboBox`, `DatePicker`, `Button`) phải có `Height="32"`.
 - **Nút Xuất Excel**:
-  - Content: "XUẤT EXCEL"
-  - Style: `AppSecondaryButton` (Outline style)
-  - Icon: `FileExcelOutline` hoặc `MicrosoftExcel`
-  - Vị trí: Cột cuối cùng bên phải của hàng tìm kiếm.
+  - Style: `{StaticResource AppPrimaryButton}` (Solid style).
+  - Content: "XUẤT EXCEL" (In hoa).
+  - Icon: `FileExcelOutline`.
+  - Vị trí: Cột cuối cùng bên phải, `VerticalAlignment="Bottom"`.
 
-#### Kích thước
+#### 10.2.1 Cấu trúc XAML mẫu (Audit Log)
+
+```xml
+<materialDesign:Card Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.md}">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>         <!-- Ô tìm kiếm chính -->
+            <ColumnDefinition Width="Auto"/>      <!-- Filter 1 -->
+            <ColumnDefinition Width="Auto"/>      <!-- Filter 2 -->
+            <ColumnDefinition Width="Auto"/>      <!-- Nút hành động -->
+        </Grid.ColumnDefinitions>
+
+        <!-- Search Box -->
+        <StackPanel Grid.Column="0" Margin="{StaticResource Margin.Right.md}">
+            <TextBlock Text="NỘI DUNG TÌM KIẾM" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+            <TextBox materialDesign:HintAssist.Hint="Nhập nội dung..." Height="32"/>
+        </StackPanel>
+
+        <!-- Filter ComboBox -->
+        <StackPanel Grid.Column="1" Margin="{StaticResource Margin.Right.md}" Width="160">
+            <TextBlock Text="ĐỐI TƯỢNG" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+            <ComboBox Height="32"/>
+        </StackPanel>
+
+        <!-- Export Button -->
+        <StackPanel Grid.Column="3" VerticalAlignment="Bottom">
+            <Button Command="{Binding ExportLogsCommand}" Style="{StaticResource AppPrimaryButton}" Height="32">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="FileExcelOutline" Width="18" Height="18" VerticalAlignment="Center"/>
+                    <TextBlock Text="XUẤT EXCEL" Margin="8,0,0,0" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                </StackPanel>
+            </Button>
+        </StackPanel>
+    </Grid>
+</materialDesign:Card>
+```
+
+#### Kích thước chuẩn
 
 | Thành phần | Giá trị |
 |---|---:|

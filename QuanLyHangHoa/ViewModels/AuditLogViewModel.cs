@@ -96,6 +96,36 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        private void ExportLogs()
+        {
+            if (Logs == null || !Logs.Any())
+            {
+                MessageBox.Show("Không có dữ liệu để xuất Excel.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var saveFileDialog = new SaveFileDialog
+            {
+                Filter = "Excel Files (*.xlsx)|*.xlsx",
+                FileName = $"NhatKyHeThong_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx",
+                Title = "Xuất nhật ký hệ thống"
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                try
+                {
+                    ExportLogsToExcel(Logs, saveFileDialog.FileName);
+                    MessageBox.Show("Xuất dữ liệu thành công!", "Thành công", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Lỗi khi xuất Excel: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        [RelayCommand]
         private void OpenArchiveDialog()
         {
             ArchiveFromDate = new DateTime(DateTime.Now.Year - 1, 1, 1);

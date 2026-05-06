@@ -34,7 +34,7 @@
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
                     <Button Command="{Binding OpenArchiveDialogCommand}" 
-                            Style="{StaticResource AppSecondaryButton}" Margin="{StaticResource Margin.Right.sm}">
+                            Style="{StaticResource AppPrimaryButton}" Margin="{StaticResource Margin.Right.sm}">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="ArchiveArrowDownOutline" Width="20" Height="20"/>
                             <TextBlock Text="LƯU TRỮ" Margin="8,0,0,0" VerticalAlignment="Center"/>
@@ -51,51 +51,64 @@
             <materialDesign:Card Grid.Row="1" Margin="{StaticResource Margin.Bottom.md}" Padding="{StaticResource Spacing.md}" Style="{StaticResource AppCard}">
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="2*"/> <!-- Search Text -->
-                        <ColumnDefinition Width="1*"/> <!-- Entity -->
-                        <ColumnDefinition Width="1*"/> <!-- Action -->
-                        <ColumnDefinition Width="1.2*"/> <!-- User -->
-                        <ColumnDefinition Width="Auto"/> <!-- Dates -->
-                        <ColumnDefinition Width="Auto"/> <!-- Action Buttons -->
+                        <ColumnDefinition Width="*"/>         <!-- Nội dung tìm kiếm -->
+                        <ColumnDefinition Width="Auto"/>      <!-- Đối tượng -->
+                        <ColumnDefinition Width="Auto"/>      <!-- Hành động -->
+                        <ColumnDefinition Width="Auto"/>      <!-- Nhân viên -->
+                        <ColumnDefinition Width="Auto"/>      <!-- Khoảng ngày -->
+                        <ColumnDefinition Width="Auto"/>      <!-- Nút hành động -->
                     </Grid.ColumnDefinitions>
 
                     <!-- Search Box -->
-                    <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="Tìm kiếm nội dung..." 
-                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" 
-                             Margin="{StaticResource Margin.Right.sm}">
-                        <TextBox.InputBindings>
-                            <KeyBinding Key="Enter" Command="{Binding LoadLogsCommand}"/>
-                        </TextBox.InputBindings>
-                    </TextBox>
-
-                    <!-- Entity Filter -->
-                    <ComboBox Grid.Column="1" materialDesign:HintAssist.Hint="Đối tượng" 
-                              ItemsSource="{Binding EntityNames}" SelectedItem="{Binding SelectedEntity}"
-                              Margin="{StaticResource Margin.Right.sm}"/>
-
-                    <!-- Action Filter -->
-                    <ComboBox Grid.Column="2" materialDesign:HintAssist.Hint="Hành động" 
-                              ItemsSource="{Binding ActionCodes}" SelectedItem="{Binding SelectedAction}"
-                              Margin="{StaticResource Margin.Right.sm}"/>
-
-                    <!-- User Filter -->
-                    <ComboBox Grid.Column="3" materialDesign:HintAssist.Hint="Nhân viên" 
-                              ItemsSource="{Binding Users}" SelectedItem="{Binding SelectedUser}"
-                              DisplayMemberPath="FullName" Margin="{StaticResource Margin.Right.sm}"/>
-
-                    <!-- Date Range -->
-                    <StackPanel Grid.Column="4" Orientation="Horizontal" Margin="{StaticResource Margin.Right.sm}">
-                        <DatePicker materialDesign:HintAssist.Hint="Từ ngày" SelectedDate="{Binding FromDate}" Width="110"/>
-                        <TextBlock Text="-" VerticalAlignment="Center" Margin="4,0"/>
-                        <DatePicker materialDesign:HintAssist.Hint="Đến ngày" SelectedDate="{Binding ToDate}" Width="110"/>
+                    <StackPanel Grid.Column="0" Margin="{StaticResource Margin.Right.md}">
+                        <TextBlock Text="NỘI DUNG TÌM KIẾM" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                        <TextBox materialDesign:HintAssist.Hint="Nhập nội dung cần tìm..." 
+                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" 
+                                 Height="32" VerticalContentAlignment="Center">
+                            <TextBox.InputBindings>
+                                <KeyBinding Key="Enter" Command="{Binding LoadLogsCommand}"/>
+                            </TextBox.InputBindings>
+                        </TextBox>
                     </StackPanel>
 
-                    <StackPanel Grid.Column="5" Orientation="Horizontal">
-                        <Button Content="LỌC" Command="{Binding LoadLogsCommand}" 
-                                Style="{StaticResource AppPrimaryButton}" Margin="{StaticResource Margin.Right.sm}"/>
-                        <Button Style="{StaticResource MaterialDesignIconButton}" Command="{Binding ResetFiltersCommand}" 
-                                Foreground="{StaticResource AppErrorBrush}" ToolTip="Reset bộ lọc">
-                            <materialDesign:PackIcon Kind="FilterRemoveOutline" Width="20" Height="20"/>
+                    <!-- Entity Filter -->
+                    <StackPanel Grid.Column="1" Margin="{StaticResource Margin.Right.md}" Width="160">
+                        <TextBlock Text="ĐỐI TƯỢNG" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                        <ComboBox ItemsSource="{Binding EntityNames}" SelectedItem="{Binding SelectedEntity}"
+                                  Height="32" VerticalContentAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Action Filter -->
+                    <StackPanel Grid.Column="2" Margin="{StaticResource Margin.Right.md}" Width="140">
+                        <TextBlock Text="HÀNH ĐỘNG" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                        <ComboBox ItemsSource="{Binding ActionCodes}" SelectedItem="{Binding SelectedAction}"
+                                  Height="32" VerticalContentAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- User Filter -->
+                    <StackPanel Grid.Column="3" Margin="{StaticResource Margin.Right.md}" Width="160">
+                        <TextBlock Text="NHÂN VIÊN" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                        <ComboBox ItemsSource="{Binding Users}" SelectedItem="{Binding SelectedUser}"
+                                  DisplayMemberPath="FullName" Height="32" VerticalContentAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Date Range -->
+                    <StackPanel Grid.Column="4" Margin="{StaticResource Margin.Right.md}">
+                        <TextBlock Text="KHOẢNG NGÀY" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                        <StackPanel Orientation="Horizontal">
+                            <DatePicker SelectedDate="{Binding FromDate}" Width="120" Height="32" VerticalContentAlignment="Center"/>
+                            <TextBlock Text="-" VerticalAlignment="Center" Margin="8,0"/>
+                            <DatePicker SelectedDate="{Binding ToDate}" Width="120" Height="32" VerticalContentAlignment="Center"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Action Buttons -->
+                    <StackPanel Grid.Column="5" VerticalAlignment="Bottom">
+                        <Button Command="{Binding ExportLogsCommand}" Style="{StaticResource AppPrimaryButton}" Height="32">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="FileExcelOutline" Width="18" Height="18" VerticalAlignment="Center"/>
+                                <TextBlock Text="XUẤT EXCEL" Margin="8,0,0,0" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                            </StackPanel>
                         </Button>
                     </StackPanel>
                 </Grid>
