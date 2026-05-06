@@ -7,14 +7,18 @@ using CommunityToolkit.Mvvm.Input;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
 using QuanLyHangHoa.Views;
+using QuanLyHangHoa.Data;
 
 namespace QuanLyHangHoa.ViewModels
 {
     public partial class ProductViewModel : ObservableObject
     {
+        private readonly AppDbContext _db;
         private readonly ProductService _service;
         private readonly ReferenceDataService _refDataService;
+        private readonly AppUser _currentUser;
 
+        [ObservableProperty] private bool _canManage;
         [ObservableProperty] private ObservableCollection<Product> _products = new();
         [ObservableProperty] private Product? _selectedProduct;
         [ObservableProperty] private ObservableCollection<Category> _categories = new();
@@ -32,12 +36,16 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private int _lowStockCount;
         [ObservableProperty] private int _outOfStockCount;
 
-        public ProductViewModel()
+        public ProductViewModel(AppDbContext db, AppUser currentUser)
         {
-            _service = new ProductService();
+            _db = db;
+            _currentUser = currentUser;
+            _service = new ProductService(() => new AppDbContext());
             _refDataService = new ReferenceDataService();
             
-            Categories = new ObservableCollection<Category>(_refDataService.GetAllCategories(false)); // Include inactive for filtering if needed
+            CanManage = AuthorizationService.CanPerform(_currentUser, PermissionAction.ManageMasterData);
+
+            Categories = new ObservableCollection<Category>(_refDataService.GetAllCategories(false));
             Brands = new ObservableCollection<Brand>(_refDataService.GetAllBrands());
             Units = new ObservableCollection<Unit>(_refDataService.GetAllUnits());
 
@@ -82,7 +90,7 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void Search() => LoadData();
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanManage))]
         private void OpenAddProductWindow()
         {
             var vm = new ProductEditViewModel();
@@ -93,7 +101,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanManage))]
         private void OpenEditProductWindow(Product? product)
         {
             if (product == null) return;
@@ -105,7 +113,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanManage))]
         private void DeleteProduct(Product? product)
         {
             if (product == null) return;

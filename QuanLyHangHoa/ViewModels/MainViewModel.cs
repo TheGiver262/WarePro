@@ -21,7 +21,8 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty]
         private string _currentViewSubtitle = "Tổng quan hoạt động kinh doanh";
 
-        public bool IsAdmin => CurrentUser.RoleCode == "Quản trị viên";
+        public bool IsAdmin => AuthorizationService.CanPerform(CurrentUser, PermissionAction.ManageUsers);
+        public bool CanViewLogs => AuthorizationService.CanPerform(CurrentUser, PermissionAction.ManageAuditLogs);
 
         private readonly Data.AppDbContext _dbContext;
         private readonly DashboardService _dashboardService;
@@ -47,7 +48,7 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void OpenProductView()
         {
-            CurrentView = new ProductView();
+            CurrentView = new ProductView { DataContext = new ProductViewModel(_dbContext, CurrentUser) };
             CurrentViewTitle = "KHO HÀNG";
             CurrentViewSubtitle = "Quản lý danh mục sản phẩm và tồn kho";
         }
@@ -207,7 +208,7 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void OpenAuditLogView()
         {
-            if (IsAdmin)
+            if (CanViewLogs)
             {
                 CurrentView = new AuditLogView { DataContext = new AuditLogViewModel(new AuditQueryService(), new AppUserService(_dbContext)) };
                 CurrentViewTitle = "NHẬT KÝ HỆ THỐNG";

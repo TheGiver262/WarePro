@@ -6,7 +6,9 @@
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:vm="clr-namespace:QuanLyHangHoa.ViewModels"
              mc:Ignorable="d" d:DesignHeight="800" d:DesignWidth="1100">
-    <UserControl.DataContext><vm:ProductViewModel /></UserControl.DataContext>
+    <UserControl.Resources>
+        <!-- Resources if any -->
+    </UserControl.Resources>
     <Grid Background="{StaticResource AppBackgroundBrush}">
         <Grid Margin="{StaticResource PagePadding}">
             <Grid.RowDefinitions>
@@ -28,7 +30,7 @@
                         <TextBlock Text="Quản lý thông tin hàng hóa và tồn kho hệ thống" Style="{DynamicResource TypographyCaption}"/>
                     </StackPanel>
                 </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Visibility="{Binding CanManage, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <Button Command="{Binding OpenAddProductWindowCommand}" Style="{StaticResource AppPrimaryButton}" Height="40" Padding="20,0">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Plus" Width="20" Height="20" VerticalAlignment="Center" Margin="0,0,8,0"/>
@@ -259,7 +261,7 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTemplateColumn Header="THAO TÁC" Width="110">
+                            <DataGridTemplateColumn Header="THAO TÁC" Width="110" Visibility="{Binding DataContext.CanManage, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">

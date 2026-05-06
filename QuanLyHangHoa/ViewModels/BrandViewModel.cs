@@ -18,7 +18,7 @@ namespace QuanLyHangHoa.ViewModels
     {
         private readonly AppDbContext _db;
         private readonly AppUser _currentUser;
-        private readonly AuthorizationService _authService = new();
+
 
         [ObservableProperty] private bool _canManage;
         [ObservableProperty] private ObservableCollection<Brand> _brands = new();
@@ -42,7 +42,7 @@ namespace QuanLyHangHoa.ViewModels
         {
             _db = db;
             _currentUser = currentUser;
-            CanManage = _authService.CanPerform(_currentUser, PermissionAction.ManageMasterData);
+            CanManage = AuthorizationService.CanPerform(_currentUser, PermissionAction.ManageMasterData);
             LoadBrands();
         }
 

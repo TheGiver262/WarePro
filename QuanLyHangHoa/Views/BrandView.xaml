@@ -30,7 +30,7 @@
                     </StackPanel>
                 </StackPanel>
                 
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Visibility="{Binding CanManage, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <Button Command="{Binding AddNewCommand}" Style="{StaticResource AppPrimaryButton}" Height="40" Padding="20,0">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Plus" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
@@ -202,7 +202,7 @@
                             </DataGridTemplateColumn>
 
                             <!-- Actions Column -->
-                            <DataGridTemplateColumn Header="THAO TÁC" Width="120">
+                            <DataGridTemplateColumn Header="THAO TÁC" Width="120" Visibility="{Binding DataContext.CanManage, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">

@@ -14,15 +14,24 @@ namespace QuanLyHangHoa.Services
         CreateSalesInvoice,
         CreateWarrantyClaim,
         ViewReports,
-        ManageMasterData
+        ManageMasterData,
+        ManageAuditLogs
     }
 
     public class AuthorizationService
     {
         private static readonly Dictionary<string, HashSet<PermissionAction>> RolePermissions = new(StringComparer.OrdinalIgnoreCase)
         {
+            // Admin Role (Full Access)
+            ["Admin"] = AllPermissions(),
             ["Quản trị viên"] = AllPermissions(),
+
+            // Manager Role (Full Access except User Management)
+            ["Manager"] = AllPermissionsExcept(PermissionAction.ManageUsers),
             ["Quản lý"] = AllPermissionsExcept(PermissionAction.ManageUsers),
+
+            // Staff Roles (Specific tasks, View Reports, NO Master Data management)
+            ["Staff"] = ViewOnlyPermissions(),
             ["Nhân viên bảo hành"] = new()
             {
                 PermissionAction.CreateWarrantyClaim,
@@ -42,9 +51,17 @@ namespace QuanLyHangHoa.Services
             }
         };
 
-        public bool CanPerform(AppUser? user, PermissionAction action)
+        private static HashSet<PermissionAction> ViewOnlyPermissions()
         {
-            if (user is null || !user.IsActive || string.IsNullOrWhiteSpace(user.RoleCode))
+            return new HashSet<PermissionAction>
+            {
+                PermissionAction.ViewReports
+            };
+        }
+
+        public static bool CanPerform(AppUser? user, PermissionAction action)
+        {
+            if (user == null || !user.IsActive || string.IsNullOrWhiteSpace(user.RoleCode))
             {
                 return false;
             }

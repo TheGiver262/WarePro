@@ -239,7 +239,7 @@
                             </DataGridTemplateColumn>
 
                             <!-- Actions Column -->
-                            <DataGridTemplateColumn Header="THAO TÁC" Width="120">
+                            <DataGridTemplateColumn Header="THAO TÁC" Width="120" Visibility="{Binding DataContext.CanManage, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">

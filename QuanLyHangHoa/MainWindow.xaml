@@ -69,7 +69,7 @@
                         <RadioButton Content="Người dùng" Tag="AccountMultipleOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenAppUserViewCommand}"
                                      Visibility="{Binding IsAdmin, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                         <RadioButton Content="Nhật ký hệ thống" Tag="ShieldCheck" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenAuditLogViewCommand}"
-                                     Visibility="{Binding IsAdmin, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                     Visibility="{Binding CanViewLogs, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                         <RadioButton Content="Đổi mật khẩu" Tag="KeyVariant" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenChangePasswordViewCommand}"/>
 
                         <Border Height="20"/>
