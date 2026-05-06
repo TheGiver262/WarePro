@@ -34,7 +34,7 @@
                     <Button Command="{Binding AddNewCommand}" Style="{StaticResource AppPrimaryButton}" Height="40" Padding="20,0">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Plus" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                            <TextBlock Text="THÊM THƯƠNG HIỆU" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold"/>
+                            <TextBlock Text="THÊM MỚI" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>

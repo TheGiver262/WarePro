@@ -30,9 +30,11 @@ namespace QuanLyHangHoa.Services
         public LoginResult Authenticate(string username, string password)
         {
             var db = _contextFactory();
+            // Query user (DB might be case-insensitive depending on collation)
             var user = db.AppUsers.FirstOrDefault(u => u.Username == username);
             
-            if (user == null) return LoginResult.Invalid();
+            // Strict case-sensitive check in application logic
+            if (user == null || user.Username != username) return LoginResult.Invalid();
             if (!user.IsActive) return LoginResult.Inactive();
             
             // Check lockout
@@ -44,13 +46,8 @@ namespace QuanLyHangHoa.Services
 
             try 
             {
-                // EMERGENCY BYPASS FOR DEVELOPMENT: Allow admin/admin123
-                if (username == "admin" && password == "admin123")
-                {
-                    verified = true;
-                }
                 // Standard BCrypt verification
-                else if (stored.StartsWith("$2") && stored.Contains('$'))
+                if (stored.StartsWith("$2") && stored.Contains('$'))
                 {
                     verified = BCrypt.Net.BCrypt.Verify(password, stored);
                 }
