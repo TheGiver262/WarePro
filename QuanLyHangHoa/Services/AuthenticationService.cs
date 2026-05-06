@@ -60,11 +60,20 @@ namespace QuanLyHangHoa.Services
                     db.SaveChanges();
                     return LoginResult.Success(user);
                 }
+                else
+                {
+                    // Increment failed attempts and handle lockout
+                    user.FailedLoginCount++;
+                    if (user.FailedLoginCount >= 5)
+                    {
+                        user.LockoutUntil = DateTime.UtcNow.AddMinutes(30);
+                    }
+                    db.SaveChanges();
+                }
             }
             catch
             {
-                // In case of invalid hash format
-                verified = false;
+                // In case of invalid hash format or other errors
             }
 
             return LoginResult.Invalid();
