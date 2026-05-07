@@ -60,6 +60,15 @@ namespace QuanLyHangHoa.ViewModels
             Categories = new ObservableCollection<Category>(list);
         }
 
+        [RelayCommand]
+        private void Refresh()
+        {
+            SearchCode = string.Empty;
+            SearchName = string.Empty;
+            SearchStatus = "Tất cả";
+            LoadCategories();
+        }
+
         partial void OnSearchCodeChanged(string value) => LoadCategories();
         partial void OnSearchNameChanged(string value) => LoadCategories();
         partial void OnSearchStatusChanged(string? value) => LoadCategories();

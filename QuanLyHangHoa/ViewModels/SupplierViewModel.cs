@@ -65,6 +65,17 @@ namespace QuanLyHangHoa.ViewModels
             Suppliers = new ObservableCollection<Supplier>(list);
         }
 
+        [RelayCommand]
+        private void Refresh()
+        {
+            SearchCode = string.Empty;
+            SearchName = string.Empty;
+            SearchEmail = string.Empty;
+            SearchPhone = string.Empty;
+            SearchStatus = "Tất cả";
+            LoadData();
+        }
+
         partial void OnSearchCodeChanged(string value) => LoadData();
         partial void OnSearchNameChanged(string value) => LoadData();
         partial void OnSearchEmailChanged(string value) => LoadData();

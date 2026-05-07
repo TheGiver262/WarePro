@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace QuanLyHangHoa.Models;
@@ -12,6 +12,8 @@ public partial class ProductSerial
     public string SerialNumber { get; set; } = null!;
 
     public string CurrentStatus { get; set; } = null!;
+
+    public string? Note { get; set; }
 
     public int? CurrentWarehouseId { get; set; }
 

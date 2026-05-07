@@ -31,6 +31,11 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _searchStatus = "Tất cả";
         [ObservableProperty] private Category? _selectedCategoryFilter;
 
+        partial void OnSearchCodeChanged(string value) => LoadData();
+        partial void OnSearchNameChanged(string value) => LoadData();
+        partial void OnSearchStatusChanged(string value) => LoadData();
+        partial void OnSelectedCategoryFilterChanged(Category? value) => LoadData();
+
         public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Hoạt động", "Dừng hoạt động"];
 
         [ObservableProperty] private int _lowStockCount;
@@ -45,16 +50,21 @@ namespace QuanLyHangHoa.ViewModels
             
             CanManage = AuthorizationService.CanPerform(_currentUser, PermissionAction.ManageMasterData);
 
-            Categories = new ObservableCollection<Category>(_refDataService.GetAllCategories(false));
+            var allCategories = _refDataService.GetAllCategories(false);
+            Categories = new ObservableCollection<Category>(allCategories);
+            Categories.Insert(0, new Category { Id = 0, DisplayName = "Tất cả danh mục" });
+
             Brands = new ObservableCollection<Brand>(_refDataService.GetAllBrands());
             Units = new ObservableCollection<Unit>(_refDataService.GetAllUnits());
 
+            SelectedCategoryFilter = Categories.FirstOrDefault();
+            
             LoadData();
         }
 
         private void LoadData()
         {
-            var results = _service.GetAllProducts(onlyActive: false); // We handle filtering in VM
+            var results = _service.GetAllProducts(onlyActive: false);
 
             // Apply Filters
             if (!string.IsNullOrWhiteSpace(SearchCode))
@@ -75,7 +85,7 @@ namespace QuanLyHangHoa.ViewModels
                 results = results.Where(p => p.IsActive == active).ToList();
             }
 
-            if (SelectedCategoryFilter != null)
+            if (SelectedCategoryFilter != null && SelectedCategoryFilter.Id > 0)
             {
                 results = results.Where(p => p.CategoryId == SelectedCategoryFilter.Id).ToList();
             }
@@ -89,6 +99,16 @@ namespace QuanLyHangHoa.ViewModels
 
         [RelayCommand]
         private void Search() => LoadData();
+
+        [RelayCommand]
+        private void Refresh()
+        {
+            SearchCode = string.Empty;
+            SearchName = string.Empty;
+            SearchStatus = "Tất cả";
+            SelectedCategoryFilter = Categories.FirstOrDefault();
+            LoadData();
+        }
 
         [RelayCommand(CanExecute = nameof(CanManage))]
         private void OpenAddProductWindow()
@@ -189,10 +209,5 @@ namespace QuanLyHangHoa.ViewModels
                 }
             }
         }
-
-        partial void OnSearchCodeChanged(string value) => LoadData();
-        partial void OnSearchNameChanged(string value) => LoadData();
-        partial void OnSearchStatusChanged(string value) => LoadData();
-        partial void OnSelectedCategoryFilterChanged(Category? value) => LoadData();
     }
 }

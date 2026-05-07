@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace QuanLyHangHoa.Models;
@@ -10,6 +10,10 @@ public partial class Product
     public string ProductCode { get; set; } = null!;
 
     public string DisplayName { get; set; } = null!;
+
+    public string? Description { get; set; }
+
+    public decimal? CostPrice { get; set; }
 
     public int CategoryId { get; set; }
 

@@ -57,6 +57,15 @@ namespace QuanLyHangHoa.ViewModels
             Units = new ObservableCollection<Unit>(list);
         }
 
+        [RelayCommand]
+        private void Refresh()
+        {
+            SearchCode = string.Empty;
+            SearchName = string.Empty;
+            SearchStatus = "Tất cả";
+            LoadData();
+        }
+
         partial void OnSearchCodeChanged(string value) => LoadData();
         partial void OnSearchNameChanged(string value) => LoadData();
         partial void OnSearchStatusChanged(string? value) => LoadData();

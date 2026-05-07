@@ -69,6 +69,16 @@ namespace QuanLyHangHoa.ViewModels
             Brands = new ObservableCollection<Brand>(list);
         }
 
+        [RelayCommand]
+        private void Refresh()
+        {
+            SearchCode = string.Empty;
+            SearchName = string.Empty;
+            SearchOrigin = string.Empty;
+            SearchStatus = "Tất cả";
+            LoadBrands();
+        }
+
         partial void OnSearchCodeChanged(string value) => LoadBrands();
         partial void OnSearchNameChanged(string value) => LoadBrands();
         partial void OnSearchOriginChanged(string value) => LoadBrands();
