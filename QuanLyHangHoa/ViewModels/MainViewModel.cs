@@ -1,3 +1,4 @@
+using System;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using QuanLyHangHoa.Models;
@@ -24,14 +25,14 @@ namespace QuanLyHangHoa.ViewModels
         public bool IsAdmin => AuthorizationService.CanPerform(CurrentUser, PermissionAction.ManageUsers);
         public bool CanViewLogs => AuthorizationService.CanPerform(CurrentUser, PermissionAction.ManageAuditLogs);
 
-        private readonly Data.AppDbContext _dbContext;
+        public Func<Data.AppDbContext> ContextFactory { get; }
         private readonly DashboardService _dashboardService;
 
-        public MainViewModel(AppUser user, Data.AppDbContext dbContext)
+        public MainViewModel(AppUser user, Func<Data.AppDbContext> contextFactory)
         {
             CurrentUser = user;
-            _dbContext = dbContext;
-            _dashboardService = new DashboardService(_dbContext);
+            ContextFactory = contextFactory;
+            _dashboardService = new DashboardService(ContextFactory);
             
             OpenDashboard();
         }
@@ -48,7 +49,7 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void OpenProductView()
         {
-            CurrentView = new ProductView { DataContext = new ProductViewModel(_dbContext, CurrentUser) };
+            CurrentView = new ProductView { DataContext = new ProductViewModel(ContextFactory, CurrentUser) };
             CurrentViewTitle = "KHO HÀNG";
             CurrentViewSubtitle = "Quản lý danh mục sản phẩm và tồn kho";
         }
@@ -110,7 +111,7 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void OpenWarrantyView()
         {
-            var view = new WarrantyView { DataContext = new WarrantyViewModel(CurrentUser, _dbContext) };
+            var view = new WarrantyView { DataContext = new WarrantyViewModel(CurrentUser, ContextFactory) };
             CurrentView = view;
             CurrentViewTitle = "BẢO HÀNH";
             CurrentViewSubtitle = "Quản lý phiếu bảo hành và sửa chữa";
@@ -120,7 +121,7 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void OpenCategoryView()
         {
-            CurrentView = new CategoryView { DataContext = new CategoryViewModel(_dbContext, CurrentUser!) };
+            CurrentView = new CategoryView { DataContext = new CategoryViewModel(ContextFactory, CurrentUser!) };
             CurrentViewTitle = "DANH MỤC";
             CurrentViewSubtitle = "Quản lý nhóm phân loại sản phẩm";
         }
@@ -128,7 +129,7 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void OpenBrandView()
         {
-            CurrentView = new BrandView { DataContext = new BrandViewModel(_dbContext, CurrentUser!) };
+            CurrentView = new BrandView { DataContext = new BrandViewModel(ContextFactory, CurrentUser!) };
             CurrentViewTitle = "THƯƠNG HIỆU";
             CurrentViewSubtitle = "Quản lý các hãng sản xuất";
         }
@@ -136,7 +137,7 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void OpenUnitView()
         {
-            CurrentView = new UnitView { DataContext = new UnitViewModel(_dbContext, CurrentUser!) };
+            CurrentView = new UnitView { DataContext = new UnitViewModel(ContextFactory, CurrentUser!) };
             CurrentViewTitle = "ĐƠN VỊ TÍNH";
             CurrentViewSubtitle = "Quản lý đơn vị đo lường";
         }
@@ -144,7 +145,7 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void OpenSupplierView()
         {
-            CurrentView = new SupplierView { DataContext = new SupplierViewModel(_dbContext, CurrentUser!) };
+            CurrentView = new SupplierView { DataContext = new SupplierViewModel(ContextFactory, CurrentUser!) };
             CurrentViewTitle = "NHÀ CUNG CẤP";
             CurrentViewSubtitle = "Quản lý đối tác nhập hàng";
         }
@@ -152,7 +153,7 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void OpenCustomerView()
         {
-            CurrentView = new CustomerView { DataContext = new CustomerViewModel(_dbContext, CurrentUser!) };
+            CurrentView = new CustomerView { DataContext = new CustomerViewModel(ContextFactory, CurrentUser!) };
             CurrentViewTitle = "KHÁCH HÀNG";
             CurrentViewSubtitle = "Quản lý thông tin khách hàng";
         }
@@ -195,7 +196,7 @@ namespace QuanLyHangHoa.ViewModels
         {
             if (IsAdmin)
             {
-                CurrentView = new AppUserView { DataContext = new AppUserViewModel(CurrentUser, _dbContext) };
+                CurrentView = new AppUserView { DataContext = new AppUserViewModel(CurrentUser, ContextFactory) };
                 CurrentViewTitle = "NGƯỜI DÙNG";
                 CurrentViewSubtitle = "Quản lý tài khoản hệ thống";
             }
@@ -210,7 +211,7 @@ namespace QuanLyHangHoa.ViewModels
         {
             if (CanViewLogs)
             {
-                CurrentView = new AuditLogView { DataContext = new AuditLogViewModel(new AuditQueryService(), new AppUserService(_dbContext)) };
+                CurrentView = new AuditLogView { DataContext = new AuditLogViewModel(ContextFactory) };
                 CurrentViewTitle = "NHẬT KÝ HỆ THỐNG";
                 CurrentViewSubtitle = "Theo dõi lịch sử thay đổi dữ liệu toàn hệ thống";
             }
@@ -223,7 +224,7 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void OpenChangePasswordView()
         {
-            var view = new ChangePasswordView { DataContext = new ChangePasswordViewModel(CurrentUser) };
+            var view = new ChangePasswordView { DataContext = new ChangePasswordViewModel(CurrentUser, ContextFactory) };
             CurrentView = view;
             CurrentViewTitle = "ĐỔI MẬT KHẨU";
             CurrentViewSubtitle = "Cập nhật mật khẩu truy cập";

@@ -720,7 +720,7 @@ Charts:
 ### 13.2 Loại hàng
 
 Title: `Loại hàng`
-Subtitle: `Quản lý danh mục loại hàng`
+Subtitle: `Quản lý danh mục sản phẩm`
 
 Top actions:
 

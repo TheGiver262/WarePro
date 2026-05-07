@@ -12,8 +12,6 @@ namespace QuanLyHangHoa.Services
     {
         private readonly Func<AppDbContext> _contextFactory;
 
-        public StockOutService() : this(() => new AppDbContext()) { }
-
         public StockOutService(Func<AppDbContext> contextFactory)
         {
             _contextFactory = contextFactory;
@@ -35,7 +33,7 @@ namespace QuanLyHangHoa.Services
         {
             stockOut.Lines = lines;
             stockOut.CreatedBy = userId;
-            stockOut.CreatedAt = DateTime.UtcNow;
+            stockOut.CreatedAt = DateTime.Now;
             
             using var db = _contextFactory();
             using var transaction = db.Database.BeginTransaction();
@@ -51,7 +49,7 @@ namespace QuanLyHangHoa.Services
             // Auto-approve and post for now to match current simple logic
             stockOut.Status = "Posted";
             stockOut.PostedBy = userId;
-            stockOut.PostedAt = DateTime.UtcNow;
+            stockOut.PostedAt = DateTime.Now;
             db.SaveChanges();
 
             var postingService = new InventoryPostingService(

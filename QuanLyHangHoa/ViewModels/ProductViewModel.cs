@@ -8,12 +8,13 @@ using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
 using QuanLyHangHoa.Views;
 using QuanLyHangHoa.Data;
+using System.Text.Json;
 
 namespace QuanLyHangHoa.ViewModels
 {
     public partial class ProductViewModel : ObservableObject
     {
-        private readonly AppDbContext _db;
+        private readonly Func<AppDbContext> _contextFactory;
         private readonly ProductService _service;
         private readonly ReferenceDataService _refDataService;
         private readonly AppUser _currentUser;
@@ -29,24 +30,38 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _searchCode = string.Empty;
         [ObservableProperty] private string _searchName = string.Empty;
         [ObservableProperty] private string _searchStatus = "Tất cả";
+        [ObservableProperty] private string _searchSerial = "Tất cả";
+        [ObservableProperty] private string _searchWarranty = string.Empty;
         [ObservableProperty] private Category? _selectedCategoryFilter;
+        [ObservableProperty] private Brand? _selectedBrandFilter;
+        [ObservableProperty] private string _searchPriceMin = string.Empty;
+        [ObservableProperty] private string _searchPriceMax = string.Empty;
 
         partial void OnSearchCodeChanged(string value) => LoadData();
         partial void OnSearchNameChanged(string value) => LoadData();
         partial void OnSearchStatusChanged(string value) => LoadData();
+        partial void OnSearchSerialChanged(string value) => LoadData();
+        partial void OnSearchWarrantyChanged(string value) => LoadData();
         partial void OnSelectedCategoryFilterChanged(Category? value) => LoadData();
+        partial void OnSelectedBrandFilterChanged(Brand? value) => LoadData();
+        partial void OnSearchPriceMinChanged(string value) => LoadData();
+        partial void OnSearchPriceMaxChanged(string value) => LoadData();
 
-        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Hoạt động", "Dừng hoạt động"];
+        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "HĐ", "DỪNG"];
+        public ObservableCollection<string> SerialOptions { get; } = ["Tất cả", "Có serial", "Không serial"];
 
         [ObservableProperty] private int _lowStockCount;
         [ObservableProperty] private int _outOfStockCount;
+        [ObservableProperty] private int _outOfStockActiveCount;
+        [ObservableProperty] private int _activeCount;
+        [ObservableProperty] private int _inactiveCount;
 
-        public ProductViewModel(AppDbContext db, AppUser currentUser)
+        public ProductViewModel(Func<AppDbContext> contextFactory, AppUser currentUser)
         {
-            _db = db;
+            _contextFactory = contextFactory;
             _currentUser = currentUser;
-            _service = new ProductService(() => new AppDbContext());
-            _refDataService = new ReferenceDataService();
+            _service = new ProductService(_contextFactory);
+            _refDataService = new ReferenceDataService(_contextFactory);
             
             CanManage = AuthorizationService.CanPerform(_currentUser, PermissionAction.ManageMasterData);
 
@@ -54,10 +69,14 @@ namespace QuanLyHangHoa.ViewModels
             Categories = new ObservableCollection<Category>(allCategories);
             Categories.Insert(0, new Category { Id = 0, DisplayName = "Tất cả danh mục" });
 
-            Brands = new ObservableCollection<Brand>(_refDataService.GetAllBrands());
+            var allBrands = _refDataService.GetAllBrands();
+            Brands = new ObservableCollection<Brand>(allBrands);
+            Brands.Insert(0, new Brand { Id = 0, DisplayName = "Tất cả thương hiệu" });
+            
             Units = new ObservableCollection<Unit>(_refDataService.GetAllUnits());
 
             SelectedCategoryFilter = Categories.FirstOrDefault();
+            SelectedBrandFilter = Brands.FirstOrDefault();
             
             LoadData();
         }
@@ -81,7 +100,7 @@ namespace QuanLyHangHoa.ViewModels
 
             if (SearchStatus != "Tất cả")
             {
-                bool active = SearchStatus == "Hoạt động";
+                bool active = SearchStatus == "HĐ";
                 results = results.Where(p => p.IsActive == active).ToList();
             }
 
@@ -90,11 +109,40 @@ namespace QuanLyHangHoa.ViewModels
                 results = results.Where(p => p.CategoryId == SelectedCategoryFilter.Id).ToList();
             }
 
+            if (SelectedBrandFilter != null && SelectedBrandFilter.Id > 0)
+            {
+                results = results.Where(p => p.BrandId == SelectedBrandFilter.Id).ToList();
+            }
+
+            if (decimal.TryParse(SearchPriceMin, out decimal min))
+            {
+                results = results.Where(p => p.DefaultPrice >= min).ToList();
+            }
+
+            if (decimal.TryParse(SearchPriceMax, out decimal max))
+            {
+                results = results.Where(p => p.DefaultPrice <= max).ToList();
+            }
+
+            if (SearchSerial != "Tất cả")
+            {
+                bool tracked = SearchSerial == "Có serial";
+                results = results.Where(p => p.IsSerialTracked == tracked).ToList();
+            }
+
+            if (int.TryParse(SearchWarranty, out int warranty))
+            {
+                results = results.Where(p => p.WarrantyPeriodMonths == warranty).ToList();
+            }
+
             Products = new ObservableCollection<Product>(results);
 
             // Update Stats
             LowStockCount = results.Count(p => p.StockBalances.Sum(sb => sb.OnHandQuantity) > 0 && p.StockBalances.Sum(sb => sb.OnHandQuantity) <= 5);
             OutOfStockCount = results.Count(p => p.StockBalances.Sum(sb => sb.OnHandQuantity) <= 0);
+            OutOfStockActiveCount = results.Count(p => p.IsActive && p.StockBalances.Sum(sb => sb.OnHandQuantity) <= 0);
+            ActiveCount = results.Count(p => p.IsActive);
+            InactiveCount = results.Count(p => !p.IsActive);
         }
 
         [RelayCommand]
@@ -106,14 +154,19 @@ namespace QuanLyHangHoa.ViewModels
             SearchCode = string.Empty;
             SearchName = string.Empty;
             SearchStatus = "Tất cả";
+            SearchSerial = "Tất cả";
+            SearchWarranty = string.Empty;
+            SearchPriceMin = string.Empty;
+            SearchPriceMax = string.Empty;
             SelectedCategoryFilter = Categories.FirstOrDefault();
+            SelectedBrandFilter = Brands.FirstOrDefault();
             LoadData();
         }
 
         [RelayCommand(CanExecute = nameof(CanManage))]
         private void OpenAddProductWindow()
         {
-            var vm = new ProductEditViewModel();
+            var vm = new ProductEditViewModel(_contextFactory, _currentUser);
             var window = new ProductEditWindow { DataContext = vm };
             if (window.ShowDialog() == true)
             {
@@ -125,7 +178,7 @@ namespace QuanLyHangHoa.ViewModels
         private void OpenEditProductWindow(Product? product)
         {
             if (product == null) return;
-            var vm = new ProductEditViewModel(product);
+            var vm = new ProductEditViewModel(_contextFactory, _currentUser, product);
             var window = new ProductEditWindow { DataContext = vm };
             if (window.ShowDialog() == true)
             {
@@ -138,15 +191,33 @@ namespace QuanLyHangHoa.ViewModels
         {
             if (product == null) return;
             
-            var result = MessageBox.Show($"Bạn có chắc chắn muốn xoá sản phẩm '{product.DisplayName}'?", 
+            // 1. Kiểm tra phát sinh dữ liệu
+            if (_service.HasTransactionHistory(product.Id))
+            {
+                MessageBox.Show($"Không thể xoá sản phẩm '{product.DisplayName}' vì đã có dữ liệu phát sinh (Hóa đơn, Nhập/Xuất kho).\n\nVui lòng chuyển sản phẩm sang 'Ngừng hoạt động' nếu không còn sử dụng.", 
+                    "Không thể xoá", MessageBoxButton.OK, MessageBoxImage.Stop);
+                return;
+            }
+
+            // 2. Xác nhận xoá (nếu không có lịch sử)
+            var result = MessageBox.Show($"Sản phẩm '{product.DisplayName}' chưa có lịch sử giao dịch. Bạn có chắc chắn muốn xoá vĩnh viễn sản phẩm này khỏi hệ thống?", 
                 "Xác nhận xoá", MessageBoxButton.YesNo, MessageBoxImage.Warning);
                 
             if (result == MessageBoxResult.Yes)
             {
-                _service.DeactivateProduct(product.Id);
-                LoadData();
+                try 
+                {
+                    _service.DeleteProduct(product.Id, _currentUser.Id);
+                    LoadData();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Lỗi khi xoá sản phẩm: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
         }
+
+
 
         [RelayCommand]
         private void ExportToExcel()
@@ -172,7 +243,7 @@ namespace QuanLyHangHoa.ViewModels
                     var worksheet = workbook.Worksheets.Add("Products");
 
                     // Headers
-                    string[] headers = { "Mã sản phẩm", "Tên sản phẩm", "Danh mục", "Thương hiệu", "Đơn vị", "Giá bán", "Tồn kho", "Trạng thái" };
+                    string[] headers = { "Mã sản phẩm", "Tên sản phẩm", "Danh mục", "Thương hiệu", "Serial", "Bảo hành (tháng)", "Đơn vị", "Giá bán", "Trạng thái" };
                     for (int i = 0; i < headers.Length; i++)
                     {
                         var cell = worksheet.Cell(1, i + 1);
@@ -190,11 +261,12 @@ namespace QuanLyHangHoa.ViewModels
                         worksheet.Cell(row, 2).Value = p.DisplayName;
                         worksheet.Cell(row, 3).Value = p.Category?.DisplayName ?? "N/A";
                         worksheet.Cell(row, 4).Value = p.Brand?.DisplayName ?? "N/A";
-                        worksheet.Cell(row, 5).Value = p.DefaultUnit?.DisplayName ?? "N/A";
-                        worksheet.Cell(row, 6).Value = p.DefaultPrice;
-                        worksheet.Cell(row, 6).Style.NumberFormat.Format = "#,##0";
-                        worksheet.Cell(row, 7).Value = p.StockBalances.Sum(sb => sb.OnHandQuantity);
-                        worksheet.Cell(row, 8).Value = p.IsActive ? "Hoạt động" : "Dừng hoạt động";
+                        worksheet.Cell(row, 5).Value = p.IsSerialTracked ? "Có" : "-";
+                        worksheet.Cell(row, 6).Value = p.WarrantyPeriodMonths;
+                        worksheet.Cell(row, 7).Value = p.DefaultUnit?.DisplayName ?? "N/A";
+                        worksheet.Cell(row, 8).Value = p.DefaultPrice;
+                        worksheet.Cell(row, 8).Style.NumberFormat.Format = "#,##0";
+                        worksheet.Cell(row, 9).Value = p.IsActive ? "HĐ" : "DỪNG";
                         row++;
                     }
 

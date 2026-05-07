@@ -10,7 +10,6 @@ namespace QuanLyHangHoa.Services
     {
         private readonly Func<AppDbContext> _contextFactory;
 
-        public StockCountService() : this(() => new AppDbContext()) { }
 
         public StockCountService(Func<AppDbContext> contextFactory)
         {
@@ -43,7 +42,7 @@ namespace QuanLyHangHoa.Services
                 Status = "Posted",
                 CreatedBy = userId,
                 PostedBy = userId,
-                PostedAt = DateTime.UtcNow,
+                PostedAt = DateTime.Now,
                 ReferenceDocumentType = "StockCountSession",
                 ReferenceDocumentId = sessionId
             };
@@ -75,7 +74,7 @@ namespace QuanLyHangHoa.Services
                     MovementType = line.VarianceQuantity > 0 ? "In" : "Out",
                     Quantity = Math.Abs(line.VarianceQuantity),
                     PostedBy = userId,
-                    PostedAt = DateTime.UtcNow
+                    PostedAt = DateTime.Now
                 };
                 db.StockLedgers.Add(ledger);
             }

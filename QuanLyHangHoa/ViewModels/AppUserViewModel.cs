@@ -4,6 +4,7 @@ using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using QuanLyHangHoa.Models;
+using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Services;
 using QuanLyHangHoa.Services.DataImport;
 using QuanLyHangHoa.Views;
@@ -32,22 +33,19 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private bool _isEditPanelOpen;
 
         public ObservableCollection<string> Roles { get; } = ["Tất cả", "Quản trị viên", "Quản lý", "Nhân viên bảo hành", "Nhân viên bán hàng", "Nhân viên kho"];
-        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Hoạt động", "Đã khóa"];
+        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "HĐ", "DỪNG"];
 
-        public AppUserViewModel()
-            : this(null, new Data.AppDbContext())
+        private readonly Func<AppDbContext> _contextFactory;
+
+        public AppUserViewModel(AppUser? currentUser, Func<AppDbContext> contextFactory)
         {
+            _currentUser = currentUser;
+            _contextFactory = contextFactory;
+            _userService = new AppUserService(_contextFactory);
+            LoadData();
         }
 
         public bool IsAdmin => _currentUser?.RoleCode == "Quản trị viên";
-
-        public AppUserViewModel(AppUser? currentUser, Data.AppDbContext dbContext)
-        {
-            _currentUser = currentUser;
-            _userService = new AppUserService(dbContext);
-            
-            LoadData();
-        }
 
         [RelayCommand]
         private void OpenAddUserDialog()
@@ -90,11 +88,11 @@ namespace QuanLyHangHoa.ViewModels
                 list = list.Where(u => u.CreatedAt.Date == SearchDate.Value.Date).ToList();
             }
 
-            if (SearchStatus == "Hoạt động")
+            if (SearchStatus == "HĐ")
             {
                 list = list.Where(u => u.IsActive).ToList();
             }
-            else if (SearchStatus == "Đã khóa")
+            else if (SearchStatus == "DỪNG")
             {
                 list = list.Where(u => !u.IsActive).ToList();
             }
@@ -254,7 +252,7 @@ namespace QuanLyHangHoa.ViewModels
                             worksheet.Cell(i + 2, 2).Value = Users[i].Username;
                             worksheet.Cell(i + 2, 3).Value = Users[i].RoleCode;
                             worksheet.Cell(i + 2, 4).Value = Users[i].CreatedAt.ToString("dd/MM/yyyy HH:mm");
-                            worksheet.Cell(i + 2, 5).Value = Users[i].IsActive ? "Hoạt động" : "Đã khóa";
+                            worksheet.Cell(i + 2, 5).Value = Users[i].IsActive ? "HĐ" : "DỪNG";
                         }
 
                         worksheet.Columns().AdjustToContents();

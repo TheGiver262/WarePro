@@ -24,7 +24,8 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private decimal _conversionFactor = 1;
         [ObservableProperty] private string _statusMessage = string.Empty;
 
-        public ProductUnitViewModel() : this(new ProductUnitService(), new ProductService(), new ReferenceDataService())
+        public ProductUnitViewModel(Func<Data.AppDbContext> contextFactory) 
+            : this(new ProductUnitService(contextFactory), new ProductService(contextFactory), new ReferenceDataService(contextFactory))
         {
         }
 

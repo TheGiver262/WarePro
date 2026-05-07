@@ -6,13 +6,18 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
+using System.Text.Json;
+using QuanLyHangHoa.Data;
 
 namespace QuanLyHangHoa.ViewModels
 {
     public partial class ProductEditViewModel : ObservableObject
     {
+        private readonly Func<AppDbContext> _contextFactory;
         private readonly ProductService _service;
         private readonly ReferenceDataService _refDataService;
+        private readonly AppUser _currentUser;
+        private string? _beforeJson;
 
         [ObservableProperty] private Product _product;
         [ObservableProperty] private string _title;
@@ -20,10 +25,12 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private ObservableCollection<Brand> _brands = new();
         [ObservableProperty] private ObservableCollection<Unit> _units = new();
 
-        public ProductEditViewModel(Product? product = null)
+        public ProductEditViewModel(Func<AppDbContext> contextFactory, AppUser currentUser, Product? product = null)
         {
-            _service = new ProductService();
-            _refDataService = new ReferenceDataService();
+            _contextFactory = contextFactory;
+            _currentUser = currentUser;
+            _service = new ProductService(_contextFactory);
+            _refDataService = new ReferenceDataService(_contextFactory);
             
             _categories = new ObservableCollection<Category>(_refDataService.GetAllCategories(true));
             _brands = new ObservableCollection<Brand>(_refDataService.GetAllBrands());
@@ -39,10 +46,13 @@ namespace QuanLyHangHoa.ViewModels
                     BrandId = Brands.FirstOrDefault()?.Id ?? 0,
                     DefaultUnitId = Units.FirstOrDefault()?.Id ?? 0
                 };
+                _beforeJson = null;
             }
             else
             {
                 Title = "CHỈNH SỬA SẢN PHẨM";
+                _beforeJson = Serialize(product);
+
                 // Clone for editing
                 Product = new Product
                 {
@@ -74,11 +84,11 @@ namespace QuanLyHangHoa.ViewModels
             {
                 if (Product.Id == 0)
                 {
-                    _service.AddProduct(Product);
+                    _service.AddProduct(Product, _currentUser.Id);
                 }
                 else
                 {
-                    _service.UpdateProduct(Product);
+                    _service.UpdateProduct(Product, _currentUser.Id);
                 }
                 window.DialogResult = true;
                 window.Close();
@@ -89,11 +99,17 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
+
+
         [RelayCommand]
         private void Cancel(Window window)
         {
             window.DialogResult = false;
             window.Close();
+        }
+        private string Serialize(Product p)
+        {
+            return System.Text.Json.JsonSerializer.Serialize(new { p.Id, p.ProductCode, p.DisplayName, p.CategoryId, p.BrandId, p.DefaultUnitId, p.DefaultPrice, p.IsActive });
         }
     }
 }

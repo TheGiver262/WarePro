@@ -1,4 +1,5 @@
 using System;
+using QuanLyHangHoa.Data;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
@@ -36,13 +37,12 @@ namespace QuanLyHangHoa.ViewModels
             // Placeholder for search functionality
         }
 
-        public StockAdjustmentViewModel() : this(new AppUser { Id = 1 }) { }
-
-        public StockAdjustmentViewModel(AppUser currentUser)
+        public StockAdjustmentViewModel(AppUser? currentUser = null, Func<AppDbContext>? contextFactory = null)
         {
-            _currentUser = currentUser;
-            _productService = new ProductService();
-            _adjustmentService = new StockAdjustmentService();
+            _currentUser = currentUser ?? new AppUser { Id = 1 };
+            var factory = contextFactory ?? (() => new QuanLyHangHoa.Data.AppDbContext());
+            _productService = new ProductService(factory);
+            _adjustmentService = new StockAdjustmentService(factory);
             AvailableProducts = new ObservableCollection<Product>(_productService.GetAllProducts());
             Lines = new ObservableCollection<StockAdjustmentLineEditor>();
             DocumentCode = $"ADJ-{DateTime.Now:yyyyMMddHHmmss}";

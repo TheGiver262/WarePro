@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using QuanLyHangHoa.Data;
 using System.Text;
 using System.Text.Json;
 using System.Windows;
@@ -42,19 +43,20 @@ namespace QuanLyHangHoa.ViewModels
         public ObservableCollection<string> ActionCodes { get; } = new();
         public ObservableCollection<AppUser> Users { get; } = new();
 
-        public AuditLogViewModel() : this(new AuditQueryService(), new AppUserService(new Data.AppDbContext())) { }
+        private readonly Func<AppDbContext> _contextFactory;
 
-        public AuditLogViewModel(AuditQueryService auditService, AppUserService userService)
+        public AuditLogViewModel(Func<AppDbContext> contextFactory)
         {
-            _auditService = auditService;
-            _userService = userService;
+            _contextFactory = contextFactory;
+            _auditService = new AuditQueryService(contextFactory);
+            _userService = new AppUserService(contextFactory);
             LoadMetadata();
             LoadLogs();
         }
 
         private void LoadMetadata()
         {
-            using var db = new Data.AppDbContext();
+            using var db = _contextFactory();
             var entities = db.AuditLogs.Select(a => a.EntityName).Distinct().ToList();
             EntityNames.Add("Tất cả");
             foreach (var e in entities) if (e != null) EntityNames.Add(e);

@@ -25,12 +25,9 @@ namespace QuanLyHangHoa.ViewModels
 
         private readonly AuthenticationService _authService;
 
-        // Constructor khởi tạo AuthenticationService
-        private readonly Data.AppDbContext _dbContext;
         public LoginViewModel()
         {
-            _dbContext = new Data.AppDbContext();
-            _authService = new AuthenticationService(_dbContext);
+            _authService = new AuthenticationService(() => new Data.AppDbContext());
         }
 
         [RelayCommand]
@@ -49,7 +46,7 @@ namespace QuanLyHangHoa.ViewModels
                 case LoginStatus.Success:
                     if (result.User != null)
                     {
-                        MainWindow main = new MainWindow(result.User, _dbContext);
+                        MainWindow main = new MainWindow(result.User, () => new Data.AppDbContext());
                         main.Show();
 
                         if (result.User.MustChangePassword)

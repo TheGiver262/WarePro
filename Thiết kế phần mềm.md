@@ -201,6 +201,14 @@ THIẾT KẾ PHẦN MỀM QUẢN LÝ HÀNG HÓA VÀ BẢO HÀNH
 		- Tất cả màn hình dạng bảng phải hỗ trợ tìm kiếm nhanh theo mã, tên, serial, trạng thái, khách hàng, nhà cung cấp và ngày chứng từ.
 		- Các bảng phải hỗ trợ sắp xếp tăng/giảm theo cột chính và cột thời gian.
 		- Tìm kiếm và sắp xếp không mở rộng thêm quyền xem dữ liệu ngoài phạm vi được cấp.
+	5.10 Quy tắc chặn xóa dữ liệu (Deletion Guard)
+		- Nguyên tắc chung: Không cho phép xóa cứng (Hard Delete) bất kỳ bản ghi nào đã phát sinh dữ liệu liên quan hoặc có lịch sử giao dịch trong hệ thống.
+		- Cơ chế kiểm tra: Trước khi thực hiện lệnh xóa, hệ thống phải thực hiện kiểm tra sự tồn tại (Dependency Check) trên tất cả các bảng có liên kết (Foreign Key) hoặc có quan hệ nghiệp vụ.
+		- Xử lý khi có ràng buộc:
+			+ Nếu bản ghi đã có dữ liệu liên quan: Chặn hành động xóa và hiển thị thông báo lỗi chi tiết (ví dụ: "Không thể xóa do sản phẩm đã có lịch sử trong hóa đơn/phiếu kho...").
+			+ Hệ thống phải hướng dẫn người dùng chuyển trạng thái bản ghi sang "Ngừng hoạt động" thay vì xóa để bảo toàn tính toàn vẹn dữ liệu và lịch sử truy vết.
+		- Trường hợp được phép xóa: Chỉ cho phép xóa cứng đối với các bản ghi "rác", bản ghi vừa tạo sai hoặc bản ghi chưa từng phát sinh bất kỳ ràng buộc nào với các module khác trong hệ thống.
+		- Phạm vi áp dụng: Áp dụng cho tất cả các danh mục chính bao gồm: Sản phẩm, Đơn vị tính, Loại hàng, Thương hiệu, Khách hàng, Nhà cung cấp và Tài khoản người dùng.
 
 6. Mô hình dữ liệu thiết kế
 	6.1 Danh mục và người dùng

@@ -146,7 +146,7 @@
                             </DataGridTemplateColumn>
                             
                             <!-- Status Column with Filter Icon -->
-                            <DataGridTemplateColumn Width="220" SortMemberPath="IsActive">
+                            <DataGridTemplateColumn Width="100" SortMemberPath="IsActive">
                                 <DataGridTemplateColumn.Header>
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
@@ -155,7 +155,7 @@
                                 </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Border Padding="12,4" CornerRadius="12" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="12,0">
+                                        <Border Padding="3,1" CornerRadius="4" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="4,0">
                                             <Border.Style>
                                                 <Style TargetType="Border">
                                                     <Setter Property="Background" Value="#FEE2E2"/>
@@ -166,8 +166,8 @@
                                                     </Style.Triggers>
                                                 </Style>
                                             </Border.Style>
-                                            <StackPanel Orientation="Horizontal">
-                                                <Ellipse Width="8" Height="8" Margin="0,0,8,0">
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                <Ellipse Width="5" Height="5" Margin="0,0,4,0">
                                                     <Ellipse.Style>
                                                         <Style TargetType="Ellipse">
                                                             <Setter Property="Fill" Value="#EF4444"/>
@@ -179,14 +179,14 @@
                                                         </Style>
                                                     </Ellipse.Style>
                                                 </Ellipse>
-                                                <TextBlock FontSize="12" FontWeight="Bold">
+                                                <TextBlock FontSize="10" FontWeight="ExtraBold">
                                                     <TextBlock.Style>
                                                         <Style TargetType="TextBlock">
-                                                            <Setter Property="Text" Value="NGƯNG"/>
+                                                            <Setter Property="Text" Value="DỪNG"/>
                                                             <Setter Property="Foreground" Value="#991B1B"/>
                                                             <Style.Triggers>
                                                                 <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                                                    <Setter Property="Text" Value="HOẠT ĐỘNG"/>
+                                                                    <Setter Property="Text" Value="HĐ"/>
                                                                     <Setter Property="Foreground" Value="#166534"/>
                                                                 </DataTrigger>
                                                             </Style.Triggers>

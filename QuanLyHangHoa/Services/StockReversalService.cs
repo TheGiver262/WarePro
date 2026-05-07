@@ -9,7 +9,6 @@ namespace QuanLyHangHoa.Services
     {
         private readonly Func<AppDbContext> _contextFactory;
 
-        public StockReversalService() : this(() => new AppDbContext()) { }
 
         public StockReversalService(Func<AppDbContext> contextFactory)
         {
@@ -36,7 +35,7 @@ namespace QuanLyHangHoa.Services
                 Status = "Posted",
                 CreatedBy = userId,
                 PostedBy = userId,
-                PostedAt = DateTime.UtcNow,
+                PostedAt = DateTime.Now,
                 ReferenceDocumentType = docType,
                 ReferenceDocumentId = docId
             };
@@ -57,7 +56,7 @@ namespace QuanLyHangHoa.Services
                     MovementType = entry.MovementType == "In" ? "Out" : "In",
                     Quantity = entry.Quantity,
                     PostedBy = userId,
-                    PostedAt = DateTime.UtcNow
+                    PostedAt = DateTime.Now
                 };
                 db.StockLedgers.Add(compensatingEntry);
             }

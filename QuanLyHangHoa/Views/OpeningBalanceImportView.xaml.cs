@@ -5,10 +5,9 @@ namespace QuanLyHangHoa.Views
 {
     public partial class OpeningBalanceImportView : UserControl
     {
-        public OpeningBalanceImportView(int postedByUserId)
+        public OpeningBalanceImportView()
         {
             InitializeComponent();
-            DataContext = new OpeningBalanceImportViewModel(postedByUserId);
         }
     }
 }

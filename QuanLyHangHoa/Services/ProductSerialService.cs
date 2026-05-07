@@ -11,11 +11,6 @@ namespace QuanLyHangHoa.Services
     {
         private readonly Func<AppDbContext> _contextFactory;
 
-        public ProductSerialService()
-            : this(() => new AppDbContext())
-        {
-        }
-
         public ProductSerialService(Func<AppDbContext> contextFactory)
         {
             _contextFactory = contextFactory;

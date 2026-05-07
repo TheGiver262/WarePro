@@ -21,11 +21,11 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _reportTitle = "Lich su ton kho";
         [ObservableProperty] private string _statusMessage = string.Empty;
 
-        public AuditQueryViewModel()
+        public AuditQueryViewModel(Func<Data.AppDbContext> contextFactory)
             : this(
-                () => new ProductService().GetAllProducts(),
-                new AuditQueryService().GetProductLedger,
-                new AuditQueryService().GetDocumentTimeline)
+                () => new ProductService(contextFactory).GetAllProducts(),
+                new AuditQueryService(contextFactory).GetProductLedger,
+                new AuditQueryService(contextFactory).GetDocumentTimeline)
         {
         }
 

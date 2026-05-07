@@ -10,12 +10,14 @@ using System.Windows;
 using ClosedXML.Excel;
 using System.Text.Json;
 using QuanLyHangHoa.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace QuanLyHangHoa.ViewModels
 {
     public partial class SupplierViewModel : ObservableObject
     {
-        private readonly AppDbContext _db;
+        private readonly Func<AppDbContext> _contextFactory;
+        private readonly SupplierService _service;
         private readonly AppUser _currentUser;
 
 
@@ -29,11 +31,12 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _searchEmail = string.Empty;
         [ObservableProperty] private string _searchPhone = string.Empty;
         [ObservableProperty] private string? _searchStatus = "Tất cả";
-        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Hoạt động", "Ngưng"];
+        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "HĐ", "DỪNG"];
 
-        public SupplierViewModel(AppDbContext db, AppUser currentUser)
+        public SupplierViewModel(Func<AppDbContext> contextFactory, AppUser currentUser)
         {
-            _db = db;
+            _contextFactory = contextFactory;
+            _service = new SupplierService(_contextFactory);
             _currentUser = currentUser;
             CanManage = AuthorizationService.CanPerform(_currentUser, PermissionAction.ManageMasterData);
             LoadData();
@@ -42,7 +45,8 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         public void LoadData()
         {
-            var query = _db.Suppliers.AsQueryable();
+            using var db = _contextFactory();
+            var query = db.Suppliers.AsNoTracking().AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(SearchCode))
                 query = query.Where(s => s.SupplierCode.Contains(SearchCode));
@@ -56,9 +60,9 @@ namespace QuanLyHangHoa.ViewModels
             if (!string.IsNullOrWhiteSpace(SearchPhone))
                 query = query.Where(s => s.Phone != null && s.Phone.Contains(SearchPhone));
 
-            if (SearchStatus == "Hoạt động")
+            if (SearchStatus == "HĐ")
                 query = query.Where(s => s.IsActive);
-            else if (SearchStatus == "Ngưng")
+else if (SearchStatus == "DỪNG")
                 query = query.Where(s => !s.IsActive);
 
             var list = query.OrderBy(s => s.SupplierCode).ToList();
@@ -89,18 +93,9 @@ namespace QuanLyHangHoa.ViewModels
             var window = new SupplierEditWindow { DataContext = vm };
             if (window.ShowDialog() == true)
             {
-                if (_db.Suppliers.Any(s => s.SupplierCode == vm.SupplierCode))
-                {
-                    MessageBox.Show($"Mã nhà cung cấp '{vm.SupplierCode}' đã tồn tại.", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-
                 var newSup = new Supplier();
                 vm.ApplyTo(newSup);
-                _db.Suppliers.Add(newSup);
-                _db.SaveChanges();
-
-                LogAction("CREATE", newSup.Id, null, Serialize(newSup));
+                _service.Add(newSup, _currentUser.Id);
                 LoadData();
             }
         }
@@ -114,9 +109,7 @@ namespace QuanLyHangHoa.ViewModels
             if (window.ShowDialog() == true)
             {
                 vm.ApplyTo(supplier);
-                _db.SaveChanges();
-
-                LogAction("UPDATE", supplier.Id, beforeJson, Serialize(supplier));
+                _service.Update(supplier, beforeJson, _currentUser.Id);
                 LoadData();
             }
         }
@@ -124,37 +117,32 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand(CanExecute = nameof(CanManage))]
         private void DeleteSupplier(Supplier supplier)
         {
-            var result = MessageBox.Show($"Bạn có chắc chắn muốn xoá nhà cung cấp '{supplier.DisplayName}'?", "Xác nhận xoá", 
-                MessageBoxButton.YesNo, MessageBoxImage.Question);
+            using var db = _contextFactory();
+            // 1. Kiểm tra phát sinh dữ liệu
+            bool isUsed = db.PurchaseInvoices.Any(pi => pi.SupplierId == supplier.Id) ||
+                         db.StockIns.Any(si => si.SupplierId == supplier.Id);
+
+            if (isUsed)
+            {
+                MessageBox.Show($"Không thể xoá nhà cung cấp '{supplier.DisplayName}' vì đang có dữ liệu liên quan (Hóa đơn mua hoặc Phiếu nhập kho).\n\nVui lòng chuyển trạng thái nhà cung cấp sang 'Ngừng hoạt động' nếu không còn sử dụng.", 
+                    "Không thể xoá", MessageBoxButton.OK, MessageBoxImage.Stop);
+                return;
+            }
+
+            // 2. Xác nhận xoá (nếu không có ràng buộc)
+            var result = MessageBox.Show($"Nhà cung cấp '{supplier.DisplayName}' chưa có dữ liệu liên quan. Bạn có chắc chắn muốn xoá vĩnh viễn nhà cung cấp này?", 
+                "Xác nhận xoá", MessageBoxButton.YesNo, MessageBoxImage.Warning);
             
             if (result == MessageBoxResult.Yes)
             {
                 try 
                 {
-                    // Check for dependencies
-                    bool isUsed = _db.PurchaseInvoices.Any(pi => pi.SupplierId == supplier.Id) ||
-                                 _db.StockIns.Any(si => si.SupplierId == supplier.Id);
-
-                    if (isUsed)
-                    {
-                        MessageBox.Show("Không thể xoá nhà cung cấp này vì đang có dữ liệu liên quan (Hóa đơn mua hoặc Phiếu nhập kho).", 
-                            "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
-                        return;
-                    }
-
-                    var beforeJson = Serialize(supplier);
-                    int entityId = supplier.Id;
-
-                    _db.Suppliers.Remove(supplier);
-                    _db.SaveChanges();
-
-                    LogAction("DELETE", entityId, beforeJson, null);
+                    _service.Delete(supplier.Id, _currentUser.Id);
                     LoadData();
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Lỗi khi xoá nhà cung cấp: {ex.Message}", 
-                        "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"Lỗi khi xoá nhà cung cấp: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
@@ -193,7 +181,7 @@ namespace QuanLyHangHoa.ViewModels
                             worksheet.Cell(i + 2, 3).Value = Suppliers[i].Phone;
                             worksheet.Cell(i + 2, 4).Value = Suppliers[i].Email;
                             worksheet.Cell(i + 2, 5).Value = Suppliers[i].Address;
-                            worksheet.Cell(i + 2, 6).Value = Suppliers[i].IsActive ? "Hoạt động" : "Ngưng";
+                            worksheet.Cell(i + 2, 6).Value = Suppliers[i].IsActive ? "HĐ" : "DỪNG";
                         }
 
                         worksheet.Columns().AdjustToContents();
@@ -208,31 +196,10 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
+
         private string Serialize(Supplier s)
         {
-            return JsonSerializer.Serialize(new { s.Id, s.SupplierCode, s.DisplayName, s.Phone, s.Email, s.Address, s.IsActive });
-        }
-
-        private void LogAction(string action, int entityId, string? before = null, string? after = null)
-        {
-            try
-            {
-                _db.AuditLogs.Add(new AuditLog
-                {
-                    EntityName = "Supplier",
-                    EntityId = entityId,
-                    ActionCode = action,
-                    BeforeJson = before,
-                    AfterJson = after,
-                    PerformedBy = _currentUser.Id,
-                    PerformedAt = DateTime.Now
-                });
-                _db.SaveChanges();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to write audit log: {ex.Message}");
-            }
+            return System.Text.Json.JsonSerializer.Serialize(new { s.Id, s.SupplierCode, s.DisplayName, s.Phone, s.Email, s.Address, s.IsActive });
         }
     }
 }

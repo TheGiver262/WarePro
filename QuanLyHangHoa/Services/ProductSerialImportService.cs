@@ -18,11 +18,11 @@ namespace QuanLyHangHoa.Services
 
     public class ProductSerialImportService : IProductSerialImportService
     {
-        private readonly AppDbContext _context;
+        private readonly Func<AppDbContext> _contextFactory;
 
-        public ProductSerialImportService(AppDbContext context)
+        public ProductSerialImportService(Func<AppDbContext> contextFactory)
         {
-            _context = context;
+            _contextFactory = contextFactory;
         }
 
         public async Task<(int SuccessCount, string Message)> ImportFromExcelAsync(string filePath)
@@ -44,7 +44,7 @@ namespace QuanLyHangHoa.Services
                 }
 
                 var mongoToCodeMap = new Dictionary<string, string>();
-                var productRows = productSheet.RangeUsed().RowsUsed().Skip(1);
+                var productRows = productSheet.RangeUsed()!.RowsUsed().Skip(1);
                 var pHeaders = productSheet.Row(1).CellsUsed().ToDictionary(c => c.Value.ToString(), c => c.Address.ColumnNumber, StringComparer.OrdinalIgnoreCase);
 
                 foreach (var row in productRows)
@@ -67,10 +67,11 @@ namespace QuanLyHangHoa.Services
                 }
 
                 var sHeaders = serialSheet.Row(1).CellsUsed().ToDictionary(c => c.Value.ToString(), c => c.Address.ColumnNumber, StringComparer.OrdinalIgnoreCase);
-                var serialRows = serialSheet.RangeUsed().RowsUsed().Skip(1);
+                var serialRows = serialSheet.RangeUsed()!.RowsUsed().Skip(1);
                 Console.WriteLine($"[IMPORT] Found {serialRows.Count()} rows in Serial sheet.");
 
                 // 3. Load Existing Data from DB
+                using var _context = _contextFactory();
                 var dbProducts = await _context.Products.ToDictionaryAsync(p => p.ProductCode, p => p.Id);
                 var defaultWarehouse = await _context.Warehouses.FirstOrDefaultAsync(w => w.IsDefault && w.IsActive) 
                                        ?? await _context.Warehouses.FirstOrDefaultAsync();
@@ -113,7 +114,7 @@ namespace QuanLyHangHoa.Services
                     }
 
                     // Map Mongo ProductId to SQL ProductId via ProductCode
-                    if (mongoToCodeMap.TryGetValue(mongoProductId, out string productCode))
+                    if (mongoToCodeMap.TryGetValue(mongoProductId, out string? productCode) && productCode != null)
                     {
                         var matchedProduct = dbProducts.FirstOrDefault(p => string.Equals(p.Key, productCode, StringComparison.OrdinalIgnoreCase));
                         

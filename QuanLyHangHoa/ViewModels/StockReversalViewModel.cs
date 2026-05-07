@@ -1,4 +1,5 @@
 using System;
+using QuanLyHangHoa.Data;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -19,10 +20,10 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _reason = "WrongPosting";
         [ObservableProperty] private string _statusMessage = string.Empty;
 
-        public StockReversalViewModel(AppUser currentUser)
+        public StockReversalViewModel(AppUser? currentUser = null, Func<AppDbContext>? contextFactory = null)
             : this(
-                currentUser,
-                new StockReversalService().ReversePostedLedgerDocument,
+                currentUser ?? new AppUser { Id = 1 },
+                new StockReversalService(contextFactory ?? (() => new QuanLyHangHoa.Data.AppDbContext())).ReversePostedLedgerDocument,
                 (message, title) => MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information))
         {
         }

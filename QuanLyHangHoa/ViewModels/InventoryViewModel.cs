@@ -15,9 +15,12 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private ObservableCollection<Product> _products = new();
         [ObservableProperty] private string _searchText = string.Empty;
 
-        public InventoryViewModel()
+        private readonly Func<Data.AppDbContext> _contextFactory;
+
+        public InventoryViewModel(Func<Data.AppDbContext> contextFactory)
         {
-            _productService = new ProductService();
+            _contextFactory = contextFactory;
+            _productService = new ProductService(contextFactory);
             LoadData();
         }
 

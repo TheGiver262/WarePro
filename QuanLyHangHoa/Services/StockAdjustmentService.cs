@@ -11,11 +11,6 @@ namespace QuanLyHangHoa.Services
     {
         private readonly Func<AppDbContext> _contextFactory;
 
-        public StockAdjustmentService()
-            : this(() => new AppDbContext())
-        {
-        }
-
         public StockAdjustmentService(Func<AppDbContext> contextFactory)
         {
             _contextFactory = contextFactory;

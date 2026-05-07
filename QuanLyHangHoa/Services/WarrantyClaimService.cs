@@ -10,7 +10,6 @@ namespace QuanLyHangHoa.Services
     {
         private readonly Func<AppDbContext> _contextFactory;
 
-        public WarrantyClaimService() : this(() => new AppDbContext()) { }
 
         public WarrantyClaimService(Func<AppDbContext> contextFactory)
         {
@@ -52,7 +51,7 @@ namespace QuanLyHangHoa.Services
 
             claim.ProcessingNote = note;
             claim.Status = "Closed";
-            claim.ClosedDate = DateTime.UtcNow;
+            claim.ClosedDate = DateTime.Now;
             db.SaveChanges();
         }
 
@@ -62,7 +61,7 @@ namespace QuanLyHangHoa.Services
             var serial = db.ProductSerials.FirstOrDefault(s => s.SerialNumber == serialNumber)
                 ?? throw new InvalidOperationException($"Serial {serialNumber} not found.");
 
-            var coverage = db.WarrantyCoverages.FirstOrDefault(c => c.ProductSerialId == serial.Id && c.CoverageStatus == "Active" && c.WarrantyEndDate >= DateTime.UtcNow)
+            var coverage = db.WarrantyCoverages.FirstOrDefault(c => c.ProductSerialId == serial.Id && c.CoverageStatus == "Active" && c.WarrantyEndDate >= DateTime.Now)
                 ?? throw new InvalidOperationException($"No active warranty coverage found for serial {serialNumber}.");
 
             var claim = new WarrantyClaim
@@ -71,7 +70,7 @@ namespace QuanLyHangHoa.Services
                 ProductSerialId = serial.Id,
                 WarrantyCoverageId = coverage.Id,
                 ProblemDescription = problemDescription,
-                ReceivedDate = DateTime.UtcNow,
+                ReceivedDate = DateTime.Now,
                 Status = "Open",
                 ProcessedBy = userId
             };
@@ -116,7 +115,7 @@ namespace QuanLyHangHoa.Services
             claim.Status = "Rejected";
             claim.ResolutionType = "Reject";
             claim.ApprovedBy = userId;
-            claim.ClosedDate = DateTime.UtcNow;
+            claim.ClosedDate = DateTime.Now;
             db.SaveChanges();
         }
 
@@ -146,7 +145,7 @@ namespace QuanLyHangHoa.Services
             if (serial == null) return null;
 
             return db.WarrantyCoverages
-                .FirstOrDefault(c => c.ProductSerialId == serial.Id && c.CoverageStatus == "Active" && c.WarrantyEndDate >= DateTime.UtcNow);
+                .FirstOrDefault(c => c.ProductSerialId == serial.Id && c.CoverageStatus == "Active" && c.WarrantyEndDate >= DateTime.Now);
         }
     }
 }

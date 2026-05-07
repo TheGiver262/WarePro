@@ -1,4 +1,5 @@
 using System;
+using QuanLyHangHoa.Data;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
@@ -37,13 +38,12 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private int _warehouseId = 1;
         [ObservableProperty] private string _statusMessage = string.Empty;
 
-        public StockInViewModel() : this(new AppUser { Id = 1 }) { }
-
-        public StockInViewModel(AppUser currentUser)
+        public StockInViewModel(AppUser? currentUser = null, Func<AppDbContext>? contextFactory = null)
         {
-            _currentUser = currentUser;
-            _productService = new ProductService();
-            _stockInService = new StockInService();
+            _currentUser = currentUser ?? new AppUser { Id = 1 };
+            var factory = contextFactory ?? (() => new QuanLyHangHoa.Data.AppDbContext());
+            _productService = new ProductService(factory);
+            _stockInService = new StockInService(factory);
             AvailableProducts = new ObservableCollection<Product>(_productService.GetAllProducts());
             DocumentCode = $"IN-{DateTime.Now:yyyyMMddHHmmss}";
         }

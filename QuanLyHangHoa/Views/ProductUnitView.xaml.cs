@@ -8,7 +8,6 @@ namespace QuanLyHangHoa.Views
         public ProductUnitView()
         {
             InitializeComponent();
-            DataContext = new ProductUnitViewModel();
         }
     }
 }

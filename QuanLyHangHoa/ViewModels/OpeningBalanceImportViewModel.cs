@@ -19,10 +19,10 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private ObservableCollection<RowError> _errors = new();
         [ObservableProperty] private string _statusMessage = string.Empty;
 
-        public OpeningBalanceImportViewModel(int postedByUserId)
+        public OpeningBalanceImportViewModel(int postedByUserId, Func<Data.AppDbContext> contextFactory)
             : this(
                 postedByUserId,
-                new OpeningBalanceImportService().ImportFile,
+                new OpeningBalanceImportService(contextFactory).ImportFile,
                 (message, title) => MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information))
         {
         }

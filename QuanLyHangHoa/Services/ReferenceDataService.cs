@@ -1,144 +1,67 @@
 using System.Collections.Generic;
 using System.Linq;
-using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
+using QuanLyHangHoa.Data;
+using System;
+using Microsoft.EntityFrameworkCore;
 
 namespace QuanLyHangHoa.Services
 {
     public class ReferenceDataService
     {
-        // ── UNITS ──────────────────────────────────────────────────────────────
-        public virtual List<Unit> GetAllUnits()
+        private readonly Func<AppDbContext> _contextFactory;
+
+        public ReferenceDataService(Func<AppDbContext> contextFactory)
         {
-            using var db = new AppDbContext();
-            return db.Units.Where(u => u.IsActive).ToList();
-        }
-        public virtual void AddUnit(Unit u) { using var db = new AppDbContext(); db.Units.Add(u); db.SaveChanges(); }
-        public virtual void UpdateUnit(Unit updated)
-        {
-            using var db = new AppDbContext();
-            var u = db.Units.Find(updated.Id);
-            if (u == null) return;
-            u.DisplayName = updated.DisplayName;
-            u.UnitCode = updated.UnitCode;
-            db.SaveChanges();
-        }
-        public virtual void DeactivateUnit(int id)
-        {
-            using var db = new AppDbContext();
-            var u = db.Units.Find(id);
-            if (u == null) return;
-            u.IsActive = false;
-            db.SaveChanges();
+            _contextFactory = contextFactory;
         }
 
-        // ── CATEGORIES ────────────────────────────────────────────────────────
-        public virtual List<Category> GetAllCategories(bool onlyActive = true)
+        public List<Category> GetAllCategories(bool onlyActive = true)
         {
-            using var db = new AppDbContext();
-            var query = db.Categories.AsQueryable();
+            using var db = _contextFactory();
+            var query = db.Categories.AsNoTracking().AsQueryable();
             if (onlyActive) query = query.Where(c => c.IsActive);
-            return query.ToList();
-        }
-        public virtual void AddCategory(Category c) { using var db = new AppDbContext(); db.Categories.Add(c); db.SaveChanges(); }
-        public virtual void UpdateCategory(Category updated)
-        {
-            using var db = new AppDbContext();
-            var c = db.Categories.Find(updated.Id);
-            if (c == null) return;
-            c.DisplayName = updated.DisplayName;
-            c.CategoryCode = updated.CategoryCode;
-            db.SaveChanges();
-        }
-        public virtual void DeactivateCategory(int id)
-        {
-            using var db = new AppDbContext();
-            var c = db.Categories.Find(id);
-            if (c == null) return;
-            c.IsActive = false;
-            db.SaveChanges();
+            return query.OrderBy(c => c.DisplayName).ToList();
         }
 
-        // ── BRANDS ────────────────────────────────────────────────────────────
-        public virtual List<Brand> GetAllBrands()
+        public List<Brand> GetAllBrands(bool onlyActive = true)
         {
-            using var db = new AppDbContext();
-            return db.Brands.Where(b => b.IsActive).ToList();
-        }
-        public virtual void AddBrand(Brand b) { using var db = new AppDbContext(); db.Brands.Add(b); db.SaveChanges(); }
-        public virtual void UpdateBrand(Brand updated)
-        {
-            using var db = new AppDbContext();
-            var b = db.Brands.Find(updated.Id);
-            if (b == null) return;
-            b.DisplayName = updated.DisplayName;
-            b.BrandCode = updated.BrandCode;
-            b.OriginCountry = updated.OriginCountry;
-            db.SaveChanges();
-        }
-        public virtual void DeactivateBrand(int id)
-        {
-            using var db = new AppDbContext();
-            var b = db.Brands.Find(id);
-            if (b == null) return;
-            b.IsActive = false;
-            db.SaveChanges();
+            using var db = _contextFactory();
+            var query = db.Brands.AsNoTracking().AsQueryable();
+            if (onlyActive) query = query.Where(b => b.IsActive);
+            return query.OrderBy(b => b.DisplayName).ToList();
         }
 
-        // ── SUPPLIERS ─────────────────────────────────────────────────────────
-        public virtual List<Supplier> GetAllSuppliers()
+        public List<Unit> GetAllUnits(bool onlyActive = true)
         {
-            using var db = new AppDbContext();
-            return db.Suppliers.Where(s => s.IsActive).ToList();
-        }
-        public virtual void AddSupplier(Supplier s) { using var db = new AppDbContext(); db.Suppliers.Add(s); db.SaveChanges(); }
-        public virtual void UpdateSupplier(Supplier updated)
-        {
-            using var db = new AppDbContext();
-            var s = db.Suppliers.Find(updated.Id);
-            if (s == null) return;
-            s.SupplierCode = updated.SupplierCode;
-            s.DisplayName = updated.DisplayName; 
-            s.Address = updated.Address; 
-            s.Phone = updated.Phone;
-            s.Email = updated.Email;
-            db.SaveChanges();
-        }
-        public virtual void DeactivateSupplier(int id)
-        {
-            using var db = new AppDbContext();
-            var s = db.Suppliers.Find(id);
-            if (s == null) return;
-            s.IsActive = false;
-            db.SaveChanges();
+            using var db = _contextFactory();
+            var query = db.Units.AsNoTracking().AsQueryable();
+            if (onlyActive) query = query.Where(u => u.IsActive);
+            return query.OrderBy(u => u.DisplayName).ToList();
         }
 
-        // ── CUSTOMERS ─────────────────────────────────────────────────────────
-        public virtual List<Customer> GetAllCustomers()
+        public List<Warehouse> GetAllWarehouses(bool onlyActive = true)
         {
-            using var db = new AppDbContext();
-            return db.Customers.Where(c => c.IsActive).ToList();
+            using var db = _contextFactory();
+            var query = db.Warehouses.AsNoTracking().AsQueryable();
+            if (onlyActive) query = query.Where(w => w.IsActive);
+            return query.OrderBy(w => w.DisplayName).ToList();
         }
-        public virtual void AddCustomer(Customer c) { using var db = new AppDbContext(); db.Customers.Add(c); db.SaveChanges(); }
-        public virtual void UpdateCustomer(Customer updated)
+
+        public List<Supplier> GetAllSuppliers(bool onlyActive = true)
         {
-            using var db = new AppDbContext();
-            var c = db.Customers.Find(updated.Id);
-            if (c == null) return;
-            c.CustomerCode = updated.CustomerCode;
-            c.DisplayName = updated.DisplayName; 
-            c.Address = updated.Address; 
-            c.Phone = updated.Phone;
-            c.Email = updated.Email;
-            db.SaveChanges();
+            using var db = _contextFactory();
+            var query = db.Suppliers.AsNoTracking().AsQueryable();
+            if (onlyActive) query = query.Where(s => s.IsActive);
+            return query.OrderBy(s => s.DisplayName).ToList();
         }
-        public virtual void DeactivateCustomer(int id)
+
+        public List<Customer> GetAllCustomers(bool onlyActive = true)
         {
-            using var db = new AppDbContext();
-            var c = db.Customers.Find(id);
-            if (c == null) return;
-            c.IsActive = false;
-            db.SaveChanges();
+            using var db = _contextFactory();
+            var query = db.Customers.AsNoTracking().AsQueryable();
+            if (onlyActive) query = query.Where(c => c.IsActive);
+            return query.OrderBy(c => c.DisplayName).ToList();
         }
     }
 }

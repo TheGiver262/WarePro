@@ -18,10 +18,10 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _confirmPassword = string.Empty;
         [ObservableProperty] private string _statusMessage = string.Empty;
 
-        public ChangePasswordViewModel(AppUser currentUser)
+        public ChangePasswordViewModel(AppUser currentUser, Func<Data.AppDbContext> contextFactory)
             : this(
                 currentUser,
-                new AuthenticationService().ChangePassword,
+                new AuthenticationService(contextFactory).ChangePassword,
                 (message, title) => MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information))
         {
         }

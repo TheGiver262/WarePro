@@ -16,7 +16,8 @@ namespace QuanLyHangHoa.ViewModels
 {
     public partial class BrandViewModel : ObservableObject
     {
-        private readonly AppDbContext _db;
+        private readonly Func<AppDbContext> _contextFactory;
+        private readonly BrandService _service;
         private readonly AppUser _currentUser;
 
 
@@ -29,7 +30,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _searchName = string.Empty;
         [ObservableProperty] private string _searchOrigin = string.Empty;
         [ObservableProperty] private string? _searchStatus = "Tất cả";
-        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Hoạt động", "Ngưng"];
+        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "HĐ", "DỪNG"];
 
         // Edit Properties
         [ObservableProperty] private bool _isEditing;
@@ -38,9 +39,10 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _editOriginCountry = string.Empty;
         [ObservableProperty] private bool _editIsActive = true;
 
-        public BrandViewModel(AppDbContext db, AppUser currentUser)
+        public BrandViewModel(Func<AppDbContext> contextFactory, AppUser currentUser)
         {
-            _db = db;
+            _contextFactory = contextFactory;
+            _service = new BrandService(_contextFactory);
             _currentUser = currentUser;
             CanManage = AuthorizationService.CanPerform(_currentUser, PermissionAction.ManageMasterData);
             LoadBrands();
@@ -49,7 +51,8 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         public void LoadBrands()
         {
-            var query = _db.Brands.AsQueryable();
+            using var db = _contextFactory();
+            var query = db.Brands.AsNoTracking().AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(SearchCode))
                 query = query.Where(b => b.BrandCode.Contains(SearchCode));
@@ -60,9 +63,9 @@ namespace QuanLyHangHoa.ViewModels
             if (!string.IsNullOrWhiteSpace(SearchOrigin))
                 query = query.Where(b => b.OriginCountry != null && b.OriginCountry.Contains(SearchOrigin));
 
-            if (SearchStatus == "Hoạt động")
+            if (SearchStatus == "HĐ")
                 query = query.Where(b => b.IsActive);
-            else if (SearchStatus == "Ngưng")
+            else if (SearchStatus == "DỪNG")
                 query = query.Where(b => !b.IsActive);
 
             var list = query.OrderBy(b => b.BrandCode).ToList();
@@ -119,12 +122,6 @@ namespace QuanLyHangHoa.ViewModels
             {
                 if (SelectedBrand == null) // New
                 {
-                    if (_db.Brands.Any(b => b.BrandCode == EditBrandCode))
-                    {
-                        MessageBox.Show($"Mã thương hiệu '{EditBrandCode}' đã tồn tại.", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Warning);
-                        return;
-                    }
-
                     var newBrand = new Brand
                     {
                         BrandCode = EditBrandCode,
@@ -133,9 +130,7 @@ namespace QuanLyHangHoa.ViewModels
                         IsActive = EditIsActive
                     };
 
-                    _db.Brands.Add(newBrand);
-                    _db.SaveChanges();
-                    LogAction("CREATE", newBrand.Id, null, Serialize(newBrand));
+                    _service.Add(newBrand, _currentUser.Id);
                 }
                 else // Update
                 {
@@ -145,8 +140,7 @@ namespace QuanLyHangHoa.ViewModels
                     SelectedBrand.OriginCountry = EditOriginCountry;
                     SelectedBrand.IsActive = EditIsActive;
 
-                    _db.SaveChanges();
-                    LogAction("UPDATE", SelectedBrand.Id, beforeJson, Serialize(SelectedBrand));
+                    _service.Update(SelectedBrand, beforeJson, _currentUser.Id);
                 }
 
                 IsEditing = false;
@@ -167,36 +161,31 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand(CanExecute = nameof(CanManage))]
         private void DeleteBrand(Brand brand)
         {
-            var result = MessageBox.Show($"Bạn có chắc chắn muốn xoá thương hiệu '{brand.DisplayName}'?", "Xác nhận xoá", 
-                MessageBoxButton.YesNo, MessageBoxImage.Question);
+            using var db = _contextFactory();
+            // 1. Kiểm tra phát sinh dữ liệu
+            bool isUsed = db.Products.Any(p => p.BrandId == brand.Id);
+
+            if (isUsed)
+            {
+                MessageBox.Show($"Không thể xoá thương hiệu '{brand.DisplayName}' vì đang có sản phẩm thuộc thương hiệu này.\n\nVui lòng chuyển trạng thái thương hiệu sang 'Ngừng hoạt động' nếu không còn sử dụng.", 
+                    "Không thể xoá", MessageBoxButton.OK, MessageBoxImage.Stop);
+                return;
+            }
+
+            // 2. Xác nhận xoá (nếu không có ràng buộc)
+            var result = MessageBox.Show($"Thương hiệu '{brand.DisplayName}' chưa có dữ liệu liên quan. Bạn có chắc chắn muốn xoá vĩnh viễn thương hiệu này?", 
+                "Xác nhận xoá", MessageBoxButton.YesNo, MessageBoxImage.Warning);
             
             if (result == MessageBoxResult.Yes)
             {
                 try 
                 {
-                    // Check for dependencies
-                    bool isUsed = _db.Products.Any(p => p.BrandId == brand.Id);
-
-                    if (isUsed)
-                    {
-                        MessageBox.Show("Không thể xoá thương hiệu này vì đang có sản phẩm thuộc thương hiệu này.", 
-                            "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
-                        return;
-                    }
-
-                    var beforeJson = Serialize(brand);
-                    int entityId = brand.Id;
-
-                    _db.Brands.Remove(brand);
-                    _db.SaveChanges();
-
-                    LogAction("DELETE", entityId, beforeJson, null);
+                    _service.Delete(brand.Id, _currentUser.Id);
                     LoadBrands();
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Lỗi khi xoá thương hiệu: {ex.Message}", 
-                        "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"Lỗi khi xoá thương hiệu: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
@@ -234,7 +223,7 @@ namespace QuanLyHangHoa.ViewModels
                             worksheet.Cell(i + 2, 1).Value = Brands[i].BrandCode;
                             worksheet.Cell(i + 2, 2).Value = Brands[i].DisplayName;
                             worksheet.Cell(i + 2, 3).Value = Brands[i].OriginCountry;
-                            worksheet.Cell(i + 2, 4).Value = Brands[i].IsActive ? "Hoạt động" : "Ngưng";
+                            worksheet.Cell(i + 2, 4).Value = Brands[i].IsActive ? "HĐ" : "DỪNG";
                         }
 
                         worksheet.Columns().AdjustToContents();
@@ -249,39 +238,10 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
-        private string Serialize(Brand brand)
-        {
-            return JsonSerializer.Serialize(new
-            {
-                brand.Id,
-                brand.BrandCode,
-                brand.DisplayName,
-                brand.OriginCountry,
-                brand.IsActive
-            });
-        }
 
-        private void LogAction(string action, int entityId, string? before = null, string? after = null)
+        private string Serialize(Brand b)
         {
-            try
-            {
-                var log = new AuditLog
-                {
-                    EntityName = "Brand",
-                    EntityId = entityId,
-                    ActionCode = action,
-                    BeforeJson = before,
-                    AfterJson = after,
-                    PerformedBy = _currentUser.Id,
-                    PerformedAt = DateTime.Now
-                };
-                _db.AuditLogs.Add(log);
-                _db.SaveChanges();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to write audit log: {ex.Message}");
-            }
+            return System.Text.Json.JsonSerializer.Serialize(new { b.Id, b.BrandCode, b.DisplayName, b.OriginCountry, b.IsActive });
         }
     }
 }

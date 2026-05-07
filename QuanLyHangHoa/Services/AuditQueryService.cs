@@ -26,11 +26,6 @@ namespace QuanLyHangHoa.Services
     {
         private readonly Func<AppDbContext> _contextFactory;
 
-        public AuditQueryService()
-            : this(() => new AppDbContext())
-        {
-        }
-
         public AuditQueryService(Func<AppDbContext> contextFactory)
         {
             _contextFactory = contextFactory;
@@ -39,7 +34,7 @@ namespace QuanLyHangHoa.Services
         public IReadOnlyList<AuditTimelineEntry> GetEntityTimeline(string entityName, int entityId)
         {
             using var db = _contextFactory();
-            var auditEntries = db.AuditLogs
+            var auditEntries = db.AuditLogs.AsNoTracking()
                 .Where(audit => audit.EntityName == entityName && audit.EntityId == entityId)
                 .Select(audit => new AuditTimelineEntry(
                     AuditTimelineEntryKind.Audit,
@@ -51,7 +46,7 @@ namespace QuanLyHangHoa.Services
                     null,
                     null));
 
-            var ledgerEntries = db.StockLedgers
+            var ledgerEntries = db.StockLedgers.AsNoTracking()
                 .Where(ledger => ledger.SourceDocumentType == entityName && ledger.SourceDocumentId == entityId)
                 .Select(ledger => new AuditTimelineEntry(
                     AuditTimelineEntryKind.StockLedger,
@@ -74,7 +69,7 @@ namespace QuanLyHangHoa.Services
         public IReadOnlyList<AuditTimelineEntry> GetProductLedger(int productId)
         {
             using var db = _contextFactory();
-            return db.StockLedgers
+            return db.StockLedgers.AsNoTracking()
                 .Where(ledger => ledger.ProductId == productId)
                 .OrderByDescending(ledger => ledger.PostedAt)
                 .Select(ledger => new AuditTimelineEntry(
@@ -97,7 +92,7 @@ namespace QuanLyHangHoa.Services
             using var db = _contextFactory();
             var docIdStr = documentId.ToString();
 
-            var auditEntries = db.AuditLogs
+            var auditEntries = db.AuditLogs.AsNoTracking()
                 .Where(audit => audit.EntityId.ToString() == docIdStr || audit.ActionCode.Contains(docIdStr))
                 .Select(audit => new AuditTimelineEntry(
                     AuditTimelineEntryKind.Audit,
@@ -109,7 +104,7 @@ namespace QuanLyHangHoa.Services
                     null,
                     null));
 
-            var ledgerEntries = db.StockLedgers
+            var ledgerEntries = db.StockLedgers.AsNoTracking()
                 .Where(ledger => ledger.SourceDocumentId.ToString() == docIdStr)
                 .Select(ledger => new AuditTimelineEntry(
                     AuditTimelineEntryKind.StockLedger,
@@ -137,7 +132,7 @@ namespace QuanLyHangHoa.Services
             string? searchTerm = null)
         {
             using var db = _contextFactory();
-            var query = db.AuditLogs
+            var query = db.AuditLogs.AsNoTracking()
                 .Include(a => a.Performer)
                 .AsQueryable();
 
@@ -173,7 +168,7 @@ namespace QuanLyHangHoa.Services
         {
             using var db = _contextFactory();
             var cutoffDate = DateTime.Now.AddYears(-years);
-            return db.AuditLogs
+            return db.AuditLogs.AsNoTracking()
                 .Include(a => a.Performer)
                 .Where(a => a.PerformedAt < cutoffDate)
                 .OrderBy(a => a.PerformedAt)
@@ -183,7 +178,7 @@ namespace QuanLyHangHoa.Services
         public IReadOnlyList<QuanLyHangHoa.Models.AuditLog> GetLogsBefore(DateTime cutoffDate)
         {
             using var db = _contextFactory();
-            return db.AuditLogs
+            return db.AuditLogs.AsNoTracking()
                 .Include(a => a.Performer)
                 .Where(a => a.PerformedAt < cutoffDate)
                 .OrderBy(a => a.PerformedAt)
@@ -193,7 +188,7 @@ namespace QuanLyHangHoa.Services
         public IReadOnlyList<QuanLyHangHoa.Models.AuditLog> GetLogsBetween(DateTime start, DateTime end)
         {
             using var db = _contextFactory();
-            return db.AuditLogs
+            return db.AuditLogs.AsNoTracking()
                 .Include(a => a.Performer)
                 .Where(a => a.PerformedAt >= start && a.PerformedAt <= end)
                 .OrderBy(a => a.PerformedAt)

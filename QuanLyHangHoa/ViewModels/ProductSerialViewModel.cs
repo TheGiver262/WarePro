@@ -30,8 +30,8 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _statusMessage = string.Empty;
         [ObservableProperty] private bool _canManage = true; 
 
-        public ProductSerialViewModel()
-            : this(new ProductSerialService().SearchSerials, new ProductSerialImportService(new AppDbContext()))
+        public ProductSerialViewModel(Func<AppDbContext> contextFactory)
+            : this(new ProductSerialService(contextFactory).SearchSerials, new ProductSerialImportService(contextFactory))
         {
         }
 

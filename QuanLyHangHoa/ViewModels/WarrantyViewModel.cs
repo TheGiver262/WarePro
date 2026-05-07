@@ -37,19 +37,19 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _searchText = string.Empty;
         [ObservableProperty] private List<string> _statusList = new() { "Open", "Ready", "ManufacturerWait", "Closed", "Rejected" };
 
-        private readonly AppDbContext _dbContext;
+        private readonly Func<AppDbContext> _contextFactory;
 
-        public WarrantyViewModel(AppUser currentUser, AppDbContext dbContext)
+        public WarrantyViewModel(AppUser currentUser, Func<AppDbContext> contextFactory)
             : this(
                 currentUser,
-                new WarrantyClaimService(() => dbContext).CreateClaim,
-                new WarrantyClaimService(() => dbContext).CompleteRepair,
-                new WarrantyClaimService(() => dbContext).SendToManufacturer,
-                new WarrantyClaimService(() => dbContext).RejectClaim,
-                new WarrantyClaimService(() => dbContext).ReplaceSerial,
+                new WarrantyClaimService(contextFactory).CreateClaim,
+                new WarrantyClaimService(contextFactory).CompleteRepair,
+                new WarrantyClaimService(contextFactory).SendToManufacturer,
+                new WarrantyClaimService(contextFactory).RejectClaim,
+                new WarrantyClaimService(contextFactory).ReplaceSerial,
                 (message, title) => MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information))
         {
-            _dbContext = dbContext;
+            _contextFactory = contextFactory;
             LoadData();
         }
 
@@ -66,7 +66,7 @@ namespace QuanLyHangHoa.ViewModels
                 (_, _, _, _) => { },
                 showMessage)
         {
-            _dbContext = new AppDbContext();
+            _contextFactory = () => new AppDbContext();
             LoadData();
         }
 
@@ -86,14 +86,15 @@ namespace QuanLyHangHoa.ViewModels
             _rejectClaim = rejectClaim;
             _replaceSerial = replaceSerial;
             _showMessage = showMessage;
-            _dbContext = new AppDbContext();
+            _contextFactory = () => new AppDbContext();
             ClaimCode = CreateDefaultClaimCode();
         }
 
         [RelayCommand]
         public void LoadData()
         {
-            var query = _dbContext.WarrantyClaims
+            using var db = _contextFactory();
+            var query = db.WarrantyClaims
                 .Include("ProductSerial")
                 .Include("ProductSerial.Product")
                 .AsQueryable();
@@ -115,8 +116,9 @@ namespace QuanLyHangHoa.ViewModels
             if (SelectedWarranty == null) return;
             try
             {
-                _dbContext.WarrantyClaims.Update(SelectedWarranty);
-                _dbContext.SaveChanges();
+                using var db = _contextFactory();
+                db.WarrantyClaims.Update(SelectedWarranty);
+                db.SaveChanges();
                 _showMessage("Cập nhật phiếu bảo hành thành công!", "Thông báo");
                 LoadData();
             }
@@ -134,8 +136,9 @@ namespace QuanLyHangHoa.ViewModels
             {
                 try
                 {
-                    _dbContext.WarrantyClaims.Remove(SelectedWarranty);
-                    _dbContext.SaveChanges();
+                    using var db = _contextFactory();
+                    db.WarrantyClaims.Remove(SelectedWarranty);
+                    db.SaveChanges();
                     _showMessage("Đã xóa phiếu bảo hành.", "Thông báo");
                     LoadData();
                 }

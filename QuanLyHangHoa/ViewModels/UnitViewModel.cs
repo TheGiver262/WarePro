@@ -10,12 +10,14 @@ using System.Windows;
 using ClosedXML.Excel;
 using System.Text.Json;
 using QuanLyHangHoa.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace QuanLyHangHoa.ViewModels
 {
     public partial class UnitViewModel : ObservableObject
     {
-        private readonly AppDbContext _db;
+        private readonly Func<AppDbContext> _contextFactory;
+        private readonly UnitService _service;
         private readonly AppUser _currentUser;
 
 
@@ -27,11 +29,12 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _searchCode = string.Empty;
         [ObservableProperty] private string _searchName = string.Empty;
         [ObservableProperty] private string? _searchStatus = "Tất cả";
-        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Hoạt động", "Ngưng"];
+        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "HĐ", "DỪNG"];
 
-        public UnitViewModel(AppDbContext db, AppUser currentUser)
+        public UnitViewModel(Func<AppDbContext> contextFactory, AppUser currentUser)
         {
-            _db = db;
+            _contextFactory = contextFactory;
+            _service = new UnitService(_contextFactory);
             _currentUser = currentUser;
             CanManage = AuthorizationService.CanPerform(_currentUser, PermissionAction.ManageMasterData);
             LoadData();
@@ -40,7 +43,8 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         public void LoadData()
         {
-            var query = _db.Units.AsQueryable();
+            using var db = _contextFactory();
+            var query = db.Units.AsNoTracking().AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(SearchCode))
                 query = query.Where(u => u.UnitCode.Contains(SearchCode));
@@ -48,9 +52,9 @@ namespace QuanLyHangHoa.ViewModels
             if (!string.IsNullOrWhiteSpace(SearchName))
                 query = query.Where(u => u.DisplayName.Contains(SearchName));
 
-            if (SearchStatus == "Hoạt động")
+            if (SearchStatus == "HĐ")
                 query = query.Where(u => u.IsActive);
-            else if (SearchStatus == "Ngưng")
+            else if (SearchStatus == "DỪNG")
                 query = query.Where(u => !u.IsActive);
 
             var list = query.OrderBy(u => u.UnitCode).ToList();
@@ -77,18 +81,9 @@ namespace QuanLyHangHoa.ViewModels
             var window = new UnitEditWindow { DataContext = vm };
             if (window.ShowDialog() == true)
             {
-                if (_db.Units.Any(u => u.UnitCode == vm.UnitCode))
-                {
-                    MessageBox.Show($"Mã đơn vị '{vm.UnitCode}' đã tồn tại.", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-
                 var newUnit = new Unit();
                 vm.ApplyTo(newUnit);
-                _db.Units.Add(newUnit);
-                _db.SaveChanges();
-
-                LogAction("CREATE", newUnit.Id, null, Serialize(newUnit));
+                _service.Add(newUnit, _currentUser.Id);
                 LoadData();
             }
         }
@@ -102,9 +97,7 @@ namespace QuanLyHangHoa.ViewModels
             if (window.ShowDialog() == true)
             {
                 vm.ApplyTo(unit);
-                _db.SaveChanges();
-
-                LogAction("UPDATE", unit.Id, beforeJson, Serialize(unit));
+                _service.Update(unit, beforeJson, _currentUser.Id);
                 LoadData();
             }
         }
@@ -112,43 +105,36 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand(CanExecute = nameof(CanManage))]
         private void DeleteUnit(Unit unit)
         {
-            var result = MessageBox.Show($"Bạn có chắc chắn muốn xoá đơn vị tính '{unit.DisplayName}'?", "Xác nhận xoá", 
-                MessageBoxButton.YesNo, MessageBoxImage.Question);
+            using var db = _contextFactory();
+            // 1. Kiểm tra phát sinh dữ liệu
+            bool isUsed = db.Products.Any(p => p.DefaultUnitId == unit.Id) ||
+                         db.ProductUnits.Any(pu => pu.UnitId == unit.Id) ||
+                         db.SalesInvoiceLines.Any(sil => sil.UnitId == unit.Id) ||
+                         db.PurchaseInvoiceLines.Any(pil => pil.UnitId == unit.Id) ||
+                         db.StockInLines.Any(sil => sil.UnitId == unit.Id) ||
+                         db.StockOutLines.Any(sol => sol.UnitId == unit.Id);
+
+            if (isUsed)
+            {
+                MessageBox.Show($"Không thể xoá đơn vị tính '{unit.DisplayName}' vì đang có dữ liệu liên quan (Sản phẩm, Hóa đơn hoặc Phiếu kho).\n\nVui lòng chuyển trạng thái đơn vị sang 'Ngừng hoạt động' nếu không còn sử dụng.", 
+                    "Không thể xoá", MessageBoxButton.OK, MessageBoxImage.Stop);
+                return;
+            }
+
+            // 2. Xác nhận xoá (nếu không có ràng buộc)
+            var result = MessageBox.Show($"Đơn vị tính '{unit.DisplayName}' chưa có dữ liệu liên quan. Bạn có chắc chắn muốn xoá vĩnh viễn đơn vị tính này?", 
+                "Xác nhận xoá", MessageBoxButton.YesNo, MessageBoxImage.Warning);
             
             if (result == MessageBoxResult.Yes)
             {
                 try 
                 {
-                    // Check for dependencies before deleting to prevent SQL Exception
-                    bool isUsed = _db.Products.Any(p => p.DefaultUnitId == unit.Id) ||
-                                 _db.ProductUnits.Any(pu => pu.UnitId == unit.Id) ||
-                                 _db.SalesInvoiceLines.Any(sil => sil.UnitId == unit.Id) ||
-                                 _db.PurchaseInvoiceLines.Any(pil => pil.UnitId == unit.Id) ||
-                                 _db.StockInLines.Any(sil => sil.UnitId == unit.Id) ||
-                                 _db.StockOutLines.Any(sol => sol.UnitId == unit.Id);
-
-                    if (isUsed)
-                    {
-                        MessageBox.Show("Không thể xoá đơn vị tính này vì đang có dữ liệu liên quan (Sản phẩm, Hóa đơn hoặc Phiếu kho).", 
-                            "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
-                        return;
-                    }
-
-                    var beforeJson = Serialize(unit);
-                    int entityId = unit.Id;
-
-                    _db.Units.Remove(unit);
-                    _db.SaveChanges();
-
-                    // Audit Log - Only log if save was successful
-                    LogAction("DELETE", entityId, beforeJson, null);
-                    
+                    _service.Delete(unit.Id, _currentUser.Id);
                     LoadData();
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Lỗi khi xoá đơn vị tính: {ex.Message}", 
-                        "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"Lỗi khi xoá đơn vị tính: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
@@ -181,7 +167,7 @@ namespace QuanLyHangHoa.ViewModels
                         {
                             worksheet.Cell(i + 2, 1).Value = Units[i].UnitCode;
                             worksheet.Cell(i + 2, 2).Value = Units[i].DisplayName;
-                            worksheet.Cell(i + 2, 3).Value = Units[i].IsActive ? "Hoạt động" : "Ngưng";
+                            worksheet.Cell(i + 2, 3).Value = Units[i].IsActive ? "HĐ" : "DỪNG";
                         }
 
                         worksheet.Columns().AdjustToContents();
@@ -195,32 +181,9 @@ namespace QuanLyHangHoa.ViewModels
                 MessageBox.Show($"Lỗi khi xuất Excel: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-
-        private string Serialize(Unit unit)
+        private string Serialize(Unit u)
         {
-            return JsonSerializer.Serialize(new { unit.Id, unit.UnitCode, unit.DisplayName, unit.IsActive });
-        }
-
-        private void LogAction(string action, int entityId, string? before = null, string? after = null)
-        {
-            try
-            {
-                _db.AuditLogs.Add(new AuditLog
-                {
-                    EntityName = "Unit",
-                    EntityId = entityId,
-                    ActionCode = action,
-                    BeforeJson = before,
-                    AfterJson = after,
-                    PerformedBy = _currentUser.Id,
-                    PerformedAt = DateTime.Now
-                });
-                _db.SaveChanges();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to write audit log: {ex.Message}");
-            }
+            return System.Text.Json.JsonSerializer.Serialize(new { u.Id, u.UnitCode, u.DisplayName, u.IsActive });
         }
     }
 }

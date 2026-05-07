@@ -12,11 +12,6 @@ namespace QuanLyHangHoa.Services
     {
         private readonly Func<AppDbContext> _contextFactory;
 
-        public ProductService()
-            : this(() => new AppDbContext())
-        {
-        }
-
         public ProductService(Func<AppDbContext> contextFactory)
         {
             _contextFactory = contextFactory;
@@ -30,7 +25,7 @@ namespace QuanLyHangHoa.Services
             {
                 query = query.Where(p => p.IsActive);
             }
-            return query
+            return query.AsNoTracking()
                 .Include(p => p.Category)
                 .Include(p => p.Brand)
                 .Include(p => p.DefaultUnit)
@@ -38,19 +33,24 @@ namespace QuanLyHangHoa.Services
                 .ToList();
         }
 
-        public virtual void AddProduct(Product p)
+        public virtual void AddProduct(Product p, int userId)
         {
             using var db = _contextFactory();
             db.Products.Add(p);
             db.SaveChanges();
+
+            AddAudit(db, "Product", p.Id, "CREATE", userId, null, new { p.ProductCode, p.DisplayName, p.IsActive });
+            db.SaveChanges();
         }
 
-        public virtual void UpdateProduct(Product updated)
+        public virtual void UpdateProduct(Product updated, int userId)
         {
             using var db = _contextFactory();
             var p = db.Products.Find(updated.Id);
             if (p == null) return;
             
+            var oldState = new { p.ProductCode, p.DisplayName, p.IsActive };
+
             p.ProductCode = updated.ProductCode;
             p.DisplayName = updated.DisplayName;
             p.CategoryId = updated.CategoryId;
@@ -63,14 +63,46 @@ namespace QuanLyHangHoa.Services
             p.IsActive = updated.IsActive;
 
             db.SaveChanges();
+
+            AddAudit(db, "Product", p.Id, "UPDATE", userId, oldState, new { p.ProductCode, p.DisplayName, p.IsActive });
+            db.SaveChanges();
         }
 
-        public virtual void DeactivateProduct(int id)
+        public virtual void DeactivateProduct(int id, int userId)
         {
             using var db = _contextFactory();
             var p = db.Products.Find(id);
             if (p == null) return;
             p.IsActive = false;
+            db.SaveChanges();
+
+            AddAudit(db, "Product", id, "DEACTIVATE", userId, new { Status = "Active" }, new { Status = "Inactive" });
+            db.SaveChanges();
+        }
+
+        public virtual bool HasTransactionHistory(int id)
+        {
+            using var db = _contextFactory();
+            return db.PurchaseInvoiceLines.Any(l => l.ProductId == id) ||
+                   db.SalesInvoiceLines.Any(l => l.ProductId == id) ||
+                   db.StockInLines.Any(l => l.ProductId == id) ||
+                   db.StockOutLines.Any(l => l.ProductId == id) ||
+                   db.StockAdjustmentLines.Any(l => l.ProductId == id) ||
+                   db.StockCountLines.Any(l => l.ProductId == id) ||
+                   db.StockLedgers.Any(l => l.ProductId == id);
+        }
+
+        public virtual void DeleteProduct(int id, int userId)
+        {
+            using var db = _contextFactory();
+            var p = db.Products.Find(id);
+            if (p == null) return;
+
+            var oldState = new { p.ProductCode, p.DisplayName };
+            db.Products.Remove(p);
+            db.SaveChanges();
+
+            AddAudit(db, "Product", id, "DELETE", userId, oldState, null);
             db.SaveChanges();
         }
 
@@ -117,9 +149,24 @@ namespace QuanLyHangHoa.Services
             }
         }
 
+        private void AddAudit(AppDbContext db, string entityName, int entityId, string action, int userId, object? oldValues = null, object? newValues = null)
+        {
+            var log = new AuditLog
+            {
+                EntityName = entityName,
+                EntityId = entityId,
+                ActionCode = action,
+                PerformedBy = userId,
+                PerformedAt = DateTime.Now,
+                BeforeJson = oldValues != null ? System.Text.Json.JsonSerializer.Serialize(oldValues) : null,
+                AfterJson = newValues != null ? System.Text.Json.JsonSerializer.Serialize(newValues) : null
+            };
+            db.AuditLogs.Add(log);
+        }
+
         private sealed class SystemClock : IClock
         {
-            public DateTime Now => DateTime.UtcNow;
+            public DateTime Now => DateTime.Now;
         }
     }
 }

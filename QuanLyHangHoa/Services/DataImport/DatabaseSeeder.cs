@@ -143,7 +143,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     var serialCount = await _context.ProductSerials.CountAsync();
                     if (serialCount == 0)
                     {
-                        var rows = serialSheet.RangeUsed().RowsUsed().Skip(1);
+                        var rows = serialSheet.RangeUsed()!.RowsUsed().Skip(1);
                         var headers = serialSheet.Row(1).CellsUsed().ToDictionary(c => c.Value.ToString().Trim(), c => c.Address.ColumnNumber, StringComparer.OrdinalIgnoreCase);
                         int imported = 0;
 
@@ -188,7 +188,7 @@ namespace QuanLyHangHoa.Services.DataImport
                                         CurrentStatus = wrapper.GetString("Status") ?? (stockOutId > 0 ? "Sold" : "InStock"),
                                         Note = wrapper.GetString("Note"),
                                         CurrentWarehouseId = warehouse.Id,
-                                        LastStockInLineId = line.Id
+                                        LastStockInLineId = line!.Id
                                     };
 
                                     if (stockOutId > 0)
@@ -207,8 +207,8 @@ namespace QuanLyHangHoa.Services.DataImport
                                     }
 
                                     _context.ProductSerials.Add(ps);
-                                    line.Quantity++;
-                                    line.BaseQuantity++;
+                                    line!.Quantity++;
+                                    line!.BaseQuantity++;
                                     imported++;
                                 }
                             }
@@ -283,7 +283,7 @@ namespace QuanLyHangHoa.Services.DataImport
             }
 
             var headers = sheet.Row(1).CellsUsed().ToDictionary(c => c.Value.ToString().Trim(), c => c.Address.ColumnNumber, StringComparer.OrdinalIgnoreCase);
-            var rows = sheet.RangeUsed().RowsUsed().Skip(1);
+            var rows = sheet.RangeUsed()!.RowsUsed().Skip(1);
             
             // Build idMap from existing data if possible
             // We use the 'codeHeader' to match Excel rows with DB rows

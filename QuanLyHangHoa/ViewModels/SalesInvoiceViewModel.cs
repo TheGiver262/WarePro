@@ -53,9 +53,10 @@ namespace QuanLyHangHoa.ViewModels
         public SalesInvoiceViewModel(MainViewModel? mainViewModel)
         {
             _mainViewModel = mainViewModel;
-            _invoiceService = new InvoiceService();
-            _productService = new ProductService();
-            _refDataService = new ReferenceDataService();
+            var factory = _mainViewModel?.ContextFactory ?? (() => new QuanLyHangHoa.Data.AppDbContext());
+            _invoiceService = new InvoiceService(factory);
+            _productService = new ProductService(factory);
+            _refDataService = new ReferenceDataService(factory);
 
             LoadData();
             ResetForm();

@@ -13,11 +13,6 @@ namespace QuanLyHangHoa.Services
     {
         private readonly Func<AppDbContext> _contextFactory;
 
-        public StockInService()
-            : this(() => new AppDbContext())
-        {
-        }
-
         public StockInService(Func<AppDbContext> contextFactory)
         {
             _contextFactory = contextFactory;
@@ -26,7 +21,7 @@ namespace QuanLyHangHoa.Services
         public virtual List<StockIn> GetAll()
         {
             using var db = _contextFactory();
-            return db.StockIns
+            return db.StockIns.AsNoTracking()
                 .Include(s => s.Supplier)
                 .Include(s => s.Creator)
                 .Include(s => s.Lines)
@@ -72,7 +67,7 @@ namespace QuanLyHangHoa.Services
             // Auto-post/approve
             stockIn.Status = "Posted";
             stockIn.PostedBy = stockIn.CreatedBy;
-            stockIn.PostedAt = DateTime.UtcNow;
+            stockIn.PostedAt = DateTime.Now;
             db.SaveChanges();
 
             var postingService = new InventoryPostingService(

@@ -198,7 +198,7 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                             
-                            <DataGridTemplateColumn Width="180" SortMemberPath="IsActive">
+                            <DataGridTemplateColumn Width="110" SortMemberPath="IsActive">
                                 <DataGridTemplateColumn.Header>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                                         <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
@@ -207,7 +207,7 @@
                                 </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Border Padding="12,4" CornerRadius="12" HorizontalAlignment="Center" VerticalAlignment="Center" >
+                                        <Border Padding="6,2" CornerRadius="10" HorizontalAlignment="Center" VerticalAlignment="Center" >
                                             <Border.Style>
                                                 <Style TargetType="Border">
                                                     <Setter Property="Background" Value="#FEE2E2"/>
@@ -234,11 +234,11 @@
                                                 <TextBlock FontSize="11" FontWeight="Bold">
                                                     <TextBlock.Style>
                                                         <Style TargetType="TextBlock">
-                                                            <Setter Property="Text" Value="NGƯNG"/>
+                                                            <Setter Property="Text" Value="DỪNG"/>
                                                             <Setter Property="Foreground" Value="#991B1B"/>
                                                             <Style.Triggers>
                                                                 <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                                                    <Setter Property="Text" Value="HOẠT ĐỘNG"/>
+                                                                    <Setter Property="Text" Value="HĐ"/>
                                                                     <Setter Property="Foreground" Value="#166534"/>
                                                                 </DataTrigger>
                                                             </Style.Triggers>

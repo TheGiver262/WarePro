@@ -11,7 +11,6 @@ namespace QuanLyHangHoa.Services
     {
         private readonly Func<AppDbContext> _contextFactory;
 
-        public WarrantyService() : this(() => new AppDbContext()) { }
         public WarrantyService(Func<AppDbContext> contextFactory)
         {
             _contextFactory = contextFactory;
@@ -51,7 +50,7 @@ namespace QuanLyHangHoa.Services
         {
             using var db = _contextFactory();
             claim.ProcessedBy = performedByUserId;
-            claim.ReceivedDate = DateTime.UtcNow;
+            claim.ReceivedDate = DateTime.Now;
             claim.Status = "Pending";
 
             db.WarrantyClaims.Add(claim);
@@ -72,7 +71,7 @@ namespace QuanLyHangHoa.Services
             
             if (status == "Completed" || status == "Rejected")
             {
-                claim.ClosedDate = DateTime.UtcNow;
+                claim.ClosedDate = DateTime.Now;
                 claim.ApprovedBy = performedByUserId;
             }
 
@@ -89,7 +88,7 @@ namespace QuanLyHangHoa.Services
                 EntityId = entityId,
                 ActionCode = action,
                 PerformedBy = performedByUserId,
-                PerformedAt = DateTime.UtcNow
+                PerformedAt = DateTime.Now
             });
         }
     }

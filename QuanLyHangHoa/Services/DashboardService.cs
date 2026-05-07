@@ -31,33 +31,33 @@ namespace QuanLyHangHoa.Services
 
     public class DashboardService
     {
-        private readonly AppDbContext _context;
+        private readonly Func<AppDbContext> _contextFactory;
 
-        public DashboardService(AppDbContext context)
+        public DashboardService(Func<AppDbContext> contextFactory)
         {
-            _context = context;
+            _contextFactory = contextFactory;
         }
 
         public async Task<DashboardStats> GetStatsAsync()
         {
+            using var context = _contextFactory();
             var now = DateTime.Now;
             var startOfMonth = new DateTime(now.Year, now.Month, 1);
             var startOfYear = new DateTime(now.Year, 1, 1);
 
             var stats = new DashboardStats();
 
-            // Inventory - Use Sum in DB if possible, but SQLite decimal Sum is tricky. 
-            // Better to sum OnHandQuantity directly.
-            stats.TotalInventoryCount = (int)await _context.StockBalances.SumAsync(sb => sb.OnHandQuantity);
+            // Inventory
+            stats.TotalInventoryCount = (int)await context.StockBalances.SumAsync(sb => sb.OnHandQuantity);
 
             // Stock In
-            stats.StockInMonthCount = await _context.StockIns.CountAsync(s => s.CreatedAt >= startOfMonth);
+            stats.StockInMonthCount = await context.StockIns.CountAsync(s => s.CreatedAt >= startOfMonth);
 
             // Stock Out
-            stats.StockOutMonthCount = await _context.StockOuts.CountAsync(s => s.CreatedAt >= startOfMonth);
+            stats.StockOutMonthCount = await context.StockOuts.CountAsync(s => s.CreatedAt >= startOfMonth);
 
-            // Sales & Revenue - Fetch year data and split in memory for performance
-            var salesYear = await _context.SalesInvoices
+            // Sales & Revenue
+            var salesYear = await context.SalesInvoices
                 .Where(s => s.InvoiceDate >= startOfYear)
                 .Select(s => new { s.InvoiceDate, s.GrandTotal })
                 .ToListAsync();
@@ -69,17 +69,16 @@ namespace QuanLyHangHoa.Services
             stats.SalesInvoiceMonthCount = salesMonth.Count;
             stats.RevenueMonth = salesMonth.Sum(s => s.GrandTotal);
 
-            // Unpaid Invoices (Mock logic or Count All if status column missing)
-            // For now, we count all as 'unpaid' to fill the dashboard cards as per guideline.
-            stats.UnpaidSalesInvoiceCount = await _context.SalesInvoices.CountAsync();
-            stats.UnpaidPurchaseInvoiceCount = await _context.PurchaseInvoices.CountAsync();
+            // Unpaid Invoices
+            stats.UnpaidSalesInvoiceCount = await context.SalesInvoices.CountAsync();
+            stats.UnpaidPurchaseInvoiceCount = await context.PurchaseInvoices.CountAsync();
 
             // Warranty
-            stats.WarrantyActiveCount = await _context.WarrantyClaims
+            stats.WarrantyActiveCount = await context.WarrantyClaims
                 .CountAsync(w => w.Status == "Active" || w.Status == "Processing");
 
             // Recent Activity
-            var recentStockIns = await _context.StockIns
+            var recentStockIns = await context.StockIns
                 .OrderByDescending(s => s.CreatedAt)
                 .Take(3)
                 .Select(s => new RecentActivity 
@@ -91,7 +90,7 @@ namespace QuanLyHangHoa.Services
                 })
                 .ToListAsync();
 
-            var recentStockOuts = await _context.StockOuts
+            var recentStockOuts = await context.StockOuts
                 .OrderByDescending(s => s.CreatedAt)
                 .Take(3)
                 .Select(s => new RecentActivity 

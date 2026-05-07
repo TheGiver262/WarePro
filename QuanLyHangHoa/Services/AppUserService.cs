@@ -4,24 +4,13 @@ using System.Linq;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
 using BCrypt.Net;
+using Microsoft.EntityFrameworkCore;
 
 namespace QuanLyHangHoa.Services
 {
     public class AppUserService
     {
-        private readonly AppDbContext? _persistentContext;
         private readonly Func<AppDbContext> _contextFactory;
-
-        public AppUserService()
-            : this(() => new AppDbContext())
-        {
-        }
-
-        public AppUserService(AppDbContext persistentContext)
-        {
-            _persistentContext = persistentContext;
-            _contextFactory = () => _persistentContext;
-        }
 
         public AppUserService(Func<AppDbContext> contextFactory)
         {
@@ -30,13 +19,13 @@ namespace QuanLyHangHoa.Services
 
         public List<AppUser> GetAllUsers()
         {
-            var db = _contextFactory();
-            return db.AppUsers.ToList();
+            using var db = _contextFactory();
+            return db.AppUsers.AsNoTracking().ToList();
         }
 
         public void AddUser(AppUser user, int performedByUserId)
         {
-            var db = _contextFactory();
+            using var db = _contextFactory();
             
             // Check for duplicate username
             if (db.AppUsers.Any(u => u.Username == user.Username))
@@ -55,7 +44,7 @@ namespace QuanLyHangHoa.Services
             }
 
             user.CreatedBy = performedByUserId;
-            user.CreatedAt = DateTime.UtcNow;
+            user.CreatedAt = DateTime.Now;
             user.MustChangePassword = true; 
             
             try
@@ -77,7 +66,7 @@ namespace QuanLyHangHoa.Services
 
         public void UpdateUser(AppUser updatedUser, int performedByUserId)
         {
-            var db = _contextFactory();
+            using var db = _contextFactory();
             var existing = db.AppUsers.Find(updatedUser.Id);
             if (existing != null)
             {
@@ -92,7 +81,7 @@ namespace QuanLyHangHoa.Services
                 if (!string.IsNullOrWhiteSpace(updatedUser.PasswordHash) && !updatedUser.PasswordHash.StartsWith("$2"))
                 {
                     existing.PasswordHash = BCrypt.Net.BCrypt.HashPassword(updatedUser.PasswordHash);
-                    existing.LastPasswordChangedAt = DateTime.UtcNow;
+                    existing.LastPasswordChangedAt = DateTime.Now;
                 }
                 
                 db.SaveChanges();
@@ -107,7 +96,7 @@ namespace QuanLyHangHoa.Services
 
         public void ToggleUserStatus(int userId, int performedByUserId)
         {
-            var db = _contextFactory();
+            using var db = _contextFactory();
             var user = db.AppUsers.Find(userId);
             if (user != null)
             {
@@ -136,7 +125,7 @@ namespace QuanLyHangHoa.Services
                 throw new InvalidOperationException("Bạn không thể tự xoá tài khoản của chính mình.");
             }
 
-            var db = _contextFactory();
+            using var db = _contextFactory();
             var user = db.AppUsers.Find(id);
             if (user == null)
             {
@@ -169,7 +158,7 @@ namespace QuanLyHangHoa.Services
                 EntityId = entityId,
                 ActionCode = action,
                 PerformedBy = userId,
-                PerformedAt = DateTime.UtcNow,
+                PerformedAt = DateTime.Now,
                 BeforeJson = oldValues != null ? System.Text.Json.JsonSerializer.Serialize(oldValues) : null,
                 AfterJson = newValues != null ? System.Text.Json.JsonSerializer.Serialize(newValues) : null
             };

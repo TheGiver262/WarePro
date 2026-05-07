@@ -1,4 +1,5 @@
 using System;
+using QuanLyHangHoa.Data;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
@@ -29,13 +30,12 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _statusMessage = string.Empty;
         [ObservableProperty] private string _searchText = string.Empty;
 
-        public StockCountViewModel() : this(new AppUser { Id = 1 }) { } // Design-time
-
-        public StockCountViewModel(AppUser currentUser)
+        public StockCountViewModel(AppUser? currentUser = null, Func<AppDbContext>? contextFactory = null)
         {
-            _currentUser = currentUser;
-            _productService = new ProductService();
-            _stockCountService = new StockCountService();
+            _currentUser = currentUser ?? new AppUser { Id = 1 };
+            var factory = contextFactory ?? (() => new QuanLyHangHoa.Data.AppDbContext());
+            _productService = new ProductService(factory);
+            _stockCountService = new StockCountService(factory);
             LoadData();
             SessionCode = CreateDefaultSessionCode();
         }

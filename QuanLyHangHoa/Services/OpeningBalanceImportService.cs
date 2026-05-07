@@ -15,11 +15,6 @@ namespace QuanLyHangHoa.Services
         private readonly ExcelImportService _excelImportService = new();
         private readonly CsvImportService _csvImportService = new();
 
-        public OpeningBalanceImportService()
-            : this(() => new AppDbContext())
-        {
-        }
-
         public OpeningBalanceImportService(Func<AppDbContext> contextFactory)
         {
             _contextFactory = contextFactory;

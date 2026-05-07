@@ -8,19 +8,7 @@ namespace QuanLyHangHoa.Services
 {
     public class AuthenticationService
     {
-        private readonly AppDbContext? _persistentContext;
         private readonly Func<AppDbContext> _contextFactory;
-
-        public AuthenticationService()
-            : this(() => new AppDbContext())
-        {
-        }
-
-        public AuthenticationService(AppDbContext persistentContext)
-        {
-            _persistentContext = persistentContext;
-            _contextFactory = () => _persistentContext;
-        }
 
         public AuthenticationService(Func<AppDbContext> contextFactory)
         {
@@ -29,7 +17,7 @@ namespace QuanLyHangHoa.Services
 
         public LoginResult Authenticate(string username, string password)
         {
-            var db = _contextFactory();
+            using var db = _contextFactory();
             // Query user (DB might be case-insensitive depending on collation)
             var user = db.AppUsers.FirstOrDefault(u => u.Username == username);
             
@@ -38,7 +26,7 @@ namespace QuanLyHangHoa.Services
             if (!user.IsActive) return LoginResult.Inactive();
             
             // Check lockout
-            if (user.LockoutUntil.HasValue && user.LockoutUntil.Value > DateTime.UtcNow)
+            if (user.LockoutUntil.HasValue && user.LockoutUntil.Value > DateTime.Now)
                 return LoginResult.Locked(user.LockoutUntil);
 
             var stored = user.PasswordHash ?? "";
@@ -54,7 +42,7 @@ namespace QuanLyHangHoa.Services
 
                 if (verified)
                 {
-                    user.LastLoginAt = DateTime.UtcNow;
+                    user.LastLoginAt = DateTime.Now;
                     user.FailedLoginCount = 0;
                     user.LockoutUntil = null;
                     db.SaveChanges();
@@ -66,7 +54,7 @@ namespace QuanLyHangHoa.Services
                     user.FailedLoginCount++;
                     if (user.FailedLoginCount >= 5)
                     {
-                        user.LockoutUntil = DateTime.UtcNow.AddMinutes(30);
+                        user.LockoutUntil = DateTime.Now.AddMinutes(30);
                     }
                     db.SaveChanges();
                 }
@@ -86,7 +74,7 @@ namespace QuanLyHangHoa.Services
                 throw new InvalidOperationException("New password is required.");
             }
 
-            var db = _contextFactory();
+            using var db = _contextFactory();
             var user = db.AppUsers.Find(userId)
                 ?? throw new InvalidOperationException("User does not exist.");
 
@@ -101,7 +89,7 @@ namespace QuanLyHangHoa.Services
             }
 
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
-            user.LastPasswordChangedAt = DateTime.UtcNow;
+            user.LastPasswordChangedAt = DateTime.Now;
             user.MustChangePassword = false;
             db.SaveChanges();
         }

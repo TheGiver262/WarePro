@@ -18,7 +18,8 @@ namespace QuanLyHangHoa.ViewModels
 {
     public partial class CategoryViewModel : ObservableObject
     {
-        private readonly AppDbContext _db;
+        private readonly Func<AppDbContext> _contextFactory;
+        private readonly CategoryService _service;
         private readonly AppUser _currentUser;
 
 
@@ -30,11 +31,12 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _searchCode = string.Empty;
         [ObservableProperty] private string _searchName = string.Empty;
         [ObservableProperty] private string? _searchStatus = "Tất cả";
-        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Hoạt động", "Ngưng"];
+        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "HĐ", "DỪNG"];
 
-        public CategoryViewModel(AppDbContext db, AppUser currentUser)
+        public CategoryViewModel(Func<AppDbContext> contextFactory, AppUser currentUser)
         {
-            _db = db;
+            _contextFactory = contextFactory;
+            _service = new CategoryService(_contextFactory);
             _currentUser = currentUser;
             CanManage = AuthorizationService.CanPerform(_currentUser, PermissionAction.ManageMasterData);
             LoadCategories();
@@ -43,7 +45,8 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         public void LoadCategories()
         {
-            var query = _db.Categories.AsQueryable();
+            using var db = _contextFactory();
+            var query = db.Categories.AsNoTracking().AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(SearchCode))
                 query = query.Where(c => c.CategoryCode.Contains(SearchCode));
@@ -51,9 +54,9 @@ namespace QuanLyHangHoa.ViewModels
             if (!string.IsNullOrWhiteSpace(SearchName))
                 query = query.Where(c => c.DisplayName.Contains(SearchName));
 
-            if (SearchStatus == "Hoạt động")
+            if (SearchStatus == "HĐ")
                 query = query.Where(c => c.IsActive);
-            else if (SearchStatus == "Ngưng")
+            else if (SearchStatus == "DỪNG")
                 query = query.Where(c => !c.IsActive);
 
             var list = query.OrderBy(c => c.CategoryCode).ToList();
@@ -80,19 +83,9 @@ namespace QuanLyHangHoa.ViewModels
             var window = new CategoryEditWindow { DataContext = vm };
             if (window.ShowDialog() == true)
             {
-                if (_db.Categories.Any(c => c.CategoryCode == vm.CategoryCode))
-                {
-                    MessageBox.Show($"Mã danh mục '{vm.CategoryCode}' đã tồn tại.", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-
                 var newCat = new Category();
                 vm.ApplyTo(newCat);
-                _db.Categories.Add(newCat);
-                _db.SaveChanges();
-                
-                // Audit Log
-                LogAction("CREATE", newCat.Id, null, Serialize(newCat));
+                _service.Add(newCat, _currentUser.Id);
 
                 LoadCategories();
             }
@@ -107,10 +100,7 @@ namespace QuanLyHangHoa.ViewModels
             if (window.ShowDialog() == true)
             {
                 vm.ApplyTo(category);
-                _db.SaveChanges();
-
-                // Audit Log
-                LogAction("UPDATE", category.Id, beforeJson, Serialize(category));
+                _service.Update(category, beforeJson, _currentUser.Id);
 
                 LoadCategories();
             }
@@ -119,38 +109,31 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand(CanExecute = nameof(CanManage))]
         private void DeleteCategory(Category category)
         {
-            var result = MessageBox.Show($"Bạn có chắc chắn muốn xoá danh mục '{category.DisplayName}'?", "Xác nhận xoá", 
-                MessageBoxButton.YesNo, MessageBoxImage.Question);
+            using var db = _contextFactory();
+            // 1. Kiểm tra phát sinh dữ liệu
+            bool isUsed = db.Products.Any(p => p.CategoryId == category.Id);
+
+            if (isUsed)
+            {
+                MessageBox.Show($"Không thể xoá danh mục '{category.DisplayName}' vì đang có sản phẩm thuộc danh mục này.\n\nVui lòng chuyển trạng thái danh mục sang 'Ngừng hoạt động' nếu không còn sử dụng.", 
+                    "Không thể xoá", MessageBoxButton.OK, MessageBoxImage.Stop);
+                return;
+            }
+
+            // 2. Xác nhận xoá (nếu không có ràng buộc)
+            var result = MessageBox.Show($"Danh mục '{category.DisplayName}' chưa có dữ liệu liên quan. Bạn có chắc chắn muốn xoá vĩnh viễn danh mục này?", 
+                "Xác nhận xoá", MessageBoxButton.YesNo, MessageBoxImage.Warning);
             
             if (result == MessageBoxResult.Yes)
             {
                 try 
                 {
-                    // Check for dependencies
-                    bool isUsed = _db.Products.Any(p => p.CategoryId == category.Id);
-
-                    if (isUsed)
-                    {
-                        MessageBox.Show("Không thể xoá danh mục này vì đang có sản phẩm thuộc danh mục này.", 
-                            "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
-                        return;
-                    }
-
-                    var beforeJson = Serialize(category);
-                    int entityId = category.Id;
-
-                    _db.Categories.Remove(category);
-                    _db.SaveChanges();
-
-                    // Audit Log
-                    LogAction("DELETE", entityId, beforeJson, null);
-
+                    _service.Delete(category.Id, _currentUser.Id);
                     LoadCategories();
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Lỗi khi xoá danh mục: {ex.Message}", 
-                        "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"Lỗi khi xoá danh mục: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
@@ -186,7 +169,7 @@ namespace QuanLyHangHoa.ViewModels
                         {
                             worksheet.Cell(i + 2, 1).Value = Categories[i].CategoryCode;
                             worksheet.Cell(i + 2, 2).Value = Categories[i].DisplayName;
-                            worksheet.Cell(i + 2, 3).Value = Categories[i].IsActive ? "Hoạt động" : "Ngưng";
+                            worksheet.Cell(i + 2, 3).Value = Categories[i].IsActive ? "HĐ" : "DỪNG";
                         }
 
                         worksheet.Columns().AdjustToContents();
@@ -200,39 +183,10 @@ namespace QuanLyHangHoa.ViewModels
                 MessageBox.Show($"Lỗi khi xuất Excel: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-        private string Serialize(Category category)
-        {
-            return JsonSerializer.Serialize(new
-            {
-                category.Id,
-                category.CategoryCode,
-                category.DisplayName,
-                category.IsActive
-            });
-        }
 
-        private void LogAction(string action, int entityId, string? before = null, string? after = null)
+        private string Serialize(Category c)
         {
-            try
-            {
-                var log = new AuditLog
-                {
-                    EntityName = "Category",
-                    EntityId = entityId,
-                    ActionCode = action,
-                    BeforeJson = before,
-                    AfterJson = after,
-                    PerformedBy = _currentUser.Id,
-                    PerformedAt = DateTime.Now
-                };
-                _db.AuditLogs.Add(log);
-                _db.SaveChanges();
-            }
-            catch (Exception ex)
-            {
-                // We don't want to crash the app if logging fails, but maybe log it to console/debug
-                System.Diagnostics.Debug.WriteLine($"Failed to write audit log: {ex.Message}");
-            }
+            return System.Text.Json.JsonSerializer.Serialize(new { c.Id, c.CategoryCode, c.DisplayName, c.IsActive });
         }
     }
 }

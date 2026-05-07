@@ -9,7 +9,7 @@ namespace QuanLyHangHoa.Converters
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value is bool isActive)
-                return isActive ? "Hoạt động" : "Ngưng HĐ";
+                return isActive ? "HĐ" : "DỪNG";
             return "—";
         }
 

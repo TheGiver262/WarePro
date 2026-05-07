@@ -31,7 +31,7 @@
                              materialDesign:HintAssist.Hint="Nhập mã (ví dụ: SUP001)"
                              materialDesign:HintAssist.IsFloating="False"
                              Text="{Binding SupplierCode, UpdateSourceTrigger=PropertyChanged}"
-                             Height="45" Margin="0,0,0,16"
+                             Height="50" Margin="0,0,0,16"
                              IsReadOnly="{Binding IsEditMode}"/>
 
                     <TextBlock Text="Tên nhà cung cấp" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8"/>
@@ -39,28 +39,28 @@
                              materialDesign:HintAssist.Hint="Nhập tên hiển thị"
                              materialDesign:HintAssist.IsFloating="False"
                              Text="{Binding DisplayName, UpdateSourceTrigger=PropertyChanged}"
-                             Height="45" Margin="0,0,0,16"/>
+                             Height="50" Margin="0,0,0,16"/>
 
                     <TextBlock Text="Số điện thoại" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8"/>
                     <TextBox Style="{StaticResource AppTextBoxStyle}" 
                              materialDesign:HintAssist.Hint="Nhập số điện thoại"
                              materialDesign:HintAssist.IsFloating="False"
                              Text="{Binding Phone, UpdateSourceTrigger=PropertyChanged}"
-                             Height="45" Margin="0,0,0,16"/>
+                             Height="50" Margin="0,0,0,16"/>
 
                     <TextBlock Text="Email" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8"/>
                     <TextBox Style="{StaticResource AppTextBoxStyle}" 
                              materialDesign:HintAssist.Hint="example@domain.com"
                              materialDesign:HintAssist.IsFloating="False"
                              Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}"
-                             Height="45" Margin="0,0,0,16"/>
+                             Height="50" Margin="0,0,0,16"/>
 
                     <TextBlock Text="Địa chỉ" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8"/>
                     <TextBox Style="{StaticResource AppTextBoxStyle}" 
                              materialDesign:HintAssist.Hint="Nhập địa chỉ"
                              materialDesign:HintAssist.IsFloating="False"
                              Text="{Binding Address, UpdateSourceTrigger=PropertyChanged}"
-                             Height="45" Margin="0,0,0,16"/>
+                             Height="50" Margin="0,0,0,16"/>
 
                     <CheckBox Content="Hoạt động" 
                               IsChecked="{Binding IsActive}"

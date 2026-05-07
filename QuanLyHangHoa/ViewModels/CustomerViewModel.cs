@@ -10,12 +10,14 @@ using System.Windows;
 using ClosedXML.Excel;
 using System.Text.Json;
 using QuanLyHangHoa.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace QuanLyHangHoa.ViewModels
 {
     public partial class CustomerViewModel : ObservableObject
     {
-        private readonly AppDbContext _db;
+        private readonly Func<AppDbContext> _contextFactory;
+        private readonly CustomerService _service;
         private readonly AppUser _currentUser;
 
 
@@ -29,11 +31,12 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _searchEmail = string.Empty;
         [ObservableProperty] private string _searchPhone = string.Empty;
         [ObservableProperty] private string? _searchStatus = "Tất cả";
-        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Hoạt động", "Ngưng"];
+        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "HĐ", "DỪNG"];
 
-        public CustomerViewModel(AppDbContext db, AppUser currentUser)
+        public CustomerViewModel(Func<AppDbContext> contextFactory, AppUser currentUser)
         {
-            _db = db;
+            _contextFactory = contextFactory;
+            _service = new CustomerService(_contextFactory);
             _currentUser = currentUser;
             CanManage = AuthorizationService.CanPerform(_currentUser, PermissionAction.ManageMasterData);
             LoadData();
@@ -42,7 +45,8 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         public void LoadData()
         {
-            var query = _db.Customers.AsQueryable();
+            using var db = _contextFactory();
+            var query = db.Customers.AsNoTracking().AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(SearchCode))
                 query = query.Where(c => c.CustomerCode.Contains(SearchCode));
@@ -56,9 +60,9 @@ namespace QuanLyHangHoa.ViewModels
             if (!string.IsNullOrWhiteSpace(SearchPhone))
                 query = query.Where(c => c.Phone != null && c.Phone.Contains(SearchPhone));
 
-            if (SearchStatus == "Hoạt động")
+            if (SearchStatus == "HĐ")
                 query = query.Where(c => c.IsActive);
-            else if (SearchStatus == "Ngưng")
+else if (SearchStatus == "DỪNG")
                 query = query.Where(c => !c.IsActive);
 
             var list = query.OrderBy(c => c.CustomerCode).ToList();
@@ -89,18 +93,9 @@ namespace QuanLyHangHoa.ViewModels
             var window = new CustomerEditWindow { DataContext = vm };
             if (window.ShowDialog() == true)
             {
-                if (_db.Customers.Any(c => c.CustomerCode == vm.CustomerCode))
-                {
-                    MessageBox.Show($"Mã khách hàng '{vm.CustomerCode}' đã tồn tại.", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-
                 var newCust = new Customer();
                 vm.ApplyTo(newCust);
-                _db.Customers.Add(newCust);
-                _db.SaveChanges();
-
-                LogAction("CREATE", newCust.Id, null, Serialize(newCust));
+                _service.Add(newCust, _currentUser.Id);
                 LoadData();
             }
         }
@@ -114,9 +109,7 @@ namespace QuanLyHangHoa.ViewModels
             if (window.ShowDialog() == true)
             {
                 vm.ApplyTo(customer);
-                _db.SaveChanges();
-
-                LogAction("UPDATE", customer.Id, beforeJson, Serialize(customer));
+                _service.Update(customer, beforeJson, _currentUser.Id);
                 LoadData();
             }
         }
@@ -124,38 +117,33 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand(CanExecute = nameof(CanManage))]
         private void DeleteCustomer(Customer customer)
         {
-            var result = MessageBox.Show($"Bạn có chắc chắn muốn xoá khách hàng '{customer.DisplayName}'?", "Xác nhận xoá", 
-                MessageBoxButton.YesNo, MessageBoxImage.Question);
+            using var db = _contextFactory();
+            // 1. Kiểm tra phát sinh dữ liệu
+            bool isUsed = db.SalesInvoices.Any(si => si.CustomerId == customer.Id) ||
+                         db.StockOuts.Any(so => so.CustomerId == customer.Id) ||
+                         db.WarrantyCoverages.Any(wc => wc.CustomerId == customer.Id);
+
+            if (isUsed)
+            {
+                MessageBox.Show($"Không thể xoá khách hàng '{customer.DisplayName}' vì đang có dữ liệu liên quan (Hóa đơn bán, Phiếu xuất kho hoặc Bảo hành).\n\nVui lòng chuyển trạng thái khách hàng sang 'Ngừng hoạt động' nếu không còn sử dụng.", 
+                    "Không thể xoá", MessageBoxButton.OK, MessageBoxImage.Stop);
+                return;
+            }
+
+            // 2. Xác nhận xoá (nếu không có ràng buộc)
+            var result = MessageBox.Show($"Khách hàng '{customer.DisplayName}' chưa có dữ liệu liên quan. Bạn có chắc chắn muốn xoá vĩnh viễn khách hàng này?", 
+                "Xác nhận xoá", MessageBoxButton.YesNo, MessageBoxImage.Warning);
             
             if (result == MessageBoxResult.Yes)
             {
                 try 
                 {
-                    // Check for dependencies
-                    bool isUsed = _db.SalesInvoices.Any(si => si.CustomerId == customer.Id) ||
-                                 _db.StockOuts.Any(so => so.CustomerId == customer.Id) ||
-                                 _db.WarrantyCoverages.Any(wc => wc.CustomerId == customer.Id);
-
-                    if (isUsed)
-                    {
-                        MessageBox.Show("Không thể xoá khách hàng này vì đang có dữ liệu liên quan (Hóa đơn bán, Phiếu xuất kho hoặc Bảo hành).", 
-                            "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
-                        return;
-                    }
-
-                    var beforeJson = Serialize(customer);
-                    int entityId = customer.Id;
-
-                    _db.Customers.Remove(customer);
-                    _db.SaveChanges();
-
-                    LogAction("DELETE", entityId, beforeJson, null);
+                    _service.Delete(customer.Id, _currentUser.Id);
                     LoadData();
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Lỗi khi xoá khách hàng: {ex.Message}", 
-                        "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"Lỗi khi xoá khách hàng: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
@@ -194,7 +182,7 @@ namespace QuanLyHangHoa.ViewModels
                             worksheet.Cell(i + 2, 3).Value = Customers[i].Phone;
                             worksheet.Cell(i + 2, 4).Value = Customers[i].Email;
                             worksheet.Cell(i + 2, 5).Value = Customers[i].Address;
-                            worksheet.Cell(i + 2, 6).Value = Customers[i].IsActive ? "Hoạt động" : "Ngưng";
+                            worksheet.Cell(i + 2, 6).Value = Customers[i].IsActive ? "HĐ" : "DỪNG";
                         }
 
                         worksheet.Columns().AdjustToContents();
@@ -209,31 +197,10 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
+
         private string Serialize(Customer c)
         {
-            return JsonSerializer.Serialize(new { c.Id, c.CustomerCode, c.DisplayName, c.Phone, c.Email, c.Address, c.IsActive });
-        }
-
-        private void LogAction(string action, int entityId, string? before = null, string? after = null)
-        {
-            try
-            {
-                _db.AuditLogs.Add(new AuditLog
-                {
-                    EntityName = "Customer",
-                    EntityId = entityId,
-                    ActionCode = action,
-                    BeforeJson = before,
-                    AfterJson = after,
-                    PerformedBy = _currentUser.Id,
-                    PerformedAt = DateTime.Now
-                });
-                _db.SaveChanges();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to write audit log: {ex.Message}");
-            }
+            return System.Text.Json.JsonSerializer.Serialize(new { c.Id, c.CustomerCode, c.DisplayName, c.Phone, c.Email, c.Address, c.IsActive });
         }
     }
 }

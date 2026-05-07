@@ -11,7 +11,6 @@ namespace QuanLyHangHoa.Services
     {
         private readonly Func<AppDbContext> _contextFactory;
 
-        public ProductUnitService() : this(() => new AppDbContext()) { }
 
         public ProductUnitService(Func<AppDbContext> contextFactory)
         {
