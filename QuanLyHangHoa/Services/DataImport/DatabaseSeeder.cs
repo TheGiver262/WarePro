@@ -127,10 +127,10 @@ namespace QuanLyHangHoa.Services.DataImport
                 }, _productMap, log);
 
                 // 7. StockIn (Opening Balances)
-                await SeedTableWithMappingAsync<StockIn>(workbook, "Phiếu nhập kho", "DocumentCode", "id", (row, item) =>
+                await SeedTableWithMappingAsync<StockIn>(workbook, "Phiếu nhập kho", "VoucherCode", "id", (row, item) =>
                 {
                     item.DocumentCode = row.GetString("DocumentCode") ?? row.GetString("VoucherCode") ?? "PNK";
-                    item.CreatedAt = row.GetDateTime("Ngày nhập") ?? DateTime.Now;
+                    item.CreatedAt = row.GetDateTime("Ngày nhập") ?? row.GetDateTime("VoucherDate") ?? DateTime.Now;
                     item.WarehouseId = warehouse.Id;
                     item.Status = "Completed";
                     item.PurposeCode = "OpeningBalance";
@@ -151,6 +151,8 @@ namespace QuanLyHangHoa.Services.DataImport
 
                         // To avoid duplicate StockInLines, we'll keep a map of (StockInId, ProductId)
                         var lineMap = new Dictionary<(int, int), StockInLine>();
+                        var justCreatedLines = new HashSet<int>();
+                        var justCreatedOutLines = new HashSet<int>();
 
                         foreach (var row in rows)
                         {
@@ -174,10 +176,22 @@ namespace QuanLyHangHoa.Services.DataImport
                                     if (line == null)
                                     {
                                         line = new StockInLine { StockInId = stockInId, ProductId = productId, Quantity = 0, BaseQuantity = 0, UnitId = 1 };
+                                        // We need to increment BEFORE saving to satisfy the > 0 constraint
+                                        line.Quantity = 1;
+                                        line.BaseQuantity = 1;
                                         _context.StockInLines.Add(line);
                                         await _context.SaveChangesAsync();
+                                        
+                                        // Mark as already incremented for this first serial
+                                        lineMap[(stockInId, productId)] = line;
+                                        // We'll use a local set to track which lines were JUST created in this loop
+                                        // to avoid double-incrementing them at the end of the loop
+                                        justCreatedLines.Add(line.Id);
                                     }
-                                    lineMap[(stockInId, productId)] = line;
+                                    else
+                                    {
+                                        lineMap[(stockInId, productId)] = line;
+                                    }
                                 }
 
                                 var existingSerial = await _context.ProductSerials.FirstOrDefaultAsync(s => s.SerialNumber == sn);
@@ -199,18 +213,25 @@ namespace QuanLyHangHoa.Services.DataImport
                                         var sol = await _context.StockOutLines.FirstOrDefaultAsync(l => l.StockOutId == stockOutId && l.ProductId == productId);
                                         if (sol == null)
                                         {
-                                            sol = new StockOutLine { StockOutId = stockOutId, ProductId = productId, Quantity = 0, BaseQuantity = 0, UnitId = 1 };
+                                            sol = new StockOutLine { StockOutId = stockOutId, ProductId = productId, Quantity = 1, BaseQuantity = 1, UnitId = 1 };
                                             _context.StockOutLines.Add(sol);
                                             await _context.SaveChangesAsync();
+                                            justCreatedOutLines.Add(sol.Id);
                                         }
                                         ps.LastStockOutLineId = sol.Id;
-                                        sol.Quantity++;
-                                        sol.BaseQuantity++;
+                                        if (!justCreatedOutLines.Contains(sol.Id))
+                                        {
+                                            sol.Quantity++;
+                                            sol.BaseQuantity++;
+                                        }
                                     }
 
                                     _context.ProductSerials.Add(ps);
-                                    line!.Quantity++;
-                                    line!.BaseQuantity++;
+                                    if (!justCreatedLines.Contains(line!.Id))
+                                    {
+                                        line!.Quantity++;
+                                        line!.BaseQuantity++;
+                                    }
                                     imported++;
                                 }
                             }
@@ -221,23 +242,29 @@ namespace QuanLyHangHoa.Services.DataImport
                 }
 
                 // 9. StockOut
-                await SeedTableWithMappingAsync<StockOut>(workbook, "Phiếu xuất kho", "DocumentCode", "id", (row, item) =>
+                await SeedTableWithMappingAsync<StockOut>(workbook, "Phiếu xuất kho", "VoucherCode", "id", (row, item) =>
                 {
-                    item.DocumentCode = row.GetString("DocumentCode") ?? "PXK";
-                    item.CreatedAt = row.GetDateTime("Ngày xuất") ?? DateTime.Now;
+                    item.DocumentCode = row.GetString("DocumentCode") ?? row.GetString("VoucherCode") ?? "PXK";
+                    item.CreatedAt = row.GetDateTime("Ngày xuất") ?? row.GetDateTime("VoucherDate") ?? DateTime.Now;
                     item.WarehouseId = warehouse.Id;
                     item.Status = row.GetString("Status") ?? "Completed";
-                    item.PurposeCode = row.GetString("PurposeCode") ?? "Sales";
+                    
+                    // Map Excel 'StockOutType' to DB 'PurposeCode'
+                    string type = row.GetString("StockOutType") ?? row.GetString("PurposeCode") ?? "Sale";
+                    if (type == "Sales" || type == "Sale") item.PurposeCode = "Sale";
+                    else if (type == "WarrantyReplacement") item.PurposeCode = "WarrantyReplacement";
+                    else item.PurposeCode = "Sale"; // Fallback to Sale for other types to satisfy constraint
                     item.CreatedBy = (int)(row.GetDouble("CreatedBy") ?? 1);
                     var custRef = row.GetString("CustomerId");
                     if (!string.IsNullOrEmpty(custRef)) item.CustomerId = _customerMap.GetValueOrDefault(custRef);
+                    if (item.CustomerId == 0) item.CustomerId = _customerMap.Values.FirstOrDefault();
                 }, _stockOutMap, log);
 
                 // 10. Purchase Invoices
                 await SeedTableWithMappingAsync<PurchaseInvoice>(workbook, "Hóa đơn mua", "InvoiceCode", "id", (row, item) =>
                 {
-                    item.InvoiceCode = row.GetString("Code") ?? "PIV";
-                    item.InvoiceDate = row.GetDateTime("Date") ?? DateTime.Now;
+                    item.InvoiceCode = row.GetString("InvoiceCode") ?? row.GetString("Code") ?? "PIV";
+                    item.InvoiceDate = row.GetDateTime("Ngày hóa đơn") ?? row.GetDateTime("InvoiceDate") ?? DateTime.Now;
                     item.GrandTotal = row.GetDecimal("TotalAmount") ?? 0;
                     item.CreatedAt = DateTime.Now;
                     var supRef = row.GetString("SupplierId");
@@ -247,8 +274,8 @@ namespace QuanLyHangHoa.Services.DataImport
                 // 11. Sales Invoices
                 await SeedTableWithMappingAsync<SalesInvoice>(workbook, "Hóa đơn bán", "InvoiceCode", "id", (row, item) =>
                 {
-                    item.InvoiceCode = row.GetString("Code") ?? "SIV";
-                    item.InvoiceDate = row.GetDateTime("Date") ?? DateTime.Now;
+                    item.InvoiceCode = row.GetString("InvoiceCode") ?? row.GetString("Code") ?? "SIV";
+                    item.InvoiceDate = row.GetDateTime("Ngày hóa đơn") ?? row.GetDateTime("InvoiceDate") ?? DateTime.Now;
                     item.GrandTotal = row.GetDecimal("TotalAmount") ?? 0;
                     item.CreatedAt = DateTime.Now;
                     var custRef = row.GetString("CustomerId");

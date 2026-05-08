@@ -16,16 +16,22 @@ namespace QuanLyHangHoa.ViewModels
 {
     public partial class ProductSerialViewModel : ObservableObject
     {
-        private readonly Func<string, string, List<ProductSerial>> _serialLoader;
+        private readonly Func<string, string, string, string, List<ProductSerial>> _serialLoader;
         private readonly IProductSerialImportService _importService;
 
         [ObservableProperty] private ObservableCollection<ProductSerial> _serials = new();
         [ObservableProperty] private ObservableCollection<string> _statuses = new();
-        [ObservableProperty] private string _searchText = string.Empty;
+        
+        [ObservableProperty] private string _searchSerial = string.Empty;
+        [ObservableProperty] private string _searchProduct = string.Empty;
+        [ObservableProperty] private string _searchBrand = string.Empty;
         [ObservableProperty] private string _selectedStatus = "Tất cả trạng thái";
 
-        partial void OnSearchTextChanged(string value) => LoadSerials();
+        partial void OnSearchSerialChanged(string value) => LoadSerials();
+        partial void OnSearchProductChanged(string value) => LoadSerials();
+        partial void OnSearchBrandChanged(string value) => LoadSerials();
         partial void OnSelectedStatusChanged(string value) => LoadSerials();
+
         [ObservableProperty] private ProductSerial? _selectedSerial;
         [ObservableProperty] private string _statusMessage = string.Empty;
         [ObservableProperty] private bool _canManage = true; 
@@ -35,7 +41,7 @@ namespace QuanLyHangHoa.ViewModels
         {
         }
 
-        public ProductSerialViewModel(Func<string, string, List<ProductSerial>> serialLoader, IProductSerialImportService importService)
+        public ProductSerialViewModel(Func<string, string, string, string, List<ProductSerial>> serialLoader, IProductSerialImportService importService)
         {
             _serialLoader = serialLoader;
             _importService = importService;
@@ -56,7 +62,9 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void Refresh()
         {
-            SearchText = string.Empty;
+            SearchSerial = string.Empty;
+            SearchProduct = string.Empty;
+            SearchBrand = string.Empty;
             SelectedStatus = "Tất cả trạng thái";
             LoadSerials();
         }
@@ -110,6 +118,27 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
+        [RelayCommand]
+        private void ViewSerial(ProductSerial serial)
+        {
+            StatusMessage = $"Xem chi tiết serial: {serial.SerialNumber}";
+        }
+
+        [RelayCommand]
+        private void EditSerial(ProductSerial serial)
+        {
+            StatusMessage = $"Sửa serial: {serial.SerialNumber}";
+        }
+
+        [RelayCommand]
+        private void DeleteSerial(ProductSerial serial)
+        {
+            if (MessageBox.Show($"Bạn có chắc chắn muốn xóa serial {serial.SerialNumber}?", "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+            {
+                StatusMessage = $"Đã xóa serial: {serial.SerialNumber}";
+            }
+        }
+
         private void LoadSerials()
         {
             string dbStatus = SelectedStatus switch
@@ -120,7 +149,7 @@ namespace QuanLyHangHoa.ViewModels
                 _ => "All"
             };
 
-            var data = _serialLoader(SearchText, dbStatus);
+            var data = _serialLoader(SearchSerial, SearchProduct, SearchBrand, dbStatus);
             Serials = new ObservableCollection<ProductSerial>(data);
             
             if (string.IsNullOrEmpty(StatusMessage) || StatusMessage.Contains("Tìm thấy"))

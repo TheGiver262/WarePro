@@ -169,7 +169,7 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void OpenProductSerialView()
         {
-            CurrentView = new ProductSerialView();
+            CurrentView = new ProductSerialView { DataContext = new ProductSerialViewModel(ContextFactory) };
             CurrentViewTitle = "QUẢN LÝ SERIAL";
             CurrentViewSubtitle = "Quản lý số Serial và IMEI sản phẩm";
         }
