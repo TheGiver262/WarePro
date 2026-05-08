@@ -70,9 +70,10 @@
                     <!-- Origin Search -->
                     <StackPanel Grid.Column="2" Margin="{StaticResource Margin.Right.md}">
                         <TextBlock Text="XUẤT XỨ" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                        <TextBox materialDesign:HintAssist.Hint="Tìm theo xuất xứ..." 
-                                 Height="32" VerticalContentAlignment="Center"
-                                 Text="{Binding SearchOrigin, UpdateSourceTrigger=PropertyChanged}"/>
+                        <ComboBox materialDesign:HintAssist.Hint="Tất cả" 
+                                  Height="32" VerticalContentAlignment="Center"
+                                  ItemsSource="{Binding OriginOptions}"
+                                  SelectedItem="{Binding SearchOrigin, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
                     <!-- Status Filter -->
@@ -156,11 +157,19 @@
                             </DataGridTemplateColumn>
 
                             <!-- Origin Column -->
-                            <DataGridTextColumn Header="XUẤT XỨ" Binding="{Binding OriginCountry}" Width="200" 
-                                                ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+                            <DataGridTextColumn Binding="{Binding OriginCountry}" Width="200"
+                                                SortMemberPath="OriginCountry"
+                                                ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}">
+                                <DataGridTextColumn.Header>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="XUẤT XỨ" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
 
                             <!-- Status Column (Pro Max Chips) -->
-                            <DataGridTemplateColumn Width="100" SortMemberPath="IsActive">
+                            <DataGridTemplateColumn Width="130" SortMemberPath="IsActive">
                                 <DataGridTemplateColumn.Header>
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" Margin="0,0,6,0" VerticalAlignment="Center" Opacity="0.6"/>

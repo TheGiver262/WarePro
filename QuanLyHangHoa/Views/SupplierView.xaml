@@ -25,7 +25,7 @@
                     <materialDesign:PackIcon Kind="TruckOutline" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
                     <StackPanel Margin="16,0,0,0">
                         <TextBlock Text="NHÀ CUNG CẤP" Style="{StaticResource TypographyH2}"/>
-                        <TextBlock Text="Quản lý thông tin và lịch sử giao dịch nhà cung cấp" Style="{StaticResource TypographyCaption}"/>
+                        <TextBlock Text="Quản lý thông tin nhà cung cấp" Style="{StaticResource TypographyCaption}"/>
                     </StackPanel>
                 </StackPanel>
                 
@@ -191,7 +191,7 @@
                             </DataGridTemplateColumn>
                             
                             <!-- Status Column -->
-                            <DataGridTemplateColumn Width="100" SortMemberPath="IsActive">
+                            <DataGridTemplateColumn Width="130" SortMemberPath="IsActive">
                                 <DataGridTemplateColumn.Header>
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>

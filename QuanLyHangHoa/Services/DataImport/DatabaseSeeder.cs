@@ -70,6 +70,7 @@ namespace QuanLyHangHoa.Services.DataImport
                 {
                     item.BrandCode = row.GetString("BrandCode") ?? "BRD";
                     item.DisplayName = row.GetString("DisplayName") ?? "Thương hiệu";
+                    item.OriginCountry = TranslateOrigin(row.GetString("Origin") ?? row.GetString("OriginCountry") ?? row.GetString("XuatXu"));
                     item.IsActive = true;
                 }, _brandMap, log);
 
@@ -109,6 +110,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     item.IsActive = row.GetString("IsActive")?.ToLower() == "true";
                     item.IsSerialTracked = row.GetString("TrackSerial")?.ToLower() == "true";
                     item.WarrantyPeriodMonths = (int)(row.GetDouble("WarrantyMonths") ?? 12);
+                    item.OriginCountry = TranslateOrigin(row.GetString("Origin") ?? row.GetString("OriginCountry") ?? row.GetString("XuatXu"));
                     
                     var catRef = row.GetString("CategoryId");
                     item.CategoryId = _categoryMap.GetValueOrDefault(catRef ?? "");
@@ -323,6 +325,63 @@ namespace QuanLyHangHoa.Services.DataImport
                 }
             }
             log.AppendLine($"Đã đồng bộ/nạp bảng '{typeof(T).Name}'.");
+        }
+
+        private string? TranslateOrigin(string? input)
+        {
+            if (string.IsNullOrWhiteSpace(input)) return null;
+
+            string normalized = input.Trim();
+            
+            // Dictionary for translation
+            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "USA", "Mỹ" },
+                { "United States", "Mỹ" },
+                { "Japan", "Nhật" },
+                { "South Korea", "Hàn Quốc" },
+                { "Korea", "Hàn Quốc" },
+                { "China", "Trung Quốc" },
+                { "Taiwan", "Đài Loan" },
+                { "Switzerland", "Thụy Sĩ" },
+                { "Netherlands", "Hà Lan" },
+                { "Germany", "Đức" },
+                { "UK", "Anh" },
+                { "United Kingdom", "Anh" },
+                { "France", "Pháp" },
+                { "Italy", "Ý" },
+                { "Thailand", "Thái Lan" },
+                { "Vietnam", "Việt Nam" },
+                { "Trung quốc", "Trung Quốc" },
+                { "Đài loan", "Đài Loan" },
+                { "Hàn quốc", "Hàn Quốc" }
+            };
+
+            if (map.TryGetValue(normalized, out var translated))
+            {
+                return translated;
+            }
+
+            // Heuristic for corrupted Vietnamese characters or specific mappings
+            if (normalized.Contains("?Ai Loan") || (normalized.Contains("A") && normalized.Contains("i Loan"))) return "Đài Loan";
+            if (normalized.Contains("HA Lan") || (normalized.StartsWith("H") && normalized.EndsWith(" Lan"))) return "Hà Lan";
+            if (normalized.Contains("Qu`c") || normalized.Contains("Quoc") || normalized.Contains("Qu`c"))
+            {
+                if (normalized.Contains("HAn") || (normalized.Contains("H") && normalized.Contains("n"))) return "Hàn Quốc";
+                if (normalized.Contains("Trung")) return "Trung Quốc";
+            }
+            if (normalized.StartsWith("M") && normalized.Length <= 3) return "Mỹ";
+            if (normalized.StartsWith("Nh") && normalized.Length <= 5) return "Nhật";
+            if (normalized.Contains("Th") && normalized.Contains("S")) return "Thụy Sĩ";
+            if (normalized.StartsWith("D") && normalized.EndsWith("c")) return "Đức";
+
+            // Fallback: Standardize casing (Title Case)
+            if (normalized.Length > 0)
+            {
+                return char.ToUpper(normalized[0]) + normalized.Substring(1).ToLower();
+            }
+
+            return normalized;
         }
 
         private class ExcelRowWrapper

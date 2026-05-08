@@ -24,10 +24,10 @@
                 </Grid.ColumnDefinitions>
                 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <materialDesign:PackIcon Kind="CubeOutline" Width="32" Height="32" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
+                    <materialDesign:PackIcon Kind="PackageVariant" Width="32" Height="32" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
                     <StackPanel Margin="16,0,0,0">
                         <TextBlock Text="DANH MỤC SẢN PHẨM" Style="{StaticResource TypographyH2}"/>
-                        <TextBlock Text="Quản lý danh mục sản phẩm, giá bán, bảo hành và cấu hình serial" Style="{StaticResource TypographyCaption}" Opacity="0.7"/>
+                        <TextBlock Text="Quản lý danh mục sản phẩm" Style="{StaticResource TypographyCaption}" Opacity="0.7"/>
                     </StackPanel>
                 </StackPanel>
                 
@@ -45,7 +45,7 @@
             <materialDesign:Card Grid.Row="1" Margin="{StaticResource Margin.Bottom.md}" Padding="{StaticResource Spacing.md}" Style="{StaticResource AppCard}">
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="100"/>      <!-- Mã -->
+                        <ColumnDefinition Width="140"/>      <!-- Mã -->
                         <ColumnDefinition Width="*"/>        <!-- Tên -->
                         <ColumnDefinition Width="140"/>      <!-- Danh mục -->
                         <ColumnDefinition Width="140"/>      <!-- Thương hiệu -->
@@ -56,14 +56,16 @@
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Grid.Column="0" Margin="{StaticResource Margin.Right.md}">
-                        <TextBlock Text="MÃ SP" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                        <TextBlock Text="MÃ SẢN PHẨM" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
                         <TextBox Height="32" VerticalContentAlignment="Center"
+                                 materialDesign:HintAssist.Hint="Nhập mã sản phẩm"
                                  Text="{Binding SearchCode, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" Margin="{StaticResource Margin.Right.md}">
                         <TextBlock Text="TÊN SẢN PHẨM" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
                         <TextBox Height="32" VerticalContentAlignment="Center"
+                                 materialDesign:HintAssist.Hint="Nhập tên sản phẩm"
                                  Text="{Binding SearchName, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 

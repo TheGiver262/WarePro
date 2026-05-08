@@ -28,9 +28,10 @@ namespace QuanLyHangHoa.ViewModels
         // Search Filters
         [ObservableProperty] private string _searchCode = string.Empty;
         [ObservableProperty] private string _searchName = string.Empty;
-        [ObservableProperty] private string _searchOrigin = string.Empty;
+        [ObservableProperty] private string? _searchOrigin = "Tất cả";
         [ObservableProperty] private string? _searchStatus = "Tất cả";
         public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "HĐ", "DỪNG"];
+        public ObservableCollection<string> OriginOptions { get; } = new();
 
         // Edit Properties
         [ObservableProperty] private bool _isEditing;
@@ -45,6 +46,7 @@ namespace QuanLyHangHoa.ViewModels
             _service = new BrandService(_contextFactory);
             _currentUser = currentUser;
             CanManage = AuthorizationService.CanPerform(_currentUser, PermissionAction.ManageMasterData);
+            LoadOrigins();
             LoadBrands();
         }
 
@@ -60,8 +62,8 @@ namespace QuanLyHangHoa.ViewModels
             if (!string.IsNullOrWhiteSpace(SearchName))
                 query = query.Where(b => b.DisplayName.Contains(SearchName));
 
-            if (!string.IsNullOrWhiteSpace(SearchOrigin))
-                query = query.Where(b => b.OriginCountry != null && b.OriginCountry.Contains(SearchOrigin));
+            if (!string.IsNullOrWhiteSpace(SearchOrigin) && SearchOrigin != "Tất cả")
+                query = query.Where(b => b.OriginCountry == SearchOrigin);
 
             if (SearchStatus == "HĐ")
                 query = query.Where(b => b.IsActive);
@@ -72,19 +74,38 @@ namespace QuanLyHangHoa.ViewModels
             Brands = new ObservableCollection<Brand>(list);
         }
 
+        private void LoadOrigins()
+        {
+            using var db = _contextFactory();
+            var origins = db.Brands
+                .AsNoTracking()
+                .Select(b => b.OriginCountry)
+                .Where(o => !string.IsNullOrEmpty(o))
+                .Distinct()
+                .OrderBy(o => o)
+                .ToList();
+
+            OriginOptions.Clear();
+            OriginOptions.Add("Tất cả");
+            foreach (var origin in origins)
+            {
+                OriginOptions.Add(origin!);
+            }
+        }
+
         [RelayCommand]
         private void Refresh()
         {
             SearchCode = string.Empty;
             SearchName = string.Empty;
-            SearchOrigin = string.Empty;
+            SearchOrigin = "Tất cả";
             SearchStatus = "Tất cả";
             LoadBrands();
         }
 
         partial void OnSearchCodeChanged(string value) => LoadBrands();
         partial void OnSearchNameChanged(string value) => LoadBrands();
-        partial void OnSearchOriginChanged(string value) => LoadBrands();
+        partial void OnSearchOriginChanged(string? value) => LoadBrands();
         partial void OnSearchStatusChanged(string? value) => LoadBrands();
 
         [RelayCommand(CanExecute = nameof(CanManage))]
@@ -144,6 +165,7 @@ namespace QuanLyHangHoa.ViewModels
                 }
 
                 IsEditing = false;
+                LoadOrigins();
                 LoadBrands();
             }
             catch (Exception ex)
@@ -181,6 +203,7 @@ namespace QuanLyHangHoa.ViewModels
                 try 
                 {
                     _service.Delete(brand.Id, _currentUser.Id);
+                    LoadOrigins();
                     LoadBrands();
                 }
                 catch (Exception ex)
