@@ -250,11 +250,7 @@
                                                 CommandParameter="{Binding}">
                                             <materialDesign:PackIcon Kind="PencilOutline" Width="16" Height="16" Foreground="{StaticResource AppSecondaryBrush}"/>
                                         </Button>
-                                        <Button Style="{StaticResource MaterialDesignIconButton}" Width="28" Height="28" ToolTip="Xóa"
-                                                Command="{Binding DataContext.DeleteSerialCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                CommandParameter="{Binding}">
-                                            <materialDesign:PackIcon Kind="TrashCanOutline" Width="16" Height="16" Foreground="{StaticResource AppErrorBrush}"/>
-                                        </Button>
+
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>

@@ -18,6 +18,8 @@ namespace QuanLyHangHoa.ViewModels
     {
         private readonly Func<string, string, string, string, DateTime?, DateTime?, string, List<ProductSerial>> _serialLoader;
         private readonly IProductSerialImportService _importService;
+        private readonly Func<AppDbContext> _contextFactory;
+        private readonly AppUser _currentUser;
 
         [ObservableProperty] private ObservableCollection<ProductSerial> _serials = new();
         [ObservableProperty] private ObservableCollection<string> _statuses = new();
@@ -49,15 +51,17 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private int _inStockCount;
         [ObservableProperty] private int _soldCount;
         [ObservableProperty] private int _scrappedCount;
-        public ProductSerialViewModel(Func<AppDbContext> contextFactory)
-            : this(new ProductSerialService(contextFactory).SearchSerials, new ProductSerialImportService(contextFactory))
+        public ProductSerialViewModel(Func<AppDbContext> contextFactory, AppUser currentUser)
+            : this(contextFactory, new ProductSerialService(contextFactory).SearchSerials, new ProductSerialImportService(contextFactory), currentUser)
         {
         }
 
-        public ProductSerialViewModel(Func<string, string, string, string, DateTime?, DateTime?, string, List<ProductSerial>> serialLoader, IProductSerialImportService importService)
+        public ProductSerialViewModel(Func<AppDbContext> contextFactory, Func<string, string, string, string, DateTime?, DateTime?, string, List<ProductSerial>> serialLoader, IProductSerialImportService importService, AppUser currentUser)
         {
+            _contextFactory = contextFactory;
             _serialLoader = serialLoader;
             _importService = importService;
+            _currentUser = currentUser;
             
             Statuses = new ObservableCollection<string> 
             { 
@@ -263,17 +267,18 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void EditSerial(ProductSerial serial)
         {
-            StatusMessage = $"Tính năng sửa serial ({serial.SerialNumber}) đang phát triển.";
-        }
-
-        [RelayCommand]
-        private void DeleteSerial(ProductSerial serial)
-        {
-            if (MessageBox.Show($"Bạn có chắc chắn muốn xóa serial {serial.SerialNumber}?", "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+            if (serial == null) return;
+            
+            var editWindow = new QuanLyHangHoa.Views.ProductSerialEditView(_contextFactory, serial, _currentUser.Id);
+            editWindow.Owner = System.Windows.Application.Current.MainWindow;
+            if (editWindow.ShowDialog() == true)
             {
-                StatusMessage = $"Đã xóa serial: {serial.SerialNumber}";
+                StatusMessage = $"Đã cập nhật serial {serial.SerialNumber}";
+                LoadSerials();
             }
         }
+
+
 
         private void LoadSerials()
         {
