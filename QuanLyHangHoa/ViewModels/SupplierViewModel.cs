@@ -31,7 +31,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _searchEmail = string.Empty;
         [ObservableProperty] private string _searchPhone = string.Empty;
         [ObservableProperty] private string? _searchStatus = "Tất cả";
-        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "HĐ", "DỪNG"];
+        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Hoạt động", "Dừng"];
 
         public SupplierViewModel(Func<AppDbContext> contextFactory, AppUser currentUser)
         {
@@ -60,9 +60,9 @@ namespace QuanLyHangHoa.ViewModels
             if (!string.IsNullOrWhiteSpace(SearchPhone))
                 query = query.Where(s => s.Phone != null && s.Phone.Contains(SearchPhone));
 
-            if (SearchStatus == "HĐ")
+            if (SearchStatus == "Hoạt động")
                 query = query.Where(s => s.IsActive);
-else if (SearchStatus == "DỪNG")
+            else if (SearchStatus == "Dừng")
                 query = query.Where(s => !s.IsActive);
 
             var list = query.OrderBy(s => s.SupplierCode).ToList();
@@ -124,7 +124,7 @@ else if (SearchStatus == "DỪNG")
 
             if (isUsed)
             {
-                MessageBox.Show($"Không thể xoá nhà cung cấp '{supplier.DisplayName}' vì đang có dữ liệu liên quan (Hóa đơn mua hoặc Phiếu nhập kho).\n\nVui lòng chuyển trạng thái nhà cung cấp sang 'Ngừng hoạt động' nếu không còn sử dụng.", 
+                MessageBox.Show($"Không thể xoá nhà cung cấp '{supplier.DisplayName}' vì đang có dữ liệu liên quan (Hóa đơn mua hoặc Phiếu nhập kho).\n\nVui lòng chuyển trạng thái nhà cung cấp sang 'Dừng' nếu không còn sử dụng.", 
                     "Không thể xoá", MessageBoxButton.OK, MessageBoxImage.Stop);
                 return;
             }
@@ -181,7 +181,7 @@ else if (SearchStatus == "DỪNG")
                             worksheet.Cell(i + 2, 3).Value = Suppliers[i].Phone;
                             worksheet.Cell(i + 2, 4).Value = Suppliers[i].Email;
                             worksheet.Cell(i + 2, 5).Value = Suppliers[i].Address;
-                            worksheet.Cell(i + 2, 6).Value = Suppliers[i].IsActive ? "HĐ" : "DỪNG";
+                            worksheet.Cell(i + 2, 6).Value = Suppliers[i].IsActive ? "Hoạt động" : "Dừng";
                         }
 
                         worksheet.Columns().AdjustToContents();

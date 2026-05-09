@@ -79,6 +79,7 @@
     <SolidColorBrush x:Key="SurfaceMutedBrush" Color="#F3F1F7" />
     <SolidColorBrush x:Key="RowHoverBrush" Color="#FAF8FE" />
     <SolidColorBrush x:Key="GridLineBrush" Color="#E5E0EE" />
+    <SolidColorBrush x:Key="AppFooterBrush" Color="#E9ECEF" /> <!-- Lighter Gray for footers -->
 
     <!-- Top bar §7 -->
     <SolidColorBrush x:Key="TopBarBorderBrush" Color="#E4DFEA" />

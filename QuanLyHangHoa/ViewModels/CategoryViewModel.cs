@@ -31,7 +31,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _searchCode = string.Empty;
         [ObservableProperty] private string _searchName = string.Empty;
         [ObservableProperty] private string? _searchStatus = "Tất cả";
-        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "HĐ", "DỪNG"];
+        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Ho\u00E1t \u0111\u1ED9ng", "D\u1EEBng"];
 
         public CategoryViewModel(Func<AppDbContext> contextFactory, AppUser currentUser)
         {
@@ -54,9 +54,9 @@ namespace QuanLyHangHoa.ViewModels
             if (!string.IsNullOrWhiteSpace(SearchName))
                 query = query.Where(c => c.DisplayName.Contains(SearchName));
 
-            if (SearchStatus == "HĐ")
+            if (SearchStatus == "Ho\u00E1t \u0111\u1ED9ng")
                 query = query.Where(c => c.IsActive);
-            else if (SearchStatus == "DỪNG")
+            else if (SearchStatus == "D\u1EEBng")
                 query = query.Where(c => !c.IsActive);
 
             var list = query.OrderBy(c => c.CategoryCode).ToList();
@@ -115,7 +115,7 @@ namespace QuanLyHangHoa.ViewModels
 
             if (isUsed)
             {
-                MessageBox.Show($"Không thể xoá danh mục '{category.DisplayName}' vì đang có sản phẩm thuộc danh mục này.\n\nVui lòng chuyển trạng thái danh mục sang 'Ngừng hoạt động' nếu không còn sử dụng.", 
+                MessageBox.Show($"Không thể xoá danh mục '{category.DisplayName}' vì đang có sản phẩm thuộc danh mục này.\n\nVui lòng chuyển trạng thái danh mục sang 'Dừng' nếu không còn sử dụng.", 
                     "Không thể xoá", MessageBoxButton.OK, MessageBoxImage.Stop);
                 return;
             }
@@ -169,7 +169,7 @@ namespace QuanLyHangHoa.ViewModels
                         {
                             worksheet.Cell(i + 2, 1).Value = Categories[i].CategoryCode;
                             worksheet.Cell(i + 2, 2).Value = Categories[i].DisplayName;
-                            worksheet.Cell(i + 2, 3).Value = Categories[i].IsActive ? "HĐ" : "DỪNG";
+                            worksheet.Cell(i + 2, 3).Value = Categories[i].IsActive ? "Ho\u00E1t \u0111\u1ED9ng" : "D\u1EEBng";
                         }
 
                         worksheet.Columns().AdjustToContents();

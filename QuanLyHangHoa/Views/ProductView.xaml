@@ -13,7 +13,6 @@
                 <RowDefinition Height="Auto"/> <!-- Row 0: Header -->
                 <RowDefinition Height="Auto"/> <!-- Row 1: Search / Filters -->
                 <RowDefinition Height="*"/>    <!-- Row 2: Main Content -->
-                <RowDefinition Height="Auto"/> <!-- Row 3: Footer -->
             </Grid.RowDefinitions>
 
             <!-- Row 0: Header Section -->
@@ -141,11 +140,17 @@
 
             <!-- Row 2: Content Area -->
             <materialDesign:Card Grid.Row="2" Style="{StaticResource AppCard}" Padding="0">
-                <DataGrid ItemsSource="{Binding Products}" SelectedItem="{Binding SelectedProduct, Mode=TwoWay}"
-                          EnableRowVirtualization="False"
-                          AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                          RowHeight="60" BorderThickness="0" Background="Transparent"
-                          SelectionMode="Single" SelectionUnit="FullRow">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <DataGrid Grid.Row="0" ItemsSource="{Binding Products}" SelectedItem="{Binding SelectedProduct, Mode=TwoWay}"
+                              EnableRowVirtualization="False"
+                              AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                              RowHeight="60" BorderThickness="0" Background="Transparent"
+                              SelectionMode="Single" SelectionUnit="FullRow">
                     <DataGrid.Columns>
                         <!-- 1. STT -->
                         <DataGridTextColumn Header="STT" Width="70" CanUserSort="False"
@@ -277,57 +282,15 @@
                         </DataGridTextColumn>
 
                         <!-- 9. Trạng thái -->
-                        <DataGridTemplateColumn Width="130">
+                        <!-- 9. Trạng thái -->
+                        <DataGridTemplateColumn Width="130" SortMemberPath="IsActive"
+                                                CellTemplate="{StaticResource BooleanStatusBadgeTemplate}">
                             <DataGridTemplateColumn.Header>
                                 <StackPanel Orientation="Horizontal">
-                                    <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" Margin="0,0,6,0" VerticalAlignment="Center" Opacity="0.6"/>
+                                    <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
                                     <TextBlock Text="TRẠNG THÁI" VerticalAlignment="Center" FontWeight="SemiBold"/>
                                 </StackPanel>
                             </DataGridTemplateColumn.Header>
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <Border Padding="4,0" CornerRadius="4" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="4,0">
-                                        <Border.Style>
-                                            <Style TargetType="Border">
-                                                <Setter Property="Background" Value="#FEE2E2"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                                        <Setter Property="Background" Value="#DCFCE7"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Border.Style>
-                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                            <Ellipse Width="5" Height="5" Margin="0,0,4,0">
-                                                <Ellipse.Style>
-                                                    <Style TargetType="Ellipse">
-                                                        <Setter Property="Fill" Value="#EF4444"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                                                 <Setter Property="Fill" Value="#22C55E"/>
-                                                              </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Ellipse.Style>
-                                            </Ellipse>
-                                            <TextBlock FontSize="10" FontWeight="ExtraBold">
-                                                <TextBlock.Style>
-                                                    <Style TargetType="TextBlock">
-                                                        <Setter Property="Text" Value="DỪNG"/>
-                                                        <Setter Property="Foreground" Value="#991B1B"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                                                <Setter Property="Text" Value="HĐ"/>
-                                                                <Setter Property="Foreground" Value="#166534"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </TextBlock.Style>
-                                            </TextBlock>
-                                        </StackPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
 
                         <DataGridTemplateColumn Header="THAO TÁC" Width="95" Visibility="{Binding DataContext.CanManage, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}">
@@ -349,22 +312,21 @@
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
                     </DataGrid.Columns>
-                </DataGrid>
-            </materialDesign:Card>
+                    </DataGrid>
 
-            <!-- Row 3: Footer -->
-            <StackPanel Grid.Row="3" Margin="{StaticResource Margin.Top.sm}" Orientation="Horizontal" HorizontalAlignment="Right">
-                <materialDesign:PackIcon Kind="Counter" Width="18" Height="18" Foreground="{StaticResource AppSecondaryBrush}" VerticalAlignment="Center" Opacity="0.7"/>
-                <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" FontSize="13" Foreground="{StaticResource AppSecondaryBrush}" Opacity="0.8">
-                    <TextBlock.Text>
-                        <MultiBinding StringFormat="{}Tổng {0} sản phẩm · {1} HĐ · {2} DỪNG">
-                            <Binding Path="Products.Count"/>
-                            <Binding Path="ActiveCount"/>
-                            <Binding Path="InactiveCount"/>
-                        </MultiBinding>
-                    </TextBlock.Text>
-                </TextBlock>
-            </StackPanel>
+                    <Border Grid.Row="1" Padding="20,12" Background="{StaticResource AppFooterBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
+                        <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="{StaticResource AppSecondaryBrush}">
+                            <TextBlock.Text>
+                                <MultiBinding StringFormat="{}Hiện có {0} sản phẩm trong hệ thống · {1} Hoạt động · {2} Dừng">
+                                    <Binding Path="Products.Count"/>
+                                    <Binding Path="ActiveCount"/>
+                                    <Binding Path="InactiveCount"/>
+                                </MultiBinding>
+                            </TextBlock.Text>
+                        </TextBlock>
+                    </Border>
+                </Grid>
+            </materialDesign:Card>
         </Grid>
     </Grid>
 </UserControl>

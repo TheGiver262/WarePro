@@ -48,4 +48,120 @@
         </Style.Triggers>
     </Style>
 
+    <!-- Boolean Status Badge Template §12.1 -->
+    <DataTemplate x:Key="BooleanStatusBadgeTemplate">
+        <Border Padding="8,2" CornerRadius="12" HorizontalAlignment="Left" VerticalAlignment="Center">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Background" Value="{StaticResource DangerBgBrush}"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsActive}" Value="True">
+                            <Setter Property="Background" Value="{StaticResource SuccessBgBrush}"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <TextBlock FontWeight="Bold">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock" BasedOn="{StaticResource TypographyCaption}">
+                        <Setter Property="Text" Value="Dừng"/>
+                        <Setter Property="Foreground" Value="{StaticResource DangerTextBrush}"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                <Setter Property="Text" Value="Hoạt động"/>
+                                <Setter Property="Foreground" Value="{StaticResource SuccessTextBrush}"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+        </Border>
+    </DataTemplate>
+
+    <!-- Serial Status Badge Template (Multi-status) -->
+    <DataTemplate x:Key="SerialStatusBadgeTemplate">
+        <Border Padding="8,2" CornerRadius="12" HorizontalAlignment="Left" VerticalAlignment="Center">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Background" Value="{StaticResource SurfaceMutedBrush}"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding CurrentStatus}" Value="InStock">
+                            <Setter Property="Background" Value="#DCFCE7"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding CurrentStatus}" Value="Sold">
+                            <Setter Property="Background" Value="#DBEAFE"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding CurrentStatus}" Value="Reserved">
+                            <Setter Property="Background" Value="#FEF3C7"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding CurrentStatus}" Value="InWarrantyProcess">
+                            <Setter Property="Background" Value="#F3E8FF"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding CurrentStatus}" Value="WarrantyDefective">
+                            <Setter Property="Background" Value="#FEE2E2"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding CurrentStatus}" Value="Returned">
+                            <Setter Property="Background" Value="#F1F5F9"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding CurrentStatus}" Value="Scrapped">
+                            <Setter Property="Background" Value="#FEE2E2"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding CurrentStatus}" Value="Replaced">
+                            <Setter Property="Background" Value="#ECFDF5"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding CurrentStatus}" Value="Inactive">
+                            <Setter Property="Background" Value="#F3F4F6"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <TextBlock FontWeight="Bold" FontSize="11">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+                        <Setter Property="Text" Value="{Binding CurrentStatus}"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding CurrentStatus}" Value="InStock">
+                                <Setter Property="Foreground" Value="#166534"/>
+                                <Setter Property="Text" Value="Trong kho"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding CurrentStatus}" Value="Sold">
+                                <Setter Property="Foreground" Value="#1E40AF"/>
+                                <Setter Property="Text" Value="Đã bán"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding CurrentStatus}" Value="Reserved">
+                                <Setter Property="Foreground" Value="#92400E"/>
+                                <Setter Property="Text" Value="Đã đặt"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding CurrentStatus}" Value="InWarrantyProcess">
+                                <Setter Property="Foreground" Value="#6B21A8"/>
+                                <Setter Property="Text" Value="Đang bảo hành"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding CurrentStatus}" Value="WarrantyDefective">
+                                <Setter Property="Foreground" Value="#991B1B"/>
+                                <Setter Property="Text" Value="Lỗi bảo hành"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding CurrentStatus}" Value="Returned">
+                                <Setter Property="Foreground" Value="#475569"/>
+                                <Setter Property="Text" Value="Đã trả hàng"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding CurrentStatus}" Value="Scrapped">
+                                <Setter Property="Foreground" Value="#991B1B"/>
+                                <Setter Property="Text" Value="Đã thanh lý"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding CurrentStatus}" Value="Replaced">
+                                <Setter Property="Foreground" Value="#059669"/>
+                                <Setter Property="Text" Value="Đã đổi mới"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding CurrentStatus}" Value="Inactive">
+                                <Setter Property="Foreground" Value="#374151"/>
+                                <Setter Property="Text" Value="Dừng"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+        </Border>
+    </DataTemplate>
+
 </ResourceDictionary>

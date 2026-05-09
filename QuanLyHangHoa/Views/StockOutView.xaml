@@ -184,7 +184,7 @@
                     </DataGrid>
 
                     <!-- Footer -->
-                    <Border Grid.Row="1" Padding="20,12" Background="{StaticResource AppSurfaceBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
+                    <Border Grid.Row="1" Padding="20,12" Background="{StaticResource AppFooterBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
                         <Grid>
                             <TextBlock FontSize="13" Foreground="{StaticResource AppSecondaryBrush}" VerticalAlignment="Center">
                                 <TextBlock.Text>

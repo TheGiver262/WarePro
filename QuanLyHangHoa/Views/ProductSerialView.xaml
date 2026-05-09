@@ -13,7 +13,6 @@
                 <RowDefinition Height="Auto"/> <!-- Row 0: Header -->
                 <RowDefinition Height="Auto"/> <!-- Row 1: Search / Filters -->
                 <RowDefinition Height="*"/>    <!-- Row 2: Main Content -->
-                <RowDefinition Height="Auto"/> <!-- Row 3: Footer -->
             </Grid.RowDefinitions>
 
             <!-- Row 0: Header Section -->
@@ -26,12 +25,10 @@
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <materialDesign:PackIcon Kind="BarcodeScan" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
                     <StackPanel Margin="16,0,0,0">
-                        <TextBlock Text="QU&#x1EA2;N L&#x1EF2; SERIAL" Style="{StaticResource TypographyH2}"/>
-                        <TextBlock Text="Theo d&#xF5;i chi ti&#x1EBF;t s&#x1ED1; serial s&#x1EA3;n ph&#x1EA9;m trong kho" Style="{StaticResource TypographyCaption}" Opacity="0.7"/>
+                        <TextBlock Text="QUẢN LÝ SERIAL" Style="{StaticResource TypographyH2}"/>
+                        <TextBlock Text="Theo dõi chi tiết số serial sản phẩm trong kho" Style="{StaticResource TypographyCaption}" Opacity="0.7"/>
                     </StackPanel>
                 </StackPanel>
-                
-
             </Grid>
 
             <!-- Row 1: Search Row (Standardized Pro Max with Advanced Filter) -->
@@ -49,8 +46,8 @@
 
                         <!-- Serial Search -->
                         <StackPanel Grid.Column="0" Margin="{StaticResource Margin.Right.md}">
-                            <TextBlock Text="S&#x1ED1; Serial" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                            <TextBox materialDesign:HintAssist.Hint="T&#xEC;m s&#x1ED1; serial..." 
+                            <TextBlock Text="Số Serial" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                            <TextBox materialDesign:HintAssist.Hint="Tìm số serial..." 
                                      Height="32" VerticalContentAlignment="Center"
                                      Text="{Binding SearchSerial, UpdateSourceTrigger=PropertyChanged}">
                                 <TextBox.InputBindings>
@@ -61,8 +58,8 @@
 
                         <!-- Product Search -->
                         <StackPanel Grid.Column="1" Margin="{StaticResource Margin.Right.md}">
-                            <TextBlock Text="S&#x1EA3;n ph&#x1EA9;m" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                            <TextBox materialDesign:HintAssist.Hint="T&#xEA;n ho&#x1EB7;c m&#xE3; s&#x1EA3;n ph&#x1EA9;m..." 
+                            <TextBlock Text="Sản phẩm" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                            <TextBox materialDesign:HintAssist.Hint="Tên hoặc mã sản phẩm..." 
                                      Height="32" VerticalContentAlignment="Center"
                                      Text="{Binding SearchProduct, UpdateSourceTrigger=PropertyChanged}">
                                 <TextBox.InputBindings>
@@ -73,8 +70,8 @@
 
                         <!-- Brand Search -->
                         <StackPanel Grid.Column="2" Margin="{StaticResource Margin.Right.md}">
-                            <TextBlock Text="Th&#x1B0;&#x1A1;ng hi&#x1EC7;u" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                            <TextBox materialDesign:HintAssist.Hint="T&#xEC;m th&#x1B0;&#x1A1;ng hi&#x1EC7;u..." 
+                            <TextBlock Text="Thương hiệu" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                            <TextBox materialDesign:HintAssist.Hint="Tìm thương hiệu..." 
                                      Height="32" VerticalContentAlignment="Center"
                                      Text="{Binding SearchBrand, UpdateSourceTrigger=PropertyChanged}">
                                 <TextBox.InputBindings>
@@ -85,10 +82,10 @@
 
                         <!-- Status Filter -->
                         <StackPanel Grid.Column="3" Margin="{StaticResource Margin.Right.md}">
-                            <TextBlock Text="Tr&#x1EA1;ng th&#xE1;i" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                            <TextBlock Text="Trạng thái" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
                             <ComboBox ItemsSource="{Binding Statuses}" 
                                       SelectedItem="{Binding SelectedStatus, UpdateSourceTrigger=PropertyChanged}"
-                                      materialDesign:HintAssist.Hint="T&#x1EA5;t c&#x1EA3; tr&#x1EA1;ng th&#xE1;i"
+                                      materialDesign:HintAssist.Hint="Tất cả trạng thái"
                                       Height="32" VerticalContentAlignment="Center"/>
                         </StackPanel>
 
@@ -100,13 +97,13 @@
                                     Width="120" Height="32" Padding="8,0" Margin="0,0,8,0">
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Tune" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                                    <TextBlock Text="L&#x1ECD;c n&#xE2;ng cao" VerticalAlignment="Center" FontSize="12"/>
+                                    <TextBlock Text="Lọc nâng cao" VerticalAlignment="Center" FontSize="12"/>
                                 </StackPanel>
                             </Button>
                             
                             <Button Style="{StaticResource AppSecondaryButton}" 
                                     Command="{Binding RefreshCommand}"
-                                    ToolTip="L&#xE0;m m&#x1EDB;i b&#x1ED9; l&#x1ECD;c"
+                                    ToolTip="Làm mới bộ lọc"
                                     Width="32" Height="32" Padding="0" Margin="0,0,8,0">
                                 <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18"/>
                             </Button>
@@ -116,7 +113,7 @@
                                     Height="32" Padding="16,0">
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="FileExcelOutline" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                    <TextBlock Text="XU&#x1EA4;T" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <TextBlock Text="XUẤT" VerticalAlignment="Center" FontWeight="SemiBold"/>
                                 </StackPanel>
                             </Button>
                         </StackPanel>
@@ -132,24 +129,24 @@
 
                         <!-- From Date -->
                         <StackPanel Grid.Column="0" Margin="{StaticResource Margin.Right.md}">
-                            <TextBlock Text="Ng\u00E0y t\u1EA1o t\u1EEB" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                            <DatePicker materialDesign:HintAssist.Hint="Ch\x1ECD;n ng\u00E0y b\u1EAFt \u0111\u1EA7u..." 
+                            <TextBlock Text="Ngày tạo từ" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                            <DatePicker materialDesign:HintAssist.Hint="Chọn ngày bắt đầu..." 
                                        Height="32" VerticalContentAlignment="Center"
                                        SelectedDate="{Binding SearchFromDate, UpdateSourceTrigger=PropertyChanged}"/>
                         </StackPanel>
 
                         <!-- To Date -->
                         <StackPanel Grid.Column="1" Margin="{StaticResource Margin.Right.md}">
-                            <TextBlock Text="Ng\u00E0y t\u1EA1o \u0111\u1EBFn" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                            <DatePicker materialDesign:HintAssist.Hint="Ch\x1ECD;n ng\u00E0y k\u1EBFt th\u00FAc..." 
+                            <TextBlock Text="Ngày tạo đến" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                            <DatePicker materialDesign:HintAssist.Hint="Chọn ngày kết thúc..." 
                                        Height="32" VerticalContentAlignment="Center"
                                        SelectedDate="{Binding SearchToDate, UpdateSourceTrigger=PropertyChanged}"/>
                         </StackPanel>
 
                         <!-- Note Search -->
                         <StackPanel Grid.Column="2">
-                            <TextBlock Text="Ghi ch&#xFA;" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                            <TextBox materialDesign:HintAssist.Hint="T&#xEC;m trong ghi ch&#xFA;..." 
+                            <TextBlock Text="Ghi chú" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                            <TextBox materialDesign:HintAssist.Hint="Tìm trong ghi chú..." 
                                      Height="32" VerticalContentAlignment="Center"
                                      Text="{Binding SearchNote, UpdateSourceTrigger=PropertyChanged}">
                                 <TextBox.InputBindings>
@@ -163,11 +160,17 @@
 
             <!-- Row 2: Content Area -->
             <materialDesign:Card Grid.Row="2" Style="{StaticResource AppCard}" Padding="0">
-                <DataGrid ItemsSource="{Binding Serials}" SelectedItem="{Binding SelectedSerial, Mode=TwoWay}"
-                          EnableRowVirtualization="False"
-                          AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                          RowHeight="44" BorderThickness="0" Background="Transparent"
-                          SelectionMode="Single" SelectionUnit="FullRow">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    
+                    <DataGrid Grid.Row="0" ItemsSource="{Binding Serials}" SelectedItem="{Binding SelectedSerial, Mode=TwoWay}"
+                              EnableRowVirtualization="False"
+                              AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                              RowHeight="44" BorderThickness="0" Background="Transparent"
+                              SelectionMode="Single" SelectionUnit="FullRow">
                     <DataGrid.Columns>
                         <!-- 1. STT -->
                         <DataGridTextColumn Header="STT" Width="60" CanUserSort="False"
@@ -194,7 +197,7 @@
                             <DataGridTemplateColumn.Header>
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" Margin="0,0,6,0" VerticalAlignment="Center" Opacity="0.6"/>
-                                    <TextBlock Text="S&#x1EA2;N PH&#x1EA2;M" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <TextBlock Text="SẢN PHẨM" VerticalAlignment="Center" FontWeight="SemiBold"/>
                                 </StackPanel>
                             </DataGridTemplateColumn.Header>
                             <DataGridTemplateColumn.CellTemplate>
@@ -211,7 +214,7 @@
                             <DataGridTemplateColumn.Header>
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                    <TextBlock Text="TH&#x1AF;&#x1A0;NG HI&#x1EC6;U" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <TextBlock Text="THƯƠNG HIỆU" VerticalAlignment="Center" FontWeight="SemiBold"/>
                                 </StackPanel>
                             </DataGridTemplateColumn.Header>
                             <DataGridTemplateColumn.CellTemplate>
@@ -222,117 +225,32 @@
                         </DataGridTemplateColumn>
 
                         <!-- 5. Trạng thái -->
-                        <DataGridTemplateColumn Width="150" SortMemberPath="CurrentStatus">
+                        <DataGridTemplateColumn Width="150" SortMemberPath="CurrentStatus"
+                                                CellTemplate="{StaticResource SerialStatusBadgeTemplate}">
                             <DataGridTemplateColumn.Header>
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                    <TextBlock Text="TR&#x1EA0;NG TH&#xC1;I" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <TextBlock Text="TRẠNG THÁI" VerticalAlignment="Center" FontWeight="SemiBold"/>
                                 </StackPanel>
                             </DataGridTemplateColumn.Header>
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <Border CornerRadius="4" Padding="8,2" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="12,0">
-                                        <Border.Style>
-                                            <Style TargetType="Border">
-                                                <Setter Property="Background" Value="{StaticResource SurfaceMutedBrush}"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding CurrentStatus}" Value="InStock">
-                                                        <Setter Property="Background" Value="#DCFCE7"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding CurrentStatus}" Value="Sold">
-                                                        <Setter Property="Background" Value="#DBEAFE"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding CurrentStatus}" Value="Reserved">
-                                                        <Setter Property="Background" Value="#FEF3C7"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding CurrentStatus}" Value="InWarrantyProcess">
-                                                        <Setter Property="Background" Value="#F3E8FF"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding CurrentStatus}" Value="WarrantyDefective">
-                                                        <Setter Property="Background" Value="#FEE2E2"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding CurrentStatus}" Value="Returned">
-                                                        <Setter Property="Background" Value="#F1F5F9"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding CurrentStatus}" Value="Scrapped">
-                                                        <Setter Property="Background" Value="#FEE2E2"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding CurrentStatus}" Value="Replaced">
-                                                        <Setter Property="Background" Value="#ECFDF5"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding CurrentStatus}" Value="Inactive">
-                                                        <Setter Property="Background" Value="#F3F4F6"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Border.Style>
-                                        <TextBlock FontSize="12" FontWeight="Bold">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
-                                                    <Setter Property="Text" Value="{Binding CurrentStatus}"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding CurrentStatus}" Value="InStock">
-                                                            <Setter Property="Foreground" Value="#166534"/>
-                                                            <Setter Property="Text" Value="TRONG KHO"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding CurrentStatus}" Value="Sold">
-                                                            <Setter Property="Foreground" Value="#1E40AF"/>
-                                                            <Setter Property="Text" Value="&#x110;&#xC3; B&#xC1;N"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding CurrentStatus}" Value="Reserved">
-                                                            <Setter Property="Foreground" Value="#92400E"/>
-                                                            <Setter Property="Text" Value="&#x110;&#xC3; &#x110;&#x1EB6;T"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding CurrentStatus}" Value="InWarrantyProcess">
-                                                            <Setter Property="Foreground" Value="#6B21A8"/>
-                                                            <Setter Property="Text" Value="B&#x1EA2;O H&#xC0;NH"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding CurrentStatus}" Value="WarrantyDefective">
-                                                            <Setter Property="Foreground" Value="#991B1B"/>
-                                                            <Setter Property="Text" Value="L&#x1ED6;I BH"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding CurrentStatus}" Value="Returned">
-                                                            <Setter Property="Foreground" Value="#475569"/>
-                                                            <Setter Property="Text" Value="TR&#x1EA2; H&#xC3;NG"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding CurrentStatus}" Value="Scrapped">
-                                                            <Setter Property="Foreground" Value="#991B1B"/>
-                                                            <Setter Property="Text" Value="THANH L&#x10D;Y"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding CurrentStatus}" Value="Replaced">
-                                                            <Setter Property="Foreground" Value="#059669"/>
-                                                            <Setter Property="Text" Value="&#x110;&#x1ED4;I M&#x1ED0;I"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding CurrentStatus}" Value="Inactive">
-                                                            <Setter Property="Foreground" Value="#374151"/>
-                                                            <Setter Property="Text" Value="KH&#xD4;NG D&#xD9;NG"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
-                                    </Border>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
 
                         <!-- 6. Thao tác -->
-                        <DataGridTemplateColumn Header="THAO T&#193;C" Width="130">
+                        <DataGridTemplateColumn Header="THAO TÁC" Width="130">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <Button Style="{StaticResource MaterialDesignIconButton}" Width="28" Height="28" ToolTip="Xem chi ti&#7871;t" Margin="0,0,4,0"
+                                        <Button Style="{StaticResource MaterialDesignIconButton}" Width="28" Height="28" ToolTip="Xem chi tiết" Margin="0,0,4,0"
                                                 Command="{Binding DataContext.ViewSerialDetailCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}">
                                             <materialDesign:PackIcon Kind="EyeOutline" Width="16" Height="16" Foreground="{StaticResource AppPrimaryBrush}"/>
                                         </Button>
-                                        <Button Style="{StaticResource MaterialDesignIconButton}" Width="28" Height="28" ToolTip="S&#7917;a" Margin="0,0,4,0"
+                                        <Button Style="{StaticResource MaterialDesignIconButton}" Width="28" Height="28" ToolTip="Sửa" Margin="0,0,4,0"
                                                 Command="{Binding DataContext.EditSerialCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}">
                                             <materialDesign:PackIcon Kind="PencilOutline" Width="16" Height="16" Foreground="{StaticResource AppSecondaryBrush}"/>
                                         </Button>
-                                        <Button Style="{StaticResource MaterialDesignIconButton}" Width="28" Height="28" ToolTip="X&#243;a"
+                                        <Button Style="{StaticResource MaterialDesignIconButton}" Width="28" Height="28" ToolTip="Xóa"
                                                 Command="{Binding DataContext.DeleteSerialCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}">
                                             <materialDesign:PackIcon Kind="TrashCanOutline" Width="16" Height="16" Foreground="{StaticResource AppErrorBrush}"/>
@@ -342,22 +260,21 @@
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
                     </DataGrid.Columns>
-                </DataGrid>
-            </materialDesign:Card>
-
-
-            <!-- Row 3: Footer / Status Bar (Pro Max Standard) -->
-            <materialDesign:Card Grid.Row="3" Margin="{StaticResource Margin.Top.md}" Padding="16,8" Style="{StaticResource AppCard}">
-                <Grid>
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <materialDesign:PackIcon Kind="InformationOutline" Width="18" Height="18" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                        <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource TypographyCaption}" VerticalAlignment="Center" FontWeight="SemiBold"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                        <TextBlock Text="T&#7893;ng c&#7897;ng: " Style="{StaticResource TypographyCaption}" Opacity="0.7"/>
-                        <TextBlock Text="{Binding Serials.Count}" Style="{StaticResource TypographyCaption}" FontWeight="Bold" Foreground="{StaticResource AppPrimaryBrush}"/>
-                        <TextBlock Text=" b&#7843;n ghi" Style="{StaticResource TypographyCaption}" Opacity="0.7"/>
-                    </StackPanel>
+                    </DataGrid>
+                    
+                    <!-- Row 1: Footer -->
+                    <Border Grid.Row="1" Padding="20,12" Background="{StaticResource AppFooterBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
+                        <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="{StaticResource AppSecondaryBrush}">
+                            <TextBlock.Text>
+                                <MultiBinding StringFormat="{}Hiện có {0} số Serial trong hệ thống · {1} trong kho · {2} đã bán · {3} thanh lý">
+                                    <Binding Path="Serials.Count"/>
+                                    <Binding Path="InStockCount"/>
+                                    <Binding Path="SoldCount"/>
+                                    <Binding Path="ScrappedCount"/>
+                                </MultiBinding>
+                            </TextBlock.Text>
+                        </TextBlock>
+                    </Border>
                 </Grid>
             </materialDesign:Card>
         </Grid>

@@ -48,15 +48,15 @@ namespace QuanLyHangHoa.Views
             return status switch
             {
                 "InStock" => "Trong kho",
-                "Sold" => "\u0110\u00E3 b\u00E1n",
-                "Reserved" => "\u0110\u00E3 \u0111\u1EB7t",
-                "InWarrantyProcess" => "\u0110ang b\u1EA3o h\u00E0nh",
-                "WarrantyDefective" => "L\u1ED7i b\u1EA3o h\u00E0nh",
-                "Returned" => "\u0110\u00E3 tr\u1EA3 h\u00E3ng",
-                "ReturnedToManufacturer" => "\u0110\u00E3 tr\u1EA3 h\u00E3ng",
-                "Scrapped" => "\u0110\u00E3 thanh l\u00FD",
-                "Replaced" => "\u0110\u00E3 \u0111\u1ED5i m\u1EDBi",
-                "Inactive" => "Ng\u1EEBng ho\u1EA1t \u0111\u1ED9ng",
+                "Sold" => "Đã bán",
+                "Reserved" => "Đã đặt",
+                "InWarrantyProcess" => "Đang bảo hành",
+                "WarrantyDefective" => "Lỗi bảo hành",
+                "Returned" => "Đã trả hàng",
+                "ReturnedToManufacturer" => "Đã trả hàng",
+                "Scrapped" => "Đã thanh lý",
+                "Replaced" => "Đã đổi mới",
+                "Inactive" => "Dừng",
                 _ => status
             };
         }

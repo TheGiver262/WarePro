@@ -30,7 +30,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _searchName = string.Empty;
         [ObservableProperty] private string? _searchOrigin = "Tất cả";
         [ObservableProperty] private string? _searchStatus = "Tất cả";
-        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "HĐ", "DỪNG"];
+        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Ho\u00E1t \u0111\u1ED9ng", "D\u1EEBng"];
         public ObservableCollection<string> OriginOptions { get; } = new();
 
         // Edit Properties
@@ -65,9 +65,9 @@ namespace QuanLyHangHoa.ViewModels
             if (!string.IsNullOrWhiteSpace(SearchOrigin) && SearchOrigin != "Tất cả")
                 query = query.Where(b => b.OriginCountry == SearchOrigin);
 
-            if (SearchStatus == "HĐ")
+            if (SearchStatus == "Ho\u00E1t \u0111\u1ED9ng")
                 query = query.Where(b => b.IsActive);
-            else if (SearchStatus == "DỪNG")
+            else if (SearchStatus == "D\u1EEBng")
                 query = query.Where(b => !b.IsActive);
 
             var list = query.OrderBy(b => b.BrandCode).ToList();
@@ -189,7 +189,7 @@ namespace QuanLyHangHoa.ViewModels
 
             if (isUsed)
             {
-                MessageBox.Show($"Không thể xoá thương hiệu '{brand.DisplayName}' vì đang có sản phẩm thuộc thương hiệu này.\n\nVui lòng chuyển trạng thái thương hiệu sang 'Ngừng hoạt động' nếu không còn sử dụng.", 
+                MessageBox.Show($"Không thể xoá thương hiệu '{brand.DisplayName}' vì đang có sản phẩm thuộc thương hiệu này.\n\nVui lòng chuyển trạng thái thương hiệu sang 'Dừng' nếu không còn sử dụng.", 
                     "Không thể xoá", MessageBoxButton.OK, MessageBoxImage.Stop);
                 return;
             }
@@ -246,7 +246,7 @@ namespace QuanLyHangHoa.ViewModels
                             worksheet.Cell(i + 2, 1).Value = Brands[i].BrandCode;
                             worksheet.Cell(i + 2, 2).Value = Brands[i].DisplayName;
                             worksheet.Cell(i + 2, 3).Value = Brands[i].OriginCountry;
-                            worksheet.Cell(i + 2, 4).Value = Brands[i].IsActive ? "HĐ" : "DỪNG";
+                            worksheet.Cell(i + 2, 4).Value = Brands[i].IsActive ? "Ho\u00E1t \u0111\u1ED9ng" : "D\u1EEBng";
                         }
 
                         worksheet.Columns().AdjustToContents();

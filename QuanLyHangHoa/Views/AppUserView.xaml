@@ -198,57 +198,15 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                             
-                            <DataGridTemplateColumn Width="110" SortMemberPath="IsActive">
+                            <!-- Status Column -->
+                            <DataGridTemplateColumn Width="110" SortMemberPath="IsActive"
+                                                    CellTemplate="{StaticResource BooleanStatusBadgeTemplate}">
                                 <DataGridTemplateColumn.Header>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                    <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
                                         <TextBlock Text="TRẠNG THÁI" VerticalAlignment="Center" FontWeight="SemiBold"/>
                                     </StackPanel>
                                 </DataGridTemplateColumn.Header>
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <Border Padding="6,2" CornerRadius="10" HorizontalAlignment="Center" VerticalAlignment="Center" >
-                                            <Border.Style>
-                                                <Style TargetType="Border">
-                                                    <Setter Property="Background" Value="#FEE2E2"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                                            <Setter Property="Background" Value="#DCFCE7"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Border.Style>
-                                            <StackPanel Orientation="Horizontal">
-                                                <Ellipse Width="8" Height="8" Margin="0,0,8,0">
-                                                    <Ellipse.Style>
-                                                        <Style TargetType="Ellipse">
-                                                            <Setter Property="Fill" Value="#EF4444"/>
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                                                    <Setter Property="Fill" Value="#22C55E"/>
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </Ellipse.Style>
-                                                </Ellipse>
-                                                <TextBlock FontSize="11" FontWeight="Bold">
-                                                    <TextBlock.Style>
-                                                        <Style TargetType="TextBlock">
-                                                            <Setter Property="Text" Value="DỪNG"/>
-                                                            <Setter Property="Foreground" Value="#991B1B"/>
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                                                    <Setter Property="Text" Value="HĐ"/>
-                                                                    <Setter Property="Foreground" Value="#166534"/>
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </TextBlock.Style>
-                                                </TextBlock>
-                                            </StackPanel>
-                                        </Border>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                             
                             <DataGridTemplateColumn Width="120">
@@ -279,7 +237,7 @@
                     </DataGrid>
 
                     <!-- Footer -->
-                    <Border Grid.Row="1" Padding="20,12" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
+                    <Border Grid.Row="1" Padding="20,12" Background="{StaticResource AppFooterBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
                         <TextBlock FontSize="13" Foreground="{StaticResource AppSecondaryBrush}">
                             <TextBlock.Text>
                                 <MultiBinding StringFormat="{}Hiện có {0} người dùng trong hệ thống">

@@ -29,7 +29,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _searchCode = string.Empty;
         [ObservableProperty] private string _searchName = string.Empty;
         [ObservableProperty] private string? _searchStatus = "Tất cả";
-        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "HĐ", "DỪNG"];
+        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Hoạt động", "Dừng"];
 
         public UnitViewModel(Func<AppDbContext> contextFactory, AppUser currentUser)
         {
@@ -52,9 +52,9 @@ namespace QuanLyHangHoa.ViewModels
             if (!string.IsNullOrWhiteSpace(SearchName))
                 query = query.Where(u => u.DisplayName.Contains(SearchName));
 
-            if (SearchStatus == "HĐ")
+            if (SearchStatus == "Hoạt động")
                 query = query.Where(u => u.IsActive);
-            else if (SearchStatus == "DỪNG")
+            else if (SearchStatus == "Dừng")
                 query = query.Where(u => !u.IsActive);
 
             var list = query.OrderBy(u => u.UnitCode).ToList();
@@ -116,7 +116,7 @@ namespace QuanLyHangHoa.ViewModels
 
             if (isUsed)
             {
-                MessageBox.Show($"Không thể xoá đơn vị tính '{unit.DisplayName}' vì đang có dữ liệu liên quan (Sản phẩm, Hóa đơn hoặc Phiếu kho).\n\nVui lòng chuyển trạng thái đơn vị sang 'Ngừng hoạt động' nếu không còn sử dụng.", 
+                MessageBox.Show($"Không thể xoá đơn vị tính '{unit.DisplayName}' vì đang có dữ liệu liên quan (Sản phẩm, Hóa đơn hoặc Phiếu kho).\n\nVui lòng chuyển trạng thái đơn vị sang 'Dừng' nếu không còn sử dụng.", 
                     "Không thể xoá", MessageBoxButton.OK, MessageBoxImage.Stop);
                 return;
             }
@@ -167,7 +167,7 @@ namespace QuanLyHangHoa.ViewModels
                         {
                             worksheet.Cell(i + 2, 1).Value = Units[i].UnitCode;
                             worksheet.Cell(i + 2, 2).Value = Units[i].DisplayName;
-                            worksheet.Cell(i + 2, 3).Value = Units[i].IsActive ? "HĐ" : "DỪNG";
+                            worksheet.Cell(i + 2, 3).Value = Units[i].IsActive ? "Hoạt động" : "Dừng";
                         }
 
                         worksheet.Columns().AdjustToContents();

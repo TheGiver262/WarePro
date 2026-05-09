@@ -45,6 +45,10 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _statusMessage = string.Empty;
         [ObservableProperty] private bool _canManage = true; 
 
+        // Statistics for Footer
+        [ObservableProperty] private int _inStockCount;
+        [ObservableProperty] private int _soldCount;
+        [ObservableProperty] private int _scrappedCount;
         public ProductSerialViewModel(Func<AppDbContext> contextFactory)
             : this(new ProductSerialService(contextFactory).SearchSerials, new ProductSerialImportService(contextFactory))
         {
@@ -57,16 +61,16 @@ namespace QuanLyHangHoa.ViewModels
             
             Statuses = new ObservableCollection<string> 
             { 
-                "T\u1EA5t c\u1EA3 tr\u1EA1ng th\u00E1i", 
+                "Tất cả trạng thái", 
                 "Trong kho", 
-                "\u0110\u00E3 b\u00E1n", 
-                "\u0110\u00E3 \u0111\u1EB7t", 
-                "\u0110ang b\u1EA3o h\u00E0nh", 
-                "L\u1ED7i b\u1EA3o h\u00E0nh", 
-                "\u0110\u00E3 tr\u1EA3 h\u00E3ng", 
-                "\u0110\u00E3 \u0111\u1ED5i m\u1EDBi", 
-                "\u0110\u00E3 thanh l\u00FD",
-                "Ng\u1EEBng ho\u1EA1t \u0111\u1ED9ng" 
+                "Đã bán", 
+                "Đã đặt", 
+                "Đang bảo hành", 
+                "Lỗi bảo hành", 
+                "Đã trả hàng", 
+                "Đã đổi mới", 
+                "Đã thanh lý",
+                "Dừng" 
             };
 
             LoadSerials();
@@ -99,7 +103,7 @@ namespace QuanLyHangHoa.ViewModels
             SearchSerial = string.Empty;
             SearchProduct = string.Empty;
             SearchBrand = string.Empty;
-            SelectedStatus = "T\u1EA5t c\u1EA3 tr\u1EA1ng th\u00E1i";
+            SelectedStatus = "Tất cả trạng thái";
             SearchFromDate = null;
             SearchToDate = null;
             SearchNote = string.Empty;
@@ -186,15 +190,15 @@ namespace QuanLyHangHoa.ViewModels
             return status switch
             {
                 "InStock" => "Trong kho",
-                "Sold" => "\u0110\u00E3 b\u00E1n",
-                "Reserved" => "\u0110\u00E3 \u0111\u1EB7t",
-                "InWarrantyProcess" => "\u0110ang b\u1EA3o h\u00E0nh",
-                "WarrantyDefective" => "L\u1ED7i b\u1EA3o h\u00E0nh",
-                "Returned" => "\u0110\u00E3 tr\u1EA3 h\u00E3ng",
-                "ReturnedToManufacturer" => "\u0110\u00E3 tr\u1EA3 h\u00E3ng",
-                "Scrapped" => "\u0110\u00E3 thanh l\u00FD",
-                "Replaced" => "\u0110\u00E3 \u0111\u1ED5i m\u1EDBi",
-                "Inactive" => "Ng\u1EEBng ho\u1EA1t \u0111\u1ED9ng",
+                "Sold" => "Đã bán",
+                "Reserved" => "Đã đặt",
+                "InWarrantyProcess" => "Đang bảo hành",
+                "WarrantyDefective" => "Lỗi bảo hành",
+                "Returned" => "Đã trả hàng",
+                "ReturnedToManufacturer" => "Đã trả hàng",
+                "Scrapped" => "Đã thanh lý",
+                "Replaced" => "Đã đổi mới",
+                "Inactive" => "Dừng",
                 _ => status
             };
         }
@@ -276,19 +280,24 @@ namespace QuanLyHangHoa.ViewModels
             string dbStatus = SelectedStatus switch
             {
                 "Trong kho" => "InStock",
-                "\u0110\u00E3 b\u00E1n" => "Sold",
-                "\u0110\u00E3 \u0111\u1EB7t" => "Reserved",
-                "\u0110ang b\u1EA3o h\u00E0nh" => "InWarrantyProcess",
-                "L\u1ED7i b\u1EA3o h\u00E0nh" => "WarrantyDefective",
-                "\u0110\u00E3 tr\u1EA3 h\u00E3ng" => "Returned",
-                "\u0110\u00E3 \u0111\u1ED5i m\u1EDBi" => "Replaced",
-                "\u0110\u00E3 thanh l\u00FD" => "Scrapped",
-                "Ng\u1EEBng ho\u1EA1t \u0111\u1ED9ng" => "Inactive",
+                "Đã bán" => "Sold",
+                "Đã đặt" => "Reserved",
+                "Đang bảo hành" => "InWarrantyProcess",
+                "Lỗi bảo hành" => "WarrantyDefective",
+                "Đã trả hàng" => "Returned",
+                "Đã đổi mới" => "Replaced",
+                "Đã thanh lý" => "Scrapped",
+                "Dừng" => "Inactive",
                 _ => "All"
             };
 
             var data = _serialLoader(SearchSerial, SearchProduct, SearchBrand, dbStatus, SearchFromDate, SearchToDate, SearchNote);
             Serials = new ObservableCollection<ProductSerial>(data);
+
+            // Update stats
+            InStockCount = data.Count(s => s.CurrentStatus == "InStock");
+            SoldCount = data.Count(s => s.CurrentStatus == "Sold");
+            ScrappedCount = data.Count(s => s.CurrentStatus == "Scrapped");
             
             if (string.IsNullOrEmpty(StatusMessage) || StatusMessage.Contains("Tìm thấy"))
                 StatusMessage = $"Tìm thấy {Serials.Count} serial.";

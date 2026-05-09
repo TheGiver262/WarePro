@@ -47,7 +47,7 @@ namespace QuanLyHangHoa.ViewModels
         partial void OnSearchPriceMinChanged(string value) => LoadData();
         partial void OnSearchPriceMaxChanged(string value) => LoadData();
 
-        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "HĐ", "DỪNG"];
+        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Hoạt động", "Dừng"];
         public ObservableCollection<string> SerialOptions { get; } = ["Tất cả", "Có serial", "Không serial"];
 
         [ObservableProperty] private int _lowStockCount;
@@ -100,7 +100,7 @@ namespace QuanLyHangHoa.ViewModels
 
             if (SearchStatus != "Tất cả")
             {
-                bool active = SearchStatus == "HĐ";
+                bool active = SearchStatus == "Hoạt động";
                 results = results.Where(p => p.IsActive == active).ToList();
             }
 
@@ -194,7 +194,7 @@ namespace QuanLyHangHoa.ViewModels
             // 1. Kiểm tra phát sinh dữ liệu
             if (_service.HasTransactionHistory(product.Id))
             {
-                MessageBox.Show($"Không thể xoá sản phẩm '{product.DisplayName}' vì đã có dữ liệu phát sinh (Hóa đơn, Nhập/Xuất kho).\n\nVui lòng chuyển sản phẩm sang 'Ngừng hoạt động' nếu không còn sử dụng.", 
+                MessageBox.Show($"Không thể xoá sản phẩm '{product.DisplayName}' vì đã có dữ liệu phát sinh (Hóa đơn, Nhập/Xuất kho).\n\nVui lòng chuyển sản phẩm sang 'Dừng' nếu không còn sử dụng.", 
                     "Không thể xoá", MessageBoxButton.OK, MessageBoxImage.Stop);
                 return;
             }
@@ -266,7 +266,7 @@ namespace QuanLyHangHoa.ViewModels
                         worksheet.Cell(row, 7).Value = p.DefaultUnit?.DisplayName ?? "N/A";
                         worksheet.Cell(row, 8).Value = p.DefaultPrice;
                         worksheet.Cell(row, 8).Style.NumberFormat.Format = "#,##0";
-                        worksheet.Cell(row, 9).Value = p.IsActive ? "HĐ" : "DỪNG";
+                        worksheet.Cell(row, 9).Value = p.IsActive ? "Hoạt động" : "Dừng";
                         row++;
                     }
 

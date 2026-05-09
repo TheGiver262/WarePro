@@ -142,14 +142,13 @@
                 </materialDesign:Card>
             </Grid>
 
-            <!-- Row 3: Footer -->
-            <Grid Grid.Row="3" Margin="{StaticResource Margin.Top.md}">
-                <TextBlock Style="{StaticResource TypographyCaption}" Opacity="0.6">
+            <Border Grid.Row="3" Margin="{StaticResource Margin.Top.md}" Background="{StaticResource AppFooterBrush}" Padding="20,12" CornerRadius="8" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1">
+                <TextBlock Style="{StaticResource TypographyCaption}" Opacity="0.8" VerticalAlignment="Center">
                     <Run Text="Hiện có "/>
                     <Run Text="{Binding Logs.Count, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource AppPrimaryBrush}"/>
                     <Run Text=" bản ghi nhật ký hệ thống."/>
                 </TextBlock>
-            </Grid>
+            </Border>
         </Grid>
 
         <!-- Archive Dialog Overlay -->

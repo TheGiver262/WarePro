@@ -31,7 +31,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _searchEmail = string.Empty;
         [ObservableProperty] private string _searchPhone = string.Empty;
         [ObservableProperty] private string? _searchStatus = "Tất cả";
-        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "HĐ", "DỪNG"];
+        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Hoạt động", "Dừng"];
 
         public CustomerViewModel(Func<AppDbContext> contextFactory, AppUser currentUser)
         {
@@ -60,9 +60,9 @@ namespace QuanLyHangHoa.ViewModels
             if (!string.IsNullOrWhiteSpace(SearchPhone))
                 query = query.Where(c => c.Phone != null && c.Phone.Contains(SearchPhone));
 
-            if (SearchStatus == "HĐ")
+            if (SearchStatus == "Hoạt động")
                 query = query.Where(c => c.IsActive);
-else if (SearchStatus == "DỪNG")
+            else if (SearchStatus == "Dừng")
                 query = query.Where(c => !c.IsActive);
 
             var list = query.OrderBy(c => c.CustomerCode).ToList();
@@ -125,7 +125,7 @@ else if (SearchStatus == "DỪNG")
 
             if (isUsed)
             {
-                MessageBox.Show($"Không thể xoá khách hàng '{customer.DisplayName}' vì đang có dữ liệu liên quan (Hóa đơn bán, Phiếu xuất kho hoặc Bảo hành).\n\nVui lòng chuyển trạng thái khách hàng sang 'Ngừng hoạt động' nếu không còn sử dụng.", 
+                MessageBox.Show($"Không thể xoá khách hàng '{customer.DisplayName}' vì đang có dữ liệu liên quan (Hóa đơn bán, Phiếu xuất kho hoặc Bảo hành).\n\nVui lòng chuyển trạng thái khách hàng sang 'Dừng' nếu không còn sử dụng.", 
                     "Không thể xoá", MessageBoxButton.OK, MessageBoxImage.Stop);
                 return;
             }
@@ -182,7 +182,7 @@ else if (SearchStatus == "DỪNG")
                             worksheet.Cell(i + 2, 3).Value = Customers[i].Phone;
                             worksheet.Cell(i + 2, 4).Value = Customers[i].Email;
                             worksheet.Cell(i + 2, 5).Value = Customers[i].Address;
-                            worksheet.Cell(i + 2, 6).Value = Customers[i].IsActive ? "HĐ" : "DỪNG";
+                            worksheet.Cell(i + 2, 6).Value = Customers[i].IsActive ? "Hoạt động" : "Dừng";
                         }
 
                         worksheet.Columns().AdjustToContents();

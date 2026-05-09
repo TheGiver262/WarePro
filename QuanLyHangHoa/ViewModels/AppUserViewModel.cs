@@ -33,7 +33,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private bool _isEditPanelOpen;
 
         public ObservableCollection<string> Roles { get; } = ["Tất cả", "Quản trị viên", "Quản lý", "Nhân viên bảo hành", "Nhân viên bán hàng", "Nhân viên kho"];
-        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "HĐ", "DỪNG"];
+        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Hoạt động", "Dừng"];
 
         private readonly Func<AppDbContext> _contextFactory;
 
@@ -88,11 +88,11 @@ namespace QuanLyHangHoa.ViewModels
                 list = list.Where(u => u.CreatedAt.Date == SearchDate.Value.Date).ToList();
             }
 
-            if (SearchStatus == "HĐ")
+            if (SearchStatus == "Hoạt động")
             {
                 list = list.Where(u => u.IsActive).ToList();
             }
-            else if (SearchStatus == "DỪNG")
+            else if (SearchStatus == "Dừng")
             {
                 list = list.Where(u => !u.IsActive).ToList();
             }
@@ -252,7 +252,7 @@ namespace QuanLyHangHoa.ViewModels
                             worksheet.Cell(i + 2, 2).Value = Users[i].Username;
                             worksheet.Cell(i + 2, 3).Value = Users[i].RoleCode;
                             worksheet.Cell(i + 2, 4).Value = Users[i].CreatedAt.ToString("dd/MM/yyyy HH:mm");
-                            worksheet.Cell(i + 2, 5).Value = Users[i].IsActive ? "HĐ" : "DỪNG";
+                            worksheet.Cell(i + 2, 5).Value = Users[i].IsActive ? "Hoạt động" : "Dừng";
                         }
 
                         worksheet.Columns().AdjustToContents();

@@ -326,7 +326,7 @@
                                 </Border>
                             </ScrollViewer>
 
-                            <Border Grid.Row="2" Padding="24,16" Background="{StaticResource AppSurfaceBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
+                            <Border Grid.Row="2" Padding="24,16" Background="{StaticResource AppFooterBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                     <StackPanel VerticalAlignment="Center" Margin="0,0,32,0">
                                         <TextBlock Text="TỔNG CỘNG THANH TOÁN:" Style="{StaticResource TypographyCaption}" HorizontalAlignment="Right"/>

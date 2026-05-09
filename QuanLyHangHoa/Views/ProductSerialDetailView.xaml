@@ -21,7 +21,7 @@
 
         <!-- Header -->
         <StackPanel Grid.Row="0" Margin="0,0,0,24">
-            <TextBlock Text="TH&#x00D4;NG TIN CHI TI&#x1EB2;T" Style="{StaticResource TypographyH2}" Foreground="{StaticResource AppPrimaryBrush}"/>
+            <TextBlock Text="THÔNG TIN CHI TIẾT" Style="{StaticResource TypographyH2}" Foreground="{StaticResource AppPrimaryBrush}"/>
             <Separator Margin="0,8,0,0" Background="{StaticResource AppPrimaryBrush}" Height="2"/>
         </StackPanel>
 
@@ -44,18 +44,18 @@
 
                 <!-- Serial Number -->
                 <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,16">
-                    <TextBlock Text="S&#x1ED1; Serial" Style="{StaticResource TypographyLabel}"/>
+                    <TextBlock Text="Số Serial" Style="{StaticResource TypographyLabel}"/>
                     <TextBlock x:Name="TxtSerial" Text="SERIAL-12345" Style="{StaticResource TypographyStatNumber}" Foreground="{StaticResource AppSecondaryBrush}"/>
                 </StackPanel>
                 <!-- Product Name -->
                 <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,16">
-                    <TextBlock Text="S&#x1EA3;n ph&#x1EA9;m" Style="{StaticResource TypographyLabel}"/>
-                    <TextBlock x:Name="TxtProduct" Text="T&#x00EA;n s&#x1EA3;n ph&#x1EA9;m &#x0111;&#x1EA7;y &#x0111;&#x1EE7;" Style="{StaticResource TypographyH3}" TextWrapping="Wrap"/>
+                    <TextBlock Text="Sản phẩm" Style="{StaticResource TypographyLabel}"/>
+                    <TextBlock x:Name="TxtProduct" Text="Tên sản phẩm đầy đủ" Style="{StaticResource TypographyH3}" TextWrapping="Wrap"/>
                 </StackPanel>
 
                 <!-- Status -->
                 <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,0,8,16">
-                    <TextBlock Text="Tr&#x1EA1;ng th&#x00E1;i hi&#x1EC7;n t&#x1EA1;i" Style="{StaticResource TypographyLabel}"/>
+                    <TextBlock Text="Trạng thái hiện tại" Style="{StaticResource TypographyLabel}"/>
                     <Border x:Name="BadgeStatus" Padding="8,4" CornerRadius="4" HorizontalAlignment="Left" Margin="0,4,0,0">
                         <TextBlock x:Name="TxtStatus" Text="Trong kho" FontSize="12" FontWeight="Bold"/>
                     </Border>
@@ -63,45 +63,45 @@
 
                 <!-- Brand -->
                 <StackPanel Grid.Row="2" Grid.Column="1" Margin="8,0,0,16">
-                    <TextBlock Text="Th&#x01B0;&#x01A1;ng hi&#x1EC7;u" Style="{StaticResource TypographyLabel}"/>
+                    <TextBlock Text="Thương hiệu" Style="{StaticResource TypographyLabel}"/>
                     <TextBlock x:Name="TxtBrand" Text="Brand" Style="{StaticResource TypographyH3}" Margin="0,4,0,0"/>
                 </StackPanel>
 
                 <!-- Warehouse -->
                 <StackPanel Grid.Row="3" Grid.Column="0" Margin="0,0,8,16">
-                    <TextBlock Text="Kho hi&#x1EC7;n t&#x1EA1;i" Style="{StaticResource TypographyLabel}"/>
-                    <TextBlock x:Name="TxtWarehouse" Text="Kho ch&#x00ED;nh" Style="{StaticResource TypographyH3}" Margin="0,4,0,0"/>
+                    <TextBlock Text="Kho hiện tại" Style="{StaticResource TypographyLabel}"/>
+                    <TextBlock x:Name="TxtWarehouse" Text="Kho chính" Style="{StaticResource TypographyH3}" Margin="0,4,0,0"/>
                 </StackPanel>
 
                 <!-- Created Date -->
                 <StackPanel Grid.Row="3" Grid.Column="1" Margin="8,0,0,16">
-                    <TextBlock Text="Ng&#x00E0;y nh&#x1EAD;p kho" Style="{StaticResource TypographyLabel}"/>
+                    <TextBlock Text="Ngày nhập kho" Style="{StaticResource TypographyLabel}"/>
                     <TextBlock x:Name="TxtDate" Text="01/01/2024" Style="{StaticResource TypographyH3}" Margin="0,4,0,0"/>
                 </StackPanel>
 
                 <!-- Import Code -->
                 <StackPanel Grid.Row="4" Grid.Column="0" Margin="0,0,8,16">
-                    <TextBlock Text="M&#x00E3; phi&#x1EBF;u nh&#x1EAD;p" Style="{StaticResource TypographyLabel}"/>
+                    <TextBlock Text="Mã phiếu nhập" Style="{StaticResource TypographyLabel}"/>
                     <TextBlock x:Name="TxtImportCode" Text="PN001" Style="{StaticResource TypographyH3}" Margin="0,4,0,0"/>
                 </StackPanel>
 
                 <!-- Export Code -->
                 <StackPanel Grid.Row="4" Grid.Column="1" Margin="8,0,0,16">
-                    <TextBlock Text="M&#x00E3; phi&#x1EBF;u xu&#x1EA5;t" Style="{StaticResource TypographyLabel}"/>
+                    <TextBlock Text="Mã phiếu xuất" Style="{StaticResource TypographyLabel}"/>
                     <TextBlock x:Name="TxtExportCode" Text="---" Style="{StaticResource TypographyH3}" Margin="0,4,0,0"/>
                 </StackPanel>
 
                 <!-- Note -->
                 <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,16">
-                    <TextBlock Text="Ghi ch&#x00FA;" Style="{StaticResource TypographyLabel}"/>
-                    <TextBlock x:Name="TxtNote" Text="Ghi ch&#x00FA; chi ti&#x1EBF;t..." Style="{StaticResource TypographyBody}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                    <TextBlock Text="Ghi chú" Style="{StaticResource TypographyLabel}"/>
+                    <TextBlock x:Name="TxtNote" Text="Ghi chú chi tiết..." Style="{StaticResource TypographyBody}" TextWrapping="Wrap" Margin="0,4,0,0"/>
                 </StackPanel>
             </Grid>
         </ScrollViewer>
 
         <!-- Footer -->
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-            <Button Style="{StaticResource MaterialDesignFlatButton}" Content="&#x0110;&#x00D3;NG" Click="Close_Click" IsCancel="True"/>
+            <Button Style="{StaticResource MaterialDesignFlatButton}" Content="ĐÓNG" Click="Close_Click" IsCancel="True"/>
         </StackPanel>
     </Grid>
 </Window>
