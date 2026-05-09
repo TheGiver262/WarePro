@@ -1,7 +1,7 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- WarePro UI Design Guideline — Typography §5 -->
+    <!-- WarePro UI Design Guideline - Typography section 5 -->
 
     <FontFamily x:Key="AppFontFamily">Segoe UI</FontFamily>
     <FontFamily x:Key="DataMonoFontFamily">Consolas, monospace</FontFamily>

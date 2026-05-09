@@ -1,9 +1,9 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- WarePro UI Design Guideline — Color Palette §3         -->
-    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- ======================================================= -->
+    <!-- WarePro UI Design Guideline - Color Palette section 3 -->
+    <!-- ======================================================= -->
 
     <!-- Core Colors -->
     <Color x:Key="AppPrimaryColor">#211733</Color>          <!-- SidebarBg -->

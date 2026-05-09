@@ -16,13 +16,15 @@ namespace QuanLyHangHoa.Services
             _contextFactory = contextFactory;
         }
 
-        public List<ProductSerial> SearchSerials(string serial, string product, string brand, string status)
+        public List<ProductSerial> SearchSerials(string serial, string product, string brand, string status, DateTime? fromDate = null, DateTime? toDate = null, string note = "")
         {
             using var db = _contextFactory();
             var query = db.ProductSerials
                 .Include(s => s.Product)
                     .ThenInclude(p => p.Brand)
                 .Include(s => s.CurrentWarehouse)
+                .Include(s => s.LastStockInLine)
+                    .ThenInclude(l => l.StockIn)
                 .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(status) && status != "All")
@@ -48,8 +50,27 @@ namespace QuanLyHangHoa.Services
                 query = query.Where(s => s.Product.Brand.DisplayName.Contains(keyword));
             }
 
+            if (!string.IsNullOrWhiteSpace(note))
+            {
+                var keyword = note.Trim();
+                query = query.Where(s => s.Note != null && s.Note.Contains(keyword));
+            }
+
+            if (fromDate.HasValue)
+            {
+                query = query.Where(s => s.LastStockInLine.StockIn.CreatedAt >= fromDate.Value);
+            }
+
+            if (toDate.HasValue)
+            {
+                // Ensure toDate includes the entire day
+                var endOfDay = toDate.Value.Date.AddDays(1).AddTicks(-1);
+                query = query.Where(s => s.LastStockInLine.StockIn.CreatedAt <= endOfDay);
+            }
+
             return query
-                .OrderBy(s => s.SerialNumber)
+                .OrderByDescending(s => s.LastStockInLine.StockIn.CreatedAt)
+                .ThenBy(s => s.SerialNumber)
                 .ToList();
         }
     }

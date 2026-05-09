@@ -11,6 +11,7 @@
         <Setter Property="GridLinesVisibility" Value="Horizontal"/>
         <Setter Property="RowHeight" Value="44"/>
         <Setter Property="ColumnHeaderHeight" Value="38"/>
+        <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}"/>
         <Setter Property="materialDesign:DataGridAssist.CellPadding" Value="14,0"/>
         <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource GridLineBrush}"/>
         <Setter Property="VerticalGridLinesBrush" Value="Transparent"/>
@@ -27,6 +28,7 @@
         <Setter Property="Background" Value="{StaticResource SurfaceMutedBrush}"/>
         <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}"/>
         <Setter Property="FontSize" Value="13"/>
         <Setter Property="Padding" Value="14,0"/>
         <Setter Property="BorderThickness" Value="0,0,0,1"/>

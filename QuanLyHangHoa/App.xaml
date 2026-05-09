@@ -27,6 +27,7 @@
                 <Setter Property="VerticalAlignment" Value="Center"/>
                 <Setter Property="Padding" Value="8,4"/>
                 <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}"/>
             </Style>
 
             <Style x:Key="MaterialDesignDataGridTextColumnCenterElementStyle" TargetType="TextBlock" BasedOn="{StaticResource MaterialDesignDataGridTextColumnElementStyle}">

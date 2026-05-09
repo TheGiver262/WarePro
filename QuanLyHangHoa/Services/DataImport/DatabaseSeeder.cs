@@ -50,43 +50,43 @@ namespace QuanLyHangHoa.Services.DataImport
                 var log = new System.Text.StringBuilder();
 
                 // 1. Units
-                await SeedTableWithMappingAsync<Unit>(workbook, "Đơn vị tính", "UnitCode", "id", (row, item) =>
+                await SeedTableWithMappingAsync<Unit>(workbook, "\u0110\u01A1n v\u1ECB t\u00EDnh", "UnitCode", "id", (row, item) =>
                 {
                     item.UnitCode = row.GetString("UnitCode") ?? "UNT";
-                    item.DisplayName = row.GetString("DisplayName") ?? "Đơn vị";
+                    item.DisplayName = row.GetString("DisplayName") ?? "\u0110\u01A1n v\u1ECB";
                     item.IsActive = true;
                 }, _unitMap, log);
 
                 // 2. Categories
-                await SeedTableWithMappingAsync<Category>(workbook, "Loại hàng", "CategoryCode", "id", (row, item) =>
+                await SeedTableWithMappingAsync<Category>(workbook, "Lo\u1EA1i h\u00E0ng", "CategoryCode", "id", (row, item) =>
                 {
                     item.CategoryCode = row.GetString("CategoryCode") ?? "CAT";
-                    item.DisplayName = row.GetString("DisplayName") ?? "Nhóm hàng";
+                    item.DisplayName = row.GetString("DisplayName") ?? "Nh\u00F3m h\u00E0ng";
                     item.IsActive = true;
                 }, _categoryMap, log);
 
                 // 3. Brands
-                await SeedTableWithMappingAsync<Brand>(workbook, "Thương hiệu", "BrandCode", "id", (row, item) =>
+                await SeedTableWithMappingAsync<Brand>(workbook, "Th\u01B0\u01A1ng hi\u1EC7u", "BrandCode", "id", (row, item) =>
                 {
                     item.BrandCode = row.GetString("BrandCode") ?? "BRD";
-                    item.DisplayName = row.GetString("DisplayName") ?? "Thương hiệu";
+                    item.DisplayName = row.GetString("DisplayName") ?? "Th\u01B0\u01A1ng hi\u1EC7u";
                     item.OriginCountry = TranslateOrigin(row.GetString("Origin") ?? row.GetString("OriginCountry") ?? row.GetString("XuatXu"));
                     item.IsActive = true;
                 }, _brandMap, log);
 
                 // 4. Suppliers
-                await SeedTableWithMappingAsync<Supplier>(workbook, "Nhà cung cấp", "SupplierCode", "id", (row, item) =>
+                await SeedTableWithMappingAsync<Supplier>(workbook, "Nh\u00E0 cung c\u1EA5p", "SupplierCode", "id", (row, item) =>
                 {
                     item.SupplierCode = row.GetString("SupplierCode") ?? "SUP";
-                    item.DisplayName = row.GetString("DisplayName") ?? "Nhà cung cấp";
+                    item.DisplayName = row.GetString("DisplayName") ?? "Nh\u00E0 cung c\u1EA5p";
                     item.IsActive = true;
                 }, _supplierMap, log);
 
                 // 5. Customers
-                await SeedTableWithMappingAsync<Customer>(workbook, "Khách hàng", "CustomerCode", "id", (row, item) =>
+                await SeedTableWithMappingAsync<Customer>(workbook, "Kh\u00E1ch h\u00E0ng", "CustomerCode", "id", (row, item) =>
                 {
                     item.CustomerCode = row.GetString("CustomerCode") ?? "CUS";
-                    item.DisplayName = row.GetString("DisplayName") ?? "Khách hàng";
+                    item.DisplayName = row.GetString("DisplayName") ?? "Kh\u00E1ch h\u00E0ng";
                     item.IsActive = true;
                 }, _customerMap, log);
 
@@ -94,16 +94,16 @@ namespace QuanLyHangHoa.Services.DataImport
                 var warehouse = await _context.Warehouses.FirstOrDefaultAsync();
                 if (warehouse == null)
                 {
-                    warehouse = new Warehouse { WarehouseCode = "WH001", DisplayName = "Kho chính", IsActive = true, IsDefault = true };
+                    warehouse = new Warehouse { WarehouseCode = "WH001", DisplayName = "\u004B\u0068\u00F4\u0020\u0063\u0068\u00ED\u006E\u0068", IsActive = true, IsDefault = true }; // Kho chính
                     _context.Warehouses.Add(warehouse);
                     await _context.SaveChangesAsync();
                 }
 
                 // 6. Products
-                await SeedTableWithMappingAsync<Product>(workbook, "Sản phẩm", "ProductCode", "id", (row, item) =>
+                await SeedTableWithMappingAsync<Product>(workbook, "S\u1EA3n ph\u1EA9m", "ProductCode", "id", (row, item) =>
                 {
                     item.ProductCode = row.GetString("ProductCode") ?? "PROD";
-                    item.DisplayName = row.GetString("DisplayName") ?? "Sản phẩm";
+                    item.DisplayName = row.GetString("DisplayName") ?? "S\u1EA3n ph\u1EA9m";
                     item.Description = row.GetString("Description");
                     item.CostPrice = row.GetDecimal("CostPrice");
                     item.DefaultPrice = row.GetDecimal("SalePrice") ?? 0;
@@ -127,10 +127,10 @@ namespace QuanLyHangHoa.Services.DataImport
                 }, _productMap, log);
 
                 // 7. StockIn (Opening Balances)
-                await SeedTableWithMappingAsync<StockIn>(workbook, "Phiếu nhập kho", "VoucherCode", "id", (row, item) =>
+                await SeedTableWithMappingAsync<StockIn>(workbook, "Phi\u1EBFu nh\u1EADp kho", "VoucherCode", "id", (row, item) =>
                 {
                     item.DocumentCode = row.GetString("DocumentCode") ?? row.GetString("VoucherCode") ?? "PNK";
-                    item.CreatedAt = row.GetDateTime("Ngày nhập") ?? row.GetDateTime("VoucherDate") ?? DateTime.Now;
+                    item.CreatedAt = row.GetDateTime("Ng\u00E0y nh\u1EADp") ?? row.GetDateTime("VoucherDate") ?? DateTime.Now;
                     item.WarehouseId = warehouse.Id;
                     item.Status = "Completed";
                     item.PurposeCode = "OpeningBalance";
@@ -242,10 +242,10 @@ namespace QuanLyHangHoa.Services.DataImport
                 }
 
                 // 9. StockOut
-                await SeedTableWithMappingAsync<StockOut>(workbook, "Phiếu xuất kho", "VoucherCode", "id", (row, item) =>
+                await SeedTableWithMappingAsync<StockOut>(workbook, "Phi\u1EBFu xu\u1EA5t kho", "VoucherCode", "id", (row, item) =>
                 {
                     item.DocumentCode = row.GetString("DocumentCode") ?? row.GetString("VoucherCode") ?? "PXK";
-                    item.CreatedAt = row.GetDateTime("Ngày xuất") ?? row.GetDateTime("VoucherDate") ?? DateTime.Now;
+                    item.CreatedAt = row.GetDateTime("Ng\u00E0y xu\u1EA5t") ?? row.GetDateTime("VoucherDate") ?? DateTime.Now;
                     item.WarehouseId = warehouse.Id;
                     item.Status = row.GetString("Status") ?? "Completed";
                     
@@ -261,10 +261,10 @@ namespace QuanLyHangHoa.Services.DataImport
                 }, _stockOutMap, log);
 
                 // 10. Purchase Invoices
-                await SeedTableWithMappingAsync<PurchaseInvoice>(workbook, "Hóa đơn mua", "InvoiceCode", "id", (row, item) =>
+                await SeedTableWithMappingAsync<PurchaseInvoice>(workbook, "H\u00F3a \u0111\u01A1n mua", "InvoiceCode", "id", (row, item) =>
                 {
                     item.InvoiceCode = row.GetString("InvoiceCode") ?? row.GetString("Code") ?? "PIV";
-                    item.InvoiceDate = row.GetDateTime("Ngày hóa đơn") ?? row.GetDateTime("InvoiceDate") ?? DateTime.Now;
+                    item.InvoiceDate = row.GetDateTime("Ng\u00E0y h\u00F3a \u0111\u01A1n") ?? row.GetDateTime("InvoiceDate") ?? DateTime.Now;
                     item.GrandTotal = row.GetDecimal("TotalAmount") ?? 0;
                     item.CreatedAt = DateTime.Now;
                     var supRef = row.GetString("SupplierId");
@@ -272,10 +272,10 @@ namespace QuanLyHangHoa.Services.DataImport
                 }, _purchaseInvoiceMap, log);
 
                 // 11. Sales Invoices
-                await SeedTableWithMappingAsync<SalesInvoice>(workbook, "Hóa đơn bán", "InvoiceCode", "id", (row, item) =>
+                await SeedTableWithMappingAsync<SalesInvoice>(workbook, "H\u00F3a \u0111\u01A1n b\u00E1n", "InvoiceCode", "id", (row, item) =>
                 {
                     item.InvoiceCode = row.GetString("InvoiceCode") ?? row.GetString("Code") ?? "SIV";
-                    item.InvoiceDate = row.GetDateTime("Ngày hóa đơn") ?? row.GetDateTime("InvoiceDate") ?? DateTime.Now;
+                    item.InvoiceDate = row.GetDateTime("Ng\u00E0y h\u00F3a \u0111\u01A1n") ?? row.GetDateTime("InvoiceDate") ?? DateTime.Now;
                     item.GrandTotal = row.GetDecimal("TotalAmount") ?? 0;
                     item.CreatedAt = DateTime.Now;
                     var custRef = row.GetString("CustomerId");
@@ -307,7 +307,7 @@ namespace QuanLyHangHoa.Services.DataImport
         {
             if (!workbook.Worksheets.TryGetWorksheet(sheetName, out var sheet))
             {
-                log.AppendLine($"Bỏ qua sheet '{sheetName}': Không tìm thấy.");
+                log.AppendLine($"B\u1ECF qua sheet '{sheetName}': Kh\u00F4ng t\u00ECm th\u1EA5y.");
                 return;
             }
 
@@ -351,7 +351,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     existingItems.Add(item);
                 }
             }
-            log.AppendLine($"Đã đồng bộ/nạp bảng '{typeof(T).Name}'.");
+            log.AppendLine($"\u0110\u00E3 \u0111\u1ED3ng b\u1ED9/n\u1EA1p b\u1EA3ng '{typeof(T).Name}'.");
         }
 
         private string? TranslateOrigin(string? input)
@@ -363,25 +363,25 @@ namespace QuanLyHangHoa.Services.DataImport
             // Dictionary for translation
             var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
-                { "USA", "Mỹ" },
-                { "United States", "Mỹ" },
-                { "Japan", "Nhật" },
-                { "South Korea", "Hàn Quốc" },
-                { "Korea", "Hàn Quốc" },
-                { "China", "Trung Quốc" },
-                { "Taiwan", "Đài Loan" },
-                { "Switzerland", "Thụy Sĩ" },
-                { "Netherlands", "Hà Lan" },
-                { "Germany", "Đức" },
+                { "USA", "M\u1EF9" },
+                { "United States", "M\u1EF9" },
+                { "Japan", "Nh\u1EADt" },
+                { "South Korea", "H\u00E0n Qu\u1ED1c" },
+                { "Korea", "H\u00E0n Qu\u1ED1c" },
+                { "China", "Trung Qu\u1ED1c" },
+                { "Taiwan", "\u0110\u00E0i Loan" },
+                { "Switzerland", "Th\u1EE5y S\u0129" },
+                { "Netherlands", "H\u00E0 Lan" },
+                { "Germany", "\u0110\u1EE9c" },
                 { "UK", "Anh" },
                 { "United Kingdom", "Anh" },
-                { "France", "Pháp" },
-                { "Italy", "Ý" },
-                { "Thailand", "Thái Lan" },
-                { "Vietnam", "Việt Nam" },
-                { "Trung quốc", "Trung Quốc" },
-                { "Đài loan", "Đài Loan" },
-                { "Hàn quốc", "Hàn Quốc" }
+                { "France", "Ph\u00E1p" },
+                { "Italy", "\u00DD" },
+                { "Thailand", "Th\u00E1i Lan" },
+                { "Vietnam", "Vi\u1EC7t Nam" },
+                { "Trung qu\u1ED1c", "Trung Qu\u1ED1c" },
+                { "\u0110\u00E0i loan", "\u0110\u00E0i Loan" },
+                { "H\u00E0n qu\u1ED1c", "H\u00E0n Qu\u1ED1c" }
             };
 
             if (map.TryGetValue(normalized, out var translated))
