@@ -1,23 +1,72 @@
 using System;
 using System.Globalization;
+using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
 
 namespace QuanLyHangHoa.Converters
 {
-    public class StatusToBrushConverter : IValueConverter
+    public class StatusToFgBrushConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            string status = value?.ToString() ?? "";
+            string status = value?.ToString()?.ToLower() ?? "";
             
+            string brushKey = status switch
+            {
+                "đã tt" or "paid" => "SuccessTextBrush",
+                "tt 1 phần" or "partial" => "WarningTextBrush",
+                "chưa tt" or "unpaid" => "DangerTextBrush",
+                "quá hạn" or "overdue" => "DangerTextBrush",
+                _ => "NeutralTextBrush"
+            };
+
+            return Application.Current.TryFindResource(brushKey) as Brush ?? Brushes.Gray;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public class StatusToBgBrushConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            string status = value?.ToString()?.ToLower() ?? "";
+            
+            string brushKey = status switch
+            {
+                "đã tt" or "paid" => "SuccessBgBrush",
+                "tt 1 phần" or "partial" => "WarningBgBrush",
+                "chưa tt" or "unpaid" => "DangerBgBrush",
+                "quá hạn" or "overdue" => "DangerBgBrush",
+                _ => "NeutralBgBrush"
+            };
+
+            return Application.Current.TryFindResource(brushKey) as Brush ?? Brushes.LightGray;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public class StatusToTextConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            string status = value?.ToString()?.ToLower() ?? "";
+
             return status switch
             {
-                "Đã thanh toán" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#10B981")), // Emerald 500
-                "Thanh toán một phần" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F59E0B")), // Amber 500
-                "Chưa thanh toán" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EF4444")), // Red 500
-                "Quá hạn" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#7C3AED")), // Violet 600
-                _ => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#6B7280")) // Gray 500
+                "đã tt" or "paid" => "Đã TT",
+                "tt 1 phần" or "partial" => "TT 1 phần",
+                "chưa tt" or "unpaid" => "Chưa TT",
+                "quá hạn" or "overdue" => "Quá hạn",
+                _ => value?.ToString() ?? ""
             };
         }
 

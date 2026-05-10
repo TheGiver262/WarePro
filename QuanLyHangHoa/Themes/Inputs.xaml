@@ -4,12 +4,11 @@
 
     <!-- WarePro UI Design Guideline — Inputs §10.2 + §16.3 -->
 
-    <!-- Outlined Form TextBox (for dialogs/forms) -->
-    <Style x:Key="AppTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource MaterialDesignOutlinedTextBox}">
+    <!-- Standard Form TextBox (for dialogs/forms) -->
+    <Style x:Key="AppTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource MaterialDesignTextBox}">
         <Setter Property="materialDesign:TextFieldAssist.HasClearButton" Value="True"/>
-        <Setter Property="materialDesign:TextFieldAssist.TextFieldCornerRadius" Value="{StaticResource Radius.sm}"/>
         <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
-        <Setter Property="Padding" Value="10,6"/>
+        <Setter Property="Padding" Value="0,4"/>
         <Setter Property="Height" Value="Auto"/>
         <Setter Property="MinHeight" Value="34"/>
         <Setter Property="FontSize" Value="13"/>
@@ -17,16 +16,14 @@
         <Style.Triggers>
             <Trigger Property="IsFocused" Value="True">
                 <Setter Property="BorderBrush" Value="{StaticResource PrimaryPurpleBrush}"/>
-                <Setter Property="BorderThickness" Value="2"/>
             </Trigger>
         </Style.Triggers>
     </Style>
 
-    <!-- Outlined Form ComboBox -->
-    <Style x:Key="AppComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource MaterialDesignOutlinedComboBox}">
-        <Setter Property="materialDesign:TextFieldAssist.TextFieldCornerRadius" Value="{StaticResource Radius.sm}"/>
+    <!-- Standard Form ComboBox -->
+    <Style x:Key="AppComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource MaterialDesignComboBox}">
         <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
-        <Setter Property="Padding" Value="10,6"/>
+        <Setter Property="Padding" Value="0,4"/>
         <Setter Property="Height" Value="Auto"/>
         <Setter Property="MinHeight" Value="34"/>
         <Setter Property="FontSize" Value="13"/>
@@ -34,50 +31,85 @@
         <Setter Property="VerticalContentAlignment" Value="Center"/>
     </Style>
 
-    <!-- Outlined Form PasswordBox -->
-    <Style x:Key="AppPasswordBoxStyle" TargetType="PasswordBox" BasedOn="{StaticResource MaterialDesignOutlinedPasswordBox}">
-        <Setter Property="materialDesign:TextFieldAssist.TextFieldCornerRadius" Value="{StaticResource Radius.sm}"/>
+    <!-- Standard Form PasswordBox -->
+    <Style x:Key="AppPasswordBoxStyle" TargetType="PasswordBox" BasedOn="{StaticResource MaterialDesignPasswordBox}">
         <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
-        <Setter Property="Padding" Value="10,6"/>
+        <Setter Property="Padding" Value="0,4"/>
         <Setter Property="Height" Value="Auto"/>
         <Setter Property="MinHeight" Value="34"/>
         <Setter Property="Margin" Value="{StaticResource Margin.Bottom.md}"/>
     </Style>
 
-    <!-- Outlined Form DatePicker -->
-    <Style x:Key="AppDatePickerStyle" TargetType="DatePicker" BasedOn="{StaticResource MaterialDesignOutlinedDatePicker}">
-        <Setter Property="materialDesign:TextFieldAssist.TextFieldCornerRadius" Value="{StaticResource Radius.sm}"/>
+    <!-- Standard Form DatePicker -->
+    <Style x:Key="AppDatePickerStyle" TargetType="DatePicker" BasedOn="{StaticResource MaterialDesignDatePicker}">
         <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
-        <Setter Property="Padding" Value="0,0"/>
+        <Setter Property="Padding" Value="0,4"/>
         <Setter Property="Height" Value="Auto"/>
         <Setter Property="MinHeight" Value="34"/>
         <Setter Property="Margin" Value="{StaticResource Margin.Bottom.md}"/>
     </Style>
 
-    <!-- Compact Search TextBox §16.3 (for filter bars) -->
-    <Style x:Key="SearchTextBoxStyle" TargetType="TextBox">
+    <!-- Compact Search TextBox §16.3 (for filter bars) - Now follows Pro Max Underline style -->
+    <Style x:Key="SearchTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource MaterialDesignFloatingHintTextBox}">
         <Setter Property="Height" Value="32"/>
         <Setter Property="MinWidth" Value="160"/>
-        <Setter Property="Padding" Value="10,0"/>
+        <Setter Property="Padding" Value="0,4"/>
         <Setter Property="FontSize" Value="13"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
-        <Setter Property="Background" Value="White"/>
+        <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
-        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="materialDesign:TextFieldAssist.HasClearButton" Value="True"/>
+        <Setter Property="materialDesign:TextFieldAssist.DecorationVisibility" Value="Visible"/>
     </Style>
 
-    <!-- Default Implicit Styles (Simple/Plain) -->
-    <Style TargetType="TextBox" BasedOn="{StaticResource MaterialDesignTextBox}">
+    <!-- Default Implicit Styles (Standardized across app §14.8) -->
+    <Style TargetType="TextBox" BasedOn="{StaticResource MaterialDesignFloatingHintTextBox}">
+        <Setter Property="Height" Value="Auto"/>
+        <Setter Property="MinHeight" Value="40"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
-        <Setter Property="Padding" Value="0"/>
-        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="0,4"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="materialDesign:TextFieldAssist.HasClearButton" Value="True"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
+        <Setter Property="materialDesign:TextFieldAssist.UnderlineBrush" Value="{StaticResource PrimaryPurpleBrush}"/>
+        <Setter Property="materialDesign:HintAssist.IsFloating" Value="True"/>
     </Style>
 
-    <Style TargetType="ComboBox" BasedOn="{StaticResource MaterialDesignComboBox}">
+    <Style TargetType="ComboBox" BasedOn="{StaticResource MaterialDesignFloatingHintComboBox}">
+        <Setter Property="Height" Value="Auto"/>
+        <Setter Property="MinHeight" Value="40"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Padding" Value="0,4"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
+        <Setter Property="materialDesign:TextFieldAssist.UnderlineBrush" Value="{StaticResource PrimaryPurpleBrush}"/>
+        <Setter Property="materialDesign:HintAssist.IsFloating" Value="True"/>
     </Style>
 
-    <Style TargetType="DatePicker" BasedOn="{StaticResource MaterialDesignDatePicker}">
+    <Style TargetType="DatePicker" BasedOn="{StaticResource MaterialDesignFloatingHintDatePicker}">
+        <Setter Property="Height" Value="Auto"/>
+        <Setter Property="MinHeight" Value="40"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Padding" Value="0,4"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
+        <Setter Property="materialDesign:TextFieldAssist.UnderlineBrush" Value="{StaticResource PrimaryPurpleBrush}"/>
+        <Setter Property="materialDesign:HintAssist.IsFloating" Value="True"/>
     </Style>
+
+    <Style TargetType="PasswordBox" BasedOn="{StaticResource MaterialDesignFloatingHintPasswordBox}">
+        <Setter Property="Height" Value="Auto"/>
+        <Setter Property="MinHeight" Value="40"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Padding" Value="0,4"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
+        <Setter Property="materialDesign:TextFieldAssist.UnderlineBrush" Value="{StaticResource PrimaryPurpleBrush}"/>
+        <Setter Property="materialDesign:HintAssist.IsFloating" Value="True"/>
+    </Style>
+
 </ResourceDictionary>

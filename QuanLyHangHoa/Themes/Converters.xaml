@@ -5,10 +5,13 @@
     <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
     <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
     <converters:InverseBooleanConverter x:Key="InverseBooleanConverter" />
+    <converters:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
     <converters:BooleanToStatusConverter x:Key="BooleanToStatusConverter" />
     <converters:SafePackIconKindConverter x:Key="SafePackIconKindConverter" />
     <converters:BooleanToIconConverter x:Key="BooleanToIconConverter" />
     <converters:RowIndexConverter x:Key="RowIndexConverter" />
     <converters:StockSumConverter x:Key="StockSumConverter" />
-    <converters:StatusToBrushConverter x:Key="StatusToBrushConverter" />
+    <converters:StatusToBgBrushConverter x:Key="StatusToBgBrushConverter" />
+    <converters:StatusToFgBrushConverter x:Key="StatusToFgBrushConverter" />
+    <converters:StatusToTextConverter x:Key="StatusToTextConverter" />
 </ResourceDictionary>

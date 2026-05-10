@@ -35,7 +35,10 @@ Material Design in XAML không có palette `Slate`. Dùng màu hex tự khai bá
 
 Nếu dùng `BasedOn="{StaticResource MaterialDesignFlatMidPrimaryButton}"` hay bất kỳ key nào không có trong project, app sẽ throw `XamlParseException` lúc runtime. Chỉ dùng các style key đã được định nghĩa trong `Themes/`.
 
-Các style key hợp lệ hiện tại: `AppPrimaryButton`, `AppSecondaryButton`, `AppDangerButton`, `AppCard`, `AppTextBox`, `AppComboBoxStyle`.
+Các style key hợp lệ hiện tại: `AppPrimaryButton`, `AppSecondaryButton`, `AppDangerButton`, `AppCard`, `AppTextBoxStyle`, `AppComboBoxStyle`, `AppDatePickerStyle`.
+
+- **CẤM**: Không dùng `MaterialDesignOutlinedTextBox`, `MaterialDesignOutlinedComboBox`, `MaterialDesignOutlinedDatePicker` hoặc các style dạng hộp (boxed) trừ khi có yêu cầu đặc biệt.
+- **MẶC ĐỊNH (Implicit)**: Từ phiên bản hiện tại, các style `AppTextBoxStyle`, `AppComboBoxStyle`, `AppDatePickerStyle` đã được thiết lập làm **Style mặc định (Implicit Style)** cho toàn bộ ứng dụng. Các control `TextBox`, `ComboBox`, `DatePicker` sẽ tự động nhận style gạch chân (no-box) mà không cần khai báo `Style="{StaticResource ...}"`.
 
 ### 0.4 Dùng PackIcon với fallback strategy
 
@@ -501,7 +504,7 @@ Trong thiết kế "Pro Max", thanh tìm kiếm nằm trong card table, phía tr
 - **Loại bỏ nút Reset/Lọc**: Tuyệt đối không dùng nút "Lọc" hoặc "Reset". Dữ liệu phải được tự động lọc ngay khi người dùng nhập liệu bằng cách sử dụng Binding `UpdateSourceTrigger=PropertyChanged` kết hợp với logic xử lý trong `OnSearch...Changed` của ViewModel.
 - **Đồng bộ chiều cao & Style**: 
   - Tất cả các control (`TextBox`, `ComboBox`, `DatePicker`, `Button`) phải có `Height="32"`.
-  - `TextBox` tìm kiếm sử dụng style **Underline** (không có viền hộp - boxed), gán `materialDesign:TextFieldAssist.HasClearButton="True"`.
+  - Sử dụng style **Underline** (không có viền hộp - boxed), gán `materialDesign:TextFieldAssist.HasClearButton="True"` cho TextBox. Đây là style mặc định cho toàn bộ ứng dụng.
 - **Nút Xuất Excel**:
   - Style: `{StaticResource AppPrimaryButton}` (Solid style).
   - Content: "XUẤT EXCEL" (In hoa).
@@ -617,6 +620,15 @@ Bảng là thành phần quan trọng nhất. Cần giữ mật độ giống �
 | Border radius container | 5-6px |
 | Font size | 13-14px |
 
+### 11.2 Căn lề dữ liệu (Bắt buộc)
+
+Để đảm bảo tính chuyên nghiệp và dễ đọc cho dữ liệu tài chính/kho bãi, áp dụng các style căn lề sau:
+
+- **Số lượng, Đơn giá, Thành tiền**: Luôn căn lề **PHẢI** (`ElementStyle="{StaticResource DataGridTextRight}"`).
+- **Mã, Ngày tháng, Đơn vị tính, Trạng thái**: Luôn căn lề **GIỮA** (`ElementStyle="{StaticResource DataGridTextCenter}"`).
+- **Tên, Diễn giải, Nội dung**: Căn lề **TRÁI** (Mặc định).
+- **Căn dọc**: Toàn bộ các ô trong hàng phải được căn giữa theo chiều dọc (`VerticalAlignment="Center"`). Các `ElementStyle` chuẩn (`DataGridTextCenter`, `DataGridTextRight`) đã bao gồm thiết lập này.
+
 ### 11.2 Header
 
 - Header text màu `#6F667C`.
@@ -665,11 +677,14 @@ Status chip xuất hiện trong nhiều bảng. Cần nhất quán.
 
 ```text
 Height: 20-22px
-Padding: 4px 8px
-Radius: 4-5px
-Font size: 12px
-Font weight: 600
+Padding: 2px 8px
+CornerRadius: 4px
+Font size: 10px
+Font weight: Bold
+VerticalAlignment: Center
 ```
+
+Quy tắc: Badge phải ôm sát nội dung, không quá to so với text trong bảng. Sử dụng `StatusToBgBrushConverter` và `StatusToTextConverter` để đồng bộ màu sắc và ngôn ngữ (Tiếng Việt).
 
 ### Mapping trạng thái
 

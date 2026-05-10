@@ -17,36 +17,12 @@
                 <ResourceDictionary Source="Themes/Radius.xaml" />
                 <ResourceDictionary Source="Themes/Buttons.xaml" />
                 <ResourceDictionary Source="Themes/Inputs.xaml" />
+                <ResourceDictionary Source="Themes/DataGridStyles.xaml" />
                 <ResourceDictionary Source="Themes/Tables.xaml" />
                 <ResourceDictionary Source="Themes/Cards.xaml" />
                 <ResourceDictionary Source="Themes/Dialogs.xaml" />
                 <ResourceDictionary Source="Themes/Navigation.xaml" />
             </ResourceDictionary.MergedDictionaries>
-            <!-- DATA GRID CUSTOM COLUMN STYLES -->
-            <Style x:Key="MaterialDesignDataGridTextColumnElementStyle" TargetType="TextBlock" BasedOn="{StaticResource MaterialDesignDataGridTextColumnStyle}">
-                <Setter Property="VerticalAlignment" Value="Center"/>
-                <Setter Property="Padding" Value="8,4"/>
-                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
-                <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}"/>
-            </Style>
-
-            <Style x:Key="MaterialDesignDataGridTextColumnCenterElementStyle" TargetType="TextBlock" BasedOn="{StaticResource MaterialDesignDataGridTextColumnElementStyle}">
-                <Setter Property="HorizontalAlignment" Value="Center"/>
-                <Setter Property="TextAlignment" Value="Center"/>
-            </Style>
-
-            <Style x:Key="MaterialDesignDataGridTextColumnRightElementStyle" TargetType="TextBlock" BasedOn="{StaticResource MaterialDesignDataGridTextColumnElementStyle}">
-                <Setter Property="HorizontalAlignment" Value="Right"/>
-                <Setter Property="TextAlignment" Value="Right"/>
-            </Style>
-
-            <Style x:Key="MaterialDesignDataGridTextColumnEditingElementStyle" TargetType="TextBox" BasedOn="{StaticResource MaterialDesignDataGridTextColumnEditingStyle}">
-                <Setter Property="VerticalAlignment" Value="Center"/>
-                <Setter Property="Padding" Value="8,4"/>
-                <Setter Property="BorderThickness" Value="0"/>
-                <Setter Property="Background" Value="Transparent"/>
-            </Style>
-
         </ResourceDictionary>
     </Application.Resources>
 </Application>

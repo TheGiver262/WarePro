@@ -16,11 +16,45 @@ namespace QuanLyHangHoa.Services
             _contextFactory = contextFactory;
         }
 
-        public void SaveSalesInvoice(SalesInvoice invoice)
+         public void SaveSalesInvoice(SalesInvoice invoice)
         {
             CalculateSalesInvoice(invoice);
             using var db = _contextFactory();
-            db.SalesInvoices.Add(invoice);
+            
+            if (invoice.Id == 0)
+            {
+                db.SalesInvoices.Add(invoice);
+            }
+            else
+            {
+                // Ensure no other instance is tracked for this ID
+                var local = db.SalesInvoices.Local.FirstOrDefault(i => i.Id == invoice.Id);
+                if (local != null) db.Entry(local).State = EntityState.Detached;
+
+                // Load existing with lines to clear them properly
+                var existing = db.SalesInvoices.Include(i => i.Lines).FirstOrDefault(i => i.Id == invoice.Id);
+                if (existing != null)
+                {
+                    // Remove old lines
+                    if (existing.Lines != null)
+                        db.SalesInvoiceLines.RemoveRange(existing.Lines);
+                    
+                    // Update main properties
+                    db.Entry(existing).CurrentValues.SetValues(invoice);
+                    
+                    // Add new lines
+                    foreach (var line in invoice.Lines ?? new List<SalesInvoiceLine>())
+                    {
+                        line.SalesInvoiceId = invoice.Id;
+                        line.Id = 0; // Ensure they are added
+                        db.SalesInvoiceLines.Add(line);
+                    }
+                }
+                else
+                {
+                    db.SalesInvoices.Update(invoice);
+                }
+            }
             db.SaveChanges();
         }
 
@@ -28,7 +62,41 @@ namespace QuanLyHangHoa.Services
         {
             CalculatePurchaseInvoice(invoice);
             using var db = _contextFactory();
-            db.PurchaseInvoices.Add(invoice);
+            
+            if (invoice.Id == 0)
+            {
+                db.PurchaseInvoices.Add(invoice);
+            }
+            else
+            {
+                // Ensure no other instance is tracked for this ID
+                var local = db.PurchaseInvoices.Local.FirstOrDefault(i => i.Id == invoice.Id);
+                if (local != null) db.Entry(local).State = EntityState.Detached;
+
+                // Load existing with lines to clear them properly
+                var existing = db.PurchaseInvoices.Include(i => i.Lines).FirstOrDefault(i => i.Id == invoice.Id);
+                if (existing != null)
+                {
+                    // Remove old lines
+                    if (existing.Lines != null)
+                        db.PurchaseInvoiceLines.RemoveRange(existing.Lines);
+                    
+                    // Update main properties
+                    db.Entry(existing).CurrentValues.SetValues(invoice);
+                    
+                    // Add new lines
+                    foreach (var line in invoice.Lines ?? new List<PurchaseInvoiceLine>())
+                    {
+                        line.PurchaseInvoiceId = invoice.Id;
+                        line.Id = 0; // Ensure they are added
+                        db.PurchaseInvoiceLines.Add(line);
+                    }
+                }
+                else
+                {
+                    db.PurchaseInvoices.Update(invoice);
+                }
+            }
             db.SaveChanges();
         }
 
@@ -54,14 +122,14 @@ namespace QuanLyHangHoa.Services
         private static void UpdateSalesPaymentStatus(SalesInvoice invoice)
         {
             if (invoice.PaidAmount >= invoice.GrandTotal && invoice.GrandTotal > 0)
-                invoice.PaymentStatus = "Đã thanh toán";
+                invoice.PaymentStatus = "Paid";
             else if (invoice.PaidAmount > 0)
-                invoice.PaymentStatus = "Thanh toán một phần";
+                invoice.PaymentStatus = "Partial";
             else
-                invoice.PaymentStatus = "Chưa thanh toán";
+                invoice.PaymentStatus = "Unpaid";
 
-            if (invoice.PaymentStatus != "Đã thanh toán" && invoice.DueDate.HasValue && invoice.DueDate.Value.Date < DateTime.Today)
-                invoice.PaymentStatus = "Quá hạn";
+            if (invoice.PaymentStatus != "Paid" && invoice.DueDate.HasValue && invoice.DueDate.Value.Date < DateTime.Today)
+                invoice.PaymentStatus = "Overdue";
         }
 
         private static void CalculatePurchaseInvoice(PurchaseInvoice invoice)
@@ -86,14 +154,14 @@ namespace QuanLyHangHoa.Services
         private static void UpdatePurchasePaymentStatus(PurchaseInvoice invoice)
         {
             if (invoice.PaidAmount >= invoice.GrandTotal && invoice.GrandTotal > 0)
-                invoice.PaymentStatus = "Đã thanh toán";
+                invoice.PaymentStatus = "Paid";
             else if (invoice.PaidAmount > 0)
-                invoice.PaymentStatus = "Thanh toán một phần";
+                invoice.PaymentStatus = "Partial";
             else
-                invoice.PaymentStatus = "Chưa thanh toán";
+                invoice.PaymentStatus = "Unpaid";
 
-            if (invoice.PaymentStatus != "Đã thanh toán" && invoice.DueDate.HasValue && invoice.DueDate.Value.Date < DateTime.Today)
-                invoice.PaymentStatus = "Quá hạn";
+            if (invoice.PaymentStatus != "Paid" && invoice.DueDate.HasValue && invoice.DueDate.Value.Date < DateTime.Today)
+                invoice.PaymentStatus = "Overdue";
         }
 
         private static void CalculateLine(

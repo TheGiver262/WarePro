@@ -70,8 +70,11 @@ namespace QuanLyHangHoa.Services
             stats.RevenueMonth = salesMonth.Sum(s => s.GrandTotal);
 
             // Unpaid Invoices
-            stats.UnpaidSalesInvoiceCount = await context.SalesInvoices.CountAsync();
-            stats.UnpaidPurchaseInvoiceCount = await context.PurchaseInvoices.CountAsync();
+            // Unpaid Invoices (Unpaid / Partial - stored as English in DB)
+            stats.UnpaidSalesInvoiceCount = await context.SalesInvoices
+                .CountAsync(s => s.PaymentStatus == "Unpaid" || s.PaymentStatus == "Partial" || s.PaymentStatus == "Overdue");
+            stats.UnpaidPurchaseInvoiceCount = await context.PurchaseInvoices
+                .CountAsync(p => p.PaymentStatus == "Unpaid" || p.PaymentStatus == "Partial" || p.PaymentStatus == "Overdue");
 
             // Warranty
             stats.WarrantyActiveCount = await context.WarrantyClaims

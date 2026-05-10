@@ -22,20 +22,20 @@
                         
                         <TextBlock Text="THÔNG TIN CỬA HÀNG" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppTertiaryBrush}" Margin="{StaticResource Margin.Bottom.lg}"/>
                         
-                        <TextBox Text="{Binding StoreName}" Style="{StaticResource MaterialDesignOutlinedTextBox}" 
+                        <TextBox Text="{Binding StoreName}" 
                                  materialDesign:HintAssist.Hint="Tên cửa hàng / Công ty" FontSize="14" Margin="{StaticResource Margin.Bottom.md}"/>
                         
-                        <TextBox Text="{Binding StoreAddress}" Style="{StaticResource MaterialDesignOutlinedTextBox}" 
+                        <TextBox Text="{Binding StoreAddress}" 
                                  materialDesign:HintAssist.Hint="Địa chỉ liên hệ" FontSize="14" Margin="{StaticResource Margin.Bottom.md}"/>
                         
-                        <TextBox Text="{Binding StorePhone}" Style="{StaticResource MaterialDesignOutlinedTextBox}" 
+                        <TextBox Text="{Binding StorePhone}" 
                                  materialDesign:HintAssist.Hint="Số điện thoại" FontSize="14" Margin="{StaticResource Margin.Bottom.lg}"/>
 
                         <Separator Margin="{StaticResource Margin.Bottom.lg}" Background="{StaticResource AppBorderBrush}"/>
 
                         <TextBlock Text="CẤU HÌNH HÓA ĐƠN" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppTertiaryBrush}" Margin="{StaticResource Margin.Bottom.lg}"/>
                         
-                        <TextBox Text="{Binding InvoiceFooter}" Style="{StaticResource MaterialDesignOutlinedTextBox}" 
+                        <TextBox Text="{Binding InvoiceFooter}" 
                                  materialDesign:HintAssist.Hint="Lời chúc / Ghi chú chân trang hóa đơn" 
                                  Height="100" TextWrapping="Wrap" AcceptsReturn="True" FontSize="14" Margin="{StaticResource Margin.Bottom.lg}"/>
 

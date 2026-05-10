@@ -46,22 +46,36 @@ namespace QuanLyHangHoa.ViewModels
 
         [ObservableProperty] private string _invoiceCode = string.Empty;
         [ObservableProperty] private Supplier? _selectedSupplier;
+        [ObservableProperty] private StockIn? _selectedStockIn;
         [ObservableProperty] private DateTime _invoiceDate = DateTime.Now;
         [ObservableProperty] private DateTime? _dueDate;
         [ObservableProperty] private decimal _paidAmount;
+        [ObservableProperty] private string _selectedPaymentStatus = "Chưa TT";
         [ObservableProperty] private string _notes = string.Empty;
+        
+        [ObservableProperty] private ObservableCollection<StockIn> _availableStockIns = new();
         
         [ObservableProperty] private decimal _totalPurchaseAmount;
         [ObservableProperty] private int _totalPurchaseCount;
-        [ObservableProperty] private string _searchText = string.Empty;
+        [ObservableProperty] private string _searchInvoiceCode = string.Empty;
+        [ObservableProperty] private string _searchSupplierName = string.Empty;
         [ObservableProperty] private int _selectedTabIndex = 0; // 0: List, 1: Create
         [ObservableProperty] private DateTime? _filterStartDate;
         [ObservableProperty] private DateTime? _filterEndDate;
         [ObservableProperty] private string? _selectedFilterPaymentStatus;
         [ObservableProperty] private string? _filterLinkDocCode;
-        [ObservableProperty] private ObservableCollection<string> _availablePaymentStatuses = new() { "Tất cả", "Chưa thanh toán", "Thanh toán một phần", "Đã thanh toán", "Quá hạn" };
+        [ObservableProperty] private ObservableCollection<string> _availablePaymentStatuses = new() { "Tất cả", "Chưa TT", "TT 1 phần", "Đã TT", "Quá hạn" };
+
+        partial void OnSearchInvoiceCodeChanged(string value) => LoadData();
+        partial void OnSearchSupplierNameChanged(string value) => LoadData();
+        partial void OnFilterStartDateChanged(DateTime? value) => LoadData();
+        partial void OnFilterEndDateChanged(DateTime? value) => LoadData();
+        partial void OnSelectedFilterPaymentStatusChanged(string? value) => LoadData();
+        partial void OnFilterLinkDocCodeChanged(string? value) => LoadData();
 
         [ObservableProperty] [NotifyPropertyChangedFor(nameof(FormRemainingAmount))] private decimal _formTotalAmount;
+        [ObservableProperty] private decimal _formSubTotal;
+        [ObservableProperty] private decimal _formTaxAmount;
         public decimal FormRemainingAmount => FormTotalAmount - PaidAmount;
 
         private readonly MainViewModel? _mainViewModel;
@@ -92,8 +106,9 @@ namespace QuanLyHangHoa.ViewModels
             };
             
             LoadData();
-            ResetForm();
+            InitializeForm(); // Init form fields without switching tab
             SelectedFilterPaymentStatus = "Tất cả";
+            SelectedTabIndex = 0; // Always start on list tab
         }
 
         private void OnLineItemPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -106,6 +121,8 @@ namespace QuanLyHangHoa.ViewModels
 
         private void RecalculateTotal()
         {
+            FormSubTotal = Lines.Sum(l => l.Quantity * l.UnitPrice);
+            FormTaxAmount = Lines.Sum(l => l.Quantity * l.UnitPrice * l.TaxRate);
             FormTotalAmount = Lines.Sum(l => l.TotalPrice);
         }
 
@@ -117,15 +134,21 @@ namespace QuanLyHangHoa.ViewModels
             AvailableProducts = new ObservableCollection<Product>(_productService.GetAllProducts());
             AvailableSuppliers = new ObservableCollection<Supplier>(_refDataService.GetAllSuppliers());
             
+            using (var context = _mainViewModel?.ContextFactory?.Invoke() ?? new QuanLyHangHoa.Data.AppDbContext())
+            {
+                AvailableStockIns = new ObservableCollection<StockIn>(context.StockIns.ToList());
+            }
             var allInvoices = _invoiceService.GetAllPurchaseInvoices();
 
             // Apply Filters
-            if (!string.IsNullOrWhiteSpace(SearchText))
+            if (!string.IsNullOrWhiteSpace(SearchInvoiceCode))
             {
-                allInvoices = allInvoices.Where(i => 
-                    (i.InvoiceCode != null && i.InvoiceCode.Contains(SearchText, StringComparison.OrdinalIgnoreCase)) ||
-                    (i.Supplier != null && i.Supplier.DisplayName != null && i.Supplier.DisplayName.Contains(SearchText, StringComparison.OrdinalIgnoreCase))
-                ).ToList();
+                allInvoices = allInvoices.Where(i => i.InvoiceCode != null && i.InvoiceCode.Contains(SearchInvoiceCode, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+
+            if (!string.IsNullOrWhiteSpace(SearchSupplierName))
+            {
+                allInvoices = allInvoices.Where(i => i.Supplier != null && i.Supplier.DisplayName != null && i.Supplier.DisplayName.Contains(SearchSupplierName, StringComparison.OrdinalIgnoreCase)).ToList();
             }
 
             if (FilterStartDate.HasValue)
@@ -140,7 +163,8 @@ namespace QuanLyHangHoa.ViewModels
 
             if (SelectedFilterPaymentStatus != "Tất cả" && !string.IsNullOrEmpty(SelectedFilterPaymentStatus))
             {
-                allInvoices = allInvoices.Where(i => i.PaymentStatus == SelectedFilterPaymentStatus).ToList();
+                var englishStatus = StatusToEnglish(SelectedFilterPaymentStatus);
+                allInvoices = allInvoices.Where(i => i.PaymentStatus == englishStatus).ToList();
             }
 
             if (!string.IsNullOrWhiteSpace(FilterLinkDocCode))
@@ -179,66 +203,169 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
+        [ObservableProperty] private bool _isViewMode;
+        [ObservableProperty] private bool _isEditMode;
+        private PurchaseInvoice? _editingInvoice;
+
         [RelayCommand]
-        private void SaveInvoice()
+        private void ViewInvoice(PurchaseInvoice? invoice)
         {
-            if (SelectedSupplier == null)
-            {
-                MessageBox.Show("Vui lòng chọn nhà cung cấp!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            if (!Lines.Any(l => l.SelectedProduct != null))
-            {
-                MessageBox.Show("Vui lòng thêm ít nhất một mặt hàng hợp lệ!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            try
-            {
-                var invoice = new PurchaseInvoice
-                {
-                    InvoiceCode = InvoiceCode,
-                    SupplierId = SelectedSupplier.Id,
-                    InvoiceDate = InvoiceDate,
-                    DueDate = DueDate,
-                    PaidAmount = PaidAmount,
-                    Notes = Notes,
-                    CreatedAt = DateTime.Now,
-                    CreatedBy = _mainViewModel?.CurrentUser?.Id ?? 1,
-                    Lines = Lines.Where(l => l.SelectedProduct != null).Select(l => new PurchaseInvoiceLine
-                    {
-                        ProductId = l.SelectedProduct!.Id,
-                        Quantity = l.Quantity,
-                        UnitPrice = l.UnitPrice,
-                        TaxRate = l.TaxRate
-                    }).ToList()
-                };
-
-                _invoiceService.SavePurchaseInvoice(invoice);
-                MessageBox.Show("Lưu hóa đơn mua hàng thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
-                LoadData();
-                ResetForm();
-                SelectedTabIndex = 0; // Back to list
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Lỗi khi lưu hóa đơn: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            if (invoice == null) return;
+            _editingInvoice = invoice;
+            PopulateForm(invoice);
+            IsViewMode = true;
+            IsEditMode = false;
+            SelectedTabIndex = 1; // Switch to form tab
         }
 
         [RelayCommand]
-        private void ResetForm()
+        private void EditInvoice(PurchaseInvoice? invoice)
         {
+            if (invoice == null) return;
+            _editingInvoice = invoice;
+            PopulateForm(invoice);
+            IsViewMode = false;
+            IsEditMode = true;
+            SelectedTabIndex = 1; // Switch to form tab
+        }
+
+        private void PopulateForm(PurchaseInvoice invoice)
+        {
+            InvoiceCode = invoice.InvoiceCode;
+            SelectedSupplier = AvailableSuppliers.FirstOrDefault(s => s.Id == invoice.SupplierId);
+            InvoiceDate = invoice.InvoiceDate;
+            DueDate = invoice.DueDate ?? DateTime.Now;
+            PaidAmount = invoice.PaidAmount;
+            SelectedStockIn = AvailableStockIns.FirstOrDefault(s => s.Id == invoice.StockInId);
+            SelectedPaymentStatus = invoice.PaymentStatus ?? "Chưa TT";
+            Notes = invoice.Notes ?? string.Empty;
+            
+            Lines.Clear();
+            if (invoice.Lines != null)
+            {
+                foreach (var line in invoice.Lines)
+                {
+                    Lines.Add(new PurchaseInvoiceLineEditor
+                    {
+                        SelectedProduct = AvailableProducts.FirstOrDefault(p => p.Id == line.ProductId),
+                        Quantity = line.Quantity,
+                        UnitPrice = line.UnitPrice,
+                        TaxRate = line.TaxRate
+                    });
+                }
+            }
+            RecalculateTotal();
+        }
+
+        [RelayCommand]
+        private void SaveInvoice()
+        {
+            if (IsViewMode) return;
+            try
+            {
+                if (SelectedSupplier == null)
+                {
+                    MessageBox.Show("Vui lòng chọn nhà cung cấp!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                if (!Lines.Any(l => l.SelectedProduct != null))
+                {
+                    MessageBox.Show("Vui lòng thêm ít nhất một sản phẩm!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                var invoice = _editingInvoice ?? new PurchaseInvoice();
+                invoice.InvoiceCode = InvoiceCode;
+                invoice.SupplierId = SelectedSupplier.Id;
+                invoice.StockInId = SelectedStockIn?.Id;
+                invoice.InvoiceDate = InvoiceDate;
+                invoice.DueDate = DueDate;
+                invoice.PaidAmount = PaidAmount;
+                invoice.PaymentStatus = StatusToEnglish(SelectedPaymentStatus);
+                invoice.Notes = Notes;
+                
+                // Set audit fields
+                if (invoice.Id == 0)
+                {
+                    invoice.CreatedAt = DateTime.Now;
+                    invoice.CreatedBy = _mainViewModel?.CurrentUser?.Id ?? 1; // Default to admin if user not found
+                }
+
+                // IMPORTANT: Clear navigation properties to avoid EF tracking issues with detached entities
+                invoice.Supplier = null!;
+                invoice.StockIn = null;
+                invoice.Creator = null!;
+
+                // Map lines
+                invoice.Lines = Lines.Where(l => l.SelectedProduct != null).Select(l => new PurchaseInvoiceLine
+                {
+                    Id = 0, // Always 0 for simplicity if we replace the collection, 
+                            // though better handling would be needed for true updates
+                    ProductId = l.SelectedProduct!.Id,
+                    UnitId = l.SelectedProduct!.DefaultUnitId,
+                    Quantity = l.Quantity,
+                    UnitPrice = l.UnitPrice,
+                    TaxRate = l.TaxRate,
+                    PurchaseInvoiceId = invoice.Id
+                }).ToList();
+
+                _invoiceService.SavePurchaseInvoice(invoice);
+
+                MessageBox.Show("Lưu hoá đơn thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                ResetForm();
+                LoadData();
+                SelectedTabIndex = 0;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi lưu hoá đơn: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        /// <summary>Initializes form fields without switching the active tab. Used on ViewModel init.</summary>
+        private void InitializeForm()
+        {
+            _editingInvoice = null;
+            IsViewMode = false;
+            IsEditMode = false;
             InvoiceCode = $"PINV-{DateTime.Now:yyyyMMddHHmmss}";
             SelectedSupplier = null;
             InvoiceDate = DateTime.Now;
-            DueDate = DateTime.Now.AddDays(30);
+            DueDate = DateTime.Now.AddDays(7);
             PaidAmount = 0;
+            SelectedStockIn = null;
+            SelectedPaymentStatus = "Chưa TT";
             Notes = string.Empty;
             Lines.Clear();
             AddLine();
             OnPropertyChanged(nameof(FormTotalAmount));
+        }
+
+        [RelayCommand]
+        public void ResetForm()
+        {
+            InitializeForm();
+            SelectedTabIndex = 1; // Explicitly switch to form tab when user creates new
+        }
+
+        private string StatusToEnglish(string vietnameseStatus)
+        {
+            return vietnameseStatus switch
+            {
+                "Chưa TT" => "Unpaid",
+                "TT 1 phần" => "Partial",
+                "Đã TT" => "Paid",
+                "Quá hạn" => "Overdue",
+                _ => "Unpaid"
+            };
+        }
+
+        [RelayCommand]
+        private void PrintInvoice(PurchaseInvoice? invoice)
+        {
+            if (invoice == null) return;
+            MessageBox.Show($"In hoá đơn {invoice.InvoiceCode} (Chức năng đang phát triển)", "Thông báo");
         }
     }
 }

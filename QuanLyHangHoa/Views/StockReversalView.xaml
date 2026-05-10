@@ -36,7 +36,7 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <TextBox Grid.Column="0" Style="{StaticResource MaterialDesignOutlinedTextBox}" 
+                    <TextBox Grid.Column="0" 
                               materialDesign:HintAssist.Hint="Mã chứng từ (DocumentId) cần đảo" Margin="{StaticResource Margin.Right.md}"
                               Text="{Binding DocumentIdText, UpdateSourceTrigger=PropertyChanged}">
                         <TextBox.InputBindings>
@@ -44,7 +44,7 @@
                         </TextBox.InputBindings>
                     </TextBox>
 
-                    <TextBox Grid.Column="1" Style="{StaticResource MaterialDesignOutlinedTextBox}" 
+                    <TextBox Grid.Column="1" 
                               materialDesign:HintAssist.Hint="Lý do đảo chứng từ" Margin="{StaticResource Margin.Right.md}"
                               Text="{Binding Reason, UpdateSourceTrigger=PropertyChanged}"/>
 

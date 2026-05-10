@@ -50,43 +50,43 @@ namespace QuanLyHangHoa.Services.DataImport
                 var log = new System.Text.StringBuilder();
 
                 // 1. Units
-                await SeedTableWithMappingAsync<Unit>(workbook, "\u0110\u01A1n v\u1ECB t\u00EDnh", "UnitCode", "id", (row, item) =>
+                await SeedTableWithMappingAsync<Unit>(workbook, "Unit", "UnitCode", "Id", (row, item) =>
                 {
                     item.UnitCode = row.GetString("UnitCode") ?? "UNT";
-                    item.DisplayName = row.GetString("DisplayName") ?? "\u0110\u01A1n v\u1ECB";
+                    item.DisplayName = row.GetString("DisplayName") ?? "Đơn vị";
                     item.IsActive = true;
                 }, _unitMap, log);
 
                 // 2. Categories
-                await SeedTableWithMappingAsync<Category>(workbook, "Lo\u1EA1i h\u00E0ng", "CategoryCode", "id", (row, item) =>
+                await SeedTableWithMappingAsync<Category>(workbook, "Category", "CategoryCode", "Id", (row, item) =>
                 {
                     item.CategoryCode = row.GetString("CategoryCode") ?? "CAT";
-                    item.DisplayName = row.GetString("DisplayName") ?? "Nh\u00F3m h\u00E0ng";
+                    item.DisplayName = row.GetString("DisplayName") ?? "Nhóm hàng";
                     item.IsActive = true;
                 }, _categoryMap, log);
 
                 // 3. Brands
-                await SeedTableWithMappingAsync<Brand>(workbook, "Th\u01B0\u01A1ng hi\u1EC7u", "BrandCode", "id", (row, item) =>
+                await SeedTableWithMappingAsync<Brand>(workbook, "Brand", "BrandCode", "Id", (row, item) =>
                 {
                     item.BrandCode = row.GetString("BrandCode") ?? "BRD";
-                    item.DisplayName = row.GetString("DisplayName") ?? "Th\u01B0\u01A1ng hi\u1EC7u";
+                    item.DisplayName = row.GetString("DisplayName") ?? "Thương hiệu";
                     item.OriginCountry = TranslateOrigin(row.GetString("Origin") ?? row.GetString("OriginCountry") ?? row.GetString("XuatXu"));
                     item.IsActive = true;
                 }, _brandMap, log);
 
                 // 4. Suppliers
-                await SeedTableWithMappingAsync<Supplier>(workbook, "Nh\u00E0 cung c\u1EA5p", "SupplierCode", "id", (row, item) =>
+                await SeedTableWithMappingAsync<Supplier>(workbook, "Supplier", "SupplierCode", "Id", (row, item) =>
                 {
                     item.SupplierCode = row.GetString("SupplierCode") ?? "SUP";
-                    item.DisplayName = row.GetString("DisplayName") ?? "Nh\u00E0 cung c\u1EA5p";
+                    item.DisplayName = row.GetString("DisplayName") ?? "Nhà cung cấp";
                     item.IsActive = true;
                 }, _supplierMap, log);
 
                 // 5. Customers
-                await SeedTableWithMappingAsync<Customer>(workbook, "Kh\u00E1ch h\u00E0ng", "CustomerCode", "id", (row, item) =>
+                await SeedTableWithMappingAsync<Customer>(workbook, "Customer", "CustomerCode", "Id", (row, item) =>
                 {
                     item.CustomerCode = row.GetString("CustomerCode") ?? "CUS";
-                    item.DisplayName = row.GetString("DisplayName") ?? "Kh\u00E1ch h\u00E0ng";
+                    item.DisplayName = row.GetString("DisplayName") ?? "Khách hàng";
                     item.IsActive = true;
                 }, _customerMap, log);
 
@@ -100,16 +100,16 @@ namespace QuanLyHangHoa.Services.DataImport
                 }
 
                 // 6. Products
-                await SeedTableWithMappingAsync<Product>(workbook, "S\u1EA3n ph\u1EA9m", "ProductCode", "id", (row, item) =>
+                await SeedTableWithMappingAsync<Product>(workbook, "Product", "ProductCode", "Id", (row, item) =>
                 {
                     item.ProductCode = row.GetString("ProductCode") ?? "PROD";
-                    item.DisplayName = row.GetString("DisplayName") ?? "S\u1EA3n ph\u1EA9m";
+                    item.DisplayName = row.GetString("DisplayName") ?? "Sản phẩm";
                     item.Description = row.GetString("Description");
-                    item.CostPrice = row.GetDecimal("CostPrice");
-                    item.DefaultPrice = row.GetDecimal("SalePrice") ?? 0;
-                    item.IsActive = row.GetString("IsActive")?.ToLower() == "true";
-                    item.IsSerialTracked = row.GetString("TrackSerial")?.ToLower() == "true";
-                    item.WarrantyPeriodMonths = (int)(row.GetDouble("WarrantyMonths") ?? 12);
+                    item.CostPrice = row.GetDecimal("CostPrice") ?? 0;
+                    item.DefaultPrice = row.GetDecimal("SalePrice") ?? row.GetDecimal("DefaultPrice") ?? 0;
+                    item.IsActive = row.GetString("IsActive")?.ToLower() == "true" || row.GetString("IsActive") == "1";
+                    item.IsSerialTracked = row.GetString("TrackSerial")?.ToLower() == "true" || row.GetString("IsSerialTracked") == "1";
+                    item.WarrantyPeriodMonths = (int)(row.GetDouble("WarrantyMonths") ?? row.GetDouble("WarrantyPeriodMonths") ?? 12);
                     item.OriginCountry = TranslateOrigin(row.GetString("Origin") ?? row.GetString("OriginCountry") ?? row.GetString("XuatXu"));
                     
                     var catRef = row.GetString("CategoryId");
@@ -118,7 +118,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     var brandRef = row.GetString("BrandId");
                     item.BrandId = _brandMap.GetValueOrDefault(brandRef ?? "");
                     
-                    var unitRef = row.GetString("UnitId");
+                    var unitRef = row.GetString("UnitId") ?? row.GetString("DefaultUnitId");
                     item.DefaultUnitId = _unitMap.GetValueOrDefault(unitRef ?? "");
                     
                     if (item.CategoryId == 0) item.CategoryId = _categoryMap.Values.FirstOrDefault();
@@ -127,20 +127,20 @@ namespace QuanLyHangHoa.Services.DataImport
                 }, _productMap, log);
 
                 // 7. StockIn (Opening Balances)
-                await SeedTableWithMappingAsync<StockIn>(workbook, "Phi\u1EBFu nh\u1EADp kho", "VoucherCode", "id", (row, item) =>
+                await SeedTableWithMappingAsync<StockIn>(workbook, "StockIn", "DocumentCode", "Id", (row, item) =>
                 {
                     item.DocumentCode = row.GetString("DocumentCode") ?? row.GetString("VoucherCode") ?? "PNK";
-                    item.CreatedAt = row.GetDateTime("Ng\u00E0y nh\u1EADp") ?? row.GetDateTime("VoucherDate") ?? DateTime.Now;
+                    item.CreatedAt = row.GetDateTime("Ngày nhập") ?? row.GetDateTime("VoucherDate") ?? row.GetDateTime("CreatedAt") ?? DateTime.Now;
                     item.WarehouseId = warehouse.Id;
-                    item.Status = "Completed";
-                    item.PurposeCode = "OpeningBalance";
+                    item.Status = row.GetString("Status") ?? "Completed";
+                    item.PurposeCode = row.GetString("PurposeCode") ?? "OpeningBalance";
                     item.CreatedBy = 1;
                     var supRef = row.GetString("SupplierId");
                     if (!string.IsNullOrEmpty(supRef)) item.SupplierId = _supplierMap.GetValueOrDefault(supRef);
                 }, _stockInMap, log);
 
                 // 8. Serials (and implied lines)
-                if (workbook.Worksheets.TryGetWorksheet("Serial", out var serialSheet))
+                if (workbook.Worksheets.TryGetWorksheet("ProductSerial", out var serialSheet))
                 {
                     var serialCount = await _context.ProductSerials.CountAsync();
                     if (serialCount == 0)
@@ -157,7 +157,7 @@ namespace QuanLyHangHoa.Services.DataImport
                         foreach (var row in rows)
                         {
                             var wrapper = new ExcelRowWrapper(row, headers);
-                            string sn = wrapper.GetString("SerialCode") ?? "";
+                            string sn = wrapper.GetString("SerialNumber") ?? wrapper.GetString("SerialCode") ?? "";
                             string prodRef = wrapper.GetString("ProductId") ?? "";
                             string stockInRef = wrapper.GetString("StockInId") ?? "";
                             string stockOutRef = wrapper.GetString("StockOutId") ?? "";
@@ -201,7 +201,7 @@ namespace QuanLyHangHoa.Services.DataImport
                                     {
                                         SerialNumber = sn,
                                         ProductId = productId,
-                                        CurrentStatus = wrapper.GetString("Status") ?? (stockOutId > 0 ? "Sold" : "InStock"),
+                                        CurrentStatus = wrapper.GetString("CurrentStatus") ?? wrapper.GetString("Status") ?? (stockOutId > 0 ? "Sold" : "InStock"),
                                         Note = wrapper.GetString("Note"),
                                         CurrentWarehouseId = warehouse.Id,
                                         LastStockInLineId = line!.Id
@@ -242,10 +242,10 @@ namespace QuanLyHangHoa.Services.DataImport
                 }
 
                 // 9. StockOut
-                await SeedTableWithMappingAsync<StockOut>(workbook, "Phi\u1EBFu xu\u1EA5t kho", "VoucherCode", "id", (row, item) =>
+                await SeedTableWithMappingAsync<StockOut>(workbook, "StockOut", "DocumentCode", "Id", (row, item) =>
                 {
                     item.DocumentCode = row.GetString("DocumentCode") ?? row.GetString("VoucherCode") ?? "PXK";
-                    item.CreatedAt = row.GetDateTime("Ng\u00E0y xu\u1EA5t") ?? row.GetDateTime("VoucherDate") ?? DateTime.Now;
+                    item.CreatedAt = row.GetDateTime("Ngày xuất") ?? row.GetDateTime("VoucherDate") ?? row.GetDateTime("CreatedAt") ?? DateTime.Now;
                     item.WarehouseId = warehouse.Id;
                     item.Status = row.GetString("Status") ?? "Completed";
                     
@@ -261,26 +261,130 @@ namespace QuanLyHangHoa.Services.DataImport
                 }, _stockOutMap, log);
 
                 // 10. Purchase Invoices
-                await SeedTableWithMappingAsync<PurchaseInvoice>(workbook, "H\u00F3a \u0111\u01A1n mua", "InvoiceCode", "id", (row, item) =>
+                await SeedTableWithMappingAsync<PurchaseInvoice>(workbook, "PurchaseInvoice", "InvoiceCode", "Id", (row, item) =>
                 {
                     item.InvoiceCode = row.GetString("InvoiceCode") ?? row.GetString("Code") ?? "PIV";
-                    item.InvoiceDate = row.GetDateTime("Ng\u00E0y h\u00F3a \u0111\u01A1n") ?? row.GetDateTime("InvoiceDate") ?? DateTime.Now;
-                    item.GrandTotal = row.GetDecimal("TotalAmount") ?? 0;
+                    item.InvoiceDate = row.GetDateTime("InvoiceDate") ?? DateTime.Now;
+                    item.SubTotal = row.GetDecimal("SubTotal") ?? row.GetDecimal("TotalAmount") ?? 0;
+                    item.TaxAmount = row.GetDecimal("TaxAmount") ?? 0;
+                    item.GrandTotal = row.GetDecimal("GrandTotal") ?? row.GetDecimal("TotalAmount") ?? 0;
+                    item.PaidAmount = row.GetDecimal("PaidAmount") ?? 0;
+                    item.PaymentStatus = row.GetString("PaymentStatus") ?? "Unpaid";
+                    item.DueDate = row.GetDateTime("DueDate");
+                    item.Notes = row.GetString("Notes");
                     item.CreatedAt = DateTime.Now;
+                    item.CreatedBy = 1;
                     var supRef = row.GetString("SupplierId");
                     if (!string.IsNullOrEmpty(supRef)) item.SupplierId = _supplierMap.GetValueOrDefault(supRef);
                 }, _purchaseInvoiceMap, log);
+                Console.WriteLine($"[SEED] PurchaseInvoice map count: {_purchaseInvoiceMap.Count}");
+                
+                // 10.5 Purchase Invoice Lines
+                if (workbook.Worksheets.TryGetWorksheet("PurchaseInvoiceLine", out var piLineSheet))
+                {
+                    var existingLineCount = await _context.PurchaseInvoiceLines.CountAsync();
+                    if (existingLineCount == 0)
+                    {
+                        var rows = piLineSheet.RangeUsed()!.RowsUsed().Skip(1);
+                        var headers = piLineSheet.Row(1).CellsUsed().ToDictionary(c => c.Value.ToString().Trim(), c => c.Address.ColumnNumber, StringComparer.OrdinalIgnoreCase);
+                        int importedLines = 0;
+
+                        foreach (var row in rows)
+                        {
+                            var wrapper = new ExcelRowWrapper(row, headers);
+                            string invRef = wrapper.GetString("PurchaseInvoiceId") ?? "";
+                            int invoiceId = _purchaseInvoiceMap.GetValueOrDefault(invRef);
+                            
+                            if (invoiceId > 0)
+                            {
+                                var line = new PurchaseInvoiceLine
+                                {
+                                    PurchaseInvoiceId = invoiceId,
+                                    ProductId = _productMap.GetValueOrDefault(wrapper.GetString("ProductId") ?? ""),
+                                    UnitId = _unitMap.GetValueOrDefault(wrapper.GetString("UnitId") ?? ""),
+                                    Quantity = wrapper.GetDecimal("Quantity") ?? 1,
+                                    UnitPrice = wrapper.GetDecimal("UnitPrice") ?? 0,
+                                    SubTotal = wrapper.GetDecimal("SubTotal") ?? 0,
+                                    TaxRate = wrapper.GetDecimal("TaxRate") ?? 0,
+                                    TaxAmount = wrapper.GetDecimal("TaxAmount") ?? 0,
+                                    GrandTotal = wrapper.GetDecimal("GrandTotal") ?? 0
+                                };
+                                
+                                if (line.ProductId == 0) line.ProductId = _productMap.Values.FirstOrDefault();
+                                if (line.UnitId == 0) line.UnitId = _unitMap.Values.FirstOrDefault();
+                                
+                                _context.PurchaseInvoiceLines.Add(line);
+                                importedLines++;
+                            }
+                        }
+                        await _context.SaveChangesAsync();
+                        log.AppendLine($"Đã nạp {importedLines} dòng hóa đơn mua.");
+                    }
+                }
 
                 // 11. Sales Invoices
-                await SeedTableWithMappingAsync<SalesInvoice>(workbook, "H\u00F3a \u0111\u01A1n b\u00E1n", "InvoiceCode", "id", (row, item) =>
+                await SeedTableWithMappingAsync<SalesInvoice>(workbook, "SalesInvoice", "InvoiceCode", "Id", (row, item) =>
                 {
                     item.InvoiceCode = row.GetString("InvoiceCode") ?? row.GetString("Code") ?? "SIV";
-                    item.InvoiceDate = row.GetDateTime("Ng\u00E0y h\u00F3a \u0111\u01A1n") ?? row.GetDateTime("InvoiceDate") ?? DateTime.Now;
-                    item.GrandTotal = row.GetDecimal("TotalAmount") ?? 0;
+                    item.InvoiceDate = row.GetDateTime("InvoiceDate") ?? DateTime.Now;
+                    item.SubTotal = row.GetDecimal("SubTotal") ?? row.GetDecimal("TotalAmount") ?? 0;
+                    item.TaxAmount = row.GetDecimal("TaxAmount") ?? 0;
+                    item.GrandTotal = row.GetDecimal("GrandTotal") ?? row.GetDecimal("TotalAmount") ?? 0;
+                    item.PaidAmount = row.GetDecimal("PaidAmount") ?? 0;
+                    item.PaymentStatus = row.GetString("PaymentStatus") ?? "Unpaid";
+                    item.DueDate = row.GetDateTime("DueDate");
+                    item.Notes = row.GetString("Notes");
                     item.CreatedAt = DateTime.Now;
+                    item.CreatedBy = 1;
                     var custRef = row.GetString("CustomerId");
                     if (!string.IsNullOrEmpty(custRef)) item.CustomerId = _customerMap.GetValueOrDefault(custRef);
+                    
+                    var stockOutRef = row.GetString("StockOutId");
+                    if (!string.IsNullOrEmpty(stockOutRef)) item.StockOutId = _stockOutMap.GetValueOrDefault(stockOutRef);
                 }, _salesInvoiceMap, log);
+
+                // 11.5 Sales Invoice Lines
+                if (workbook.Worksheets.TryGetWorksheet("SalesInvoiceLine", out var siLineSheet))
+                {
+                    var existingLineCount = await _context.SalesInvoiceLines.CountAsync();
+                    if (existingLineCount == 0)
+                    {
+                        var rows = siLineSheet.RangeUsed()!.RowsUsed().Skip(1);
+                        var headers = siLineSheet.Row(1).CellsUsed().ToDictionary(c => c.Value.ToString().Trim(), c => c.Address.ColumnNumber, StringComparer.OrdinalIgnoreCase);
+                        int importedLines = 0;
+
+                        foreach (var row in rows)
+                        {
+                            var wrapper = new ExcelRowWrapper(row, headers);
+                            string invRef = wrapper.GetString("SalesInvoiceId") ?? "";
+                            int invoiceId = _salesInvoiceMap.GetValueOrDefault(invRef);
+                            
+                            if (invoiceId > 0)
+                            {
+                                var line = new SalesInvoiceLine
+                                {
+                                    SalesInvoiceId = invoiceId,
+                                    ProductId = _productMap.GetValueOrDefault(wrapper.GetString("ProductId") ?? ""),
+                                    UnitId = _unitMap.GetValueOrDefault(wrapper.GetString("UnitId") ?? ""),
+                                    Quantity = wrapper.GetDecimal("Quantity") ?? 1,
+                                    UnitPrice = wrapper.GetDecimal("UnitPrice") ?? 0,
+                                    SubTotal = wrapper.GetDecimal("SubTotal") ?? 0,
+                                    TaxRate = wrapper.GetDecimal("TaxRate") ?? 0,
+                                    TaxAmount = wrapper.GetDecimal("TaxAmount") ?? 0,
+                                    GrandTotal = wrapper.GetDecimal("GrandTotal") ?? 0
+                                };
+                                
+                                if (line.ProductId == 0) line.ProductId = _productMap.Values.FirstOrDefault();
+                                if (line.UnitId == 0) line.UnitId = _unitMap.Values.FirstOrDefault();
+                                
+                                _context.SalesInvoiceLines.Add(line);
+                                importedLines++;
+                            }
+                        }
+                        await _context.SaveChangesAsync();
+                        log.AppendLine($"Đã nạp {importedLines} dòng hóa đơn bán.");
+                    }
+                }
 
                 // 12. Warranty Claims
                 await SeedTableWithMappingAsync<WarrantyClaim>(workbook, "Yêu cầu bảo hành", "ClaimCode", "id", (row, item) =>

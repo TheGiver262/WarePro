@@ -46,22 +46,36 @@ namespace QuanLyHangHoa.ViewModels
 
         [ObservableProperty] private string _invoiceCode = string.Empty;
         [ObservableProperty] private Customer? _selectedCustomer;
+        [ObservableProperty] private StockOut? _selectedStockOut;
         [ObservableProperty] private DateTime _invoiceDate = DateTime.Now;
         [ObservableProperty] private DateTime? _dueDate;
         [ObservableProperty] private decimal _paidAmount;
+        [ObservableProperty] private string _selectedPaymentStatus = "Chưa TT";
         [ObservableProperty] private string _notes = string.Empty;
+        
+        [ObservableProperty] private ObservableCollection<StockOut> _availableStockOuts = new();
         
         [ObservableProperty] private decimal _totalSalesAmount;
         [ObservableProperty] private int _totalSalesCount;
-        [ObservableProperty] private string _searchText = string.Empty;
+        [ObservableProperty] private string _searchInvoiceCode = string.Empty;
+        [ObservableProperty] private string _searchCustomerName = string.Empty;
         [ObservableProperty] private int _selectedTabIndex = 0; // 0: List, 1: Create
         [ObservableProperty] private DateTime? _filterStartDate;
         [ObservableProperty] private DateTime? _filterEndDate;
         [ObservableProperty] private string? _selectedFilterPaymentStatus;
         [ObservableProperty] private string? _filterLinkDocCode;
-        [ObservableProperty] private ObservableCollection<string> _availablePaymentStatuses = new() { "Tất cả", "Chưa thanh toán", "Thanh toán một phần", "Đã thanh toán", "Quá hạn" };
+        [ObservableProperty] private ObservableCollection<string> _availablePaymentStatuses = new() { "Tất cả", "Chưa TT", "TT 1 phần", "Đã TT", "Quá hạn" };
+
+        partial void OnSearchInvoiceCodeChanged(string value) => LoadData();
+        partial void OnSearchCustomerNameChanged(string value) => LoadData();
+        partial void OnFilterStartDateChanged(DateTime? value) => LoadData();
+        partial void OnFilterEndDateChanged(DateTime? value) => LoadData();
+        partial void OnSelectedFilterPaymentStatusChanged(string? value) => LoadData();
+        partial void OnFilterLinkDocCodeChanged(string? value) => LoadData();
 
         [ObservableProperty] [NotifyPropertyChangedFor(nameof(FormRemainingAmount))] private decimal _formTotalAmount;
+        [ObservableProperty] private decimal _formSubTotal;
+        [ObservableProperty] private decimal _formTaxAmount;
         public decimal FormRemainingAmount => FormTotalAmount - PaidAmount;
 
         private readonly MainViewModel? _mainViewModel;
@@ -92,8 +106,9 @@ namespace QuanLyHangHoa.ViewModels
             };
             
             LoadData();
-            ResetForm();
+            InitializeForm(); // Init form fields without switching tab
             SelectedFilterPaymentStatus = "Tất cả";
+            SelectedTabIndex = 0; // Always start on list tab
         }
 
         private void OnLineItemPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -106,6 +121,8 @@ namespace QuanLyHangHoa.ViewModels
 
         private void RecalculateTotal()
         {
+            FormSubTotal = Lines.Sum(l => l.Quantity * l.UnitPrice);
+            FormTaxAmount = Lines.Sum(l => l.Quantity * l.UnitPrice * l.TaxRate);
             FormTotalAmount = Lines.Sum(l => l.TotalPrice);
         }
 
@@ -117,15 +134,21 @@ namespace QuanLyHangHoa.ViewModels
             AvailableProducts = new ObservableCollection<Product>(_productService.GetAllProducts());
             AvailableCustomers = new ObservableCollection<Customer>(_refDataService.GetAllCustomers());
             
+            using (var context = _mainViewModel?.ContextFactory?.Invoke() ?? new QuanLyHangHoa.Data.AppDbContext())
+            {
+                AvailableStockOuts = new ObservableCollection<StockOut>(context.StockOuts.ToList());
+            }
             var allInvoices = _invoiceService.GetAllSalesInvoices();
 
             // Apply Filters
-            if (!string.IsNullOrWhiteSpace(SearchText))
+            if (!string.IsNullOrWhiteSpace(SearchInvoiceCode))
             {
-                allInvoices = allInvoices.Where(i => 
-                    (i.InvoiceCode != null && i.InvoiceCode.Contains(SearchText, StringComparison.OrdinalIgnoreCase)) ||
-                    (i.Customer != null && i.Customer.DisplayName != null && i.Customer.DisplayName.Contains(SearchText, StringComparison.OrdinalIgnoreCase))
-                ).ToList();
+                allInvoices = allInvoices.Where(i => i.InvoiceCode != null && i.InvoiceCode.Contains(SearchInvoiceCode, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+
+            if (!string.IsNullOrWhiteSpace(SearchCustomerName))
+            {
+                allInvoices = allInvoices.Where(i => i.Customer != null && i.Customer.DisplayName != null && i.Customer.DisplayName.Contains(SearchCustomerName, StringComparison.OrdinalIgnoreCase)).ToList();
             }
 
             if (FilterStartDate.HasValue)
@@ -140,7 +163,8 @@ namespace QuanLyHangHoa.ViewModels
 
             if (SelectedFilterPaymentStatus != "Tất cả" && !string.IsNullOrEmpty(SelectedFilterPaymentStatus))
             {
-                allInvoices = allInvoices.Where(i => i.PaymentStatus == SelectedFilterPaymentStatus).ToList();
+                var englishStatus = StatusToEnglish(SelectedFilterPaymentStatus);
+                allInvoices = allInvoices.Where(i => i.PaymentStatus == englishStatus).ToList();
             }
 
             if (!string.IsNullOrWhiteSpace(FilterLinkDocCode))
@@ -180,9 +204,65 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
+        [ObservableProperty] private bool _isViewMode;
+        [ObservableProperty] private bool _isEditMode;
+        private SalesInvoice? _editingInvoice;
+
+        [RelayCommand]
+        private void ViewInvoice(SalesInvoice? invoice)
+        {
+            if (invoice == null) return;
+            _editingInvoice = invoice;
+            PopulateForm(invoice);
+            IsViewMode = true;
+            IsEditMode = false;
+            SelectedTabIndex = 1; // Switch to form tab
+        }
+
+        [RelayCommand]
+        private void EditInvoice(SalesInvoice? invoice)
+        {
+            if (invoice == null) return;
+            _editingInvoice = invoice;
+            PopulateForm(invoice);
+            IsViewMode = false;
+            IsEditMode = true;
+            SelectedTabIndex = 1; // Switch to form tab
+        }
+
+        private void PopulateForm(SalesInvoice invoice)
+        {
+            InvoiceCode = invoice.InvoiceCode;
+            SelectedCustomer = AvailableCustomers.FirstOrDefault(c => c.Id == invoice.CustomerId);
+            InvoiceDate = invoice.InvoiceDate;
+            DueDate = invoice.DueDate ?? DateTime.Now;
+            PaidAmount = invoice.PaidAmount;
+            SelectedStockOut = AvailableStockOuts.FirstOrDefault(s => s.Id == invoice.StockOutId);
+            SelectedPaymentStatus = invoice.PaymentStatus ?? "Chưa TT";
+            Notes = invoice.Notes ?? string.Empty;
+            
+            Lines.Clear();
+            if (invoice.Lines != null)
+            {
+                foreach (var line in invoice.Lines)
+                {
+                    Lines.Add(new SalesInvoiceLineEditor
+                    {
+                        SelectedProduct = AvailableProducts.FirstOrDefault(p => p.Id == line.ProductId),
+                        Quantity = line.Quantity,
+                        UnitPrice = line.UnitPrice,
+                        TaxRate = line.TaxRate
+                    });
+                }
+            }
+            RecalculateTotal();
+        }
+
         [RelayCommand]
         private void SaveInvoice()
         {
+            if (IsViewMode) return;
+
             if (SelectedCustomer == null)
             {
                 MessageBox.Show("Vui lòng chọn khách hàng!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -197,49 +277,94 @@ namespace QuanLyHangHoa.ViewModels
 
             try
             {
-                var invoice = new SalesInvoice
+                var invoice = _editingInvoice ?? new SalesInvoice();
+                
+                invoice.InvoiceCode = InvoiceCode;
+                invoice.CustomerId = SelectedCustomer.Id;
+                invoice.InvoiceDate = InvoiceDate;
+                invoice.DueDate = DueDate;
+                invoice.PaidAmount = PaidAmount;
+                invoice.Notes = Notes;
+                invoice.StockOutId = SelectedStockOut?.Id;
+                invoice.PaymentStatus = StatusToEnglish(SelectedPaymentStatus);
+                
+                if (invoice.Id == 0)
                 {
-                    InvoiceCode = InvoiceCode,
-                    CustomerId = SelectedCustomer.Id,
-                    InvoiceDate = InvoiceDate,
-                    DueDate = DueDate,
-                    PaidAmount = PaidAmount,
-                    Notes = Notes,
-                    CreatedAt = DateTime.Now,
-                    CreatedBy = _mainViewModel?.CurrentUser?.Id ?? 1,
-                    Lines = Lines.Where(l => l.SelectedProduct != null).Select(l => new SalesInvoiceLine
-                    {
-                        ProductId = l.SelectedProduct!.Id,
-                        Quantity = l.Quantity,
-                        UnitPrice = l.UnitPrice,
-                        TaxRate = l.TaxRate
-                    }).ToList()
-                };
+                    invoice.CreatedAt = DateTime.Now;
+                    invoice.CreatedBy = _mainViewModel?.CurrentUser?.Id ?? 1;
+                }
+
+                // IMPORTANT: Clear navigation properties to avoid EF tracking issues
+                invoice.Customer = null!;
+                invoice.StockOut = null;
+                invoice.Creator = null!;
+
+                // Map lines
+                invoice.Lines = Lines.Where(l => l.SelectedProduct != null).Select(l => new SalesInvoiceLine
+                {
+                    Id = 0,
+                    ProductId = l.SelectedProduct!.Id,
+                    UnitId = l.SelectedProduct!.DefaultUnitId,
+                    Quantity = l.Quantity,
+                    UnitPrice = l.UnitPrice,
+                    TaxRate = l.TaxRate,
+                    SalesInvoiceId = invoice.Id
+                }).ToList();
 
                 _invoiceService.SaveSalesInvoice(invoice);
-                MessageBox.Show("Lưu hóa đơn bán hàng thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
-                LoadData();
+                MessageBox.Show("Lưu hoá đơn thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                
                 ResetForm();
-                SelectedTabIndex = 0; // Back to list
+                LoadData();
+                SelectedTabIndex = 0;
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Lỗi khi lưu hóa đơn: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Lỗi khi lưu hoá đơn: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
-        [RelayCommand]
-        private void ResetForm()
+        private string StatusToEnglish(string vietnameseStatus)
         {
+            return vietnameseStatus switch
+            {
+                "Chưa TT" => "Unpaid",
+                "TT 1 phần" => "Partial",
+                "Đã TT" => "Paid",
+                "Quá hạn" => "Overdue",
+                _ => "Unpaid"
+            };
+        }
+
+        /// <summary>Initializes form fields without switching the active tab. Used on ViewModel init.</summary>
+        private void InitializeForm()
+        {
+            _editingInvoice = null;
+            IsViewMode = false;
+            IsEditMode = false;
             InvoiceCode = $"SINV-{DateTime.Now:yyyyMMddHHmmss}";
             SelectedCustomer = null;
             InvoiceDate = DateTime.Now;
-            DueDate = DateTime.Now.AddDays(7); // Default 7 days for sales
+            DueDate = DateTime.Now.AddDays(7);
             PaidAmount = 0;
             Notes = string.Empty;
             Lines.Clear();
             AddLine();
             OnPropertyChanged(nameof(FormTotalAmount));
+        }
+
+        [RelayCommand]
+        public void ResetForm()
+        {
+            InitializeForm();
+            SelectedTabIndex = 1; // Explicitly switch to form tab when user creates new
+        }
+
+        [RelayCommand]
+        private void PrintInvoice(SalesInvoice? invoice)
+        {
+            if (invoice == null) return;
+            MessageBox.Show($"In hoá đơn {invoice.InvoiceCode} (Chức năng đang phát triển)", "Thông báo");
         }
     }
 }
