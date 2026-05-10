@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WarePro — Invoice Views Preview</title>
+  <style>
+    :root {
+      --primary: #7C3AED;
+      --primary-hover: #6D28D9;
+      --sidebar-bg: #211733;
+      --sidebar-hover: #34264D;
+      --sidebar-active: #7C3AED;
+      --sidebar-text: #D8D0E6;
+      --sidebar-muted: #8B7A9F;
+
+      --page-bg: #F7F7FA;
+      --surface: #FFFFFF;
+      --surface-muted: #F3F1F7;
+      --border: #DED9E8;
+
+      --text-primary: #2A2533;
+      --text-secondary: #756B82;
+      --text-muted: #8A8095;
+
+      --success-bg: #DCFCE7;
+      --success-text: #16A34A;
+      --info-bg: #DBEAFE;
+      --info-text: #2563EB;
+      --warning-bg: #FEF3C7;
+      --warning-text: #D97706;
+      --danger-bg: #FEE2E2;
+      --danger-text: #EF4444;
+      --neutral-bg: #E5E7EB;
+      --neutral-text: #4B5563;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      color: var(--text-primary);
+      background: var(--page-bg);
+    }
+
+    .app {
+      height: 100vh;
+      min-height: 760px;
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      grid-template-rows: 56px 1fr;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      grid-row: 1 / span 2;
+      background: var(--sidebar-bg);
+      color: var(--sidebar-text);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .brand {
+      height: 56px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      flex-shrink: 0;
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--primary);
+      display: grid;
+      place-items: center;
+      color: white;
+      font-weight: 800;
+    }
+
+    .brand-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: white;
+      letter-spacing: 0.2px;
+    }
+
+    .nav {
+      padding: 10px 8px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .nav-section {
+      margin-top: 10px;
+    }
+
+    .nav-heading {
+      padding: 8px 8px 5px;
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--sidebar-muted);
+      letter-spacing: 0.7px;
+    }
+
+    .nav-item {
+      height: 36px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 10px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--sidebar-text);
+      cursor: pointer;
+      user-select: none;
+      border: 0;
+      width: 100%;
+      background: transparent;
+      text-align: left;
+      font-family: inherit;
+    }
+
+    .nav-item:hover {
+      background: var(--sidebar-hover);
+      color: white;
+    }
+
+    .nav-item.active {
+      background: var(--sidebar-active);
+      color: white;
+      font-weight: 700;
+    }
+
+    .nav-icon {
+      width: 18px;
+      text-align: center;
+      opacity: 0.95;
+    }
+
+    .logout {
+      height: 56px;
+      padding: 10px 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      background: #1A102A;
+      flex-shrink: 0;
+    }
+
+    .topbar {
+      grid-column: 2;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+    }
+
+    .topbar-title {
+      color: #6F667C;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .topbar-user {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .content {
+      grid-column: 2;
+      padding: 24px;
+      overflow: auto;
+    }
+
+    .view {
+      display: none;
+    }
+
+    .view.active {
+      display: block;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .page-title {
+      font-size: 22px;
+      font-weight: 800;
+      margin: 0;
+      color: var(--text-primary);
+    }
+
+    .page-subtitle {
+      margin: 5px 0 0;
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      height: 34px;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 0 13px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      background: white;
+      color: #4B4458;
+    }
+
+    .btn:hover {
+      background: #F4F1F8;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      border-color: var(--primary-hover);
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .filter-card {
+      padding: 16px;
+    }
+
+    .filter-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 1.4fr 150px 150px 170px 1.1fr;
+      gap: 12px;
+      align-items: end;
+    }
+
+    .field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      letter-spacing: 0.2px;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      height: 34px;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 0 10px;
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--text-primary);
+      outline: none;
+      background: white;
+    }
+
+    textarea {
+      height: 60px;
+      padding: 8px 10px;
+      resize: none;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.10);
+    }
+
+    .table-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .table-scroll {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1160px;
+    }
+
+    thead {
+      background: var(--surface-muted);
+    }
+
+    th {
+      height: 38px;
+      padding: 0 14px;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--text-secondary);
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    td {
+      height: 46px;
+      padding: 0 14px;
+      font-size: 13px;
+      color: var(--text-primary);
+      border-top: 1px solid #E5E0EE;
+      white-space: nowrap;
+    }
+
+    tr:hover {
+      background: #FAF8FE;
+    }
+
+    .money {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .doc-code {
+      color: var(--primary);
+      font-weight: 800;
+    }
+
+    .muted {
+      color: var(--text-muted);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      height: 22px;
+      padding: 0 8px;
+      border-radius: 5px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .badge-success {
+      background: var(--success-bg);
+      color: var(--success-text);
+    }
+
+    .badge-warning {
+      background: var(--warning-bg);
+      color: var(--warning-text);
+    }
+
+    .badge-danger {
+      background: var(--danger-bg);
+      color: var(--danger-text);
+    }
+
+    .icon-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .icon-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 5px;
+      border: 0;
+      background: transparent;
+      color: var(--text-primary);
+      cursor: pointer;
+      font-size: 14px;
+      display: grid;
+      place-items: center;
+    }
+
+    .icon-btn:hover {
+      background: #F4F1F8;
+    }
+
+    .icon-btn.danger {
+      color: var(--danger-text);
+    }
+
+    .table-footer {
+      height: 42px;
+      padding: 0 14px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--text-secondary);
+      font-size: 13px;
+      background: white;
+    }
+
+    .note {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border: 1px solid #E7D7FF;
+      background: #F6F0FF;
+      color: #5B21B6;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .tab {
+      height: 34px;
+      padding: 0 14px;
+      border: 1px solid var(--border);
+      background: white;
+      border-radius: 999px;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .tab.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(16, 10, 28, 0.44);
+      z-index: 20;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal {
+      width: 760px;
+      max-width: 100%;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 24px 70px rgba(20, 12, 36, 0.28);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .modal-header {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .modal-body {
+      padding: 18px;
+      max-height: 68vh;
+      overflow-y: auto;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .form-grid .full {
+      grid-column: 1 / -1;
+    }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      margin: 16px 0 10px;
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+    }
+
+    .line-table {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .line-table table {
+      min-width: 0;
+    }
+
+    .line-table th,
+    .line-table td {
+      padding: 0 10px;
+      height: 36px;
+      font-size: 12px;
+    }
+
+    .totals {
+      margin-top: 14px;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .totals-box {
+      width: 300px;
+      font-size: 13px;
+    }
+
+    .total-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px 0;
+      color: var(--text-secondary);
+    }
+
+    .total-row.strong {
+      margin-top: 5px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      color: var(--text-primary);
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .modal-footer {
+      padding: 14px 18px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      background: #FBFAFD;
+    }
+
+    @media (max-width: 1180px) {
+      .filter-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .app {
+        grid-template-columns: 220px 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">W</div>
+        <div class="brand-title">WarePro</div>
+      </div>
+
+      <nav class="nav">
+        <button class="nav-item"><span class="nav-icon">▦</span>Dashboard</button>
+
+        <div class="nav-section">
+          <div class="nav-heading">DANH MỤC</div>
+          <button class="nav-item"><span class="nav-icon">⌑</span>Loại hàng</button>
+          <button class="nav-item"><span class="nav-icon">◇</span>Thương hiệu</button>
+          <button class="nav-item"><span class="nav-icon">□</span>Đơn vị tính</button>
+          <button class="nav-item"><span class="nav-icon">♜</span>Nhà cung cấp</button>
+          <button class="nav-item"><span class="nav-icon">👥</span>Khách hàng</button>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-heading">SẢN PHẨM</div>
+          <button class="nav-item"><span class="nav-icon">▣</span>Danh sách sản phẩm</button>
+          <button class="nav-item"><span class="nav-icon">⌗</span>Quản lý Serial</button>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-heading">KHO</div>
+          <button class="nav-item"><span class="nav-icon">↓</span>Nhập kho</button>
+          <button class="nav-item"><span class="nav-icon">↑</span>Xuất kho</button>
+          <button class="nav-item"><span class="nav-icon">▤</span>Tồn kho</button>
+          <button class="nav-item"><span class="nav-icon">≡</span>Sổ kho</button>
+          <button class="nav-item"><span class="nav-icon">✓</span>Kiểm kê</button>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-heading">HÓA ĐƠN</div>
+          <button class="nav-item active" id="sidePurchase" onclick="switchView('purchase')"><span class="nav-icon">🛒</span>Hóa đơn mua</button>
+          <button class="nav-item" id="sideSales" onclick="switchView('sales')"><span class="nav-icon">📄</span>Hóa đơn bán</button>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-heading">BẢO HÀNH</div>
+          <button class="nav-item"><span class="nav-icon">🛡</span>Quyền bảo hành</button>
+          <button class="nav-item"><span class="nav-icon">🔧</span>Yêu cầu bảo hành</button>
+          <button class="nav-item"><span class="nav-icon">⚠</span>Sắp hết hạn BH</button>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-heading">HỆ THỐNG</div>
+          <button class="nav-item"><span class="nav-icon">▥</span>Báo cáo</button>
+          <button class="nav-item"><span class="nav-icon">👤</span>Người dùng</button>
+        </div>
+      </nav>
+
+      <div class="logout">
+        <button class="nav-item"><span class="nav-icon">↪</span>Đăng xuất</button>
+      </div>
+    </aside>
+
+    <header class="topbar">
+      <div class="topbar-title">Phần mềm Quản lý Hàng hóa &amp; Bảo hành</div>
+      <div class="topbar-user">
+        <span>Admin · Quản trị viên</span>
+        <div class="avatar">AD</div>
+      </div>
+    </header>
+
+    <main class="content">
+      <div class="tabs">
+        <button class="tab active" id="tabPurchase" onclick="switchView('purchase')">Hóa đơn mua</button>
+        <button class="tab" id="tabSales" onclick="switchView('sales')">Hóa đơn bán</button>
+      </div>
+
+      <section class="view active" id="purchaseView">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Hóa đơn mua</h1>
+            <p class="page-subtitle">Quản lý hóa đơn từ nhà cung cấp, thuế, tổng tiền và trạng thái thanh toán</p>
+          </div>
+          <div class="actions">
+            <button class="btn">↙ Tạo từ phiếu nhập</button>
+            <button class="btn">⬇ Xuất Excel</button>
+            <button class="btn btn-primary" onclick="openModal('purchase')">+ Tạo hóa đơn mua</button>
+          </div>
+        </div>
+
+        <div class="card filter-card">
+          <div class="filter-grid">
+            <div class="field">
+              <label>Số hóa đơn</label>
+              <input placeholder="Nhập số HĐ..." />
+            </div>
+            <div class="field">
+              <label>Nhà cung cấp</label>
+              <select>
+                <option>Tất cả nhà cung cấp</option>
+                <option>Công ty TNHH Minh Phát</option>
+                <option>FPT Trading</option>
+                <option>Digiworld</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Từ ngày</label>
+              <input type="date" value="2026-05-01" />
+            </div>
+            <div class="field">
+              <label>Đến ngày</label>
+              <input type="date" value="2026-05-31" />
+            </div>
+            <div class="field">
+              <label>Trạng thái TT</label>
+              <select>
+                <option>Tất cả</option>
+                <option>Đã TT</option>
+                <option>TT một phần</option>
+                <option>Chưa TT</option>
+                <option>Quá hạn</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Phiếu nhập</label>
+              <input placeholder="Mã phiếu nhập..." />
+            </div>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Số HĐ</th>
+                  <th>Ngày HĐ</th>
+                  <th>Nhà cung cấp</th>
+                  <th>Phiếu nhập</th>
+                  <th class="money">Trước thuế</th>
+                  <th class="money">Thuế</th>
+                  <th class="money">Tổng tiền</th>
+                  <th class="money">Đã TT</th>
+                  <th>Trạng thái TT</th>
+                  <th>Hạn TT</th>
+                  <th>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="doc-code">HDM-0001</td>
+                  <td>03/05/2026</td>
+                  <td>Công ty TNHH Minh Phát</td>
+                  <td class="doc-code">PN-0001</td>
+                  <td class="money">18.000.000</td>
+                  <td class="money">1.800.000</td>
+                  <td class="money"><strong>19.800.000</strong></td>
+                  <td class="money">19.800.000</td>
+                  <td><span class="badge badge-success">Đã TT</span></td>
+                  <td>10/05/2026</td>
+                  <td><div class="icon-actions"><button class="icon-btn">👁</button><button class="icon-btn">✎</button><button class="icon-btn">🖨</button><button class="icon-btn danger">⊘</button></div></td>
+                </tr>
+                <tr>
+                  <td class="doc-code">HDM-0002</td>
+                  <td>05/05/2026</td>
+                  <td>FPT Trading</td>
+                  <td class="doc-code">PN-0002</td>
+                  <td class="money">32.500.000</td>
+                  <td class="money">3.250.000</td>
+                  <td class="money"><strong>35.750.000</strong></td>
+                  <td class="money">15.000.000</td>
+                  <td><span class="badge badge-warning">TT một phần</span></td>
+                  <td>20/05/2026</td>
+                  <td><div class="icon-actions"><button class="icon-btn">👁</button><button class="icon-btn">✎</button><button class="icon-btn">🖨</button><button class="icon-btn danger">⊘</button></div></td>
+                </tr>
+                <tr>
+                  <td class="doc-code">HDM-0003</td>
+                  <td>08/05/2026</td>
+                  <td>Digiworld</td>
+                  <td class="doc-code">PN-0003</td>
+                  <td class="money">12.000.000</td>
+                  <td class="money">1.200.000</td>
+                  <td class="money"><strong>13.200.000</strong></td>
+                  <td class="money">0</td>
+                  <td><span class="badge badge-danger">Chưa TT</span></td>
+                  <td>18/05/2026</td>
+                  <td><div class="icon-actions"><button class="icon-btn">👁</button><button class="icon-btn">✎</button><button class="icon-btn">🖨</button><button class="icon-btn danger">⊘</button></div></td>
+                </tr>
+                <tr>
+                  <td class="doc-code">HDM-0004</td>
+                  <td>10/05/2026</td>
+                  <td>Synnex FPT</td>
+                  <td class="muted">—</td>
+                  <td class="money">8.500.000</td>
+                  <td class="money">850.000</td>
+                  <td class="money"><strong>9.350.000</strong></td>
+                  <td class="money">0</td>
+                  <td><span class="badge badge-danger">Quá hạn</span></td>
+                  <td>12/05/2026</td>
+                  <td><div class="icon-actions"><button class="icon-btn">👁</button><button class="icon-btn">✎</button><button class="icon-btn">🖨</button><button class="icon-btn danger">⊘</button></div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="table-footer">
+            <span>Tổng 4 hóa đơn mua</span>
+            <span>Trang 1 / 1</span>
+          </div>
+        </div>
+
+        <div class="note">Ghi chú: Hóa đơn không làm thay đổi tồn kho. Tồn kho được cập nhật từ phiếu nhập/xuất đã ghi sổ.</div>
+      </section>
+
+      <section class="view" id="salesView">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Hóa đơn bán</h1>
+            <p class="page-subtitle">Quản lý hóa đơn bán cho khách hàng, thuế, tổng tiền và trạng thái thanh toán</p>
+          </div>
+          <div class="actions">
+            <button class="btn">↗ Tạo từ phiếu xuất</button>
+            <button class="btn">⬇ Xuất Excel</button>
+            <button class="btn btn-primary" onclick="openModal('sales')">+ Tạo hóa đơn bán</button>
+          </div>
+        </div>
+
+        <div class="card filter-card">
+          <div class="filter-grid">
+            <div class="field">
+              <label>Số hóa đơn</label>
+              <input placeholder="Nhập số HĐ..." />
+            </div>
+            <div class="field">
+              <label>Khách hàng</label>
+              <select>
+                <option>Tất cả khách hàng</option>
+                <option>Nguyễn Văn An</option>
+                <option>Công ty ABC</option>
+                <option>Lê Thu Hà</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Từ ngày</label>
+              <input type="date" value="2026-05-01" />
+            </div>
+            <div class="field">
+              <label>Đến ngày</label>
+              <input type="date" value="2026-05-31" />
+            </div>
+            <div class="field">
+              <label>Trạng thái TT</label>
+              <select>
+                <option>Tất cả</option>
+                <option>Đã TT</option>
+                <option>TT một phần</option>
+                <option>Chưa TT</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Phiếu xuất</label>
+              <input placeholder="Mã phiếu xuất..." />
+            </div>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Số HĐ</th>
+                  <th>Ngày HĐ</th>
+                  <th>Khách hàng</th>
+                  <th>Phiếu xuất</th>
+                  <th class="money">Trước thuế</th>
+                  <th class="money">Thuế</th>
+                  <th class="money">Tổng tiền</th>
+                  <th class="money">Đã TT</th>
+                  <th>Trạng thái TT</th>
+                  <th>Hạn TT</th>
+                  <th>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="doc-code">HDB-0001</td>
+                  <td>04/05/2026</td>
+                  <td>Nguyễn Văn An</td>
+                  <td class="doc-code">PX-0001</td>
+                  <td class="money">25.000.000</td>
+                  <td class="money">2.500.000</td>
+                  <td class="money"><strong>27.500.000</strong></td>
+                  <td class="money">27.500.000</td>
+                  <td><span class="badge badge-success">Đã TT</span></td>
+                  <td>04/05/2026</td>
+                  <td><div class="icon-actions"><button class="icon-btn">👁</button><button class="icon-btn">✎</button><button class="icon-btn">🖨</button><button class="icon-btn danger">⊘</button></div></td>
+                </tr>
+                <tr>
+                  <td class="doc-code">HDB-0002</td>
+                  <td>06/05/2026</td>
+                  <td>Công ty ABC</td>
+                  <td class="doc-code">PX-0002</td>
+                  <td class="money">42.000.000</td>
+                  <td class="money">4.200.000</td>
+                  <td class="money"><strong>46.200.000</strong></td>
+                  <td class="money">20.000.000</td>
+                  <td><span class="badge badge-warning">TT một phần</span></td>
+                  <td>16/05/2026</td>
+                  <td><div class="icon-actions"><button class="icon-btn">👁</button><button class="icon-btn">✎</button><button class="icon-btn">🖨</button><button class="icon-btn danger">⊘</button></div></td>
+                </tr>
+                <tr>
+                  <td class="doc-code">HDB-0003</td>
+                  <td>09/05/2026</td>
+                  <td>Trần Minh Khang</td>
+                  <td class="doc-code">PX-0003</td>
+                  <td class="money">7.800.000</td>
+                  <td class="money">780.000</td>
+                  <td class="money"><strong>8.580.000</strong></td>
+                  <td class="money">0</td>
+                  <td><span class="badge badge-danger">Chưa TT</span></td>
+                  <td>19/05/2026</td>
+                  <td><div class="icon-actions"><button class="icon-btn">👁</button><button class="icon-btn">✎</button><button class="icon-btn">🖨</button><button class="icon-btn danger">⊘</button></div></td>
+                </tr>
+                <tr>
+                  <td class="doc-code">HDB-0004</td>
+                  <td>11/05/2026</td>
+                  <td>Lê Thu Hà</td>
+                  <td class="muted">—</td>
+                  <td class="money">3.200.000</td>
+                  <td class="money">320.000</td>
+                  <td class="money"><strong>3.520.000</strong></td>
+                  <td class="money">3.520.000</td>
+                  <td><span class="badge badge-success">Đã TT</span></td>
+                  <td>11/05/2026</td>
+                  <td><div class="icon-actions"><button class="icon-btn">👁</button><button class="icon-btn">✎</button><button class="icon-btn">🖨</button><button class="icon-btn danger">⊘</button></div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="table-footer">
+            <span>Tổng 4 hóa đơn bán</span>
+            <span>Trang 1 / 1</span>
+          </div>
+        </div>
+
+        <div class="note">Ghi chú: Hóa đơn không làm thay đổi tồn kho. Tồn kho được cập nhật từ phiếu nhập/xuất đã ghi sổ.</div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="modalBackdrop" onclick="backdropClose(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title" id="modalTitle">Tạo hóa đơn mua</h2>
+        <button class="icon-btn" onclick="closeModal()">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="field">
+            <label>Số hóa đơn *</label>
+            <input id="invoiceCode" value="HDM-0005" />
+          </div>
+          <div class="field">
+            <label>Ngày hóa đơn *</label>
+            <input type="date" value="2026-05-12" />
+          </div>
+          <div class="field">
+            <label id="partnerLabel">Nhà cung cấp *</label>
+            <select id="partnerSelect">
+              <option>Công ty TNHH Minh Phát</option>
+              <option>FPT Trading</option>
+              <option>Digiworld</option>
+            </select>
+          </div>
+          <div class="field">
+            <label id="documentLabel">Phiếu nhập liên kết</label>
+            <select id="documentSelect">
+              <option>PN-0004</option>
+              <option>PN-0005</option>
+              <option>Không liên kết</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Hạn thanh toán</label>
+            <input type="date" value="2026-05-22" />
+          </div>
+          <div class="field">
+            <label>Trạng thái thanh toán</label>
+            <select>
+              <option>Chưa TT</option>
+              <option>TT một phần</option>
+              <option>Đã TT</option>
+            </select>
+          </div>
+          <div class="field full">
+            <label>Ghi chú</label>
+            <textarea placeholder="Nhập ghi chú hóa đơn..."></textarea>
+          </div>
+        </div>
+
+        <div class="section-title">Chi tiết sản phẩm</div>
+        <div class="line-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Sản phẩm</th>
+                <th>Đơn vị</th>
+                <th>SL</th>
+                <th class="money">Đơn giá</th>
+                <th>Thuế %</th>
+                <th class="money">Thành tiền</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Laptop Dell XPS 13</td>
+                <td>Chiếc</td>
+                <td>1</td>
+                <td class="money">25.000.000</td>
+                <td>10%</td>
+                <td class="money"><strong>27.500.000</strong></td>
+                <td><button class="icon-btn danger">×</button></td>
+              </tr>
+              <tr>
+                <td>Chuột Logitech M331</td>
+                <td>Cái</td>
+                <td>2</td>
+                <td class="money">350.000</td>
+                <td>10%</td>
+                <td class="money"><strong>770.000</strong></td>
+                <td><button class="icon-btn danger">×</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="totals">
+          <div class="totals-box">
+            <div class="total-row"><span>Tạm tính:</span><strong>25.700.000 đ</strong></div>
+            <div class="total-row"><span>Thuế:</span><strong>2.570.000 đ</strong></div>
+            <div class="total-row strong"><span>Tổng thanh toán:</span><span>28.270.000 đ</span></div>
+            <div class="total-row"><span>Đã thanh toán:</span><strong>0 đ</strong></div>
+            <div class="total-row"><span>Còn lại:</span><strong>28.270.000 đ</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal()">Hủy</button>
+        <button class="btn btn-primary">Lưu hóa đơn</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function switchView(type) {
+      const isPurchase = type === "purchase";
+
+      document.getElementById("purchaseView").classList.toggle("active", isPurchase);
+      document.getElementById("salesView").classList.toggle("active", !isPurchase);
+
+      document.getElementById("tabPurchase").classList.toggle("active", isPurchase);
+      document.getElementById("tabSales").classList.toggle("active", !isPurchase);
+
+      document.getElementById("sidePurchase").classList.toggle("active", isPurchase);
+      document.getElementById("sideSales").classList.toggle("active", !isPurchase);
+    }
+
+    function openModal(type) {
+      const isPurchase = type === "purchase";
+      document.getElementById("modalTitle").textContent = isPurchase ? "Tạo hóa đơn mua" : "Tạo hóa đơn bán";
+      document.getElementById("invoiceCode").value = isPurchase ? "HDM-0005" : "HDB-0005";
+      document.getElementById("partnerLabel").textContent = isPurchase ? "Nhà cung cấp *" : "Khách hàng *";
+      document.getElementById("documentLabel").textContent = isPurchase ? "Phiếu nhập liên kết" : "Phiếu xuất liên kết";
+
+      document.getElementById("partnerSelect").innerHTML = isPurchase
+        ? "<option>Công ty TNHH Minh Phát</option><option>FPT Trading</option><option>Digiworld</option>"
+        : "<option>Nguyễn Văn An</option><option>Công ty ABC</option><option>Lê Thu Hà</option>";
+
+      document.getElementById("documentSelect").innerHTML = isPurchase
+        ? "<option>PN-0004</option><option>PN-0005</option><option>Không liên kết</option>"
+        : "<option>PX-0004</option><option>PX-0005</option><option>Không liên kết</option>";
+
+      document.getElementById("modalBackdrop").classList.add("open");
+    }
+
+    function closeModal() {
+      document.getElementById("modalBackdrop").classList.remove("open");
+    }
+
+    function backdropClose(event) {
+      if (event.target.id === "modalBackdrop") {
+        closeModal();
+      }
+    }
+  </script>
+</body>
+</html>

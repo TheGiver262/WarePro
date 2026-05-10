@@ -33,7 +33,7 @@ THIẾT KẾ PHẦN MỀM QUẢN LÝ HÀNG HÓA VÀ BẢO HÀNH
 		- Hóa đơn dùng để ghi nhận giao dịch thương mại (giá trị hàng hóa, thuế).
 		- Chứng từ nhập đầu kỳ `OpeningBalance` không mặc định sinh hóa đơn mua.
 		- Chứng từ bảo hành/đổi mới không mặc định sinh hóa đơn thương mại.
-		- Mọi hóa đơn được coi là đã thanh toán đầy đủ tại thời điểm phát sinh. Hệ thống không theo dõi thanh toán từng phần hay công nợ tồn đọng.
+		- Hệ thống hỗ trợ theo dõi thanh toán tổng hợp: ghi nhận tổng tiền đã thanh toán (`PaidAmount`) và trạng thái thanh toán (`PaymentStatus`) dựa trên chênh lệch với `GrandTotal`. Hỗ trợ quản lý hạn thanh toán (`DueDate`).
 	2.11 Nghiệp vụ nhập tồn đầu kỳ từ Excel/CSV được ánh xạ vào chứng từ `StockIn` loại `OpeningBalance`.
 		- Phase này không bổ sung các bảng ImportBatch, ImportRowError hay lưu file import gốc.
 		- Import chỉ là workflow ở tầng ứng dụng để sinh dữ liệu chuẩn vào các bảng lõi hiện có.
@@ -77,7 +77,7 @@ THIẾT KẾ PHẦN MỀM QUẢN LÝ HÀNG HÓA VÀ BẢO HÀNH
 		- Xuất serial thay thế trong bảo hành đổi mới đã được phê duyệt.
 	4.4 Nhân viên bán hàng
 		- Lập phiếu xuất kho trực tiếp theo quy trình doanh nghiệp.
-		- Lập hóa đơn bán và nhập chi tiết hóa đơn bán, bao gồm thuế cơ bản theo dòng.
+		- Lập hóa đơn bán và nhập chi tiết hóa đơn bán, bao gồm thuế cơ bản theo dòng và thông tin thanh toán (Số tiền khách trả, trạng thái thanh toán).
 		- Tra cứu khách hàng, serial đã bán và tình trạng bảo hành.
 	4.5 Nhân viên bảo hành
 		- Tiếp nhận hồ sơ bảo hành.
@@ -135,10 +135,15 @@ THIẾT KẾ PHẦN MỀM QUẢN LÝ HÀNG HÓA VÀ BẢO HÀNH
 		- Chênh lệch kiểm kê không làm thay đổi tồn ngay; phải sinh chứng từ điều chỉnh và được duyệt/ghi sổ.
 		- Điều chỉnh sau ghi sổ hoặc đảo nghiệp vụ phải tham chiếu chứng từ nguồn và lý do điều chỉnh.
 	5.5 Quy tắc hóa đơn
-		- Hóa đơn mua/hóa đơn bán theo dõi SubTotal, TaxAmount và GrandTotal.
+		- Hóa đơn mua/hóa đơn bán theo dõi SubTotal, TaxAmount, GrandTotal, PaidAmount và PaymentStatus.
 		- PurchaseInvoiceLine và SalesInvoiceLine lưu ProductId, UnitId, Quantity, UnitPrice, SubTotal, TaxRate, TaxAmount, GrandTotal.
 		- Dòng hóa đơn có thể tham chiếu ngược về StockInLine hoặc StockOutLine tương ứng nếu doanh nghiệp cần đối soát chi tiết.
-		- Hệ thống mặc định hóa đơn đã được thanh toán đầy đủ.
+		- Trạng thái thanh toán (`PaymentStatus`) bao gồm:
+			+ Unpaid: Chưa thanh toán (PaidAmount = 0).
+			+ PartiallyPaid: Thanh toán một phần (0 < PaidAmount < GrandTotal).
+			+ Paid: Đã thanh toán (PaidAmount >= GrandTotal).
+			+ Overdue: Quá hạn thanh toán (Trạng thái khác Paid và vượt quá DueDate).
+		- Trạng thái thanh toán phải được hệ thống tự động cập nhật khi có thay đổi về PaidAmount hoặc GrandTotal.
 		- Phase này chỉ hỗ trợ thuế cơ bản phục vụ tính tiền và in hóa đơn.
 		- Hóa đơn mua có thể liên kết phiếu nhập đã ghi sổ.
 		- Hóa đơn bán có thể liên kết phiếu xuất đã ghi sổ.
@@ -232,9 +237,9 @@ THIẾT KẾ PHẦN MỀM QUẢN LÝ HÀNG HÓA VÀ BẢO HÀNH
 		- StockCountSession / StockCountLine: phiên kiểm kê và số liệu chênh lệch, gồm `WarehouseId`, CreatedBy, ApprovedBy, PostedBy, CountDate, ApprovedAt, PostedAt.
 		- StockAdjustment / StockAdjustmentLine: chứng từ điều chỉnh tồn hoặc đảo nghiệp vụ sau ghi sổ, gồm `WarehouseId`, CreatedBy, ApprovedBy, PostedBy, ApprovedAt, PostedAt.
 	6.5 Hóa đơn
-		- PurchaseInvoice: hóa đơn mua, liên kết phiếu nhập nếu có, lưu SubTotal, TaxAmount, GrandTotal.
+		- PurchaseInvoice: hóa đơn mua, liên kết phiếu nhập nếu có, lưu SubTotal, TaxAmount, GrandTotal, PaidAmount, PaymentStatus (default 'Unpaid'), DueDate.
 		- PurchaseInvoiceLine: dòng chi tiết hóa đơn mua, có thể tham chiếu StockInLine khi cần đối soát, lưu SubTotal, TaxRate, TaxAmount, GrandTotal.
-		- SalesInvoice: hóa đơn bán, liên kết phiếu xuất nếu có, lưu SubTotal, TaxAmount, GrandTotal.
+		- SalesInvoice: hóa đơn bán, liên kết phiếu xuất nếu có, lưu SubTotal, TaxAmount, GrandTotal, PaidAmount, PaymentStatus (default 'Unpaid'), DueDate.
 		- SalesInvoiceLine: dòng chi tiết hóa đơn bán, có thể tham chiếu StockOutLine khi cần đối soát, lưu SubTotal, TaxRate, TaxAmount, GrandTotal.
 	6.6 Bảo hành
 		- WarrantyCoverage: quyền bảo hành của serial đã bán.
@@ -287,6 +292,11 @@ THIẾT KẾ PHẦN MỀM QUẢN LÝ HÀNG HÓA VÀ BẢO HÀNH
 		- Rejected.
 		- ReturnedToCustomer.
 		- Closed.
+	7.4 Trạng thái thanh toán hóa đơn
+		- Unpaid (Chưa thanh toán).
+		- PartiallyPaid (Thanh toán một phần).
+		- Paid (Đã thanh toán).
+		- Overdue (Quá hạn).
 
 8. Bảng quy tắc chuyển trạng thái chính
 	8.1 Chứng từ kho

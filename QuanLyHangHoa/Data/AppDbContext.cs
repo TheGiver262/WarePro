@@ -269,10 +269,15 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => e.InvoiceCode, "UX_PurchaseInvoice_InvoiceCode").IsUnique();
 
             entity.Property(e => e.GrandTotal).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.PaidAmount).HasColumnType("decimal(18, 2)").HasDefaultValue(0m);
+            entity.Property(e => e.PaymentStatus).HasMaxLength(50).HasDefaultValue("Unpaid");
+            entity.Property(e => e.DueDate).HasPrecision(0);
             entity.Property(e => e.InvoiceCode).HasMaxLength(50);
             entity.Property(e => e.InvoiceDate).HasPrecision(0);
             entity.Property(e => e.SubTotal).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.TaxAmount).HasColumnType("decimal(18, 2)");
+
+            entity.ToTable("PurchaseInvoice", t => t.HasCheckConstraint("CK_PurchaseInvoice_PaymentStatus", "[PaymentStatus] IN ('Unpaid', 'PartiallyPaid', 'Paid', 'Overdue')"));
 
             entity.HasOne(d => d.StockIn).WithMany(p => p.PurchaseInvoices)
                 .HasForeignKey(d => d.StockInId)
@@ -282,6 +287,11 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.SupplierId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_PurchaseInvoice_Supplier");
+
+            entity.HasOne(d => d.Creator).WithMany(p => p.PurchaseInvoices)
+                .HasForeignKey(d => d.CreatedBy)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PurchaseInvoice_CreatedBy");
         });
 
         modelBuilder.Entity<PurchaseInvoiceLine>(entity =>
@@ -326,10 +336,15 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => e.InvoiceCode, "UX_SalesInvoice_InvoiceCode").IsUnique();
 
             entity.Property(e => e.GrandTotal).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.PaidAmount).HasColumnType("decimal(18, 2)").HasDefaultValue(0m);
+            entity.Property(e => e.PaymentStatus).HasMaxLength(50).HasDefaultValue("Unpaid");
+            entity.Property(e => e.DueDate).HasPrecision(0);
             entity.Property(e => e.InvoiceCode).HasMaxLength(50);
             entity.Property(e => e.InvoiceDate).HasPrecision(0);
             entity.Property(e => e.SubTotal).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.TaxAmount).HasColumnType("decimal(18, 2)");
+
+            entity.ToTable("SalesInvoice", t => t.HasCheckConstraint("CK_SalesInvoice_PaymentStatus", "[PaymentStatus] IN ('Unpaid', 'PartiallyPaid', 'Paid', 'Overdue')"));
 
             entity.HasOne(d => d.Customer).WithMany(p => p.SalesInvoices)
                 .HasForeignKey(d => d.CustomerId)
@@ -339,6 +354,11 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.StockOut).WithMany(p => p.SalesInvoices)
                 .HasForeignKey(d => d.StockOutId)
                 .HasConstraintName("FK_SalesInvoice_StockOut");
+
+            entity.HasOne(d => d.Creator).WithMany(p => p.SalesInvoices)
+                .HasForeignKey(d => d.CreatedBy)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_SalesInvoice_CreatedBy");
         });
 
         modelBuilder.Entity<SalesInvoiceLine>(entity =>

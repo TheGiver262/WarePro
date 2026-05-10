@@ -10,4 +10,5 @@
     <converters:BooleanToIconConverter x:Key="BooleanToIconConverter" />
     <converters:RowIndexConverter x:Key="RowIndexConverter" />
     <converters:StockSumConverter x:Key="StockSumConverter" />
+    <converters:StatusToBrushConverter x:Key="StatusToBrushConverter" />
 </ResourceDictionary>

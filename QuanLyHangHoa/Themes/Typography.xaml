@@ -77,4 +77,10 @@
         <Setter Property="FontWeight" Value="Medium"/>
     </Style>
 
+    <!-- Aliases for easier use in views -->
+    <Style x:Key="TitleText" BasedOn="{StaticResource TypographyH2}" TargetType="TextBlock"/>
+    <Style x:Key="SubtitleText" BasedOn="{StaticResource TypographyCaption}" TargetType="TextBlock"/>
+    <Style x:Key="LabelText" BasedOn="{StaticResource TypographyLabel}" TargetType="TextBlock"/>
+    <Style x:Key="BodyText" BasedOn="{StaticResource TypographyBody}" TargetType="TextBlock"/>
+
 </ResourceDictionary>

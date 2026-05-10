@@ -16,10 +16,10 @@ namespace QuanLyHangHoa.ViewModels
         private readonly ProductSerial _originalSerial;
         private readonly int _userId;
 
-        [ObservableProperty] private string _serialNumber;
-        [ObservableProperty] private string _productName;
-        [ObservableProperty] private string _selectedStatus;
-        [ObservableProperty] private string _note;
+        [ObservableProperty] private string? _serialNumber;
+        [ObservableProperty] private string? _productName;
+        [ObservableProperty] private string? _selectedStatus;
+        [ObservableProperty] private string? _note;
         [ObservableProperty] private ObservableCollection<string> _statuses;
 
         public bool IsSaved { get; private set; }
@@ -50,8 +50,9 @@ namespace QuanLyHangHoa.ViewModels
             SelectedStatus = GetStatusDisplay(serial.CurrentStatus);
         }
 
-        private string GetStatusDisplay(string status)
+        private string GetStatusDisplay(string? status)
         {
+            if (status == null) return "N/A";
             return status switch
             {
                 "InStock" => "Trong kho",
@@ -67,8 +68,9 @@ namespace QuanLyHangHoa.ViewModels
             };
         }
 
-        private string GetStatusKey(string display)
+        private string GetStatusKey(string? display)
         {
+            if (display == null) return "InStock";
             return display switch
             {
                 "Trong kho" => "InStock",

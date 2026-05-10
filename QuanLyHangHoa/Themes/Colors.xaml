@@ -40,6 +40,9 @@
     <!-- Legacy aliases (backward compat) -->
     <SolidColorBrush x:Key="PrimaryIndigoBrush" Color="{StaticResource AppTertiaryColor}" />
     <SolidColorBrush x:Key="BodyBgBrush" Color="{StaticResource AppBackgroundColor}" />
+    <SolidColorBrush x:Key="BackgroundBrush" Color="{StaticResource AppBackgroundColor}" />
+    <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource AppTertiaryColor}" />
+    <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource AppBorderColor}" />
 
     <!-- Semantic Brushes -->
     <SolidColorBrush x:Key="AppSuccessBrush" Color="{StaticResource AppSuccessColor}" />

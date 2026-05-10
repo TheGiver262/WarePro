@@ -57,6 +57,10 @@ public partial class AppUser
 
     public virtual ICollection<StockIn> StockInPosters { get; set; } = new List<StockIn>();
 
+    public virtual ICollection<PurchaseInvoice> PurchaseInvoices { get; set; } = new List<PurchaseInvoice>();
+
+    public virtual ICollection<SalesInvoice> SalesInvoices { get; set; } = new List<SalesInvoice>();
+
     public virtual ICollection<StockLedger> StockLedgers { get; set; } = new List<StockLedger>();
 
     public virtual ICollection<StockOut> StockOutApprovers { get; set; } = new List<StockOut>();

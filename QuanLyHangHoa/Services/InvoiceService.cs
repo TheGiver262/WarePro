@@ -47,6 +47,21 @@ namespace QuanLyHangHoa.Services
             invoice.SubTotal = invoice.Lines.Sum(line => line.SubTotal);
             invoice.TaxAmount = invoice.Lines.Sum(line => line.TaxAmount);
             invoice.GrandTotal = invoice.Lines.Sum(line => line.GrandTotal);
+
+            UpdateSalesPaymentStatus(invoice);
+        }
+
+        private static void UpdateSalesPaymentStatus(SalesInvoice invoice)
+        {
+            if (invoice.PaidAmount >= invoice.GrandTotal && invoice.GrandTotal > 0)
+                invoice.PaymentStatus = "Đã thanh toán";
+            else if (invoice.PaidAmount > 0)
+                invoice.PaymentStatus = "Thanh toán một phần";
+            else
+                invoice.PaymentStatus = "Chưa thanh toán";
+
+            if (invoice.PaymentStatus != "Đã thanh toán" && invoice.DueDate.HasValue && invoice.DueDate.Value.Date < DateTime.Today)
+                invoice.PaymentStatus = "Quá hạn";
         }
 
         private static void CalculatePurchaseInvoice(PurchaseInvoice invoice)
@@ -64,6 +79,21 @@ namespace QuanLyHangHoa.Services
             invoice.SubTotal = invoice.Lines.Sum(line => line.SubTotal);
             invoice.TaxAmount = invoice.Lines.Sum(line => line.TaxAmount);
             invoice.GrandTotal = invoice.Lines.Sum(line => line.GrandTotal);
+
+            UpdatePurchasePaymentStatus(invoice);
+        }
+
+        private static void UpdatePurchasePaymentStatus(PurchaseInvoice invoice)
+        {
+            if (invoice.PaidAmount >= invoice.GrandTotal && invoice.GrandTotal > 0)
+                invoice.PaymentStatus = "Đã thanh toán";
+            else if (invoice.PaidAmount > 0)
+                invoice.PaymentStatus = "Thanh toán một phần";
+            else
+                invoice.PaymentStatus = "Chưa thanh toán";
+
+            if (invoice.PaymentStatus != "Đã thanh toán" && invoice.DueDate.HasValue && invoice.DueDate.Value.Date < DateTime.Today)
+                invoice.PaymentStatus = "Quá hạn";
         }
 
         private static void CalculateLine(
@@ -99,6 +129,7 @@ namespace QuanLyHangHoa.Services
             using var db = _contextFactory();
             return db.SalesInvoices
                 .Include(i => i.Customer)
+                .Include(i => i.Creator)
                 .Include(i => i.Lines!)
                 .ThenInclude(l => l.Product)
                 .OrderByDescending(i => i.InvoiceDate)
@@ -110,6 +141,7 @@ namespace QuanLyHangHoa.Services
             using var db = _contextFactory();
             return db.PurchaseInvoices
                 .Include(i => i.Supplier)
+                .Include(i => i.Creator)
                 .Include(i => i.Lines!)
                 .ThenInclude(l => l.Product)
                 .OrderByDescending(i => i.InvoiceDate)

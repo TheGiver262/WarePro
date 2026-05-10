@@ -5,6 +5,7 @@ using MaterialDesignThemes.Wpf;
 
 namespace QuanLyHangHoa.Converters
 {
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     public class SafePackIconKindConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
