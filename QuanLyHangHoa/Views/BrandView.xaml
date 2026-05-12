@@ -70,8 +70,7 @@
                     <!-- Origin Search -->
                     <StackPanel Grid.Column="2" Margin="{StaticResource Margin.Right.md}">
                         <TextBlock Text="XUẤT XỨ" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                        <ComboBox materialDesign:HintAssist.Hint="Tất cả" 
-                                  Height="32" VerticalContentAlignment="Center"
+                        <ComboBox Height="32" VerticalContentAlignment="Center"
                                   ItemsSource="{Binding OriginOptions}"
                                   SelectedItem="{Binding SearchOrigin, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
@@ -82,8 +81,7 @@
                         <ComboBox  
                                   Height="32" VerticalContentAlignment="Center"
                                   ItemsSource="{Binding StatusOptions}"
-                                  SelectedItem="{Binding SearchStatus, UpdateSourceTrigger=PropertyChanged}"
-                                  materialDesign:HintAssist.Hint="Chọn trạng thái..."/>
+                                  SelectedItem="{Binding SearchStatus, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
                     <!-- Actions -->
@@ -117,18 +115,12 @@
                     <DataGrid Grid.Row="0" ItemsSource="{Binding Brands}" SelectedItem="{Binding SelectedBrand, Mode=TwoWay}"
                               AlternationCount="10000" EnableRowVirtualization="False"
                               AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                              RowHeight="54" BorderThickness="0" Background="Transparent">
-                        <DataGrid.ColumnHeaderStyle>
-                            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource MaterialDesignDataGridColumnHeader}">
-                                <Setter Property="HorizontalContentAlignment" Value="Left"/>
-                            </Style>
-                        </DataGrid.ColumnHeaderStyle>
+                              RowHeight="54">
+
                         
                         <DataGrid.Columns>
                             <!-- Index Column -->
-                            <DataGridTextColumn Header="STT" Width="60" CanUserSort="False"
-                                                 Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowIndexConverter}}"
-                                                 ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
+
 
                             <!-- Code Column -->
                             <DataGridTextColumn Binding="{Binding BrandCode}" Width="200" 

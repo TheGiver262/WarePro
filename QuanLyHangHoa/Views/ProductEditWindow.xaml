@@ -35,8 +35,7 @@
                         <StackPanel Grid.Column="0" Margin="0,0,8,0">
                             <TextBlock Text="Mã sản phẩm" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8"/>
                             <TextBox Style="{StaticResource AppTextBoxStyle}" 
-                                     materialDesign:HintAssist.Hint="Nhập mã SP"
-                                     materialDesign:HintAssist.IsFloating="False"
+                                     materialDesign:HintAssist.Hint="Mã sản phẩm (duy nhất)"
                                      Text="{Binding Product.ProductCode, UpdateSourceTrigger=PropertyChanged}"
                                      Height="50" Margin="0,0,0,20"/>
                         </StackPanel>
@@ -44,8 +43,7 @@
                         <StackPanel Grid.Column="1" Margin="8,0,0,0">
                             <TextBlock Text="Tên sản phẩm" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8"/>
                             <TextBox Style="{StaticResource AppTextBoxStyle}" 
-                                     materialDesign:HintAssist.Hint="Nhập tên SP"
-                                     materialDesign:HintAssist.IsFloating="False"
+                                     materialDesign:HintAssist.Hint="Tên đầy đủ của sản phẩm..."
                                      Text="{Binding Product.DisplayName, UpdateSourceTrigger=PropertyChanged}"
                                      Height="50" Margin="0,0,0,20"/>
                         </StackPanel>
@@ -53,8 +51,6 @@
 
                     <TextBlock Text="Danh mục" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8"/>
                     <ComboBox Style="{StaticResource AppComboBoxStyle}" 
-                              materialDesign:HintAssist.Hint="Chọn danh mục"
-                              materialDesign:HintAssist.IsFloating="False"
                               Height="50" Margin="0,0,0,20"
                               ItemsSource="{Binding Categories}"
                               DisplayMemberPath="DisplayName"
@@ -70,8 +66,6 @@
                         <StackPanel Grid.Column="0" Margin="0,0,8,0">
                             <TextBlock Text="Thương hiệu" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8"/>
                             <ComboBox Style="{StaticResource AppComboBoxStyle}" 
-                                      materialDesign:HintAssist.Hint="Chọn thương hiệu"
-                                      materialDesign:HintAssist.IsFloating="False"
                                       Height="50" Margin="0,0,0,20"
                                       ItemsSource="{Binding Brands}"
                                       DisplayMemberPath="DisplayName"
@@ -82,8 +76,6 @@
                         <StackPanel Grid.Column="1" Margin="8,0,0,0">
                             <TextBlock Text="Đơn vị tính" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8"/>
                             <ComboBox Style="{StaticResource AppComboBoxStyle}" 
-                                      materialDesign:HintAssist.Hint="Chọn đơn vị"
-                                      materialDesign:HintAssist.IsFloating="False"
                                       Height="50" Margin="0,0,0,20"
                                       ItemsSource="{Binding Units}"
                                       DisplayMemberPath="DisplayName"
@@ -102,7 +94,6 @@
                             <TextBlock Text="Giá bán mặc định" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8"/>
                             <TextBox Style="{StaticResource AppTextBoxStyle}" 
                                      materialDesign:HintAssist.Hint="0"
-                                     materialDesign:HintAssist.IsFloating="False"
                                      Text="{Binding Product.DefaultPrice, StringFormat=N0}"
                                      Height="50" Margin="0,0,0,20"/>
                         </StackPanel>
@@ -110,8 +101,7 @@
                         <StackPanel Grid.Column="1" Margin="8,0,0,0">
                             <TextBlock Text="Xuất xứ" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8"/>
                             <TextBox Style="{StaticResource AppTextBoxStyle}" 
-                                     materialDesign:HintAssist.Hint="Nhập xuất xứ"
-                                     materialDesign:HintAssist.IsFloating="False"
+                                     materialDesign:HintAssist.Hint="Quốc gia xuất xứ..."
                                      Text="{Binding Product.OriginCountry}"
                                      Height="50" Margin="0,0,0,20"/>
                         </StackPanel>

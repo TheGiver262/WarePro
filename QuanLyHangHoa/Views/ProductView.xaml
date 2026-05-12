@@ -40,102 +40,136 @@
                 </StackPanel>
             </Grid>
 
-            <!-- Row 1: Search Row (Standardized Pro Max - Reverted to single row as requested) -->
+            <!-- Row 1: Search Row (Standardized Pro Max) -->
             <materialDesign:Card Grid.Row="1" Margin="{StaticResource Margin.Bottom.md}" Padding="{StaticResource Spacing.md}" Style="{StaticResource AppCard}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="140"/>      <!-- Mã -->
-                        <ColumnDefinition Width="*"/>        <!-- Tên -->
-                        <ColumnDefinition Width="140"/>      <!-- Danh mục -->
-                        <ColumnDefinition Width="140"/>      <!-- Thương hiệu -->
-                        <ColumnDefinition Width="110"/>      <!-- Serial -->
-                        <ColumnDefinition Width="110"/>      <!-- Bảo hành -->
-                        <ColumnDefinition Width="130"/>      <!-- Trạng thái -->
-                        <ColumnDefinition Width="Auto"/>     <!-- Actions -->
-                    </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <!-- Main Search Row -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="180"/>      <!-- Mã -->
+                            <ColumnDefinition Width="*"/>        <!-- Tên -->
+                            <ColumnDefinition Width="Auto"/>     <!-- Actions -->
+                        </Grid.ColumnDefinitions>
 
-                    <StackPanel Grid.Column="0" Margin="{StaticResource Margin.Right.md}">
-                        <TextBlock Text="MÃ SẢN PHẨM" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                        <TextBox Height="32" VerticalContentAlignment="Center"
-                                 materialDesign:HintAssist.Hint="Nhập mã sản phẩm"
-                                 Text="{Binding SearchCode, UpdateSourceTrigger=PropertyChanged}"/>
-                    </StackPanel>
+                        <StackPanel Grid.Column="0" Margin="{StaticResource Margin.Right.md}">
+                            <TextBlock Text="MÃ SẢN PHẨM" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                            <TextBox Height="32" VerticalContentAlignment="Center"
+                                     materialDesign:HintAssist.Hint="Mã sản phẩm..."
+                                     Text="{Binding SearchCode, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
 
-                    <StackPanel Grid.Column="1" Margin="{StaticResource Margin.Right.md}">
-                        <TextBlock Text="TÊN SẢN PHẨM" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                        <TextBox Height="32" VerticalContentAlignment="Center"
-                                 materialDesign:HintAssist.Hint="Nhập tên sản phẩm"
-                                 Text="{Binding SearchName, UpdateSourceTrigger=PropertyChanged}"/>
-                    </StackPanel>
+                        <StackPanel Grid.Column="1" Margin="{StaticResource Margin.Right.md}">
+                            <TextBlock Text="TÊN SẢN PHẨM" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                            <TextBox Height="32" VerticalContentAlignment="Center"
+                                     materialDesign:HintAssist.Hint="Tìm kiếm theo tên sản phẩm..."
+                                     Text="{Binding SearchName, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
 
-                    <!-- Category -->
-                    <StackPanel Grid.Column="2" Margin="{StaticResource Margin.Right.md}">
-                        <TextBlock Text="DANH MỤC" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                        <ComboBox ItemsSource="{Binding Categories}" 
-                                  SelectedItem="{Binding SelectedCategoryFilter, UpdateSourceTrigger=PropertyChanged}"
-                                  DisplayMemberPath="DisplayName"
-                                  materialDesign:HintAssist.Hint="Tất cả"
-                                  Height="32" VerticalContentAlignment="Center"/>
-                    </StackPanel>
+                        <!-- Actions -->
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Bottom">
+                            <Button Style="{StaticResource AppSecondaryButton}" 
+                                    Command="{Binding ToggleAdvancedFilterCommand}"
+                                    ToolTip="Lọc nâng cao"
+                                    Width="160" Height="32" Padding="8,0" Margin="0,0,8,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Tune" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBlock Text="BỘ LỌC NÂNG CAO" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                </StackPanel>
+                            </Button>
 
-                    <!-- Brand -->
-                    <StackPanel Grid.Column="3" Margin="{StaticResource Margin.Right.md}">
-                        <TextBlock Text="THƯƠNG HIỆU" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                        <ComboBox ItemsSource="{Binding Brands}" 
-                                  SelectedItem="{Binding SelectedBrandFilter, UpdateSourceTrigger=PropertyChanged}"
-                                  DisplayMemberPath="DisplayName"
-                                  materialDesign:HintAssist.Hint="Tất cả"
-                                  Height="32" VerticalContentAlignment="Center"/>
-                    </StackPanel>
+                            <Button Style="{StaticResource AppSecondaryButton}" 
+                                    Command="{Binding RefreshCommand}"
+                                    ToolTip="Làm mới bộ lọc"
+                                    Width="32" Height="32" Padding="0" Margin="0,0,8,0">
+                                <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18"/>
+                            </Button>
 
-                    <!-- Serial -->
-                    <StackPanel Grid.Column="4" Margin="{StaticResource Margin.Right.md}">
-                        <TextBlock Text="SERIAL" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                        <ComboBox ItemsSource="{Binding SerialOptions}" 
-                                  SelectedItem="{Binding SearchSerial, UpdateSourceTrigger=PropertyChanged}"
-                                  materialDesign:HintAssist.Hint="Tất cả"
-                                  Height="32" VerticalContentAlignment="Center"/>
-                    </StackPanel>
+                            <Button Style="{StaticResource AppPrimaryButton}" 
+                                    Command="{Binding ExportToExcelCommand}"
+                                    Height="32" Padding="12,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="FileExcelOutline" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
 
-                    <!-- Warranty -->
-                    <StackPanel Grid.Column="5" Margin="{StaticResource Margin.Right.md}">
-                        <TextBlock Text="BẢO HÀNH" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                        <TextBox materialDesign:HintAssist.Hint="Tháng..." 
-                                 Height="32" VerticalContentAlignment="Center"
-                                 Text="{Binding SearchWarranty, UpdateSourceTrigger=PropertyChanged}">
-                            <TextBox.InputBindings>
-                                <KeyBinding Key="Enter" Command="{Binding SearchCommand}"/>
-                            </TextBox.InputBindings>
-                        </TextBox>
-                    </StackPanel>
+                    <!-- Advanced Filter Row (Expandable) -->
+                    <Grid Margin="0,16,0,0" Visibility="{Binding IsAdvancedFilterOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="180"/>      <!-- Danh mục -->
+                            <ColumnDefinition Width="180"/>      <!-- Thương hiệu -->
+                            <ColumnDefinition Width="140"/>      <!-- Giá Min -->
+                            <ColumnDefinition Width="140"/>      <!-- Giá Max -->
+                            <ColumnDefinition Width="140"/>      <!-- Serial -->
+                            <ColumnDefinition Width="140"/>      <!-- Bảo hành -->
+                            <ColumnDefinition Width="*"/>        <!-- Trạng thái -->
+                        </Grid.ColumnDefinitions>
 
-                    <!-- Status -->
-                    <StackPanel Grid.Column="6" Margin="{StaticResource Margin.Right.md}">
-                        <TextBlock Text="TRẠNG THÁI" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                        <ComboBox ItemsSource="{Binding StatusOptions}" 
-                                  SelectedItem="{Binding SearchStatus, UpdateSourceTrigger=PropertyChanged}"
-                                  materialDesign:HintAssist.Hint="Tất cả"
-                                  Height="32" VerticalContentAlignment="Center"/>
-                    </StackPanel>
+                        <!-- Category -->
+                        <StackPanel Grid.Column="0" Margin="{StaticResource Margin.Right.md}">
+                            <TextBlock Text="DANH MỤC" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                            <ComboBox ItemsSource="{Binding Categories}" 
+                                      SelectedItem="{Binding SelectedCategoryFilter, UpdateSourceTrigger=PropertyChanged}"
+                                      DisplayMemberPath="DisplayName"
+                                      Height="32" VerticalContentAlignment="Center"/>
+                        </StackPanel>
 
-                    <!-- Actions -->
-                    <StackPanel Grid.Column="7" Orientation="Horizontal" VerticalAlignment="Bottom">
-                        <Button Style="{StaticResource AppSecondaryButton}" 
-                                Command="{Binding RefreshCommand}"
-                                ToolTip="Làm mới bộ lọc"
-                                Width="32" Height="32" Padding="0" Margin="0,0,8,0">
-                            <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18"/>
-                        </Button>
-                        <Button Style="{StaticResource AppPrimaryButton}" 
-                                Command="{Binding ExportToExcelCommand}"
-                                Height="32" Padding="12,0">
-                            <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="FileExcelOutline" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                <TextBlock Text="XUẤT" VerticalAlignment="Center" FontWeight="SemiBold"/>
-                            </StackPanel>
-                        </Button>
-                    </StackPanel>
-                </Grid>
+                        <!-- Brand -->
+                        <StackPanel Grid.Column="1" Margin="{StaticResource Margin.Right.md}">
+                            <TextBlock Text="THƯƠNG HIỆU" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                            <ComboBox ItemsSource="{Binding Brands}" 
+                                      SelectedItem="{Binding SelectedBrandFilter, UpdateSourceTrigger=PropertyChanged}"
+                                      DisplayMemberPath="DisplayName"
+                                      Height="32" VerticalContentAlignment="Center"/>
+                        </StackPanel>
+
+                        <!-- Price Min -->
+                        <StackPanel Grid.Column="2" Margin="{StaticResource Margin.Right.md}">
+                            <TextBlock Text="GIÁ TỪ" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                            <TextBox Height="32" VerticalContentAlignment="Center"
+                                     materialDesign:HintAssist.Hint="Giá thấp nhất"
+                                     Text="{Binding SearchPriceMin, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+
+                        <!-- Price Max -->
+                        <StackPanel Grid.Column="3" Margin="{StaticResource Margin.Right.md}">
+                            <TextBlock Text="GIÁ ĐẾN" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                            <TextBox Height="32" VerticalContentAlignment="Center"
+                                     materialDesign:HintAssist.Hint="Giá cao nhất"
+                                     Text="{Binding SearchPriceMax, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+
+                        <!-- Serial -->
+                        <StackPanel Grid.Column="4" Margin="{StaticResource Margin.Right.md}">
+                            <TextBlock Text="SERIAL" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                            <ComboBox ItemsSource="{Binding SerialOptions}" 
+                                      SelectedItem="{Binding SearchSerial, UpdateSourceTrigger=PropertyChanged}"
+                                      Height="32" VerticalContentAlignment="Center"/>
+                        </StackPanel>
+
+                        <!-- Warranty -->
+                        <StackPanel Grid.Column="5" Margin="{StaticResource Margin.Right.md}">
+                            <TextBlock Text="BẢO HÀNH" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                            <TextBox Height="32" VerticalContentAlignment="Center"
+                                     materialDesign:HintAssist.Hint="Tháng bảo hành..."
+                                     Text="{Binding SearchWarranty, UpdateSourceTrigger=PropertyChanged}">
+                                <TextBox.InputBindings>
+                                    <KeyBinding Key="Enter" Command="{Binding SearchCommand}"/>
+                                </TextBox.InputBindings>
+                            </TextBox>
+                        </StackPanel>
+
+                        <!-- Status -->
+                        <StackPanel Grid.Column="6">
+                            <TextBlock Text="TRẠNG THÁI" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                            <ComboBox ItemsSource="{Binding StatusOptions}" 
+                                      SelectedItem="{Binding SearchStatus, UpdateSourceTrigger=PropertyChanged}"
+                                      Height="32" VerticalContentAlignment="Center"/>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
             </materialDesign:Card>
 
             <!-- Row 2: Content Area -->
@@ -149,14 +183,9 @@
                     <DataGrid Grid.Row="0" ItemsSource="{Binding Products}" SelectedItem="{Binding SelectedProduct, Mode=TwoWay}"
                               EnableRowVirtualization="False"
                               AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                              RowHeight="60" BorderThickness="0" Background="Transparent"
+                              RowHeight="60"
                               SelectionMode="Single" SelectionUnit="FullRow">
                     <DataGrid.Columns>
-                        <!-- 1. STT -->
-                        <DataGridTextColumn Header="STT" Width="70" CanUserSort="False"
-                                            Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowIndexConverter}}"
-                                            ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
-
                         <!-- 2. Mã SP -->
                         <DataGridTemplateColumn Width="110" SortMemberPath="ProductCode">
                             <DataGridTemplateColumn.Header>

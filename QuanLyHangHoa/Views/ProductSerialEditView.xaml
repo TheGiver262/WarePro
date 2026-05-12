@@ -58,9 +58,9 @@
                     <TextBlock Text="Ghi chú chi tiết" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
                     <TextBox Text="{Binding Note, UpdateSourceTrigger=PropertyChanged}" 
                              Style="{StaticResource AppTextBoxStyle}" 
+                             materialDesign:HintAssist.Hint="Nhập thông tin ghi chú về tình trạng Serial này..."
                              Height="120" AcceptsReturn="True" TextWrapping="Wrap"
-                             VerticalContentAlignment="Top" Padding="12"
-                             materialDesign:HintAssist.Hint="Nhập ghi chú tại đây..."/>
+                             VerticalContentAlignment="Top" Padding="12"/>
                 </StackPanel>
             </StackPanel>
         </ScrollViewer>

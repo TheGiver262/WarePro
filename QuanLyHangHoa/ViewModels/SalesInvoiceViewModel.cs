@@ -57,6 +57,10 @@ namespace QuanLyHangHoa.ViewModels
         
         [ObservableProperty] private decimal _totalSalesAmount;
         [ObservableProperty] private int _totalSalesCount;
+        [ObservableProperty] private int _paidCount;
+        [ObservableProperty] private int _partialCount;
+        [ObservableProperty] private int _unpaidCount;
+        [ObservableProperty] private int _overdueCount;
         [ObservableProperty] private string _searchInvoiceCode = string.Empty;
         [ObservableProperty] private string _searchCustomerName = string.Empty;
         [ObservableProperty] private int _selectedTabIndex = 0; // 0: List, 1: Create
@@ -64,7 +68,13 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private DateTime? _filterEndDate;
         [ObservableProperty] private string? _selectedFilterPaymentStatus;
         [ObservableProperty] private string? _filterLinkDocCode;
+        [ObservableProperty] private decimal? _filterMinTotal;
+        [ObservableProperty] private decimal? _filterMaxTotal;
+        [ObservableProperty] private bool _isAdvancedFilterOpen;
         [ObservableProperty] private ObservableCollection<string> _availablePaymentStatuses = new() { "Tất cả", "Chưa TT", "TT 1 phần", "Đã TT", "Quá hạn" };
+
+        [RelayCommand]
+        private void ToggleAdvancedFilter() => IsAdvancedFilterOpen = !IsAdvancedFilterOpen;
 
         partial void OnSearchInvoiceCodeChanged(string value) => LoadData();
         partial void OnSearchCustomerNameChanged(string value) => LoadData();
@@ -72,6 +82,8 @@ namespace QuanLyHangHoa.ViewModels
         partial void OnFilterEndDateChanged(DateTime? value) => LoadData();
         partial void OnSelectedFilterPaymentStatusChanged(string? value) => LoadData();
         partial void OnFilterLinkDocCodeChanged(string? value) => LoadData();
+        partial void OnFilterMinTotalChanged(decimal? value) => LoadData();
+        partial void OnFilterMaxTotalChanged(decimal? value) => LoadData();
 
         [ObservableProperty] [NotifyPropertyChangedFor(nameof(FormRemainingAmount))] private decimal _formTotalAmount;
         [ObservableProperty] private decimal _formSubTotal;
@@ -173,6 +185,16 @@ namespace QuanLyHangHoa.ViewModels
                 // For now, we search in Notes as a placeholder if needed, or skip if not in model
             }
 
+            if (FilterMinTotal.HasValue)
+            {
+                allInvoices = allInvoices.Where(i => i.GrandTotal >= FilterMinTotal.Value).ToList();
+            }
+
+            if (FilterMaxTotal.HasValue)
+            {
+                allInvoices = allInvoices.Where(i => i.GrandTotal <= FilterMaxTotal.Value).ToList();
+            }
+
             Invoices = new ObservableCollection<SalesInvoice>(allInvoices.OrderByDescending(i => i.InvoiceDate));
             UpdateSummaries(allInvoices);
         }
@@ -181,6 +203,11 @@ namespace QuanLyHangHoa.ViewModels
         {
             TotalSalesCount = allInvoices.Count();
             TotalSalesAmount = allInvoices.Sum(i => i.GrandTotal);
+
+            PaidCount = allInvoices.Count(i => i.PaymentStatus == "Paid");
+            PartialCount = allInvoices.Count(i => i.PaymentStatus == "Partial");
+            UnpaidCount = allInvoices.Count(i => i.PaymentStatus == "Unpaid");
+            OverdueCount = allInvoices.Count(i => i.PaymentStatus == "Overdue");
         }
 
         [RelayCommand]

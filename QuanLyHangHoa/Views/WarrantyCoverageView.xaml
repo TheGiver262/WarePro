@@ -65,31 +65,35 @@
                         <ColumnDefinition Width="Auto"/> <!-- Buttons -->
                     </Grid.ColumnDefinitions>
 
-                    <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="Serial / IMEI" Margin="{StaticResource Margin.Right.sm}"
-                             Text="{Binding SerialNumber}" IsReadOnly="True"
-                             />
+                    <StackPanel Grid.Column="0" Margin="{StaticResource Margin.Right.sm}">
+                        <TextBlock Text="SERIAL / IMEI" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                        <TextBox Text="{Binding SerialNumber}" IsReadOnly="True" Height="32" VerticalContentAlignment="Center"/>
+                    </StackPanel>
 
-                    <DatePicker Grid.Column="1"  
-                                materialDesign:HintAssist.Hint="Ngày bắt đầu" Margin="{StaticResource Margin.Right.sm}"
-                                SelectedDate="{Binding SelectedCoverage.WarrantyStartDate}"/>
+                    <StackPanel Grid.Column="1" Margin="{StaticResource Margin.Right.sm}">
+                        <TextBlock Text="NGÀY BẮT ĐẦU" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                        <DatePicker SelectedDate="{Binding SelectedCoverage.WarrantyStartDate}" Height="32" VerticalContentAlignment="Center"/>
+                    </StackPanel>
 
-                    <DatePicker Grid.Column="2"  
-                                materialDesign:HintAssist.Hint="Ngày kết thúc" Margin="{StaticResource Margin.Right.sm}"
-                                SelectedDate="{Binding SelectedCoverage.WarrantyEndDate}"/>
+                    <StackPanel Grid.Column="2" Margin="{StaticResource Margin.Right.sm}">
+                        <TextBlock Text="NGÀY KẾT THÚC" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                        <DatePicker SelectedDate="{Binding SelectedCoverage.WarrantyEndDate}" Height="32" VerticalContentAlignment="Center"/>
+                    </StackPanel>
 
-                    <ComboBox Grid.Column="3"  
-                              materialDesign:HintAssist.Hint="Trạng thái" Margin="{StaticResource Margin.Right.sm}"
-                              SelectedItem="{Binding SelectedCoverage.CoverageStatus}">
-                        <ComboBoxItem Content="Active"/>
-                        <ComboBoxItem Content="Expired"/>
-                        <ComboBoxItem Content="Voided"/>
-                    </ComboBox>
+                    <StackPanel Grid.Column="3" Margin="{StaticResource Margin.Right.sm}">
+                        <TextBlock Text="TRẠNG THÁI" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                        <ComboBox SelectedItem="{Binding SelectedCoverage.CoverageStatus}" Style="{StaticResource AppComboBoxStyle}" Height="32" VerticalContentAlignment="Center">
+                            <ComboBoxItem Content="Active"/>
+                            <ComboBoxItem Content="Expired"/>
+                            <ComboBoxItem Content="Voided"/>
+                        </ComboBox>
+                    </StackPanel>
 
-                    <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
+                    <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Bottom">
                         <Button Content="LƯU" Command="{Binding SaveCoverageCommand}" 
-                                Style="{StaticResource AppPrimaryButton}" Margin="{StaticResource Margin.Right.sm}"/>
+                                Style="{StaticResource AppPrimaryButton}" Margin="{StaticResource Margin.Right.sm}" Height="32"/>
                         <Button Content="XÓA" Command="{Binding DeleteCoverageCommand}" 
-                                Style="{StaticResource AppDangerButton}"/>
+                                Style="{StaticResource AppDangerButton}" Height="32"/>
                     </StackPanel>
                 </Grid>
             </materialDesign:Card>

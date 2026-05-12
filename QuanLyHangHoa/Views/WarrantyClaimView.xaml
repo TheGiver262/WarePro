@@ -64,23 +64,26 @@
                         <ColumnDefinition Width="Auto"/> <!-- Buttons -->
                     </Grid.ColumnDefinitions>
 
-                    <TextBox Grid.Column="0" materialDesign:HintAssist.Hint="Mã phiếu" Margin="{StaticResource Margin.Right.sm}"
-                             Text="{Binding SelectedWarranty.ClaimCode}" IsReadOnly="True"
-                             />
+                    <StackPanel Grid.Column="0" Margin="{StaticResource Margin.Right.sm}">
+                        <TextBlock Text="MÃ PHIẾU" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                        <TextBox Text="{Binding SelectedWarranty.ClaimCode}" IsReadOnly="True" Height="32" VerticalContentAlignment="Center"/>
+                    </StackPanel>
 
-                    <TextBox Grid.Column="1" materialDesign:HintAssist.Hint="Serial / IMEI" Margin="{StaticResource Margin.Right.sm}"
-                             Text="{Binding SelectedWarranty.ProductSerial.SerialNumber}" IsReadOnly="True"
-                             />
+                    <StackPanel Grid.Column="1" Margin="{StaticResource Margin.Right.sm}">
+                        <TextBlock Text="SERIAL / IMEI" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                        <TextBox Text="{Binding SelectedWarranty.ProductSerial.SerialNumber}" IsReadOnly="True" Height="32" VerticalContentAlignment="Center"/>
+                    </StackPanel>
 
-                    <TextBox Grid.Column="2" materialDesign:HintAssist.Hint="Mô tả lỗi / Yêu cầu" Margin="{StaticResource Margin.Right.sm}"
-                             Text="{Binding SelectedWarranty.ProblemDescription}"
-                             />
+                    <StackPanel Grid.Column="2" Margin="{StaticResource Margin.Right.sm}">
+                        <TextBlock Text="MÔ TẢ LỖI / YÊU CẦU" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                        <TextBox Text="{Binding SelectedWarranty.ProblemDescription}" Height="32" VerticalContentAlignment="Center"/>
+                    </StackPanel>
 
-                    <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                    <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Bottom">
                         <Button Content="LƯU" Command="{Binding SaveWarrantyCommand}" 
-                                Style="{StaticResource AppPrimaryButton}" Margin="{StaticResource Margin.Right.sm}"/>
+                                Style="{StaticResource AppPrimaryButton}" Margin="{StaticResource Margin.Right.sm}" Height="32"/>
                         <Button Content="XÓA" Command="{Binding DeleteWarrantyCommand}" 
-                                Style="{StaticResource AppDangerButton}"/>
+                                Style="{StaticResource AppDangerButton}" Height="32"/>
                     </StackPanel>
                 </Grid>
             </materialDesign:Card>

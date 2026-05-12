@@ -73,8 +73,7 @@
                         <ComboBox  
                                   Height="32" VerticalContentAlignment="Center"
                                   ItemsSource="{Binding StatusOptions}"
-                                  SelectedItem="{Binding SearchStatus, UpdateSourceTrigger=PropertyChanged}"
-                                  materialDesign:HintAssist.Hint="Chọn trạng thái..."/>
+                                  SelectedItem="{Binding SearchStatus, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
                     <!-- Actions -->
@@ -108,12 +107,8 @@
                     <DataGrid Grid.Row="1" ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory, Mode=TwoWay}"
                                AlternationCount="10000" EnableRowVirtualization="False"
                                AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                               RowHeight="52" BorderThickness="0" Background="Transparent">
+                               RowHeight="52">
                         <DataGrid.Columns>
-                            <!-- Index Column -->
-                            <DataGridTextColumn Header="STT" Width="70" CanUserSort="False"
-                                                 Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowIndexConverter}}"
-                                                 ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
                             
                             <!-- Category Code Column with Filter Icon -->
                             <DataGridTemplateColumn Width="180" SortMemberPath="CategoryCode">

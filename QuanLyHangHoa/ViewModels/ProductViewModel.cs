@@ -36,6 +36,10 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private Brand? _selectedBrandFilter;
         [ObservableProperty] private string _searchPriceMin = string.Empty;
         [ObservableProperty] private string _searchPriceMax = string.Empty;
+        [ObservableProperty] private bool _isAdvancedFilterOpen;
+
+        [RelayCommand]
+        private void ToggleAdvancedFilter() => IsAdvancedFilterOpen = !IsAdvancedFilterOpen;
 
         partial void OnSearchCodeChanged(string value) => LoadData();
         partial void OnSearchNameChanged(string value) => LoadData();

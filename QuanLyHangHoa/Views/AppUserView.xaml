@@ -121,16 +121,14 @@
                     <DataGrid Grid.Row="0" ItemsSource="{Binding Users}" SelectedItem="{Binding SelectedUser, Mode=TwoWay}"
                               AlternationCount="10000" EnableRowVirtualization="False"
                               AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                              RowHeight="48" BorderThickness="0" Background="Transparent">
+                              RowHeight="48">
                         <DataGrid.ColumnHeaderStyle>
                             <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource MaterialDesignDataGridColumnHeader}">
                                 <Setter Property="HorizontalContentAlignment" Value="Left"/>
                             </Style>
                         </DataGrid.ColumnHeaderStyle>
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="STT" Width="60" CanUserSort="False"
-                                                Binding="{Binding (ItemsControl.AlternationIndex), RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowIndexConverter}}"
-                                                ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
+
                             
                             <DataGridTemplateColumn Width="*" SortMemberPath="FullName">
                                 <DataGridTemplateColumn.Header>

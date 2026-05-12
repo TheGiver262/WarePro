@@ -35,7 +35,11 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private ObservableCollection<WarrantyClaim> _warranties = new();
         [ObservableProperty] private WarrantyClaim? _selectedWarranty;
         [ObservableProperty] private string _searchText = string.Empty;
-        [ObservableProperty] private List<string> _statusList = new() { "Open", "Ready", "ManufacturerWait", "Closed", "Rejected" };
+        [ObservableProperty] private string _selectedStatusFilter = "Tất cả";
+        [ObservableProperty] private DateTime? _searchFromDate;
+        [ObservableProperty] private DateTime? _searchToDate;
+        [ObservableProperty] private bool _isAdvancedFilterOpen;
+        [ObservableProperty] private List<string> _statusList = new() { "Tất cả", "Open", "Ready", "ManufacturerWait", "Closed", "Rejected" };
 
         private readonly Func<AppDbContext> _contextFactory;
 
@@ -91,6 +95,9 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        private void ToggleAdvancedFilter() => IsAdvancedFilterOpen = !IsAdvancedFilterOpen;
+
+        [RelayCommand]
         public void LoadData()
         {
             using var db = _contextFactory();
@@ -101,10 +108,27 @@ namespace QuanLyHangHoa.ViewModels
 
             if (!string.IsNullOrWhiteSpace(SearchText))
             {
+                var term = SearchText.ToLower();
                 query = query.Where(c => 
-                    (c.ClaimCode != null && c.ClaimCode.Contains(SearchText)) ||
-                    (c.ProductSerial != null && c.ProductSerial.SerialNumber != null && c.ProductSerial.SerialNumber.Contains(SearchText))
+                    (c.ClaimCode != null && c.ClaimCode.ToLower().Contains(term)) ||
+                    (c.ProductSerial != null && c.ProductSerial.SerialNumber != null && c.ProductSerial.SerialNumber.ToLower().Contains(term)) ||
+                    (c.ProductSerial != null && c.ProductSerial.Product != null && c.ProductSerial.Product.DisplayName != null && c.ProductSerial.Product.DisplayName.ToLower().Contains(term))
                 );
+            }
+
+            if (SelectedStatusFilter != "Tất cả")
+            {
+                query = query.Where(c => c.Status == SelectedStatusFilter);
+            }
+
+            if (SearchFromDate.HasValue)
+            {
+                query = query.Where(c => c.ReceivedDate >= SearchFromDate.Value);
+            }
+
+            if (SearchToDate.HasValue)
+            {
+                query = query.Where(c => c.ReceivedDate <= SearchToDate.Value);
             }
 
             Warranties = new ObservableCollection<WarrantyClaim>(query.ToList());

@@ -68,8 +68,7 @@
                     <!-- Status Filter -->
                     <StackPanel Grid.Column="2" Margin="{StaticResource Margin.Right.md}">
                         <TextBlock Text="TRẠNG THÁI" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                        <ComboBox materialDesign:HintAssist.Hint="Chọn trạng thái..."
-                                  Height="32" VerticalContentAlignment="Center"
+                        <ComboBox Height="32" VerticalContentAlignment="Center"
                                   ItemsSource="{Binding StatusOptions}"
                                   SelectedItem="{Binding SearchStatus, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
@@ -105,12 +104,8 @@
                     <DataGrid Grid.Row="0" ItemsSource="{Binding Units}" SelectedItem="{Binding SelectedUnit, Mode=TwoWay}"
                                AlternationCount="10000" EnableRowVirtualization="False"
                                AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                               RowHeight="52" BorderThickness="0" Background="Transparent">
+                               RowHeight="52">
                         <DataGrid.Columns>
-                            <!-- Index Column -->
-                            <DataGridTextColumn Header="STT" Width="70" CanUserSort="False"
-                                                Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowIndexConverter}}"
-                                                ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
                             
                             <!-- Unit Code Column with Filter Icon -->
                             <DataGridTemplateColumn Width="180" SortMemberPath="UnitCode">
