@@ -8,9 +8,6 @@
              mc:Ignorable="d" 
              d:DesignHeight="700" d:DesignWidth="1100">
     
-    <UserControl.DataContext>
-        <vm:StockCountViewModel />
-    </UserControl.DataContext>
 
     <Grid Background="{StaticResource AppBackgroundBrush}">
         <Grid Margin="{StaticResource PagePadding}">
@@ -30,8 +27,8 @@
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <materialDesign:PackIcon Kind="ClipboardCheckOutline" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
                     <StackPanel Margin="16,0,0,0">
-                        <TextBlock Text="KIỂM KÊ KHO" Style="{StaticResource TypographyH2}"/>
-                        <TextBlock Text="Đối soát số lượng thực tế tại kho và cập nhật hệ thống" Style="{StaticResource TypographyCaption}"/>
+                        <TextBlock Text="KIỂM KÊ KHO" Style="{StaticResource TypographyH2}" Foreground="{StaticResource AppTertiaryBrush}"/>
+                        <TextBlock Text="Đối soát số lượng thực tế tại kho và cập nhật hệ thống" Style="{StaticResource TypographyCaption}" Opacity="0.7"/>
                     </StackPanel>
                 </StackPanel>
                 
@@ -41,9 +38,8 @@
                 </StackPanel>
             </Grid>
 
-            <!-- Row 1: Session Info Fields -->
-            <Border Grid.Row="1" Margin="{StaticResource Margin.Bottom.md}" Padding="16,12" Background="{StaticResource AppSurfaceBrush}" 
-                    CornerRadius="{StaticResource Radius.md}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1">
+            <!-- Row 1: Session Info Card -->
+            <materialDesign:Card Grid.Row="1" Margin="{StaticResource Margin.Bottom.md}" Style="{StaticResource AppCard}" Padding="16,12">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
@@ -54,23 +50,25 @@
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Grid.Column="0" Margin="0,0,24,0">
-                        <TextBlock Text="MÃ PHIÊN" Style="{StaticResource TypographyCaption}" Margin="0,0,0,6" FontWeight="Bold"/>
+                        <TextBlock Text="MÃ PHIÊN" Style="{StaticResource TypographyCaption}" Margin="0,0,0,6" FontWeight="Bold" Opacity="0.8"/>
                         <TextBox Width="140" Height="42" Style="{StaticResource AppTextBoxStyle}" IsReadOnly="True"
                                  materialDesign:HintAssist.Hint="Tự động"
-                                 Text="{Binding SessionCode}"/>
+                                 Text="{Binding SessionCode}" Background="{StaticResource SurfaceMutedBrush}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" Margin="0,0,24,0">
-                        <TextBlock Text="KHO KIỂM KÊ" Style="{StaticResource TypographyCaption}" Margin="0,0,0,6" FontWeight="Bold"/>
+                        <TextBlock Text="KHO KIỂM KÊ" Style="{StaticResource TypographyCaption}" Margin="0,0,0,6" FontWeight="Bold" Opacity="0.8"/>
                         <ComboBox Width="180" Height="42" Style="{StaticResource AppComboBoxStyle}" 
-                                  SelectedValue="{Binding WarehouseId}" SelectedValuePath="Id" DisplayMemberPath="DisplayName">
+                                  SelectedValue="{Binding WarehouseId}" SelectedValuePath="Id" DisplayMemberPath="DisplayName"
+                                  Background="{StaticResource SurfaceMutedBrush}">
                             <ComboBoxItem Content="Kho tổng mặc định" IsSelected="True"/>
                         </ComboBox>
                     </StackPanel>
 
                     <StackPanel Grid.Column="2" Margin="0,0,24,0">
-                        <TextBlock Text="NGÀY THỰC HIỆN" Style="{StaticResource TypographyCaption}" Margin="0,0,0,6" FontWeight="Bold"/>
-                        <DatePicker Width="160" Height="42" Style="{StaticResource AppDatePickerStyle}" SelectedDate="{Binding CountDate}"/>
+                        <TextBlock Text="NGÀY THỰC HIỆN" Style="{StaticResource TypographyCaption}" Margin="0,0,0,6" FontWeight="Bold" Opacity="0.8"/>
+                        <DatePicker Width="160" Height="42" Style="{StaticResource AppDatePickerStyle}" SelectedDate="{Binding CountDate}"
+                                    Background="{StaticResource SurfaceMutedBrush}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="3" Margin="0,0,24,0" VerticalAlignment="Bottom">
@@ -85,7 +83,7 @@
                         </StackPanel>
                     </Button>
                 </Grid>
-            </Border>
+            </materialDesign:Card>
 
             <!-- Row 2: Count Lines -->
             <materialDesign:Card Grid.Row="2" Style="{StaticResource AppCard}" Padding="0">
@@ -104,7 +102,7 @@
 
                     <DataGrid Grid.Row="1" ItemsSource="{Binding Lines}" AutoGenerateColumns="False" 
                               CanUserAddRows="False" SelectionMode="Single" BorderThickness="0" 
-                              RowHeight="48" Background="Transparent">
+                              RowHeight="54" Background="Transparent">
                         <DataGrid.Columns>
                             <DataGridTemplateColumn Header="SẢN PHẨM" Width="*">
                                 <DataGridTemplateColumn.CellTemplate>
@@ -112,19 +110,27 @@
                                         <ComboBox ItemsSource="{Binding DataContext.AvailableProducts, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                   SelectedItem="{Binding SelectedProduct, UpdateSourceTrigger=PropertyChanged}"
                                                   DisplayMemberPath="DisplayName"
-                                                  Style="{StaticResource AppComboBoxStyle}" Height="38" Margin="4"
-                                                  materialDesign:TextFieldAssist.DecorationVisibility="Collapsed" BorderThickness="0"/>
+                                                  Style="{StaticResource AppComboBoxStyle}" Height="38" Margin="8,4"
+                                                  materialDesign:TextFieldAssist.DecorationVisibility="Collapsed" BorderThickness="0"
+                                                  Background="{StaticResource SurfaceMutedBrush}"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTemplateColumn Header="SỐ LƯỢNG THỰC TẾ" Width="200">
+                            <DataGridTemplateColumn Width="200">
+                                <DataGridTemplateColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="SỐ LƯỢNG THỰC TẾ" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    </StackPanel>
+                                </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBox Text="{Binding CountedQuantity, UpdateSourceTrigger=PropertyChanged}" 
-                                                 Style="{StaticResource AppTextBoxStyle}" Height="38" Margin="4"
+                                                 Style="{StaticResource AppTextBoxStyle}" Height="38" Margin="8,4"
                                                  materialDesign:TextFieldAssist.DecorationVisibility="Collapsed" BorderThickness="0"
-                                                 HorizontalContentAlignment="Center" FontWeight="Bold"/>
+                                                 HorizontalContentAlignment="Center" FontWeight="Bold"
+                                                 Background="{StaticResource SurfaceMutedBrush}"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -132,12 +138,11 @@
                             <DataGridTemplateColumn Width="80">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Button Style="{StaticResource MaterialDesignIconButton}"
-                                                Command="{Binding DataContext.RemoveLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                CommandParameter="{Binding}"
-                                                Foreground="{StaticResource DangerTextBrush}" Width="38" Height="38">
-                                            <materialDesign:PackIcon Kind="DeleteOutline" Width="22" Height="22"/>
-                                        </Button>
+                                         <Button Style="{StaticResource ProMaxIconButtonStyle}"
+                                                 Command="{Binding DataContext.RemoveLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                 CommandParameter="{Binding}">
+                                             <materialDesign:PackIcon Kind="DeleteOutline" Width="22" Height="22" Foreground="{StaticResource AppErrorBrush}"/>
+                                         </Button>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>

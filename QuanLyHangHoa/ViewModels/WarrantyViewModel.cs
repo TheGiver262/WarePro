@@ -46,6 +46,7 @@ namespace QuanLyHangHoa.ViewModels
         public WarrantyViewModel(AppUser currentUser, Func<AppDbContext> contextFactory)
             : this(
                 currentUser,
+                contextFactory,
                 new WarrantyClaimService(contextFactory).CreateClaim,
                 new WarrantyClaimService(contextFactory).CompleteRepair,
                 new WarrantyClaimService(contextFactory).SendToManufacturer,
@@ -53,16 +54,16 @@ namespace QuanLyHangHoa.ViewModels
                 new WarrantyClaimService(contextFactory).ReplaceSerial,
                 (message, title) => MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information))
         {
-            _contextFactory = contextFactory;
-            LoadData();
         }
 
         public WarrantyViewModel(
             AppUser currentUser,
+            Func<AppDbContext> contextFactory,
             Func<string, string, string, int, int> createClaim,
             Action<string, string> showMessage)
             : this(
                 currentUser,
+                contextFactory,
                 createClaim,
                 (_, _, _) => { },
                 (_, _, _) => { },
@@ -70,12 +71,11 @@ namespace QuanLyHangHoa.ViewModels
                 (_, _, _, _) => { },
                 showMessage)
         {
-            _contextFactory = () => new AppDbContext();
-            LoadData();
         }
 
         public WarrantyViewModel(
             AppUser currentUser,
+            Func<AppDbContext> contextFactory,
             Func<string, string, string, int, int> createClaim,
             Action<int, string, int> completeRepair,
             Action<int, string, int> sendToManufacturer,
@@ -84,14 +84,15 @@ namespace QuanLyHangHoa.ViewModels
             Action<string, string> showMessage)
         {
             _currentUser = currentUser;
+            _contextFactory = contextFactory;
             _createClaim = createClaim;
             _completeRepair = completeRepair;
             _sendToManufacturer = sendToManufacturer;
             _rejectClaim = rejectClaim;
             _replaceSerial = replaceSerial;
             _showMessage = showMessage;
-            _contextFactory = () => new AppDbContext();
             ClaimCode = CreateDefaultClaimCode();
+            LoadData();
         }
 
         [RelayCommand]

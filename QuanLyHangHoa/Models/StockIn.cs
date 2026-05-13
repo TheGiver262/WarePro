@@ -16,6 +16,8 @@ public partial class StockIn
     public string PurposeCode { get; set; } = null!;
 
     public string Status { get; set; } = null!;
+    public DateTime? ImportDate { get; set; }
+    public string? Notes { get; set; }
 
     public int CreatedBy { get; set; }
 

@@ -33,7 +33,13 @@ namespace QuanLyHangHoa
                         "ALTER TABLE SalesInvoice ADD CreatedAt DATETIME",
                         "ALTER TABLE SalesInvoice ADD Notes NVARCHAR(MAX)",
                         "ALTER TABLE PurchaseInvoice ADD CreatedAt DATETIME",
-                        "ALTER TABLE PurchaseInvoice ADD Notes NVARCHAR(MAX)"
+                        "ALTER TABLE PurchaseInvoice ADD Notes NVARCHAR(MAX)",
+                        "ALTER TABLE StockIn ADD ImportDate DATETIME",
+                        "ALTER TABLE StockIn ADD Notes NVARCHAR(MAX)",
+                        "ALTER TABLE StockOut ADD ExportDate DATETIME",
+                        "ALTER TABLE StockOut ADD Notes NVARCHAR(MAX)",
+                        "ALTER TABLE StockAdjustment ADD Notes NVARCHAR(MAX)",
+                        "ALTER TABLE StockCount ADD Notes NVARCHAR(MAX)"
                     };
 
                     foreach (var sql in migrations)

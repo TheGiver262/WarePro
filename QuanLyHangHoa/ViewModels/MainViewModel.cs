@@ -60,7 +60,7 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void OpenStockOutView()
         {
-            var view = new StockOutView { DataContext = new StockOutViewModel(CurrentUser) };
+            var view = new StockOutView { DataContext = new StockOutViewModel(CurrentUser, ContextFactory) };
             CurrentView = view;
             CurrentViewTitle = "XUẤT KHO";
             CurrentViewSubtitle = "Lập phiếu xuất kho và quản lý hàng xuất";
@@ -69,8 +69,7 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void OpenStockInView()
         {
-            var view = new StockInView { DataContext = new StockInViewModel(CurrentUser) };
-            CurrentView = view;
+            CurrentView = new StockInView { DataContext = new StockInViewModel(CurrentUser, ContextFactory) };
             CurrentViewTitle = "NHẬP KHO";
             CurrentViewSubtitle = "Lập phiếu nhập kho và quản lý hàng nhập";
         }
@@ -78,8 +77,7 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void OpenStockAdjustmentView()
         {
-            var view = new StockAdjustmentView { DataContext = new StockAdjustmentViewModel(CurrentUser) };
-            CurrentView = view;
+            CurrentView = new StockAdjustmentView { DataContext = new StockAdjustmentViewModel(CurrentUser, ContextFactory) };
             CurrentViewTitle = "ĐIỀU CHỈNH";
             CurrentViewSubtitle = "Điều chỉnh số lượng tồn kho thực tế";
         }
@@ -87,7 +85,7 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void OpenStockCountView()
         {
-            var view = new StockCountView { DataContext = new StockCountViewModel(CurrentUser) };
+            var view = new StockCountView { DataContext = new StockCountViewModel(CurrentUser, ContextFactory) };
             CurrentView = view;
             CurrentViewTitle = "KIỂM KÊ";
             CurrentViewSubtitle = "Kiểm kê định kỳ và đối soát hàng hóa";
@@ -164,7 +162,7 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void OpenInventoryView()
         {
-            CurrentView = new InventoryView();
+            CurrentView = new InventoryView { DataContext = new InventoryViewModel(ContextFactory) };
             CurrentViewTitle = "TỒN KHO";
             CurrentViewSubtitle = "Theo dõi số lượng và giá trị hàng hóa hiện có";
         }
@@ -178,9 +176,25 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        private void OpenOpeningBalanceImportView()
+        {
+            CurrentView = new OpeningBalanceImportView { DataContext = new OpeningBalanceImportViewModel(CurrentUser.Id, ContextFactory) };
+            CurrentViewTitle = "NHẬP TỒN ĐẦU KỲ";
+            CurrentViewSubtitle = "Import số dư đầu kỳ từ file Excel/CSV";
+        }
+
+        [RelayCommand]
+        private void OpenAuditQueryView()
+        {
+            CurrentView = new AuditQueryView { DataContext = new AuditQueryViewModel(ContextFactory) };
+            CurrentViewTitle = "TRUY VẤN LỊCH SỬ";
+            CurrentViewSubtitle = "Xem lịch sử biến động kho và chứng từ";
+        }
+
+        [RelayCommand]
         private void OpenWarrantyCoverageView()
         {
-            CurrentView = new WarrantyCoverageView();
+            CurrentView = new WarrantyCoverageView { DataContext = new WarrantyCoverageViewModel(ContextFactory) };
             CurrentViewTitle = "QUYỀN BẢO HÀNH";
             CurrentViewSubtitle = "Thiết lập các gói và điều kiện bảo hành";
         }

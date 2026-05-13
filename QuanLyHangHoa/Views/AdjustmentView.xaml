@@ -10,33 +10,37 @@
     <Grid Background="{StaticResource AppBackgroundBrush}">
         <Grid Margin="{StaticResource PagePadding}">
             <Grid.RowDefinitions>
+                <!-- Row 0: Header -->
                 <RowDefinition Height="Auto"/>
+                <!-- Row 1: Action/Input Form -->
                 <RowDefinition Height="Auto"/>
+                <!-- Row 2: Content -->
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <!-- Header / Toolbar -->
-            <materialDesign:Card Grid.Row="0" Margin="0,0,0,24" Style="{StaticResource AppCard}" Padding="16,12">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+            <!-- Row 0: Header Section -->
+            <Grid Grid.Row="0" Margin="0,0,0,24">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
 
-                    <StackPanel Orientation="Horizontal">
-                        <materialDesign:PackIcon Kind="Tune" Width="28" Height="28" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
-                        <TextBlock Text="ĐIỀU CHỈNH TỒN KHO" Style="{StaticResource TypographyH2}" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <materialDesign:PackIcon Kind="Tune" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
+                    <StackPanel Margin="16,0,0,0">
+                        <TextBlock Text="ĐIỀU CHỈNH TỒN KHO" Style="{StaticResource TypographyH2}" Foreground="{StaticResource AppTertiaryBrush}"/>
+                        <TextBlock Text="Cập nhật số lượng thực tế và xử lý chênh lệch hàng hóa" Style="{StaticResource TypographyCaption}" Opacity="0.7"/>
                     </StackPanel>
+                </StackPanel>
 
-                    <StackPanel Grid.Column="1" Orientation="Horizontal">
-                        <Button Content="TẠO PHIẾU MỚI" Command="{Binding CreateCommand}" 
-                                Style="{StaticResource AppPrimaryButton}"/>
-                    </StackPanel>
-                </Grid>
-            </materialDesign:Card>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="TẠO PHIẾU MỚI" Command="{Binding CreateCommand}" 
+                            Style="{StaticResource AppSecondaryButton}" Height="40" Padding="20,0"/>
+                </StackPanel>
+            </Grid>
 
-            <!-- Input Form -->
-            <materialDesign:Card Grid.Row="1" Margin="0,0,0,24" Style="{StaticResource AppCard}">
+            <!-- Row 1: Input Form Section -->
+            <materialDesign:Card Grid.Row="1" Margin="0,0,0,24" Style="{StaticResource AppCard}" Background="{StaticResource SurfaceMutedBrush}" Padding="16">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="2*"/>
@@ -47,7 +51,9 @@
 
                     <StackPanel Grid.Column="0" Margin="0,0,16,0">
                         <ComboBox ItemsSource="{Binding Products}" SelectedItem="{Binding SelectedProduct}" DisplayMemberPath="DisplayName"
-                                  Style="{StaticResource MaterialDesignFloatingHintComboBox}" materialDesign:HintAssist.Hint="Chọn sản phẩm điều chỉnh" FontSize="14"/>
+                                  Style="{StaticResource MaterialDesignFloatingHintComboBox}" 
+                                  materialDesign:HintAssist.Hint="Chọn sản phẩm điều chỉnh" FontSize="14"
+                                  materialDesign:TextFieldAssist.HasClearButton="True"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" Margin="0,0,16,0">
@@ -61,20 +67,52 @@
                     </StackPanel>
 
                     <Button Grid.Column="3" Content="XÁC NHẬN" Command="{Binding ExecuteCommand}" 
-                            Style="{StaticResource AppPrimaryButton}" Height="40" VerticalAlignment="Bottom"/>
+                            Style="{StaticResource AppPrimaryButton}" Height="40" VerticalAlignment="Bottom" Padding="24,0"/>
                 </Grid>
             </materialDesign:Card>
 
-            <!-- Data Table -->
+            <!-- Row 2: Data Table Section -->
             <materialDesign:Card Grid.Row="2" Style="{StaticResource AppCard}" Padding="0">
                 <DataGrid ItemsSource="{Binding Adjustments}" AutoGenerateColumns="False" CanUserAddRows="False" 
-                          IsReadOnly="True" BorderThickness="0" RowHeight="28">
+                          IsReadOnly="True" BorderThickness="0" RowHeight="54" Background="Transparent"
+                          HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                          HorizontalGridLinesBrush="{StaticResource AppBorderBrush}">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="NGÀY" Binding="{Binding AdjustmentDate, StringFormat=dd/MM/yyyy HH:mm}" Width="Auto" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                        <DataGridTextColumn Header="SẢN PHẨM" Binding="{Binding Product.DisplayName}" Width="2*" FontWeight="SemiBold"/>
-                        <DataGridTextColumn Header="SL CŨ" Binding="{Binding OldQuantity}" Width="*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
-                        <DataGridTextColumn Header="SL MỚI" Binding="{Binding NewQuantity}" Width="*" FontWeight="Bold" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
-                        <DataGridTextColumn Header="LÝ DO" Binding="{Binding Reason}" Width="2*"/>
+                        <DataGridTextColumn Header="THỜI GIAN" Binding="{Binding AdjustmentDate, StringFormat=dd/MM/yyyy HH:mm}" Width="Auto" 
+                                           ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+                        
+                        <DataGridTemplateColumn Header="SẢN PHẨM" Width="2*">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel VerticalAlignment="Center" Margin="12,0">
+                                        <TextBlock Text="{Binding Product.DisplayName}" FontWeight="SemiBold" Foreground="{StaticResource AppTertiaryBrush}"/>
+                                        <TextBlock Text="{Binding Product.Id}" Style="{StaticResource TypographyCaption}" Opacity="0.6"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTextColumn Header="SL CŨ" Binding="{Binding OldQuantity}" Width="*" 
+                                           ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
+                        
+                        <DataGridTextColumn Header="SL MỚI" Binding="{Binding NewQuantity}" Width="*" 
+                                           ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}">
+                            <DataGridTextColumn.CellStyle>
+                                <Style TargetType="DataGridCell" BasedOn="{StaticResource MaterialDesignDataGridCell}">
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                    <Setter Property="Foreground" Value="{StaticResource AppPrimaryBrush}"/>
+                                </Style>
+                            </DataGridTextColumn.CellStyle>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Header="LÝ DO ĐIỀU CHỈNH" Binding="{Binding Reason}" Width="2*">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource MaterialDesignDataGridTextColumnElementStyle}">
+                                    <Setter Property="FontStyle" Value="Italic"/>
+                                    <Setter Property="Opacity" Value="0.8"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
                     </DataGrid.Columns>
                 </DataGrid>
             </materialDesign:Card>

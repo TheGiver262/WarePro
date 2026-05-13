@@ -12,7 +12,7 @@ namespace QuanLyHangHoa.ViewModels
     {
         private readonly ProductService _productService;
 
-        [ObservableProperty] private ObservableCollection<Product> _products = new();
+        [ObservableProperty] private ObservableCollection<Product> _inventoryItems = new();
         [ObservableProperty] private string _searchText = string.Empty;
 
         private readonly Func<Data.AppDbContext> _contextFactory;
@@ -35,7 +35,7 @@ namespace QuanLyHangHoa.ViewModels
                     p.DisplayName.ToLower().Contains(term) || 
                     p.ProductCode.ToLower().Contains(term)).ToList();
             }
-            Products = new ObservableCollection<Product>(results);
+            InventoryItems = new ObservableCollection<Product>(results);
         }
 
         [RelayCommand]

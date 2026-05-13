@@ -183,6 +183,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.ProductCode, "UX_Product_ProductCode").IsUnique();
 
+            entity.Property(e => e.CostPrice).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.DefaultPrice).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.DisplayName).HasMaxLength(200);
             entity.Property(e => e.IsActive).HasDefaultValue(true);
@@ -552,6 +553,8 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.PostedAt).HasPrecision(0);
             entity.Property(e => e.PurposeCode).HasMaxLength(50);
             entity.Property(e => e.Status).HasMaxLength(50);
+            entity.Property(e => e.ImportDate).HasPrecision(0);
+            entity.Property(e => e.Notes).HasMaxLength(500);
 
             entity.HasOne(d => d.Approver).WithMany(p => p.StockInApprovers)
                 .HasForeignKey(d => d.ApprovedBy)
@@ -659,6 +662,8 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.PostedAt).HasPrecision(0);
             entity.Property(e => e.PurposeCode).HasMaxLength(50);
             entity.Property(e => e.Status).HasMaxLength(50);
+            entity.Property(e => e.ExportDate).HasPrecision(0);
+            entity.Property(e => e.Notes).HasMaxLength(500);
 
             entity.HasOne(d => d.Approver).WithMany(p => p.StockOutApprovers)
                 .HasForeignKey(d => d.ApprovedBy)

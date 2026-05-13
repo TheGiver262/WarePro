@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using QuanLyHangHoa.Data;
 
@@ -11,9 +12,11 @@ using QuanLyHangHoa.Data;
 namespace QuanLyHangHoa.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260513145843_AddExportDateAndNotesToStockOut")]
+    partial class AddExportDateAndNotesToStockOut
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -271,7 +274,7 @@ namespace QuanLyHangHoa.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal?>("CostPrice")
-                        .HasColumnType("decimal(18, 2)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("DefaultPrice")
                         .HasColumnType("decimal(18, 2)");
@@ -934,14 +937,6 @@ namespace QuanLyHangHoa.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<DateTime?>("ImportDate")
-                        .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
                     b.Property<DateTime?>("PostedAt")
                         .HasPrecision(0)
                         .HasColumnType("datetime2(0)");
@@ -1113,12 +1108,10 @@ namespace QuanLyHangHoa.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<DateTime?>("ExportDate")
-                        .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Notes")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("PostedAt")
                         .HasPrecision(0)

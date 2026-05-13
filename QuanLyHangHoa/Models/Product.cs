@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace QuanLyHangHoa.Models;
 
@@ -30,6 +31,15 @@ public partial class Product
     public bool IsSerialTracked { get; set; }
 
     public bool IsActive { get; set; }
+
+    public string CategoryName => Category?.DisplayName ?? "N/A";
+    public string BrandName => Brand?.DisplayName ?? "N/A";
+    public string UnitName => DefaultUnit?.DisplayName ?? "N/A";
+    public string ProductName => DisplayName;
+
+    public decimal StockQuantity => StockBalances?.Sum(b => b.OnHandQuantity) ?? 0;
+    public bool IsLowStock => StockQuantity < 10; // Threshold for low stock
+    public decimal TotalValue => StockQuantity * (CostPrice ?? DefaultPrice);
 
     public virtual Brand Brand { get; set; } = null!;
 

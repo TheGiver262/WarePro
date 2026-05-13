@@ -21,6 +21,7 @@ namespace QuanLyHangHoa.ViewModels
         private readonly ProductService _productService;
         private readonly StockCountService _stockCountService;
         private readonly AppUser _currentUser;
+        private readonly Func<AppDbContext> _contextFactory;
 
         [ObservableProperty] private ObservableCollection<Product> _availableProducts = new();
         [ObservableProperty] private ObservableCollection<StockCountLineEditor> _lines = new();
@@ -32,10 +33,10 @@ namespace QuanLyHangHoa.ViewModels
 
         public StockCountViewModel(AppUser? currentUser = null, Func<AppDbContext>? contextFactory = null)
         {
-            _currentUser = currentUser ?? new AppUser { Id = 1 };
-            var factory = contextFactory ?? (() => new QuanLyHangHoa.Data.AppDbContext());
-            _productService = new ProductService(factory);
-            _stockCountService = new StockCountService(factory);
+            _currentUser = currentUser ?? new AppUser { Id = 1, Username = "System" };
+            _contextFactory = contextFactory ?? (() => new AppDbContext());
+            _productService = new ProductService(_contextFactory);
+            _stockCountService = new StockCountService(_contextFactory);
             LoadData();
             SessionCode = CreateDefaultSessionCode();
         }
@@ -67,6 +68,13 @@ namespace QuanLyHangHoa.ViewModels
             {
                 Lines.Remove(line);
             }
+        }
+
+        [RelayCommand]
+        private void Cancel()
+        {
+            Lines.Clear();
+            SessionCode = CreateDefaultSessionCode();
         }
 
         [RelayCommand]

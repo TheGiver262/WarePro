@@ -12,7 +12,7 @@ namespace QuanLyHangHoa.ViewModels
 {
     public partial class WarrantyCoverageViewModel : ObservableObject
     {
-        private readonly AppDbContext _dbContext;
+        private readonly Func<AppDbContext> _contextFactory;
 
         [ObservableProperty] private ObservableCollection<WarrantyCoverage> _coverages = new();
         [ObservableProperty] private WarrantyCoverage? _selectedCoverage;
@@ -24,16 +24,17 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private DateTime _endDate = DateTime.Now.AddYears(1);
         [ObservableProperty] private string _status = "Active";
 
-        public WarrantyCoverageViewModel(AppDbContext dbContext)
+        public WarrantyCoverageViewModel(Func<AppDbContext> contextFactory)
         {
-            _dbContext = dbContext;
+            _contextFactory = contextFactory;
             LoadData();
         }
 
         [RelayCommand]
         public void LoadData()
         {
-            var query = _dbContext.WarrantyCoverages
+            using var db = _contextFactory();
+            var query = db.WarrantyCoverages
                 .Include(c => c.ProductSerial!)
                 .ThenInclude(p => p.Product!)
                 .Include(c => c.Customer!)
@@ -64,8 +65,9 @@ namespace QuanLyHangHoa.ViewModels
 
             try
             {
-                _dbContext.WarrantyCoverages.Update(SelectedCoverage);
-                _dbContext.SaveChanges();
+                using var db = _contextFactory();
+                db.WarrantyCoverages.Update(SelectedCoverage);
+                db.SaveChanges();
                 MessageBox.Show("Cập nhật thông tin bảo hành thành công!", "Thông báo");
                 LoadData();
             }
@@ -83,8 +85,9 @@ namespace QuanLyHangHoa.ViewModels
             {
                 try
                 {
-                    _dbContext.WarrantyCoverages.Remove(SelectedCoverage);
-                    _dbContext.SaveChanges();
+                    using var db = _contextFactory();
+                    db.WarrantyCoverages.Remove(SelectedCoverage);
+                    db.SaveChanges();
                     LoadData();
                 }
                 catch (Exception ex)

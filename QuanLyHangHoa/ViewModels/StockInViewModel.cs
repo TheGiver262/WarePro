@@ -37,6 +37,12 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _documentCode = string.Empty;
         [ObservableProperty] private int _warehouseId = 1;
         [ObservableProperty] private string _statusMessage = string.Empty;
+        [ObservableProperty] private ObservableCollection<Supplier> _availableSuppliers = new();
+        [ObservableProperty] private Supplier? _selectedSupplier;
+        [ObservableProperty] private DateTime _importDate = DateTime.Now;
+        [ObservableProperty] private string _notes = string.Empty;
+
+        public decimal TotalAmount => Lines.Sum(l => l.Quantity * l.Price);
 
         public StockInViewModel(AppUser? currentUser = null, Func<AppDbContext>? contextFactory = null)
         {
@@ -44,8 +50,13 @@ namespace QuanLyHangHoa.ViewModels
             var factory = contextFactory ?? (() => new QuanLyHangHoa.Data.AppDbContext());
             _productService = new ProductService(factory);
             _stockInService = new StockInService(factory);
+            var supplierService = new SupplierService(factory);
+
             AvailableProducts = new ObservableCollection<Product>(_productService.GetAllProducts());
+            AvailableSuppliers = new ObservableCollection<Supplier>(supplierService.GetAll());
             DocumentCode = $"IN-{DateTime.Now:yyyyMMddHHmmss}";
+
+            Lines.CollectionChanged += (s, e) => OnPropertyChanged(nameof(TotalAmount));
         }
 
         [RelayCommand]
@@ -78,9 +89,13 @@ namespace QuanLyHangHoa.ViewModels
                 {
                     DocumentCode = DocumentCode,
                     WarehouseId = WarehouseId,
+                    SupplierId = SelectedSupplier?.Id,
+                    ImportDate = ImportDate,
+                    Notes = Notes,
                     Status = "Completed",
                     CreatedBy = _currentUser.Id,
-                    CreatedAt = DateTime.Now
+                    CreatedAt = DateTime.Now,
+                    PurposeCode = "Import"
                 };
 
                 var siLines = Lines.Select(l => new StockInLine
@@ -99,6 +114,12 @@ namespace QuanLyHangHoa.ViewModels
             {
                 MessageBox.Show(ex.Message, "Lỗi");
             }
+        }
+
+        [RelayCommand]
+        private void Cancel()
+        {
+            ResetForm();
         }
 
         private void ResetForm()

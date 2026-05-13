@@ -16,6 +16,8 @@ public partial class StockOut
     public string PurposeCode { get; set; } = null!;
 
     public string Status { get; set; } = null!;
+    public DateTime? ExportDate { get; set; }
+    public string? Notes { get; set; }
 
     public int CreatedBy { get; set; }
 
