@@ -22,6 +22,9 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty]
         private string _currentViewSubtitle = "Tổng quan hoạt động kinh doanh";
 
+        [ObservableProperty]
+        private bool _isSidebarCollapsed;
+
         public bool IsAdmin => AuthorizationService.CanPerform(CurrentUser, PermissionAction.ManageUsers);
         public bool CanViewLogs => AuthorizationService.CanPerform(CurrentUser, PermissionAction.ManageAuditLogs);
 
@@ -228,6 +231,12 @@ namespace QuanLyHangHoa.ViewModels
             CurrentView = view;
             CurrentViewTitle = "ĐỔI MẬT KHẨU";
             CurrentViewSubtitle = "Cập nhật mật khẩu truy cập";
+        }
+
+        [RelayCommand]
+        private void ToggleSidebar()
+        {
+            IsSidebarCollapsed = !IsSidebarCollapsed;
         }
 
         [RelayCommand]

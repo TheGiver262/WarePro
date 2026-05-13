@@ -12,7 +12,18 @@
 
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="240"/>
+            <ColumnDefinition>
+                <ColumnDefinition.Style>
+                    <Style TargetType="ColumnDefinition">
+                        <Setter Property="Width" Value="240"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsSidebarCollapsed}" Value="True">
+                                <Setter Property="Width" Value="68"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ColumnDefinition.Style>
+            </ColumnDefinition>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
@@ -28,9 +39,21 @@
                 </Grid.RowDefinitions>
 
                 <!-- Logo §6.1 -->
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="20,0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="20,0">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="HorizontalAlignment" Value="Left"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsSidebarCollapsed}" Value="True">
+                                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                                    <Setter Property="Margin" Value="0"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
                     <materialDesign:PackIcon Kind="ViewDashboard" Width="28" Height="28" Foreground="{StaticResource PrimaryPurpleBrush}"/>
-                    <TextBlock Text="WarePro" Foreground="{StaticResource TextOnPrimaryBrush}" FontWeight="Bold" FontSize="15" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                    <TextBlock Text="WarePro" Foreground="{StaticResource TextOnPrimaryBrush}" FontWeight="Bold" FontSize="15" VerticalAlignment="Center" Margin="10,0,0,0"
+                               Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
                 </StackPanel>
 
                 <!-- Navigation Menu §6.1 -->
@@ -87,11 +110,24 @@
                         <Border Width="36" Height="36" CornerRadius="18" Background="{StaticResource PrimaryPurpleBrush}">
                             <TextBlock Text="{Binding CurrentUser.FullName[0]}" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14"/>
                         </Border>
-                        <StackPanel Grid.Column="1" Margin="10,0" VerticalAlignment="Center">
+                        <StackPanel Grid.Column="1" Margin="10,0" VerticalAlignment="Center"
+                                    Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                             <TextBlock Text="{Binding CurrentUser.FullName}" Foreground="{StaticResource SidebarTextBrush}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis"/>
                             <TextBlock Text="{Binding CurrentUser.RoleCode}" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="11"/>
                         </StackPanel>
-                        <Button Grid.Column="2" Style="{StaticResource MaterialDesignIconButton}" Width="30" Height="30" Foreground="{StaticResource SidebarTextBrush}" Command="{Binding LogoutCommand}" ToolTip="Đăng xuất">
+                        <Button Grid.Column="2" Width="30" Height="30" Foreground="{StaticResource SidebarTextBrush}" Command="{Binding LogoutCommand}" ToolTip="Đăng xuất">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignIconButton}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsSidebarCollapsed}" Value="True">
+                                            <Setter Property="Grid.Column" Value="0"/>
+                                            <Setter Property="Grid.ColumnSpan" Value="3"/>
+                                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                                            <Setter Property="Visibility" Value="Collapsed"/> <!-- Actually, let's keep avatar and hide logout, or hide avatar and keep logout? User usually wants avatar. -->
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
                             <materialDesign:PackIcon Kind="LogoutVariant" Width="18" Height="18"/>
                         </Button>
                     </Grid>
@@ -116,10 +152,20 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <TextBlock Text="Phần mềm Quản lý Hàng hóa &amp; Bảo hành" 
-                               Foreground="{StaticResource TopBarTextBrush}" 
-                               FontSize="14" FontWeight="SemiBold" 
-                               VerticalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Style="{StaticResource MaterialDesignIconButton}" 
+                                Width="40" Height="40" Margin="-8,0,16,0"
+                                Foreground="{StaticResource PrimaryPurpleBrush}"
+                                Command="{Binding ToggleSidebarCommand}"
+                                ToolTip="Thu gọn/Mở rộng menu">
+                            <materialDesign:PackIcon Kind="Menu" Width="24" Height="24"/>
+                        </Button>
+                        
+                        <TextBlock Text="Phần mềm Quản lý Hàng hóa &amp; Bảo hành" 
+                                   Foreground="{StaticResource TopBarTextBrush}" 
+                                   FontSize="14" FontWeight="SemiBold" 
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock Text="{Binding CurrentUser.FullName}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="13" VerticalAlignment="Center" Margin="0,0,8,0"/>

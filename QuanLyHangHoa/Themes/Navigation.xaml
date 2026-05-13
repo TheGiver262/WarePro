@@ -25,11 +25,11 @@
             <Setter.Value>
                 <ControlTemplate TargetType="RadioButton">
                     <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="{StaticResource Radius.md}" Padding="12,0">
-                        <StackPanel Orientation="Horizontal">
+                        <StackPanel x:Name="stackPanel" Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource SafePackIconKindConverter}}" 
                                                      Width="20" Height="20" VerticalAlignment="Center" 
                                                      Foreground="{TemplateBinding Foreground}"/>
-                            <ContentPresenter VerticalAlignment="Center" Margin="12,0,0,0"/>
+                            <ContentPresenter x:Name="content" VerticalAlignment="Center" Margin="12,0,0,0"/>
                         </StackPanel>
                     </Border>
                     <ControlTemplate.Triggers>
@@ -49,6 +49,11 @@
                             <Setter TargetName="border" Property="Background" Value="{StaticResource SidebarHoverBrush}"/>
                             <Setter Property="Foreground" Value="{StaticResource TextOnPrimaryBrush}"/>
                         </MultiTrigger>
+                        <DataTrigger Binding="{Binding DataContext.IsSidebarCollapsed, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                            <Setter TargetName="content" Property="Visibility" Value="Collapsed"/>
+                            <Setter TargetName="border" Property="Padding" Value="0"/>
+                            <Setter TargetName="stackPanel" Property="HorizontalAlignment" Value="Center"/>
+                        </DataTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
@@ -61,6 +66,11 @@
         <Setter Property="FontSize" Value="11"/>
         <Setter Property="FontWeight" Value="Bold"/>
         <Setter Property="Margin" Value="16,20,0,8"/>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsSidebarCollapsed}" Value="True">
+                <Setter Property="Visibility" Value="Collapsed"/>
+            </DataTrigger>
+        </Style.Triggers>
     </Style>
 
 </ResourceDictionary>
