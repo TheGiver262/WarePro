@@ -179,7 +179,7 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                             
-                            <DataGridTextColumn Header="GIÁ TRỊ" Binding="{Binding TotalValue, StringFormat='N0'}" Width="160" ElementStyle="{StaticResource AppDataGridTextRightBold}"/>
+                            <DataGridTextColumn Header="GIÁ TRỊ" Binding="{Binding TotalValue, StringFormat='N0'}" Width="160" ElementStyle="{StaticResource AppDataGridTextRight}"/>
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>
