@@ -29,7 +29,7 @@
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <materialDesign:PackIcon Kind="History" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
                     <StackPanel Margin="16,0,0,0">
-                        <TextBlock Text="NHẬT KÝ HỆ THỐNG" Style="{StaticResource TypographyH2}" Foreground="{StaticResource AppTertiaryBrush}"/>
+                        <TextBlock Text="NHẬT KÝ HỆ THỐNG" Style="{StaticResource TypographyH1}" Foreground="{StaticResource AppTertiaryBrush}"/>
                         <TextBlock Text="Truy vấn lịch sử biến động kho và nhật ký giao dịch" Style="{StaticResource TypographyCaption}" Opacity="0.7"/>
                     </StackPanel>
                 </StackPanel>
@@ -62,7 +62,9 @@
                             </TextBox.InputBindings>
                         </TextBox>
                     </Grid>
-                    <Button Grid.Column="1" Content="TRUY VẤN" Command="{Binding LoadDocumentTimelineCommand}" Style="{StaticResource AppPrimaryButton}" Height="40" Padding="24,0"/>
+                    <Button Grid.Column="1" Command="{Binding LoadDocumentTimelineCommand}" Style="{StaticResource PrimaryButton}" Height="32">
+                        <TextBlock Text="TRUY VẤN" Style="{StaticResource TypographyButtonText}"/>
+                    </Button>
                 </Grid>
             </materialDesign:Card>
 
@@ -161,8 +163,10 @@
                                   materialDesign:HintAssist.Hint="Chọn sản phẩm"
                                   Margin="0,0,0,16" Height="42"/>
                         
-                        <Button Content="TRUY VẤN LỊCH SỬ SP" Command="{Binding LoadProductLedgerCommand}" 
-                                Style="{StaticResource AppPrimaryButton}" Margin="0,0,0,24" Height="42"/>
+                        <Button Command="{Binding LoadProductLedgerCommand}" 
+                                Style="{StaticResource PrimaryButton}" Margin="0,0,0,24" Height="32">
+                            <TextBlock Text="TRUY VẤN LỊCH SỬ SP" Style="{StaticResource TypographyButtonText}"/>
+                        </Button>
 
                         <Separator Margin="0,0,0,24" Background="{StaticResource AppBorderBrush}"/>
 
@@ -170,8 +174,10 @@
                         <TextBox Style="{StaticResource AppTextBoxStyle}" materialDesign:HintAssist.Hint="Nhập DocumentId" 
                                  Text="{Binding DocumentIdText, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,16" Height="42"/>
 
-                        <Button Content="XEM DÒNG THỜI GIAN" Command="{Binding LoadDocumentTimelineCommand}" 
-                                Style="{StaticResource AppSecondaryButton}" Height="42"/>
+                        <Button Command="{Binding LoadDocumentTimelineCommand}" 
+                                Style="{StaticResource SecondaryButton}" Height="32">
+                            <TextBlock Text="XEM DÒNG THỜI GIAN" Style="{StaticResource TypographyButtonText}"/>
+                        </Button>
                     </StackPanel>
                 </materialDesign:Card>
             </Grid>

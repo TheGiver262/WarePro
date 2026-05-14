@@ -18,7 +18,7 @@
             <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,24">
                 <materialDesign:PackIcon Kind="AccountMultipleOutline" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
                 <StackPanel Margin="16,0,0,0">
-                    <TextBlock Text="THÊM NGƯỜI DÙNG" Style="{StaticResource TypographyH2}"/>
+                    <TextBlock Text="THÊM NGƯỜI DÙNG" Style="{StaticResource TypographyH1}"/>
                     <TextBlock Text="Điền thông tin để tạo tài khoản mới" Style="{StaticResource TypographyCaption}"/>
                 </StackPanel>
             </StackPanel>
@@ -61,10 +61,14 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <Button Grid.Column="0" Content="HUỶ BỎ" Style="{StaticResource MaterialDesignFlatButton}" 
-                        Margin="0,0,8,0" Command="{Binding CancelCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}"/>
-                <Button Grid.Column="1" Content="XÁC NHẬN" Style="{StaticResource AppPrimaryButton}" 
-                        Margin="8,0,0,0" Command="{Binding ConfirmCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}"/>
+                <Button Grid.Column="0" Style="{StaticResource SecondaryButton}" 
+                        Margin="0,0,8,0" Command="{Binding CancelCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}" Height="32">
+                    <TextBlock Text="HUỶ BỎ" Style="{StaticResource TypographyButtonText}"/>
+                </Button>
+                <Button Grid.Column="1" Style="{StaticResource PrimaryButton}" 
+                        Margin="8,0,0,0" Command="{Binding ConfirmCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}" Height="32">
+                    <TextBlock Text="XÁC NHẬN" Style="{StaticResource TypographyButtonText}"/>
+                </Button>
             </Grid>
         </Grid>
     </Border>

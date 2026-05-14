@@ -12,7 +12,7 @@
             <materialDesign:Card Grid.Row="0" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.md}" Margin="{StaticResource Margin.Bottom.lg}">
                 <StackPanel Orientation="Horizontal">
                     <materialDesign:PackIcon Kind="Settings" Width="28" Height="28" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
-                    <TextBlock Text="CẤU HÌNH HỆ THỐNG" Style="{StaticResource TypographyH2}" Margin="{StaticResource Margin.Left.md}" VerticalAlignment="Center"/>
+                    <TextBlock Text="CẤU HÌNH HỆ THỐNG" Style="{StaticResource TypographyH1}" Margin="{StaticResource Margin.Left.md}" VerticalAlignment="Center"/>
                 </StackPanel>
             </materialDesign:Card>
 
@@ -39,9 +39,11 @@
                                  materialDesign:HintAssist.Hint="Lời chúc / Ghi chú chân trang hóa đơn" 
                                  Height="100" TextWrapping="Wrap" AcceptsReturn="True" FontSize="14" Margin="{StaticResource Margin.Bottom.lg}"/>
 
-                        <Button Content="LƯU CẤU HÌNH" Command="{Binding SaveSettingsCommand}" 
-                                Style="{StaticResource AppPrimaryButton}"
-                                Width="200" HorizontalAlignment="Left"/>
+                        <Button Command="{Binding SaveSettingsCommand}" 
+                                Style="{StaticResource PrimaryButton}"
+                                HorizontalAlignment="Left" Height="32">
+                            <TextBlock Text="LƯU CẤU HÌNH" Style="{StaticResource TypographyButtonText}"/>
+                        </Button>
                     </StackPanel>
                 </ScrollViewer>
             </materialDesign:Card>

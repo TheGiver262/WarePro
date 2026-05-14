@@ -68,7 +68,7 @@
                     </Style.Triggers>
                 </Style>
             </Border.Style>
-            <TextBlock Style="{StaticResource TypographyLabel}" FontSize="10">
+            <TextBlock>
                 <TextBlock.Style>
                     <Style TargetType="TextBlock" BasedOn="{StaticResource TypographyLabel}">
                         <Setter Property="FontSize" Value="10"/>
@@ -108,7 +108,7 @@
                     </Style.Triggers>
                 </Style>
             </Border.Style>
-            <TextBlock x:Name="StatusText" Style="{StaticResource TypographyLabel}" FontSize="10.5" VerticalAlignment="Center" Margin="0,-1,0,0">
+            <TextBlock x:Name="StatusText" VerticalAlignment="Center" Margin="0,-1,0,0">
                 <TextBlock.Style>
                     <Style TargetType="TextBlock" BasedOn="{StaticResource TypographyLabel}">
                         <Setter Property="FontSize" Value="10.5"/>
@@ -181,7 +181,7 @@
                     </Style.Triggers>
                 </Style>
             </Border.Style>
-            <TextBlock Style="{StaticResource TypographyLabel}" FontSize="10" VerticalAlignment="Center" Margin="0,-1,0,0">
+            <TextBlock VerticalAlignment="Center" Margin="0,-1,0,0">
                 <TextBlock.Style>
                     <Style TargetType="TextBlock" BasedOn="{StaticResource TypographyLabel}">
                         <Setter Property="FontSize" Value="10"/>

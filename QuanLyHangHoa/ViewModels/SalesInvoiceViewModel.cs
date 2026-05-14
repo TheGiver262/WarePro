@@ -265,7 +265,7 @@ namespace QuanLyHangHoa.ViewModels
             DueDate = invoice.DueDate ?? DateTime.Now;
             PaidAmount = invoice.PaidAmount;
             SelectedStockOut = AvailableStockOuts.FirstOrDefault(s => s.Id == invoice.StockOutId);
-            SelectedPaymentStatus = invoice.PaymentStatus ?? "Chưa TT";
+            SelectedPaymentStatus = StatusToVietnamese(invoice.PaymentStatus ?? "Unpaid");
             Notes = invoice.Notes ?? string.Empty;
             
             Lines.Clear();
@@ -360,6 +360,18 @@ namespace QuanLyHangHoa.ViewModels
                 "Đã TT" => "Paid",
                 "Quá hạn" => "Overdue",
                 _ => "Unpaid"
+            };
+        }
+
+        private string StatusToVietnamese(string englishStatus)
+        {
+            return englishStatus switch
+            {
+                "Unpaid" => "Chưa TT",
+                "Partial" => "TT 1 phần",
+                "Paid" => "Đã TT",
+                "Overdue" => "Quá hạn",
+                _ => "Chưa TT"
             };
         }
 

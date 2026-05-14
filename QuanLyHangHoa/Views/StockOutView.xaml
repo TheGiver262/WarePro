@@ -26,21 +26,21 @@
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <materialDesign:PackIcon Kind="ArrowUpBold" Width="32" Height="32" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
                     <StackPanel Margin="16,0,0,0">
-                        <TextBlock Text="XUẤT KHO HÀNG HÓA" Style="{StaticResource TypographyH2}" Foreground="{StaticResource AppTertiaryBrush}"/>
+                        <TextBlock Text="XUẤT KHO HÀNG HÓA" Style="{StaticResource TypographyH1}"/>
                         <TextBlock Text="Lập phiếu xuất kho và giảm trừ số lượng tồn kho" Style="{StaticResource TypographyCaption}" Opacity="0.7"/>
                     </StackPanel>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Command="{Binding CancelCommand}" Style="{StaticResource AppSecondaryButton}" Height="40" Margin="0,0,12,0" Padding="20,0">
+                    <Button Command="{Binding CancelCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,12,0" Height="32">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Close" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <TextBlock Text="HỦY PHIẾU" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
+                            <TextBlock Text="HỦY PHIẾU" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
                         </StackPanel>
                     </Button>
-                    <Button Command="{Binding SaveStockOutCommand}" Style="{StaticResource AppPrimaryButton}" Height="40" Padding="20,0">
+                    <Button Command="{Binding SaveStockOutCommand}" Style="{StaticResource PrimaryButton}" Height="32">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="ArrowUpBox" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <TextBlock Text="XÁC NHẬN" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
+                            <TextBlock Text="XÁC NHẬN" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -88,7 +88,7 @@
                                  Text="{Binding Notes}"/>
                     </StackPanel>
 
-                    <Button Grid.Column="5" Command="{Binding AddLineCommand}" Style="{StaticResource AppPrimaryButton}" Height="42" VerticalAlignment="Bottom" Padding="16,0">
+                    <Button Grid.Column="5" Command="{Binding AddLineCommand}" Style="{StaticResource PrimaryButton}" Height="42" VerticalAlignment="Bottom" Padding="16,0">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Plus" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
                             <TextBlock Text="CHỌN SP" VerticalAlignment="Center"/>
@@ -169,7 +169,7 @@
                                 </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Button Content="Chọn Serial" Style="{StaticResource MaterialDesignFlatButton}" Height="32" Padding="12,0" FontSize="12" Foreground="{StaticResource AppPrimaryBrush}"
+                                        <Button Content="Chọn Serial" Style="{StaticResource SecondaryButton}" Height="32" Padding="12,0" FontSize="12"
                                                 Command="{Binding DataContext.OpenSerialInputCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -178,7 +178,7 @@
                             <DataGridTemplateColumn Header="THAO TÁC" Width="100">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Button Style="{StaticResource ProMaxIconButtonStyle}" Width="32" Height="32" Padding="0"
+                                        <Button Style="{StaticResource ProMaxIconButtonStyle}"
                                                 Command="{Binding DataContext.RemoveLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
                                             <materialDesign:PackIcon Kind="TrashCanOutline" Width="18" Height="18" Foreground="{StaticResource AppErrorBrush}"/>
                                         </Button>

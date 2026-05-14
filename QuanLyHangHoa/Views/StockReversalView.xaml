@@ -25,7 +25,7 @@
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <materialDesign:PackIcon Kind="History" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
                     <StackPanel Margin="16,0,0,0">
-                        <TextBlock Text="ĐẢO CHỨNG TỪ KHO" Style="{StaticResource TypographyH2}" Foreground="{StaticResource AppTertiaryBrush}"/>
+                        <TextBlock Text="ĐẢO CHỨNG TỪ KHO" Style="{StaticResource TypographyH1}" Foreground="{StaticResource AppTertiaryBrush}"/>
                         <TextBlock Text="Hủy bỏ hiệu lực của chứng từ bằng cách tạo giao dịch đảo chiều" Style="{StaticResource TypographyCaption}" Opacity="0.7"/>
                     </StackPanel>
                 </StackPanel>
@@ -66,11 +66,11 @@
                     </StackPanel>
 
                     <Button Grid.Column="2" Command="{Binding ReverseDocumentCommand}" 
-                            Style="{StaticResource AppDangerButton}"
-                            Height="42" Padding="24,0" VerticalAlignment="Bottom">
+                            Style="{StaticResource DangerButton}" Height="32"
+                            VerticalAlignment="Bottom">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="HistoryOff" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <TextBlock Text="ĐẢO CHỨNG TỪ" VerticalAlignment="Center"/>
+                            <TextBlock Text="ĐẢO CHỨNG TỪ" Style="{StaticResource TypographyButtonText}" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
                 </Grid>
@@ -81,7 +81,7 @@
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
                         <materialDesign:PackIcon Kind="AlertCircle" Foreground="{StaticResource DangerTextBrush}" VerticalAlignment="Center" Width="28" Height="28"/>
-                        <TextBlock Text="LƯU Ý QUAN TRỌNG" Style="{StaticResource TypographyH2}" Foreground="{StaticResource DangerTextBrush}" Margin="16,0,0,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="LƯU Ý QUAN TRỌNG" Style="{StaticResource TypographyH1}" Foreground="{StaticResource DangerTextBrush}" Margin="16,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
                     
                     <TextBlock Text="Chức năng này sẽ tạo các bản ghi điều chỉnh (Adjustment) đảo chiều toàn bộ giao dịch của chứng từ đã chọn và cập nhật ngay lập tức vào tồn kho thực tế." 

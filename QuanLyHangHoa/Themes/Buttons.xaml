@@ -7,8 +7,8 @@
     <!-- Global Button Style Override -->
     <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignRaisedButton}">
         <Setter Property="materialDesign:ButtonAssist.CornerRadius" Value="{StaticResource Radius.md}"/>
-        <Setter Property="Height" Value="34"/>
-        <Setter Property="Padding" Value="14,0"/>
+        <Setter Property="Height" Value="40"/>
+        <Setter Property="Padding" Value="20,0"/>
         <Setter Property="FontSize" Value="13"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="Cursor" Value="Hand"/>
@@ -20,8 +20,6 @@
         <Setter Property="Background" Value="{StaticResource PrimaryPurpleBrush}"/>
         <Setter Property="BorderBrush" Value="{StaticResource PrimaryPurpleBrush}"/>
         <Setter Property="Foreground" Value="{StaticResource TextOnPrimaryBrush}"/>
-        <Setter Property="Padding" Value="14,0"/>
-        <Setter Property="Height" Value="34"/>
         <Setter Property="MinWidth" Value="88"/>
     </Style>
 
@@ -31,9 +29,7 @@
         <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
         <Setter Property="Background" Value="White"/>
-        <Setter Property="Height" Value="34"/>
         <Setter Property="MinWidth" Value="88"/>
-        <Setter Property="Padding" Value="14,0"/>
         <Setter Property="FontSize" Value="13"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="Cursor" Value="Hand"/>

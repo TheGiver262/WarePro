@@ -25,7 +25,7 @@
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <materialDesign:PackIcon Kind="BarcodeScan" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
                     <StackPanel Margin="16,0,0,0">
-                        <TextBlock Text="QUẢN LÝ SERIAL" Style="{StaticResource TypographyH2}"/>
+                        <TextBlock Text="QUẢN LÝ SERIAL" Style="{StaticResource TypographyH1}"/>
                         <TextBlock Text="Theo dõi chi tiết số serial sản phẩm trong kho" Style="{StaticResource TypographyCaption}" Opacity="0.7"/>
                     </StackPanel>
                 </StackPanel>
@@ -90,29 +90,30 @@
 
                         <!-- Actions -->
                         <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Bottom">
-                            <Button Style="{StaticResource AppSecondaryButton}" 
+                            <Button Style="{StaticResource SecondaryButton}" 
                                     Command="{Binding ToggleAdvancedFilterCommand}"
                                     ToolTip="Bộ lọc nâng cao"
-                                    Width="160" Height="32" Padding="8,0" Margin="0,0,8,0">
+                                    Width="180" Height="32" Margin="0,0,8,0">
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Tune" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                    <TextBlock Text="BỘ LỌC NÂNG CAO" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <TextBlock Text="BỘ LỌC NÂNG CAO" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
                                 </StackPanel>
                             </Button>
                             
-                            <Button Style="{StaticResource AppSecondaryButton}" 
+                            <Button Style="{StaticResource SecondaryButton}" 
                                     Command="{Binding RefreshCommand}"
                                     ToolTip="Làm mới bộ lọc"
                                     Width="32" Height="32" Padding="0" Margin="0,0,8,0">
                                 <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18"/>
                             </Button>
                             
-                            <Button Style="{StaticResource AppPrimaryButton}" 
+                            <Button Style="{StaticResource PrimaryButton}" 
                                     Command="{Binding ExportToExcelCommand}"
-                                    Height="32" Padding="16,0">
+                                    Width="140" Height="32"
+                                    Margin="0,0,0,0">
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="FileExcelOutline" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                    <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
                                 </StackPanel>
                             </Button>
                         </StackPanel>
@@ -176,12 +177,12 @@
                             <DataGridTemplateColumn.Header>
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                    <TextBlock Text="SERIAL" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <TextBlock Text="SERIAL" VerticalAlignment="Center" Style="{StaticResource TypographyLabelBold}"/>
                                 </StackPanel>
                             </DataGridTemplateColumn.Header>
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <TextBlock Text="{Binding SerialNumber}" FontWeight="Bold" VerticalAlignment="Center" Margin="12,0" Foreground="{StaticResource AppSecondaryBrush}"/>
+                                    <TextBlock Text="{Binding SerialNumber}" Style="{StaticResource TypographyBodyBold}" VerticalAlignment="Center" Margin="12,0" Foreground="{StaticResource AppSecondaryBrush}"/>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
@@ -191,13 +192,13 @@
                             <DataGridTemplateColumn.Header>
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" Margin="0,0,6,0" VerticalAlignment="Center" Opacity="0.6"/>
-                                    <TextBlock Text="SẢN PHẨM" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <TextBlock Text="SẢN PHẨM" VerticalAlignment="Center" Style="{StaticResource TypographyLabelBold}"/>
                                 </StackPanel>
                             </DataGridTemplateColumn.Header>
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel VerticalAlignment="Center" Margin="12,0">
-                                        <TextBlock Text="{Binding Product.DisplayName}" Foreground="{StaticResource TextPrimaryBrush}" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding Product.DisplayName}" Style="{StaticResource TypographyBodyBold}"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
@@ -208,7 +209,7 @@
                             <DataGridTemplateColumn.Header>
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                    <TextBlock Text="THƯƠNG HIỆU" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <TextBlock Text="THƯƠNG HIỆU" VerticalAlignment="Center" Style="{StaticResource TypographyLabelBold}"/>
                                 </StackPanel>
                             </DataGridTemplateColumn.Header>
                             <DataGridTemplateColumn.CellTemplate>
@@ -224,7 +225,7 @@
                             <DataGridTemplateColumn.Header>
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                    <TextBlock Text="TRẠNG THÁI" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <TextBlock Text="TRẠNG THÁI" VerticalAlignment="Center" Style="{StaticResource TypographyLabelBold}"/>
                                 </StackPanel>
                             </DataGridTemplateColumn.Header>
                         </DataGridTemplateColumn>
@@ -234,15 +235,15 @@
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <Button Style="{StaticResource MaterialDesignIconButton}" Width="28" Height="28" ToolTip="Xem chi tiết" Margin="0,0,4,0"
+                                        <Button Style="{StaticResource ProMaxIconButtonStyle}" ToolTip="Xem chi tiết" Margin="0,0,4,0"
                                                 Command="{Binding DataContext.ViewSerialDetailCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}">
-                                            <materialDesign:PackIcon Kind="EyeOutline" Width="16" Height="16" Foreground="{StaticResource AppPrimaryBrush}"/>
+                                            <materialDesign:PackIcon Kind="EyeOutline" Width="18" Height="18"/>
                                         </Button>
-                                        <Button Style="{StaticResource MaterialDesignIconButton}" Width="28" Height="28" ToolTip="Sửa" Margin="0,0,4,0"
+                                        <Button Style="{StaticResource ProMaxIconButtonStyle}" ToolTip="Sửa" Margin="0,0,4,0"
                                                 Command="{Binding DataContext.EditSerialCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}">
-                                            <materialDesign:PackIcon Kind="PencilOutline" Width="16" Height="16" Foreground="{StaticResource AppSecondaryBrush}"/>
+                                            <materialDesign:PackIcon Kind="PencilOutline" Width="18" Height="18"/>
                                         </Button>
 
                                     </StackPanel>
@@ -254,7 +255,7 @@
                     
                     <!-- Row 1: Footer -->
                     <Border Grid.Row="1" Padding="20,12" Background="{StaticResource AppFooterBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
-                        <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="{StaticResource AppSecondaryBrush}">
+                        <TextBlock VerticalAlignment="Center" Style="{StaticResource TypographyCaption}">
                             <TextBlock.Text>
                                 <MultiBinding StringFormat="{}Hiện có {0} số Serial trong hệ thống · {1} trong kho · {2} đã bán · {3} thanh lý">
                                     <Binding Path="Serials.Count"/>

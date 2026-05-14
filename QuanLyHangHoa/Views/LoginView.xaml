@@ -89,8 +89,7 @@
 
                 <!-- Actions -->
                 <StackPanel Grid.Row="4" Margin="{StaticResource Margin.Top.md}">
-                    <Button Content="ĐĂNG NHẬP" Style="{StaticResource AppPrimaryButton}"
-                            Height="50" FontSize="16"
+                    <Button Content="ĐĂNG NHẬP" Style="{StaticResource PrimaryButton}"
                             Command="{Binding LoginCommand}" 
                             CommandParameter="{Binding ElementName=LoginWindow}"/>
                     

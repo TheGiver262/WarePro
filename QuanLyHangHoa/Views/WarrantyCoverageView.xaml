@@ -27,7 +27,7 @@
                     <Border Background="{StaticResource AppTertiaryBrush}" Width="40" Height="40" CornerRadius="{StaticResource Radius.md}">
                         <materialDesign:PackIcon Kind="ShieldCheckOutline" Width="24" Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource TextOnPrimaryBrush}"/>
                     </Border>
-                    <TextBlock Text="THÔNG TIN BẢO HÀNH" Style="{StaticResource TypographyH2}" Margin="{StaticResource Margin.Left.md}" VerticalAlignment="Center"/>
+                    <TextBlock Text="THÔNG TIN BẢO HÀNH" Style="{StaticResource TypographyH1}" Margin="{StaticResource Margin.Left.md}" VerticalAlignment="Center"/>
                 </StackPanel>
             </Grid>
 
@@ -46,10 +46,10 @@
                     </TextBox.InputBindings>
                 </TextBox>
                 <Button Grid.Column="1" Command="{Binding LoadDataCommand}"
-                        Style="{StaticResource AppPrimaryButton}" Padding="16,0">
+                        Style="{StaticResource PrimaryButton}" Height="32">
                     <StackPanel Orientation="Horizontal">
                         <materialDesign:PackIcon Kind="Search" Width="20" Height="20"/>
-                        <TextBlock Text="TÌM KIẾM" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="TÌM KIẾM" Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
                     </StackPanel>
                 </Button>
             </Grid>
@@ -91,9 +91,9 @@
 
                     <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Bottom">
                         <Button Content="LƯU" Command="{Binding SaveCoverageCommand}" 
-                                Style="{StaticResource AppPrimaryButton}" Margin="{StaticResource Margin.Right.sm}" Height="32"/>
+                                Style="{StaticResource PrimaryButton}" Margin="{StaticResource Margin.Right.sm}" Height="32"/>
                         <Button Content="XÓA" Command="{Binding DeleteCoverageCommand}" 
-                                Style="{StaticResource AppDangerButton}" Height="32"/>
+                                Style="{StaticResource DangerButton}" Height="32"/>
                     </StackPanel>
                 </Grid>
             </materialDesign:Card>

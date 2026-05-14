@@ -25,7 +25,7 @@
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <materialDesign:PackIcon Kind="ChartBoxOutline" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
                     <StackPanel Margin="16,0,0,0">
-                        <TextBlock Text="BÁO CÁO DOANH THU &amp; LỢI NHUẬN" Style="{StaticResource TypographyH2}"/>
+                        <TextBlock Text="BÁO CÁO DOANH THU &amp; LỢI NHUẬN" Style="{StaticResource TypographyH1}"/>
                         <TextBlock Text="Phân tích hiệu quả kinh doanh theo thời gian" Style="{StaticResource TypographyCaption}"/>
                     </StackPanel>
                 </StackPanel>
@@ -35,8 +35,10 @@
                                 Style="{StaticResource AppDatePickerStyle}" Height="40" Margin="0,0,12,0"/>
                     <DatePicker Width="160" materialDesign:HintAssist.Hint="Đến ngày" SelectedDate="{Binding ToDate}" 
                                 Style="{StaticResource AppDatePickerStyle}" Height="40" Margin="0,0,12,0"/>
-                    <Button Content="XEM BÁO CÁO" Command="{Binding RefreshCommand}" 
-                            Style="{StaticResource AppPrimaryButton}" Height="40" Padding="20,0"/>
+                    <Button Command="{Binding RefreshCommand}" 
+                            Style="{StaticResource PrimaryButton}" Height="32">
+                        <TextBlock Text="XEM BÁO CÁO" Style="{StaticResource TypographyButtonText}"/>
+                    </Button>
                 </StackPanel>
             </Grid>
 

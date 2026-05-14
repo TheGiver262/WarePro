@@ -28,14 +28,16 @@
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <materialDesign:PackIcon Kind="Tune" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
                     <StackPanel Margin="16,0,0,0">
-                        <TextBlock Text="ĐIỀU CHỈNH TỒN KHO" Style="{StaticResource TypographyH2}" Foreground="{StaticResource AppTertiaryBrush}"/>
+                        <TextBlock Text="ĐIỀU CHỈNH TỒN KHO" Style="{StaticResource TypographyH1}" Foreground="{StaticResource AppTertiaryBrush}"/>
                         <TextBlock Text="Cập nhật số lượng thực tế và xử lý chênh lệch hàng hóa" Style="{StaticResource TypographyCaption}" Opacity="0.7"/>
                     </StackPanel>
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Content="TẠO PHIẾU MỚI" Command="{Binding CreateCommand}" 
-                            Style="{StaticResource AppSecondaryButton}" Height="40" Padding="20,0"/>
+                    <Button Command="{Binding CreateCommand}" 
+                            Style="{StaticResource SecondaryButton}" Height="32">
+                        <TextBlock Text="TẠO PHIẾU MỚI" Style="{StaticResource TypographyButtonText}"/>
+                    </Button>
                 </StackPanel>
             </Grid>
 
@@ -66,8 +68,10 @@
                                  materialDesign:HintAssist.Hint="Lý do điều chỉnh" FontSize="14"/>
                     </StackPanel>
 
-                    <Button Grid.Column="3" Content="XÁC NHẬN" Command="{Binding ExecuteCommand}" 
-                            Style="{StaticResource AppPrimaryButton}" Height="40" VerticalAlignment="Bottom" Padding="24,0"/>
+                    <Button Grid.Column="3" Command="{Binding ExecuteCommand}" 
+                            Style="{StaticResource PrimaryButton}" VerticalAlignment="Bottom" Height="32">
+                        <TextBlock Text="XÁC NHẬN" Style="{StaticResource TypographyButtonText}"/>
+                    </Button>
                 </Grid>
             </materialDesign:Card>
 

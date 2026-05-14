@@ -31,10 +31,23 @@
                 </StackPanel>
                 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Visibility="{Binding CanManage, Converter={StaticResource BooleanToVisibilityConverter}}">
-                    <Button Command="{Binding OpenAddProductWindowCommand}" Style="{StaticResource AppPrimaryButton}" Height="40" Padding="20,0">
+                    <Button Command="{Binding OpenProductSerialViewCommand}" 
+                            Style="{StaticResource SecondaryButton}" 
+                            Height="32"
+                            Foreground="{StaticResource AppPrimaryBrush}"
+                            Margin="0,0,12,0">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="BarcodeScan" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock Text="QUẢN LÝ SERIAL" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
+                        </StackPanel>
+                    </Button>
+                    
+                    <Button Command="{Binding OpenAddProductWindowCommand}" 
+                            Style="{StaticResource PrimaryButton}"
+                            Height="32">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Plus" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                            <TextBlock Text="THÊM SẢN PHẨM" VerticalAlignment="Center" FontSize="13"/>
+                            <TextBlock Text="THÊM SẢN PHẨM" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -67,29 +80,29 @@
 
                         <!-- Actions -->
                         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Bottom">
-                            <Button Style="{StaticResource AppSecondaryButton}" 
+                            <Button Style="{StaticResource SecondaryButton}" 
                                     Command="{Binding ToggleAdvancedFilterCommand}"
                                     ToolTip="Lọc nâng cao"
-                                    Width="160" Height="32" Padding="8,0" Margin="0,0,8,0">
+                                    Width="180" Height="32" Margin="0,0,8,0">
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Tune" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                    <TextBlock Text="BỘ LỌC NÂNG CAO" VerticalAlignment="Center"/>
+                                    <TextBlock Text="BỘ LỌC NÂNG CAO" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
                                 </StackPanel>
                             </Button>
 
-                            <Button Style="{StaticResource AppSecondaryButton}" 
+                            <Button Style="{StaticResource SecondaryButton}" 
                                     Command="{Binding RefreshCommand}"
                                     ToolTip="Làm mới bộ lọc"
                                     Width="32" Height="32" Padding="0" Margin="0,0,8,0">
                                 <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18"/>
                             </Button>
 
-                            <Button Style="{StaticResource AppPrimaryButton}" 
-                                    Command="{Binding ExportToExcelCommand}"
-                                    Height="32" Padding="12,0">
+                            <Button Style="{StaticResource PrimaryButton}" 
+                                    Width="140" Height="32"
+                                    Command="{Binding ExportToExcelCommand}">
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="FileExcelOutline" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                    <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center"/>
+                                    <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
                                 </StackPanel>
                             </Button>
                         </StackPanel>
@@ -191,7 +204,7 @@
                             <DataGridTemplateColumn.Header>
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                    <TextBlock Text="MÃ SP" VerticalAlignment="Center"/>
+                                    <TextBlock Text="MÃ SP" VerticalAlignment="Center" Style="{StaticResource TypographyLabelBold}"/>
                                 </StackPanel>
                             </DataGridTemplateColumn.Header>
                             <DataGridTemplateColumn.CellTemplate>
@@ -206,13 +219,13 @@
                             <DataGridTemplateColumn.Header>
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                    <TextBlock Text="TÊN SP" VerticalAlignment="Center"/>
+                                    <TextBlock Text="TÊN SP" VerticalAlignment="Center" Style="{StaticResource TypographyLabelBold}"/>
                                 </StackPanel>
                             </DataGridTemplateColumn.Header>
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel VerticalAlignment="Center" Margin="12,4">
-                                        <TextBlock>
+                                        <TextBlock Style="{StaticResource TypographyBodyBold}">
                                             <TextBlock.Text>
                                                 <MultiBinding StringFormat="{}{0} {1}">
                                                     <Binding Path="Brand.DisplayName"/>
@@ -220,7 +233,7 @@
                                                 </MultiBinding>
                                             </TextBlock.Text>
                                         </TextBlock>
-                                        <TextBlock Text="{Binding Category.DisplayName}" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        <TextBlock Text="{Binding Category.DisplayName}" Style="{StaticResource TypographySmall}"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
@@ -231,7 +244,7 @@
                             <DataGridTemplateColumn.Header>
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                    <TextBlock Text="THƯƠNG HIỆU" VerticalAlignment="Center"/>
+                                    <TextBlock Text="THƯƠNG HIỆU" VerticalAlignment="Center" Style="{StaticResource TypographyLabelBold}"/>
                                 </StackPanel>
                             </DataGridTemplateColumn.Header>
                             <DataGridTemplateColumn.CellTemplate>
@@ -246,7 +259,7 @@
                             <DataGridTemplateColumn.Header>
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                    <TextBlock Text="SERIAL" VerticalAlignment="Center"/>
+                                    <TextBlock Text="SERIAL" VerticalAlignment="Center" Style="{StaticResource TypographyLabelBold}"/>
                                 </StackPanel>
                             </DataGridTemplateColumn.Header>
                             <DataGridTemplateColumn.CellTemplate>
@@ -273,7 +286,7 @@
                             <DataGridTemplateColumn.Header>
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                    <TextBlock Text="BH" VerticalAlignment="Center"/>
+                                    <TextBlock Text="BH" VerticalAlignment="Center" Style="{StaticResource TypographyLabelBold}"/>
                                 </StackPanel>
                             </DataGridTemplateColumn.Header>
                             <DataGridTemplateColumn.CellTemplate>
@@ -288,7 +301,7 @@
                             <DataGridTemplateColumn.Header>
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                    <TextBlock Text="ĐVT" VerticalAlignment="Center"/>
+                                    <TextBlock Text="ĐVT" VerticalAlignment="Center" Style="{StaticResource TypographyLabelBold}"/>
                                 </StackPanel>
                             </DataGridTemplateColumn.Header>
                             <DataGridTemplateColumn.CellTemplate>
@@ -304,7 +317,7 @@
                             <DataGridTextColumn.Header>
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                    <TextBlock Text="GIÁ BÁN" VerticalAlignment="Center"/>
+                                    <TextBlock Text="GIÁ BÁN" VerticalAlignment="Center" Style="{StaticResource TypographyLabelBold}"/>
                                 </StackPanel>
                             </DataGridTextColumn.Header>
                         </DataGridTextColumn>
@@ -316,7 +329,7 @@
                             <DataGridTemplateColumn.Header>
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                    <TextBlock Text="TRẠNG THÁI" VerticalAlignment="Center"/>
+                                    <TextBlock Text="TRẠNG THÁI" VerticalAlignment="Center" Style="{StaticResource TypographyLabelBold}"/>
                                 </StackPanel>
                             </DataGridTemplateColumn.Header>
                         </DataGridTemplateColumn>
@@ -325,12 +338,12 @@
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <Button Style="{StaticResource MaterialDesignIconButton}" Width="32" Height="32" ToolTip="Sửa" Margin="0,0,4,0"
+                                        <Button Style="{StaticResource ProMaxIconButtonStyle}" ToolTip="Sửa" Margin="0,0,4,0"
                                                 Command="{Binding DataContext.OpenEditProductWindowCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}">
                                             <materialDesign:PackIcon Kind="PencilOutline" Width="18" Height="18" Foreground="{StaticResource AppSecondaryBrush}"/>
                                         </Button>
-                                        <Button Style="{StaticResource MaterialDesignIconButton}" Width="32" Height="32" ToolTip="Xóa"
+                                        <Button Style="{StaticResource ProMaxIconButtonStyle}" ToolTip="Xóa"
                                                 Command="{Binding DataContext.DeleteProductCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}">
                                             <materialDesign:PackIcon Kind="TrashCanOutline" Width="18" Height="18" Foreground="{StaticResource AppErrorBrush}"/>
@@ -343,7 +356,7 @@
                     </DataGrid>
 
                     <Border Grid.Row="1" Padding="20,12" Background="{StaticResource AppFooterBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
-                        <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="{StaticResource AppSecondaryBrush}">
+                        <TextBlock VerticalAlignment="Center" Style="{StaticResource TypographyCaption}">
                             <TextBlock.Text>
                                 <MultiBinding StringFormat="{}Hiện có {0} sản phẩm trong hệ thống · {1} Hoạt động · {2} Dừng">
                                     <Binding Path="Products.Count"/>

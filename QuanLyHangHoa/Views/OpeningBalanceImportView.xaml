@@ -24,7 +24,7 @@
                     <StackPanel Orientation="Horizontal">
                         <materialDesign:PackIcon Kind="DatabaseImport" Width="32" Height="32" 
                                                Foreground="{StaticResource AppPrimaryBrush}" VerticalAlignment="Center"/>
-                        <TextBlock Text="NHẬP TỒN ĐẦU KỲ" Style="{StaticResource TypographyH2}" 
+                        <TextBlock Text="NHẬP TỒN ĐẦU KỲ" Style="{StaticResource TypographyH1}" 
                                  Margin="16,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
                     </StackPanel>
                     <TextBlock Text="Import dữ liệu tồn kho đầu kỳ từ file Excel hoặc CSV để khởi tạo hệ thống" 
@@ -50,19 +50,18 @@
                              IsReadOnly="True" VerticalAlignment="Center" Height="44"/>
 
                     <Button Grid.Column="1" Command="{Binding BrowseFileCommand}" 
-                            Style="{StaticResource AppSecondaryButton}" Margin="0,0,16,0" 
-                            Height="44" VerticalAlignment="Center" Padding="20,0">
+                            Style="{StaticResource SecondaryButton}" Margin="0,0,16,0" Height="32">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="FileSearch" Margin="0,0,8,0" VerticalAlignment="Center" Width="18" Height="18"/>
-                            <TextBlock Text="CHỌN FILE" VerticalAlignment="Center"/>
+                            <TextBlock Text="CHỌN FILE" Style="{StaticResource TypographyButtonText}" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
 
                     <Button Grid.Column="2" Command="{Binding ImportOpeningBalanceCommand}" 
-                            Style="{StaticResource AppPrimaryButton}" Height="44" VerticalAlignment="Center" Padding="20,0">
+                            Style="{StaticResource PrimaryButton}" Height="32">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Upload" Margin="0,0,8,0" VerticalAlignment="Center" Width="18" Height="18"/>
-                            <TextBlock Text="IMPORT DỮ LIỆU" VerticalAlignment="Center"/>
+                            <TextBlock Text="IMPORT DỮ LIỆU" Style="{StaticResource TypographyButtonText}" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
                 </Grid>

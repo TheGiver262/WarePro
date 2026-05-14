@@ -37,13 +37,13 @@
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
-                        <Button Style="{StaticResource MaterialDesignFlatButton}" Command="{Binding RefreshCommand}" Margin="0,0,8,0">
+                        <Button Style="{StaticResource SecondaryButton}" Command="{Binding RefreshCommand}" Margin="0,0,8,0">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="Refresh" Width="20" Height="20"/>
                                 <TextBlock Text="LÀM MỚI" Margin="8,0,0,0"/>
                             </StackPanel>
                         </Button>
-                        <Button Style="{StaticResource AppButtonPrimary}" Command="{Binding OpenAddUnitWindowCommand}">
+                        <Button Style="{StaticResource PrimaryButton}" Command="{Binding OpenAddUnitWindowCommand}">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="Plus" Width="20" Height="20"/>
                                 <TextBlock Text="THÊM ĐƠN VỊ" Margin="8,0,0,0"/>
@@ -80,7 +80,7 @@
                             <DataGridTemplateColumn Header="THAO TÁC" Width="100">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Button Style="{StaticResource MaterialDesignIconButton}" 
+                                        <Button Style="{StaticResource ProMaxIconButtonStyle}" 
                                                 Command="{Binding DataContext.DeleteUnitCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                 CommandParameter="{Binding}" Foreground="{StaticResource AppErrorBrush}">
                                             <materialDesign:PackIcon Kind="Delete" Width="20" Height="20"/>

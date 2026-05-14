@@ -19,7 +19,7 @@
 
         <!-- Header -->
         <StackPanel Grid.Row="0" Margin="0,0,0,20">
-            <TextBlock Text="CHỈNH SỬA THÔNG TIN" Style="{StaticResource TypographyH2}" Foreground="{StaticResource AppPrimaryBrush}"/>
+            <TextBlock Text="CHỈNH SỬA THÔNG TIN" Style="{StaticResource TypographyH1}" Foreground="{StaticResource AppPrimaryBrush}"/>
             <TextBlock Text="Cập nhật trạng thái và ghi chú cho số Serial" FontSize="12" Foreground="{StaticResource AppSecondaryBrush}" Margin="0,4,0,0"/>
             <Separator Margin="0,8,0,0" Background="{StaticResource AppPrimaryBrush}" Height="1" Opacity="0.3"/>
         </StackPanel>
@@ -68,10 +68,14 @@
         <!-- Footer -->
         <Border Grid.Row="2" Padding="0,20,0,0">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Style="{StaticResource MaterialDesignOutlinedButton}" Content="ĐÓNG" Width="100" Height="40" Margin="0,0,12,0"
-                        Command="{Binding CancelCommand}"/>
-                <Button Style="{StaticResource AppPrimaryButton}" Content="LƯU THÔNG TIN" Width="150" Height="40" 
-                        Command="{Binding SaveCommand}"/>
+                <Button Style="{StaticResource SecondaryButton}" Margin="0,0,12,0"
+                        Command="{Binding CancelCommand}" Height="32">
+                    <TextBlock Text="ĐÓNG" Style="{StaticResource TypographyButtonText}"/>
+                </Button>
+                <Button Style="{StaticResource PrimaryButton}" 
+                        Command="{Binding SaveCommand}" Height="32">
+                    <TextBlock Text="LƯU THÔNG TIN" Style="{StaticResource TypographyButtonText}"/>
+                </Button>
             </StackPanel>
         </Border>
     </Grid>

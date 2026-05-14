@@ -54,10 +54,28 @@
         <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
     </Style>
 
+    <!-- Label Bold §5: 12px SemiBold -->
+    <Style x:Key="TypographyLabelBold" TargetType="TextBlock" BasedOn="{StaticResource TypographyLabel}">
+        <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+
+    <!-- Body Bold §5: 13px SemiBold -->
+    <Style x:Key="TypographyBodyBold" TargetType="TextBlock" BasedOn="{StaticResource TypographyBody}">
+        <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+
     <!-- Caption / Subtitle §5: 13-14px Regular TextSecondary -->
     <Style x:Key="TypographyCaption" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}"/>
         <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="Regular"/>
+        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+    </Style>
+
+    <!-- Small text §5: 11px Regular -->
+    <Style x:Key="TypographySmall" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}"/>
+        <Setter Property="FontSize" Value="11"/>
         <Setter Property="FontWeight" Value="Regular"/>
         <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
     </Style>
@@ -68,6 +86,21 @@
         <Setter Property="FontSize" Value="24"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+    </Style>
+
+    <Style x:Key="StatNumberInputStyle" TargetType="TextBox">
+        <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}"/>
+        <Setter Property="FontSize" Value="24"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+    </Style>
+
+    <!-- Button Text style - No foreground to inherit from Button -->
+    <Style x:Key="TypographyButtonText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
     </Style>
 
     <!-- Monospace data -->

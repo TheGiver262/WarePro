@@ -27,16 +27,16 @@
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <materialDesign:PackIcon Kind="AccountMultipleOutline" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
                     <StackPanel Margin="16,0,0,0">
-                        <TextBlock Text="QUẢN TRỊ NGƯỜI DÙNG" Style="{StaticResource TypographyH2}"/>
-                        <TextBlock Text="Thiết lập tài khoản, phân quyền và bảo mật hệ thống" Style="{StaticResource TypographyCaption}"/>
+                        <TextBlock Text="QUẢN TRỊ NGƯỜI DÙNG" Style="{StaticResource TypographyH1}"/>
+                        <TextBlock Text="Thiết lập tài khoản, phân quyền và bảo mật hệ thống" Style="{StaticResource TypographyCaption}" Opacity="0.7"/>
                     </StackPanel>
                 </StackPanel>
                 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Command="{Binding OpenAddUserDialogCommand}" Style="{StaticResource AppPrimaryButton}" Height="40" Padding="20,0">
+                    <Button Command="{Binding OpenAddUserDialogCommand}" Style="{StaticResource PrimaryButton}" Height="32">
                         <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="AccountPlus" Width="20" Height="20" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <TextBlock Text="THÊM NGƯỜI DÙNG" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold"/>
+                            <materialDesign:PackIcon Kind="AccountPlus" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock Text="THÊM NGƯỜI DÙNG" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -98,12 +98,12 @@
 
                     <!-- Export Button -->
                     <StackPanel Grid.Column="5" VerticalAlignment="Bottom">
-                        <Button Style="{StaticResource AppPrimaryButton}" 
+                        <Button Style="{StaticResource PrimaryButton}" 
                                 Command="{Binding ExportToExcelCommand}"
-                                Height="32" Padding="16,0">
+                                Width="140" Height="32">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="FileExcelOutline" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>

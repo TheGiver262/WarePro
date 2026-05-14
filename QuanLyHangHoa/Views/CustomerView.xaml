@@ -24,16 +24,16 @@
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <materialDesign:PackIcon Kind="AccountGroupOutline" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
                     <StackPanel Margin="16,0,0,0">
-                        <TextBlock Text="KHÁCH HÀNG" Style="{StaticResource TypographyH2}"/>
-                        <TextBlock Text="Quản lý thông tin khách hàng" Style="{StaticResource TypographyCaption}"/>
+                        <TextBlock Text="KHÁCH HÀNG" Style="{StaticResource TypographyH1}"/>
+                        <TextBlock Text="Quản lý thông tin khách hàng" Style="{StaticResource TypographyCaption}" Opacity="0.7"/>
                     </StackPanel>
                 </StackPanel>
                 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Visibility="{Binding CanManage, Converter={StaticResource BooleanToVisibilityConverter}}">
-                    <Button Command="{Binding OpenAddCustomerDialogCommand}" Style="{StaticResource AppPrimaryButton}" Height="40" Padding="20,0">
+                    <Button Command="{Binding OpenAddCustomerDialogCommand}" Style="{StaticResource PrimaryButton}" Height="32">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Plus" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                            <TextBlock Text="THÊM MỚI" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold"/>
+                            <TextBlock Text="THÊM MỚI" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -93,18 +93,18 @@
 
                     <!-- Actions -->
                     <StackPanel Grid.Column="5" Orientation="Horizontal" VerticalAlignment="Bottom">
-                        <Button Style="{StaticResource AppSecondaryButton}" 
+                        <Button Style="{StaticResource SecondaryButton}" 
                                 Command="{Binding RefreshCommand}"
                                 ToolTip="Làm mới bộ lọc"
                                 Width="32" Height="32" Padding="0" Margin="0,0,8,0">
                             <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18"/>
                         </Button>
-                        <Button Style="{StaticResource AppPrimaryButton}" 
+                        <Button Style="{StaticResource PrimaryButton}" 
                                 Command="{Binding ExportToExcelCommand}"
-                                Height="32" Padding="16,0">
+                                Width="140" Height="32">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="FileExcelOutline" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>
@@ -202,12 +202,12 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                            <Button Style="{StaticResource MaterialDesignIconButton}" Width="36" Height="36" ToolTip="Chỉnh sửa"
+                                            <Button Style="{StaticResource ProMaxIconButtonStyle}" ToolTip="Chỉnh sửa"
                                                     Command="{Binding DataContext.EditCustomerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}">
                                                 <materialDesign:PackIcon Kind="PencilOutline" Width="20" Height="20" Foreground="{StaticResource AppSecondaryBrush}"/>
                                             </Button>
-                                            <Button Style="{StaticResource MaterialDesignIconButton}" Width="36" Height="36" ToolTip="Xoá khách hàng"
+                                            <Button Style="{StaticResource ProMaxIconButtonStyle}" ToolTip="Xoá khách hàng"
                                                     Command="{Binding DataContext.DeleteCustomerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}">
                                                 <materialDesign:PackIcon Kind="TrashCanOutline" Width="20" Height="20" Foreground="{StaticResource AppErrorBrush}"/>

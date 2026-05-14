@@ -26,16 +26,16 @@
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <materialDesign:PackIcon Kind="WrenchOutline" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
                     <StackPanel Margin="16,0,0,0">
-                        <TextBlock Text="QUẢN LÝ BẢO HÀNH" Style="{StaticResource TypographyH2}"/>
-                        <TextBlock Text="Theo dõi tình trạng tiếp nhận, sửa chữa và trả máy" Style="{StaticResource TypographyCaption}"/>
+                        <TextBlock Text="QUẢN LÝ BẢO HÀNH" Style="{StaticResource TypographyH1}"/>
+                        <TextBlock Text="Theo dõi tình trạng tiếp nhận, sửa chữa và trả máy" Style="{StaticResource TypographyCaption}" Opacity="0.7"/>
                     </StackPanel>
                 </StackPanel>
                 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Command="{Binding CreateWarrantyCommand}" Style="{StaticResource AppPrimaryButton}" Height="40" Padding="20,0">
+                    <Button Command="{Binding CreateWarrantyCommand}" Style="{StaticResource PrimaryButton}" Height="32">
                         <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="Plus" Width="20" Height="20" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <TextBlock Text="TẠO PHIẾU BẢO HÀNH" VerticalAlignment="Center"/>
+                            <materialDesign:PackIcon Kind="Plus" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock Text="TẠO PHIẾU BẢO HÀNH" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -118,7 +118,7 @@
 
                         <!-- Action Buttons -->
                         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Bottom">
-                            <Button Style="{StaticResource AppSecondaryButton}" 
+                            <Button Style="{StaticResource SecondaryButton}" 
                                     Command="{Binding ToggleAdvancedFilterCommand}"
                                     Height="32" Padding="12,0" Margin="0,0,8,0">
                                 <StackPanel Orientation="Horizontal">
@@ -127,7 +127,7 @@
                                 </StackPanel>
                             </Button>
 
-                            <Button Style="{StaticResource AppPrimaryButton}" 
+                            <Button Style="{StaticResource PrimaryButton}" 
                                     Command="{Binding LoadDataCommand}"
                                     Height="32" Padding="16,0">
                                 <StackPanel Orientation="Horizontal">
@@ -266,18 +266,27 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal">
-                                            <Button Style="{StaticResource MaterialDesignIconButton}" Width="32" Height="32"
-                                                    Command="{Binding DataContext.EditWarrantyCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            <Button Style="{StaticResource ProMaxIconButtonStyle}"
+                                                    ToolTip="Xem chi tiết" 
+                                                    Command="{Binding DataContext.ViewDetailCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
                                                     CommandParameter="{Binding}">
-                                                <materialDesign:PackIcon Kind="Edit" Width="18" Height="18" Foreground="{StaticResource AppSecondaryBrush}"/>
+                                                <materialDesign:PackIcon Kind="EyeOutline" Width="18" Height="18"/>
                                             </Button>
-                                            <Button Style="{StaticResource MaterialDesignIconButton}" Width="32" Height="32"
-                                                    Command="{Binding DataContext.PrintWarrantyCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            <Button Style="{StaticResource ProMaxIconButtonStyle}"
+                                                    ToolTip="Chỉnh sửa" 
+                                                    Command="{Binding DataContext.EditWarrantyCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
                                                     CommandParameter="{Binding}">
-                                                <materialDesign:PackIcon Kind="Printer" Width="18" Height="18" Foreground="{StaticResource AppTertiaryBrush}"/>
+                                                <materialDesign:PackIcon Kind="PencilOutline" Width="18" Height="18"/>
                                             </Button>
-                                            <Button Style="{StaticResource MaterialDesignIconButton}" Width="32" Height="32"
-                                                    Command="{Binding DataContext.DeleteWarrantyCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            <Button Style="{StaticResource ProMaxIconButtonStyle}"
+                                                    ToolTip="In phiếu" 
+                                                    Command="{Binding DataContext.PrintWarrantyCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
+                                                    CommandParameter="{Binding}">
+                                                <materialDesign:PackIcon Kind="PrinterOutline" Width="18" Height="18"/>
+                                            </Button>
+                                            <Button Style="{StaticResource ProMaxIconButtonStyle}"
+                                                    ToolTip="Xóa"
+                                                    Command="{Binding DataContext.DeleteWarrantyCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
                                                     CommandParameter="{Binding}">
                                                 <materialDesign:PackIcon Kind="Delete" Width="18" Height="18" Foreground="{StaticResource AppErrorBrush}"/>
                                             </Button>

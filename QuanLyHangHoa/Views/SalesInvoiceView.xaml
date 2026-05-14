@@ -32,22 +32,22 @@
                     <Grid Grid.Row="0" Margin="0,0,0,24">
                         <StackPanel>
                             <TextBlock Text="HÓA ĐƠN BÁN HÀNG" 
-                                       Style="{StaticResource TitleText}" />
+                                       Style="{StaticResource TypographyH1}" />
                             <TextBlock Text="Quản lý và theo dõi các hóa đơn bán hàng" 
-                                       Style="{StaticResource SubtitleText}" />
+                                       Style="{StaticResource TypographyCaption}" Opacity="0.7" />
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                             <Button Content="TẠO TỪ PHIẾU XUẤT" 
-                                    Style="{StaticResource AppSecondaryButton}" 
-                                    Margin="0,0,12,0" 
-                                    Height="40" Padding="20,0"/>
+                                    Style="{StaticResource SecondaryButton}" 
+                                    Height="32"
+                                    Margin="0,0,12,0"/>
                             <Button Command="{Binding ResetFormCommand}"
-                                    Style="{StaticResource AppPrimaryButton}" 
-                                    Height="40" Padding="20,0">
+                                    Style="{StaticResource PrimaryButton}"
+                                    Height="32">
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Plus" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                    <TextBlock Text="TẠO MỚI" VerticalAlignment="Center" Style="{StaticResource BodyText}"/>
+                                    <TextBlock Text="TẠO MỚI" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
                                 </StackPanel>
                             </Button>
                         </StackPanel>
@@ -87,25 +87,29 @@
 
                                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Bottom">
                                     <Button Command="{Binding RefreshCommand}"
-                                            Style="{StaticResource AppSecondaryButton}" 
-                                            Width="36" Height="36" Padding="0" Margin="0,0,8,0"
+                                            Style="{StaticResource ProMaxIconButtonStyle}" 
+                                            Width="32" Height="32" Padding="0" Margin="0,0,8,0"
                                             ToolTip="Làm mới bộ lọc">
                                         <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18"/>
                                     </Button>
 
                                     <Button Command="{Binding ToggleAdvancedFilterCommand}"
-                                            Style="{StaticResource AppSecondaryButton}" 
-                                            Width="180" Height="36" Margin="0,0,8,0"
+                                            Style="{StaticResource SecondaryButton}" 
+                                            Width="180" Height="32" Margin="0,0,8,0"
                                             ToolTip="Bộ lọc nâng cao">
                                         <StackPanel Orientation="Horizontal">
                                             <materialDesign:PackIcon Kind="Tune" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                            <TextBlock x:Name="FilterText" Text="BỘ LỌC NÂNG CAO" Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource LabelText}"/>
+                                            <TextBlock x:Name="FilterText" Text="BỘ LỌC NÂNG CAO" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
                                         </StackPanel>
                                     </Button>
 
-                                    <Button Content="XUẤT EXCEL" 
-                                            Style="{StaticResource AppPrimaryButton}" 
-                                            Height="36" Padding="16,0" FontSize="12">
+                                    <Button Command="{Binding ExportToExcelCommand}"
+                                            Style="{StaticResource PrimaryButton}" 
+                                            Width="140" Height="32" Margin="0,0,0,0">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="FileExcelOutline" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                            <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
+                                        </StackPanel>
                                         <Button.ToolTip>Xuất danh sách ra tệp Excel</Button.ToolTip>
                                     </Button>
                                 </StackPanel>
@@ -187,7 +191,7 @@
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="SỐ HĐ" Binding="{Binding InvoiceCode}" Width="Auto" ElementStyle="{StaticResource AppDataGridTextBold}"/>
                                     <DataGridTextColumn Header="NGÀY BÁN" Binding="{Binding InvoiceDate, StringFormat='dd/MM/yyyy'}" Width="Auto" ElementStyle="{StaticResource AppDataGridTextCenter}"/>
-                                    <DataGridTextColumn Header="KHÁCH HÀNG" Binding="{Binding Customer.DisplayName}" Width="*" ElementStyle="{StaticResource AppDataGridTextBold}"/>
+                                    <DataGridTextColumn Header="KHÁCH HÀNG" Binding="{Binding Customer.DisplayName}" Width="*"/>
                                     <DataGridTextColumn Header="TRƯỚC THUẾ" Binding="{Binding SubTotal, StringFormat='N0'}" Width="Auto" ElementStyle="{StaticResource AppDataGridTextRight}"/>
                                     <DataGridTextColumn Header="THUẾ" Binding="{Binding TaxAmount, StringFormat='N0'}" Width="Auto" ElementStyle="{StaticResource AppDataGridTextRight}"/>
                                     <DataGridTextColumn Header="TỔNG TIỀN" Binding="{Binding GrandTotal, StringFormat='N0'}" Width="Auto" ElementStyle="{StaticResource AppDataGridTextRightBold}"/>
@@ -196,18 +200,24 @@
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
                                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                    <Button Style="{StaticResource IconButton}" Content="{materialDesign:PackIcon Kind=EyeOutline}" 
+                                                    <Button Style="{StaticResource ProMaxIconButtonStyle}" 
                                                             Command="{Binding DataContext.ViewInvoiceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                             CommandParameter="{Binding}"
-                                                            Padding="4" ToolTip="Xem chi tiết"/>
-                                                    <Button Style="{StaticResource IconButton}" Content="{materialDesign:PackIcon Kind=PencilOutline}" 
+                                                            ToolTip="Xem chi tiết">
+                                                        <materialDesign:PackIcon Kind="EyeOutline" Width="18" Height="18" Foreground="{StaticResource AppSecondaryBrush}"/>
+                                                    </Button>
+                                                    <Button Style="{StaticResource ProMaxIconButtonStyle}" 
                                                             Command="{Binding DataContext.EditInvoiceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                             CommandParameter="{Binding}"
-                                                            Padding="4" Margin="4,0,0,0" ToolTip="Chỉnh sửa"/>
-                                                    <Button Style="{StaticResource IconButton}" Content="{materialDesign:PackIcon Kind=PrinterOutline}" 
+                                                            Margin="4,0,0,0" ToolTip="Chỉnh sửa">
+                                                        <materialDesign:PackIcon Kind="PencilOutline" Width="18" Height="18" Foreground="{StaticResource AppSecondaryBrush}"/>
+                                                    </Button>
+                                                    <Button Style="{StaticResource ProMaxIconButtonStyle}" 
                                                             Command="{Binding DataContext.PrintInvoiceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                             CommandParameter="{Binding}"
-                                                            Padding="4" Margin="4,0,0,0" ToolTip="In hóa đơn"/>
+                                                            Margin="4,0,0,0" ToolTip="In hóa đơn">
+                                                        <materialDesign:PackIcon Kind="PrinterOutline" Width="18" Height="18" Foreground="{StaticResource AppSecondaryBrush}"/>
+                                                    </Button>
                                                 </StackPanel>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
@@ -271,8 +281,7 @@
                                     </StackPanel>
                                     <Button HorizontalAlignment="Right" Content="TRỞ LẠI DANH SÁCH" 
                                             Click="BackToList_Click"
-                                            Style="{StaticResource AppSecondaryButton}"
-                                            Height="36" Padding="16,0"/>
+                                            Style="{StaticResource SecondaryButton}"/>
                                 </Grid>
 
                                 <!-- ROW 1: INFO GRID (3 COLUMNS) -->
@@ -289,14 +298,14 @@
 
                                     <!-- Column 0: Invoice Details -->
                                     <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,16,16">
-                                        <TextBlock Text="SỐ HOÁ ĐƠN" Style="{StaticResource TypographyLabel}" Margin="0,0,0,6"/>
+                                        <TextBlock Text="SỐ HOÁ ĐƠN" Margin="0,0,0,6"/>
                                         <TextBox Text="{Binding InvoiceCode}"
                                                  Height="32" VerticalContentAlignment="Center"
                                                  IsEnabled="{Binding IsViewMode, Converter={StaticResource InverseBooleanConverter}}"/>
                                     </StackPanel>
 
                                     <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,16,0">
-                                        <TextBlock Text="NGÀY LẬP HOÁ ĐƠN" Style="{StaticResource TypographyLabel}" Margin="0,0,0,6"/>
+                                        <TextBlock Text="NGÀY LẬP HOÁ ĐƠN" Margin="0,0,0,6"/>
                                         <DatePicker SelectedDate="{Binding InvoiceDate}"
                                                     Height="32" VerticalContentAlignment="Center"
                                                     IsEnabled="{Binding IsViewMode, Converter={StaticResource InverseBooleanConverter}}"/>
@@ -304,7 +313,7 @@
 
                                     <!-- Column 1: Partner & Document -->
                                     <StackPanel Grid.Row="0" Grid.Column="1" Margin="16,0,16,16">
-                                        <TextBlock Text="KHÁCH HÀNG" Style="{StaticResource TypographyLabel}" Margin="0,0,0,6"/>
+                                        <TextBlock Text="KHÁCH HÀNG" Margin="0,0,0,6"/>
                                         <ComboBox ItemsSource="{Binding AvailableCustomers}"
                                                   SelectedItem="{Binding SelectedCustomer}"
                                                   DisplayMemberPath="DisplayName"
@@ -313,7 +322,7 @@
                                     </StackPanel>
 
                                     <StackPanel Grid.Row="1" Grid.Column="1" Margin="16,0,16,0">
-                                        <TextBlock Text="PHIẾU XUẤT KHO" Style="{StaticResource TypographyLabel}" Margin="0,0,0,6"/>
+                                        <TextBlock Text="PHIẾU XUẤT KHO" Margin="0,0,0,6"/>
                                         <ComboBox ItemsSource="{Binding AvailableStockOuts}"
                                                   SelectedItem="{Binding SelectedStockOut}"
                                                   DisplayMemberPath="StockOutCode"
@@ -323,14 +332,14 @@
 
                                     <!-- Column 2: Payment & Terms -->
                                     <StackPanel Grid.Row="0" Grid.Column="2" Margin="16,0,0,16">
-                                        <TextBlock Text="HẠN THANH TOÁN" Style="{StaticResource TypographyLabel}" Margin="0,0,0,6"/>
+                                        <TextBlock Text="HẠN THANH TOÁN" Margin="0,0,0,6"/>
                                         <DatePicker SelectedDate="{Binding DueDate}"
                                                     Height="32" VerticalContentAlignment="Center"
                                                     IsEnabled="{Binding IsViewMode, Converter={StaticResource InverseBooleanConverter}}"/>
                                     </StackPanel>
 
                                     <StackPanel Grid.Row="1" Grid.Column="2" Margin="16,0,0,0">
-                                        <TextBlock Text="TRẠNG THÁI THANH TOÁN" Style="{StaticResource TypographyLabel}" Margin="0,0,0,6"/>
+                                        <TextBlock Text="TRẠNG THÁI THANH TOÁN" Margin="0,0,0,6"/>
                                         <ComboBox ItemsSource="{Binding AvailablePaymentStatuses}"
                                                   SelectedItem="{Binding SelectedPaymentStatus}"
                                                   Height="32" VerticalContentAlignment="Center"
@@ -340,7 +349,7 @@
 
                                 <!-- ROW 2: GHI CHÚ (FULL WIDTH) -->
                                 <StackPanel Grid.Row="2" Margin="0,0,0,32">
-                                    <TextBlock Text="GHI CHÚ" Style="{StaticResource TypographyLabel}" Margin="0,0,0,6"/>
+                                    <TextBlock Text="GHI CHÚ" Margin="0,0,0,6"/>
                                     <TextBox Text="{Binding Notes}"
                                              materialDesign:HintAssist.Hint="Nhập nội dung ghi chú hoá đơn..."
                                              AcceptsReturn="True" Height="60"
@@ -351,7 +360,7 @@
                                 <!-- ROW 3: PRODUCTS TABLE -->
                                 <Grid Grid.Row="3">
                                     <StackPanel>
-                                        <TextBlock Text="CHI TIẾT SẢN PHẨM" Style="{StaticResource LabelText}" Margin="0,0,0,16" Foreground="{StaticResource AppTertiaryBrush}"/>
+                                        <TextBlock Text="CHI TIẾT SẢN PHẨM" Margin="0,0,0,16" Foreground="{StaticResource AppTertiaryBrush}"/>
                                         <DataGrid ItemsSource="{Binding Lines}" 
                                                   AutoGenerateColumns="False" 
                                                   CanUserAddRows="False"
@@ -381,11 +390,14 @@
                                                 <DataGridTemplateColumn Width="Auto">
                                                     <DataGridTemplateColumn.CellTemplate>
                                                         <DataTemplate>
-                                                            <Button Style="{StaticResource IconButton}" Content="{materialDesign:PackIcon Kind=Close, Size=18}"
+                                                            <Button Style="{StaticResource ProMaxIconButtonStyle}"
                                                                     Command="{Binding DataContext.RemoveLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                                    CommandParameter="{Binding}" Foreground="Red"
+                                                                    CommandParameter="{Binding}"
                                                                     VerticalAlignment="Center"
-                                                                    Visibility="{Binding DataContext.IsViewMode, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+                                                                    ToolTip="Xoá dòng"
+                                                                    Visibility="{Binding DataContext.IsViewMode, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                                                                <materialDesign:PackIcon Kind="Close" Width="18" Height="18" Foreground="{StaticResource AppErrorBrush}"/>
+                                                            </Button>
                                                         </DataTemplate>
                                                     </DataGridTemplateColumn.CellTemplate>
                                                 </DataGridTemplateColumn>
@@ -393,12 +405,12 @@
                                         </DataGrid>
 
                                         <Button Command="{Binding AddLineCommand}" 
-                                                 Style="{StaticResource MaterialDesignFlatButton}"
-                                                 HorizontalAlignment="Left" Margin="0,12,0,0"
-                                                 Visibility="{Binding IsViewMode, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                                                Style="{StaticResource SecondaryButton}"
+                                                HorizontalAlignment="Left" Margin="0,12,0,0"
+                                                Visibility="{Binding IsViewMode, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                                             <StackPanel Orientation="Horizontal">
-                                                <materialDesign:PackIcon Kind="Plus" VerticalAlignment="Center" Width="18" Height="18"/>
-                                                <TextBlock Text="THÊM DÒNG SẢN PHẨM" Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource LabelText}"/>
+                                                <materialDesign:PackIcon Kind="Plus" VerticalAlignment="Center" Width="18" Height="18" Margin="0,0,6,0"/>
+                                                <TextBlock Text="THÊM DÒNG SẢN PHẨM" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
                                             </StackPanel>
                                         </Button>
                                     </StackPanel>
@@ -449,7 +461,7 @@
                                                         <TextBlock Text="KHÁCH ĐÃ THANH TOÁN" VerticalAlignment="Center" Style="{StaticResource LabelText}" Foreground="{StaticResource AppSecondaryBrush}"/>
                                                         <TextBox Text="{Binding PaidAmount, UpdateSourceTrigger=PropertyChanged, StringFormat='N0'}"
                                                                  HorizontalAlignment="Right" Width="200" HorizontalContentAlignment="Right"
-                                                                 Style="{StaticResource TypographyStatNumber}" BorderThickness="0"
+                                                                 Style="{StaticResource StatNumberInputStyle}" BorderThickness="0"
                                                                  materialDesign:TextFieldAssist.DecorationVisibility="Hidden"
                                                                  materialDesign:TextFieldAssist.HasClearButton="False"
                                                                  IsEnabled="{Binding IsViewMode, Converter={StaticResource InverseBooleanConverter}}"/>
@@ -468,14 +480,13 @@
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                             <Button Content="HỦY BỎ" 
                                                     Click="BackToList_Click"
-                                                    Style="{StaticResource AppSecondaryButton}" 
-                                                    Width="120" Height="44" Margin="0,0,12,0"/>
+                                                    Style="{StaticResource SecondaryButton}" 
+                                                    Margin="0,0,12,0"/>
                                             
                                             <Button Command="{Binding SaveInvoiceCommand}"
-                                                     Width="180" Height="44"
-                                                     Visibility="{Binding IsViewMode, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                                                    Visibility="{Binding IsViewMode, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                                                 <Button.Style>
-                                                    <Style TargetType="Button" BasedOn="{StaticResource AppPrimaryButton}">
+                                                    <Style TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
                                                         <Setter Property="Content" Value="LƯU HOÁ ĐƠN"/>
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding IsEditMode}" Value="True">

@@ -38,16 +38,16 @@
                 </StackPanel>
                 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Command="{Binding ExportCommand}" Style="{StaticResource AppSecondaryButton}" Height="40" Padding="20,0" Margin="0,0,12,0">
+                    <Button Command="{Binding ExportCommand}" Style="{StaticResource SecondaryButton}" Height="32" Margin="0,0,12,0">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="FileExport" Width="18" Height="18" Margin="0,0,8,0"/>
-                            <TextBlock Text="XUẤT BÁO CÁO" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
+                            <TextBlock Text="XUẤT BÁO CÁO" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
                         </StackPanel>
                     </Button>
-                    <Button Command="{Binding RefreshCommand}" Style="{StaticResource AppPrimaryButton}" Height="40" Padding="20,0">
+                    <Button Command="{Binding RefreshCommand}" Style="{StaticResource PrimaryButton}" Height="32">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18" Margin="0,0,8,0"/>
-                            <TextBlock Text="TẢI LẠI" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
+                            <TextBlock Text="TẢI LẠI" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -160,9 +160,9 @@
                                                     </Style.Triggers>
                                                 </Style>
                                             </Border.Style>
-                                            <TextBlock Text="{Binding StockQuantity, StringFormat='N0'}" Style="{StaticResource TypographyBody}">
+                                            <TextBlock Text="{Binding StockQuantity, StringFormat='N0'}">
                                                 <TextBlock.Style>
-                                                    <Style TargetType="TextBlock">
+                                                    <Style TargetType="TextBlock" BasedOn="{StaticResource TypographyBody}">
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding IsLowStock}" Value="True">
                                                                 <Setter Property="Foreground" Value="{StaticResource AppErrorBrush}"/>

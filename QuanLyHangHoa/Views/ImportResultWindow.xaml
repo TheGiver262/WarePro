@@ -72,8 +72,8 @@
 
             <!-- Footer Buttons -->
             <Border Grid.Row="3" Background="{StaticResource AppBackgroundBrush}" Padding="{StaticResource PagePadding}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
-                <Button Content="ĐÓNG CỬA SỔ" Style="{StaticResource AppPrimaryButton}" 
-                        HorizontalAlignment="Right" Click="Close_Click" Width="140" Height="40"/>
+                <Button Content="ĐÓNG CỬA SỔ" Style="{StaticResource PrimaryButton}" 
+                        HorizontalAlignment="Right" Click="Close_Click"/>
             </Border>
         </Grid>
     </Border>

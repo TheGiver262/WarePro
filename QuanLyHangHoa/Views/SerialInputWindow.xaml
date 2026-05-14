@@ -109,10 +109,10 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <Button Content="HỦY BỎ" Style="{StaticResource MaterialDesignFlatButton}" 
-                            Foreground="{StaticResource TextSecondaryBrush}" Click="Cancel_Click" HorizontalAlignment="Left"/>
+                    <Button Content="HỦY BỎ" Style="{StaticResource SecondaryButton}" 
+                            Click="Cancel_Click" HorizontalAlignment="Left"/>
 
-                    <Button Grid.Column="1" Content="XÁC NHẬN" Style="{StaticResource AppPrimaryButton}" 
+                    <Button Grid.Column="1" Content="XÁC NHẬN" Style="{StaticResource PrimaryButton}" 
                             Click="Confirm_Click" Width="140" Height="40"/>
                 </Grid>
             </Border>
