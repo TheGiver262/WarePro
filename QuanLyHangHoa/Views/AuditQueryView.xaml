@@ -84,7 +84,7 @@
                         <Border Padding="16,12" Background="{StaticResource SurfaceMutedBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="FormatListBulleted" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}" Width="18" Height="18"/>
-                                <TextBlock Text="DANH SÁCH NHẬT KÝ" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center" Margin="12,0,0,0" FontWeight="Bold"/>
+                                <TextBlock Text="DANH SÁCH NHẬT KÝ" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center" Margin="12,0,0,0"/>
                             </StackPanel>
                         </Border>
 
@@ -112,7 +112,7 @@
                                 <DataGridTemplateColumn Header="HÀNH ĐỘNG" Width="*">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <TextBlock Text="{Binding Action}" VerticalAlignment="Center" Margin="12,0" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{Binding Action}" VerticalAlignment="Center" Margin="12,0"/>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
@@ -128,7 +128,7 @@
                                 <DataGridTemplateColumn Header="SỐ LƯỢNG" Width="100">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <TextBlock Text="{Binding Quantity, StringFormat='N0'}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,16,0" FontWeight="Bold" Foreground="{StaticResource AppTertiaryBrush}"/>
+                                            <TextBlock Text="{Binding Quantity, StringFormat='N0'}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,16,0" Foreground="{StaticResource AppTertiaryBrush}"/>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
@@ -136,7 +136,7 @@
                                 <DataGridTemplateColumn Header="CHỨNG TỪ" Width="180">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <TextBlock Text="{Binding DocumentId}" VerticalAlignment="Center" Margin="12,0" Foreground="{StaticResource AppPrimaryBrush}" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{Binding DocumentId}" VerticalAlignment="Center" Margin="12,0" Foreground="{StaticResource AppPrimaryBrush}"/>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
@@ -150,10 +150,10 @@
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,24">
                             <materialDesign:PackIcon Kind="FilterVariant" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center" Width="20" Height="20"/>
-                            <TextBlock Text="BỘ LỌC CHI TIẾT" Style="{StaticResource TypographyLabel}" Margin="12,0,0,0" VerticalAlignment="Center" FontWeight="Bold"/>
+                            <TextBlock Text="BỘ LỌC CHI TIẾT" Style="{StaticResource TypographyLabel}" Margin="12,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
 
-                        <TextBlock Text="SẢN PHẨM" Style="{StaticResource TypographyCaption}" Foreground="{StaticResource AppSecondaryBrush}" Margin="0,0,0,8" FontWeight="Bold"/>
+                        <TextBlock Text="SẢN PHẨM" Style="{StaticResource TypographyCaption}" Foreground="{StaticResource AppSecondaryBrush}" Margin="0,0,0,8"/>
                         <ComboBox ItemsSource="{Binding AvailableProducts}"
                                   SelectedItem="{Binding SelectedProduct}"
                                   DisplayMemberPath="DisplayName"
@@ -166,7 +166,7 @@
 
                         <Separator Margin="0,0,0,24" Background="{StaticResource AppBorderBrush}"/>
 
-                        <TextBlock Text="MÃ CHỨNG TỪ" Style="{StaticResource TypographyCaption}" Foreground="{StaticResource AppSecondaryBrush}" Margin="0,0,0,8" FontWeight="Bold"/>
+                        <TextBlock Text="MÃ CHỨNG TỪ" Style="{StaticResource TypographyCaption}" Foreground="{StaticResource AppSecondaryBrush}" Margin="0,0,0,8"/>
                         <TextBox Style="{StaticResource AppTextBoxStyle}" materialDesign:HintAssist.Hint="Nhập DocumentId" 
                                  Text="{Binding DocumentIdText, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,16" Height="42"/>
 

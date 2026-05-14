@@ -85,7 +85,7 @@
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel VerticalAlignment="Center" Margin="12,0">
-                                        <TextBlock Text="{Binding Product.DisplayName}" FontWeight="SemiBold" Foreground="{StaticResource AppTertiaryBrush}"/>
+                                        <TextBlock Text="{Binding Product.DisplayName}" Style="{StaticResource TypographyH3}" Foreground="{StaticResource AppTertiaryBrush}"/>
                                         <TextBlock Text="{Binding Product.Id}" Style="{StaticResource TypographyCaption}" Opacity="0.6"/>
                                     </StackPanel>
                                 </DataTemplate>
@@ -96,7 +96,7 @@
                                            ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
                         
                         <DataGridTextColumn Header="SL MỚI" Binding="{Binding NewQuantity}" Width="*" 
-                                           ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}">
+                                           ElementStyle="{StaticResource AppDataGridTextCenterBold}">
                             <DataGridTextColumn.CellStyle>
                                 <Style TargetType="DataGridCell" BasedOn="{StaticResource MaterialDesignDataGridCell}">
                                     <Setter Property="FontWeight" Value="Bold"/>

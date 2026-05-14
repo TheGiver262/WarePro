@@ -59,14 +59,14 @@
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Grid.Column="0" Margin="0,0,24,0">
-                        <TextBlock Text="MÃ PHIÊN" Style="{StaticResource TypographyCaption}" Margin="0,0,0,6" FontWeight="Bold" Foreground="{StaticResource AppPrimaryBrush}"/>
+                        <TextBlock Text="MÃ PHIÊN" Style="{StaticResource TypographyLabel}" Margin="0,0,0,6"/>
                         <TextBox Width="140" Height="42" Style="{StaticResource AppTextBoxStyle}" IsReadOnly="True"
                                  materialDesign:HintAssist.Hint="Tự động"
                                  Text="{Binding SessionCode}" Background="{StaticResource SurfaceMutedBrush}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" Margin="0,0,24,0">
-                        <TextBlock Text="KHO KIỂM KÊ" Style="{StaticResource TypographyCaption}" Margin="0,0,0,6" FontWeight="Bold" Foreground="{StaticResource AppPrimaryBrush}"/>
+                        <TextBlock Text="KHO KIỂM KÊ" Style="{StaticResource TypographyLabel}" Margin="0,0,0,6"/>
                         <ComboBox Width="180" Height="42" Style="{StaticResource AppComboBoxStyle}" 
                                   SelectedValue="{Binding WarehouseId}" SelectedValuePath="Id" DisplayMemberPath="DisplayName">
                             <ComboBoxItem Content="Kho tổng mặc định" IsSelected="True"/>
@@ -74,13 +74,13 @@
                     </StackPanel>
 
                     <StackPanel Grid.Column="2" Margin="0,0,24,0">
-                        <TextBlock Text="NGÀY THỰC HIỆN" Style="{StaticResource TypographyCaption}" Margin="0,0,0,6" FontWeight="Bold" Foreground="{StaticResource AppPrimaryBrush}"/>
+                        <TextBlock Text="NGÀY THỰC HIỆN" Style="{StaticResource TypographyLabel}" Margin="0,0,0,6"/>
                         <DatePicker Width="160" Height="42" Style="{StaticResource AppDatePickerStyle}" SelectedDate="{Binding CountDate}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="3" Margin="0,0,24,0" VerticalAlignment="Bottom">
                          <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource DangerTextBrush}" 
-                                   Style="{StaticResource TypographyCaption}" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                                   Style="{StaticResource TypographyCaption}" Margin="0,0,0,12"/>
                     </StackPanel>
 
                     <Button Grid.Column="4" Command="{Binding AddLineCommand}" Style="{StaticResource AppPrimaryButton}" Height="42" VerticalAlignment="Bottom" Padding="16,0">
@@ -121,7 +121,7 @@
                                 <DataGridTemplateColumn.Header>
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="PackageVariant" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                        <TextBlock Text="SẢN PHẨM" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                        <TextBlock Text="SẢN PHẨM" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
                                     </StackPanel>
                                 </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
@@ -140,7 +140,7 @@
                                 <DataGridTemplateColumn.Header>
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="Numeric" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                        <TextBlock Text="SỐ LƯỢNG THỰC TẾ" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                        <TextBlock Text="SỐ LƯỢNG THỰC TẾ" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
                                     </StackPanel>
                                 </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
@@ -148,7 +148,7 @@
                                         <TextBox Text="{Binding CountedQuantity, UpdateSourceTrigger=PropertyChanged}" 
                                                  Style="{StaticResource AppTextBoxStyle}" Height="38" Margin="8,4"
                                                  materialDesign:TextFieldAssist.DecorationVisibility="Collapsed" BorderThickness="0"
-                                                 HorizontalContentAlignment="Center" FontWeight="Bold"
+                                                 HorizontalContentAlignment="Center"
                                                  Background="{StaticResource SurfaceMutedBrush}"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>

@@ -47,7 +47,7 @@
                                     Height="40" Padding="20,0">
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Plus" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                    <TextBlock Text="TẠO MỚI" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold"/>
+                                    <TextBlock Text="TẠO MỚI" VerticalAlignment="Center" Style="{StaticResource BodyText}"/>
                                 </StackPanel>
                             </Button>
                         </StackPanel>
@@ -99,7 +99,7 @@
                                             ToolTip="Bộ lọc nâng cao">
                                         <StackPanel Orientation="Horizontal">
                                             <materialDesign:PackIcon Kind="Tune" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                            <TextBlock x:Name="FilterText" Text="BỘ LỌC NÂNG CAO" Margin="8,0,0,0" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                            <TextBlock x:Name="FilterText" Text="BỘ LỌC NÂNG CAO" Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource LabelText}"/>
                                         </StackPanel>
                                     </Button>
 
@@ -351,7 +351,7 @@
                                 <!-- ROW 3: PRODUCTS TABLE -->
                                 <Grid Grid.Row="3">
                                     <StackPanel>
-                                        <TextBlock Text="CHI TIẾT SẢN PHẨM" FontWeight="Bold" Margin="0,0,0,16" FontSize="13" Foreground="{StaticResource AppTertiaryBrush}"/>
+                                        <TextBlock Text="CHI TIẾT SẢN PHẨM" Style="{StaticResource LabelText}" Margin="0,0,0,16" Foreground="{StaticResource AppTertiaryBrush}"/>
                                         <DataGrid ItemsSource="{Binding Lines}" 
                                                   AutoGenerateColumns="False" 
                                                   CanUserAddRows="False"
@@ -398,7 +398,7 @@
                                                  Visibility="{Binding IsViewMode, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                                             <StackPanel Orientation="Horizontal">
                                                 <materialDesign:PackIcon Kind="Plus" VerticalAlignment="Center" Width="18" Height="18"/>
-                                                <TextBlock Text="THÊM DÒNG SẢN PHẨM" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold"/>
+                                                <TextBlock Text="THÊM DÒNG SẢN PHẨM" Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource LabelText}"/>
                                             </StackPanel>
                                         </Button>
                                     </StackPanel>
@@ -415,7 +415,7 @@
                                     <StackPanel Grid.Column="0" VerticalAlignment="Bottom" Margin="0,0,40,0">
                                         <Border Background="#F8F9FA" Padding="20" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource AppBorderBrush}">
                                             <StackPanel>
-                                                <TextBlock Text="THÔNG TIN BỔ SUNG" FontWeight="Bold" FontSize="12" Foreground="{StaticResource AppTertiaryBrush}" Margin="0,0,0,12"/>
+                                                <TextBlock Text="THÔNG TIN BỔ SUNG" Style="{StaticResource LabelText}" Foreground="{StaticResource AppTertiaryBrush}" Margin="0,0,0,12"/>
                                                 <TextBlock Text="• Hoá đơn này sẽ được lưu vào hệ thống và cập nhật công nợ khách hàng." FontSize="12" Foreground="{StaticResource AppSecondaryBrush}" Margin="0,0,0,4"/>
                                                 <TextBlock Text="• Vui lòng kiểm tra kỹ số lượng và đơn giá trước khi xác nhận." FontSize="12" Foreground="{StaticResource AppSecondaryBrush}"/>
                                             </StackPanel>
@@ -428,28 +428,28 @@
                                             <StackPanel>
                                                 <!-- Calculation Rows -->
                                                 <Grid Margin="0,0,0,16">
-                                                    <TextBlock Text="Tổng tiền chưa thuế" FontSize="14" Foreground="{StaticResource AppSecondaryBrush}"/>
-                                                    <TextBlock Text="{Binding FormSubTotal, StringFormat='N0'}" HorizontalAlignment="Right" FontSize="16" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="Tổng tiền chưa thuế" Style="{StaticResource TypographyCaption}"/>
+                                                    <TextBlock Text="{Binding FormSubTotal, StringFormat='N0'}" HorizontalAlignment="Right" Style="{StaticResource BodyText}"/>
                                                 </Grid>
                                                 <Grid Margin="0,0,0,16">
-                                                    <TextBlock Text="Thuế giá trị gia tăng (VAT)" FontSize="14" Foreground="{StaticResource AppSecondaryBrush}"/>
-                                                    <TextBlock Text="{Binding FormTaxAmount, StringFormat='N0'}" HorizontalAlignment="Right" FontSize="16" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="Thuế giá trị gia tăng (VAT)" Style="{StaticResource TypographyCaption}"/>
+                                                    <TextBlock Text="{Binding FormTaxAmount, StringFormat='N0'}" HorizontalAlignment="Right" Style="{StaticResource BodyText}"/>
                                                 </Grid>
                                                 
                                                 <Separator Margin="0,8,0,20" Background="{StaticResource AppBorderBrush}"/>
                                                 
                                                 <Grid Margin="0,0,0,24">
-                                                    <TextBlock Text="TỔNG CỘNG THANH TOÁN" FontSize="15" FontWeight="Bold" Foreground="{StaticResource AppPrimaryBrush}" VerticalAlignment="Center"/>
-                                                    <TextBlock Text="{Binding FormTotalAmount, StringFormat='N0'}" HorizontalAlignment="Right" FontSize="26" FontWeight="Bold" Foreground="{StaticResource AppPrimaryBrush}"/>
+                                                    <TextBlock Text="TỔNG CỘNG THANH TOÁN" Style="{StaticResource LabelText}" Foreground="{StaticResource AppPrimaryBrush}" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding FormTotalAmount, StringFormat='N0'}" HorizontalAlignment="Right" Style="{StaticResource TypographyStatNumber}" Foreground="{StaticResource AppPrimaryBrush}"/>
                                                 </Grid>
 
                                                 <!-- Payment Input (More prominent) -->
                                                 <Border Background="White" CornerRadius="8" Padding="16" BorderThickness="1" BorderBrush="{StaticResource AppBorderBrush}" Margin="0,0,0,16">
                                                     <Grid>
-                                                        <TextBlock Text="KHÁCH ĐÃ THANH TOÁN" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource AppSecondaryBrush}"/>
+                                                        <TextBlock Text="KHÁCH ĐÃ THANH TOÁN" VerticalAlignment="Center" Style="{StaticResource LabelText}" Foreground="{StaticResource AppSecondaryBrush}"/>
                                                         <TextBox Text="{Binding PaidAmount, UpdateSourceTrigger=PropertyChanged, StringFormat='N0'}"
                                                                  HorizontalAlignment="Right" Width="200" HorizontalContentAlignment="Right"
-                                                                 FontSize="20" FontWeight="Bold" BorderThickness="0"
+                                                                 Style="{StaticResource TypographyStatNumber}" BorderThickness="0"
                                                                  materialDesign:TextFieldAssist.DecorationVisibility="Hidden"
                                                                  materialDesign:TextFieldAssist.HasClearButton="False"
                                                                  IsEnabled="{Binding IsViewMode, Converter={StaticResource InverseBooleanConverter}}"/>
@@ -458,8 +458,8 @@
 
                                                 <!-- Balance -->
                                                 <Grid Margin="16,0">
-                                                    <TextBlock Text="CÒN LẠI (CÔNG NỢ)" FontWeight="Bold" FontSize="14" VerticalAlignment="Center" Foreground="#D32F2F"/>
-                                                    <TextBlock Text="{Binding FormRemainingAmount, StringFormat='N0'}" HorizontalAlignment="Right" FontSize="22" FontWeight="Bold" Foreground="#D32F2F"/>
+                                                    <TextBlock Text="CÒN LẠI (CÔNG NỢ)" Style="{StaticResource LabelText}" VerticalAlignment="Center" Foreground="#D32F2F"/>
+                                                    <TextBlock Text="{Binding FormRemainingAmount, StringFormat='N0'}" HorizontalAlignment="Right" Style="{StaticResource TypographyStatNumber}" Foreground="#D32F2F"/>
                                                 </Grid>
                                             </StackPanel>
                                         </materialDesign:Card>

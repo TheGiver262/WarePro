@@ -34,13 +34,13 @@
                     <Button Command="{Binding CancelCommand}" Style="{StaticResource AppSecondaryButton}" Height="40" Margin="0,0,12,0" Padding="20,0">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Close" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <TextBlock Text="HỦY PHIẾU" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold"/>
+                            <TextBlock Text="HỦY PHIẾU" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
                         </StackPanel>
                     </Button>
                     <Button Command="{Binding SaveStockOutCommand}" Style="{StaticResource AppPrimaryButton}" Height="40" Padding="20,0">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="ArrowUpBox" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <TextBlock Text="XÁC NHẬN" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold"/>
+                            <TextBlock Text="XÁC NHẬN" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -59,31 +59,31 @@
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Grid.Column="0" Margin="0,0,24,0">
-                        <TextBlock Text="MÃ PHIẾU" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8" FontWeight="Bold" Foreground="{StaticResource AppPrimaryBrush}"/>
+                        <TextBlock Text="MÃ PHIẾU" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
                         <TextBox Style="{StaticResource AppTextBoxStyle}" IsReadOnly="True" Width="130" Height="42"
                                  Text="{Binding DocumentCode}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" Margin="0,0,24,0">
-                        <TextBlock Text="KHO HÀNG" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8" FontWeight="Bold" Foreground="{StaticResource AppPrimaryBrush}"/>
+                        <TextBlock Text="KHO HÀNG" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
                         <ComboBox Width="160" Height="42" Style="{StaticResource AppComboBoxStyle}" SelectedIndex="0">
                             <ComboBoxItem Content="Kho tổng mặc định"/>
                         </ComboBox>
                     </StackPanel>
 
                     <StackPanel Grid.Column="2" Margin="0,0,24,0">
-                        <TextBlock Text="KHÁCH HÀNG" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8" FontWeight="Bold" Foreground="{StaticResource AppPrimaryBrush}"/>
+                        <TextBlock Text="KHÁCH HÀNG" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
                         <ComboBox Width="200" Height="42" Style="{StaticResource AppComboBoxStyle}" 
                                   ItemsSource="{Binding AvailableCustomers}" DisplayMemberPath="DisplayName" SelectedItem="{Binding SelectedCustomer}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="3" Margin="0,0,24,0">
-                        <TextBlock Text="NGÀY XUẤT" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8" FontWeight="Bold" Foreground="{StaticResource AppPrimaryBrush}"/>
+                        <TextBlock Text="NGÀY XUẤT" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
                         <DatePicker Width="140" Height="42" Style="{StaticResource AppDatePickerStyle}" SelectedDate="{Binding ExportDate}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="4" Margin="0,0,24,0">
-                        <TextBlock Text="GHI CHÚ" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8" FontWeight="Bold" Foreground="{StaticResource AppPrimaryBrush}"/>
+                        <TextBlock Text="GHI CHÚ" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
                         <TextBox Height="42" Style="{StaticResource AppTextBoxStyle}" materialDesign:HintAssist.Hint="Ghi chú xuất kho..."
                                  Text="{Binding Notes}"/>
                     </StackPanel>
@@ -118,7 +118,7 @@
                                 <DataGridTemplateColumn.Header>
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="PackageVariant" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                        <TextBlock Text="SẢN PHẨM" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                        <TextBlock Text="SẢN PHẨM" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
                                     </StackPanel>
                                 </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
@@ -134,13 +134,13 @@
                                 <DataGridTemplateColumn.Header>
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="CurrencyUsd" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                        <TextBlock Text="ĐƠN GIÁ" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                        <TextBlock Text="ĐƠN GIÁ" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
                                     </StackPanel>
                                 </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <TextBox Text="{Binding Price, UpdateSourceTrigger=PropertyChanged, StringFormat='N0'}" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="8,4" FontWeight="SemiBold"
-                                                 Style="{StaticResource AppTextBoxStyle}" Height="36" BorderThickness="0" Background="{StaticResource SurfaceMutedBrush}"/>
+                                        <TextBox Text="{Binding Price, UpdateSourceTrigger=PropertyChanged, StringFormat='N0'}" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="8,4"
+                                                 Style="{StaticResource InputText}" Height="36" BorderThickness="0" Background="{StaticResource SurfaceMutedBrush}"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -149,13 +149,13 @@
                                 <DataGridTemplateColumn.Header>
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="Numeric" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                        <TextBlock Text="SL" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                        <TextBlock Text="SL" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
                                     </StackPanel>
                                 </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <TextBox Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold" Foreground="{StaticResource AppPrimaryBrush}"
-                                                 Style="{StaticResource AppTextBoxStyle}" Height="36" BorderThickness="0" Background="{StaticResource SurfaceMutedBrush}"/>
+                                        <TextBox Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource AppPrimaryBrush}"
+                                                 Style="{StaticResource InputText}" Height="36" BorderThickness="0" Background="{StaticResource SurfaceMutedBrush}"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -164,12 +164,12 @@
                                 <DataGridTemplateColumn.Header>
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="BarcodeScanner" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                        <TextBlock Text="SERIALS" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                        <TextBlock Text="SERIALS" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
                                     </StackPanel>
                                 </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Button Content="Chọn Serial" Style="{StaticResource MaterialDesignFlatButton}" Height="32" Padding="12,0" FontSize="12" Foreground="{StaticResource AppPrimaryBrush}" FontWeight="SemiBold"
+                                        <Button Content="Chọn Serial" Style="{StaticResource MaterialDesignFlatButton}" Height="32" Padding="12,0" FontSize="12" Foreground="{StaticResource AppPrimaryBrush}"
                                                 Command="{Binding DataContext.OpenSerialInputCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -199,9 +199,9 @@
                                 </TextBlock.Text>
                             </TextBlock>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                <TextBlock Text="TỔNG GIÁ TRỊ XUẤT" VerticalAlignment="Center" Style="{StaticResource TypographyCaption}" Margin="0,0,16,0" FontWeight="Bold" Foreground="{StaticResource AppSecondaryBrush}"/>
-                                <TextBlock Text="{Binding TotalAmount, StringFormat='N0'}" VerticalAlignment="Center" FontWeight="Bold" Foreground="{StaticResource AppPrimaryBrush}" FontSize="24"/>
-                                <TextBlock Text="VNĐ" VerticalAlignment="Center" Style="{StaticResource TypographyCaption}" Margin="8,4,0,0" Foreground="{StaticResource AppSecondaryBrush}" FontWeight="Bold"/>
+                                <TextBlock Text="TỔNG GIÁ TRỊ XUẤT" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}" Margin="0,0,16,0" Foreground="{StaticResource AppSecondaryBrush}"/>
+                                <TextBlock Text="{Binding TotalAmount, StringFormat='N0'}" VerticalAlignment="Center" Style="{StaticResource TypographyStatNumber}" Foreground="{StaticResource AppPrimaryBrush}" FontSize="24"/>
+                                <TextBlock Text="VNĐ" VerticalAlignment="Center" Style="{StaticResource TypographyCaption}" Margin="8,4,0,0" Foreground="{StaticResource AppSecondaryBrush}"/>
                             </StackPanel>
                         </Grid>
                     </Border>

@@ -51,7 +51,7 @@
                 <materialDesign:Card Grid.Column="0" Margin="0,0,12,0" Style="{StaticResource AppCard}" Padding="20">
                     <StackPanel>
                         <TextBlock Text="TỔNG DOANH THU" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppSecondaryBrush}"/>
-                        <TextBlock Text="{Binding TotalRevenue, StringFormat=N0}" FontSize="28" FontWeight="Bold" Margin="0,12,0,0"/>
+                        <TextBlock Text="{Binding TotalRevenue, StringFormat=N0}" FontSize="28" Margin="0,12,0,0"/>
                         <TextBlock Text="VNĐ" Style="{StaticResource TypographyCaption}" Foreground="{StaticResource AppSecondaryBrush}" HorizontalAlignment="Right"/>
                     </StackPanel>
                 </materialDesign:Card>
@@ -59,7 +59,7 @@
                 <materialDesign:Card Grid.Column="1" Margin="12,0,12,0" Style="{StaticResource AppCard}" Padding="20">
                     <StackPanel>
                         <TextBlock Text="TỔNG LỢI NHUẬN" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppSecondaryBrush}"/>
-                        <TextBlock Text="{Binding TotalProfit, StringFormat=N0}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource AppSuccessBrush}" Margin="0,12,0,0"/>
+                        <TextBlock Text="{Binding TotalProfit, StringFormat=N0}" FontSize="28" Foreground="{StaticResource AppSuccessBrush}" Margin="0,12,0,0"/>
                         <TextBlock Text="VNĐ" Style="{StaticResource TypographyCaption}" Foreground="{StaticResource AppSuccessBrush}" HorizontalAlignment="Right"/>
                     </StackPanel>
                 </materialDesign:Card>
@@ -67,7 +67,7 @@
                 <materialDesign:Card Grid.Column="2" Margin="12,0,0,0" Style="{StaticResource AppCard}" Padding="20">
                     <StackPanel>
                         <TextBlock Text="TỔNG CHI PHÍ" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppSecondaryBrush}"/>
-                        <TextBlock Text="{Binding TotalCost, StringFormat=N0}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource DangerTextBrush}" Margin="0,12,0,0"/>
+                        <TextBlock Text="{Binding TotalCost, StringFormat=N0}" FontSize="28" Foreground="{StaticResource DangerTextBrush}" Margin="0,12,0,0"/>
                         <TextBlock Text="VNĐ" Style="{StaticResource TypographyCaption}" Foreground="{StaticResource DangerTextBrush}" HorizontalAlignment="Right"/>
                     </StackPanel>
                 </materialDesign:Card>
@@ -94,7 +94,7 @@
                             <DataGridTextColumn Header="NGÀY" Binding="{Binding Date, StringFormat=dd/MM/yyyy}" Width="*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
                             <DataGridTextColumn Header="DOANH THU" Binding="{Binding Revenue, StringFormat=N0}" Width="*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnRightElementStyle}"/>
                             <DataGridTextColumn Header="CHI PHÍ" Binding="{Binding Cost, StringFormat=N0}" Width="*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnRightElementStyle}"/>
-                            <DataGridTextColumn Header="LỢI NHUẬN" Binding="{Binding Profit, StringFormat=N0}" Width="*" FontWeight="Bold">
+                            <DataGridTextColumn Header="LỢI NHUẬN" Binding="{Binding Profit, StringFormat=N0}" Width="*">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock" BasedOn="{StaticResource MaterialDesignDataGridTextColumnRightElementStyle}">
                                         <Setter Property="Foreground" Value="{StaticResource AppSuccessBrush}"/>

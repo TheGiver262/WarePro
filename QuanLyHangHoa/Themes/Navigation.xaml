@@ -16,8 +16,8 @@
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Height" Value="36"/>
         <Setter Property="Margin" Value="8,2"/>
-        <Setter Property="FontSize" Value="14"/>
-        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="Regular"/>
         <Setter Property="HorizontalAlignment" Value="Stretch"/>
         <Setter Property="GroupName" Value="SidebarMenu"/>
         <Setter Property="Cursor" Value="Hand"/>
@@ -62,9 +62,9 @@
 
     <!-- Sidebar Section Header §6.3 -->
     <Style x:Key="SidebarSectionHeader" TargetType="TextBlock">
-        <Setter Property="Foreground" Value="{StaticResource TextDisabledBrush}"/>
-        <Setter Property="FontSize" Value="11"/>
-        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="Margin" Value="16,20,0,8"/>
         <Style.Triggers>
             <DataTrigger Binding="{Binding IsSidebarCollapsed}" Value="True">

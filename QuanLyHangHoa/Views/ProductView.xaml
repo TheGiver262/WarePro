@@ -25,7 +25,7 @@
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <materialDesign:PackIcon Kind="PackageVariant" Width="32" Height="32" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
                     <StackPanel Margin="16,0,0,0">
-                        <TextBlock Text="DANH MỤC SẢN PHẨM" Style="{StaticResource TypographyH2}"/>
+                        <TextBlock Text="DANH MỤC SẢN PHẨM" Style="{StaticResource TypographyH1}"/>
                         <TextBlock Text="Quản lý danh mục sản phẩm" Style="{StaticResource TypographyCaption}" Opacity="0.7"/>
                     </StackPanel>
                 </StackPanel>
@@ -34,7 +34,7 @@
                     <Button Command="{Binding OpenAddProductWindowCommand}" Style="{StaticResource AppPrimaryButton}" Height="40" Padding="20,0">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Plus" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                            <TextBlock Text="THÊM SẢN PHẨM" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold"/>
+                            <TextBlock Text="THÊM SẢN PHẨM" VerticalAlignment="Center" FontSize="13"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -73,7 +73,7 @@
                                     Width="160" Height="32" Padding="8,0" Margin="0,0,8,0">
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Tune" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                    <TextBlock Text="BỘ LỌC NÂNG CAO" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <TextBlock Text="BỘ LỌC NÂNG CAO" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
 
@@ -89,7 +89,7 @@
                                     Height="32" Padding="12,0">
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="FileExcelOutline" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                    <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
                         </StackPanel>
@@ -191,12 +191,12 @@
                             <DataGridTemplateColumn.Header>
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                    <TextBlock Text="MÃ SP" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <TextBlock Text="MÃ SP" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </DataGridTemplateColumn.Header>
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <TextBlock Text="{Binding ProductCode}" FontWeight="Bold" VerticalAlignment="Center" Margin="12,0"/>
+                                    <TextBlock Text="{Binding ProductCode}" VerticalAlignment="Center" Margin="12,0"/>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
@@ -206,13 +206,13 @@
                             <DataGridTemplateColumn.Header>
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                    <TextBlock Text="TÊN SP" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <TextBlock Text="TÊN SP" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </DataGridTemplateColumn.Header>
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel VerticalAlignment="Center" Margin="12,4">
-                                        <TextBlock FontWeight="Bold">
+                                        <TextBlock>
                                             <TextBlock.Text>
                                                 <MultiBinding StringFormat="{}{0} {1}">
                                                     <Binding Path="Brand.DisplayName"/>
@@ -231,7 +231,7 @@
                             <DataGridTemplateColumn.Header>
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                    <TextBlock Text="THƯƠNG HIỆU" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <TextBlock Text="THƯƠNG HIỆU" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </DataGridTemplateColumn.Header>
                             <DataGridTemplateColumn.CellTemplate>
@@ -246,7 +246,7 @@
                             <DataGridTemplateColumn.Header>
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                    <TextBlock Text="SERIAL" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <TextBlock Text="SERIAL" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </DataGridTemplateColumn.Header>
                             <DataGridTemplateColumn.CellTemplate>
@@ -258,7 +258,6 @@
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding IsSerialTracked}" Value="True">
                                                         <Setter Property="Text" Value="Có"/>
-                                                        <Setter Property="FontWeight" Value="Bold"/>
                                                         <Setter Property="Foreground" Value="{StaticResource AppPrimaryBrush}"/>
                                                     </DataTrigger>
                                                 </Style.Triggers>
@@ -274,7 +273,7 @@
                             <DataGridTemplateColumn.Header>
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                    <TextBlock Text="BH" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <TextBlock Text="BH" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </DataGridTemplateColumn.Header>
                             <DataGridTemplateColumn.CellTemplate>
@@ -289,7 +288,7 @@
                             <DataGridTemplateColumn.Header>
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                    <TextBlock Text="ĐVT" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <TextBlock Text="ĐVT" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </DataGridTemplateColumn.Header>
                             <DataGridTemplateColumn.CellTemplate>
@@ -301,11 +300,11 @@
 
                         <!-- 8. Giá bán -->
                         <DataGridTextColumn Binding="{Binding DefaultPrice, StringFormat='N0'}" Width="120" 
-                                            ElementStyle="{StaticResource MaterialDesignDataGridTextColumnRightElementStyle}" FontWeight="Bold" Foreground="{StaticResource AppTertiaryBrush}">
+                                            ElementStyle="{StaticResource MaterialDesignDataGridTextColumnRightElementStyle}" Foreground="{StaticResource AppTertiaryBrush}">
                             <DataGridTextColumn.Header>
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                    <TextBlock Text="GIÁ BÁN" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <TextBlock Text="GIÁ BÁN" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </DataGridTextColumn.Header>
                         </DataGridTextColumn>
@@ -317,7 +316,7 @@
                             <DataGridTemplateColumn.Header>
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                    <TextBlock Text="TRẠNG THÁI" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <TextBlock Text="TRẠNG THÁI" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </DataGridTemplateColumn.Header>
                         </DataGridTemplateColumn>

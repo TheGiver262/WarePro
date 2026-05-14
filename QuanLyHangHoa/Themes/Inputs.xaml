@@ -12,6 +12,7 @@
         <Setter Property="Height" Value="Auto"/>
         <Setter Property="MinHeight" Value="34"/>
         <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="Regular"/>
         <Setter Property="Margin" Value="{StaticResource Margin.Bottom.md}"/>
         <Style.Triggers>
             <Trigger Property="IsFocused" Value="True">
@@ -27,6 +28,7 @@
         <Setter Property="Height" Value="Auto"/>
         <Setter Property="MinHeight" Value="34"/>
         <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="Regular"/>
         <Setter Property="Margin" Value="{StaticResource Margin.Bottom.md}"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
     </Style>
@@ -37,6 +39,8 @@
         <Setter Property="Padding" Value="0,4"/>
         <Setter Property="Height" Value="Auto"/>
         <Setter Property="MinHeight" Value="34"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="Regular"/>
         <Setter Property="Margin" Value="{StaticResource Margin.Bottom.md}"/>
     </Style>
 
@@ -46,6 +50,8 @@
         <Setter Property="Padding" Value="0,4"/>
         <Setter Property="Height" Value="Auto"/>
         <Setter Property="MinHeight" Value="34"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="Regular"/>
         <Setter Property="Margin" Value="{StaticResource Margin.Bottom.md}"/>
     </Style>
 
@@ -55,6 +61,7 @@
         <Setter Property="MinWidth" Value="160"/>
         <Setter Property="Padding" Value="0,4"/>
         <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="Regular"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
@@ -69,6 +76,7 @@
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="Padding" Value="0,4"/>
         <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="Regular"/>
         <Setter Property="materialDesign:TextFieldAssist.HasClearButton" Value="True"/>
         <Setter Property="BorderThickness" Value="0,0,0,1"/>
         <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
@@ -82,6 +90,7 @@
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="Padding" Value="0,4"/>
         <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="Regular"/>
         <Setter Property="BorderThickness" Value="0,0,0,1"/>
         <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
         <Setter Property="materialDesign:TextFieldAssist.UnderlineBrush" Value="{StaticResource PrimaryPurpleBrush}"/>
@@ -94,6 +103,7 @@
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="Padding" Value="0,4"/>
         <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="Regular"/>
         <Setter Property="BorderThickness" Value="0,0,0,1"/>
         <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
         <Setter Property="materialDesign:TextFieldAssist.UnderlineBrush" Value="{StaticResource PrimaryPurpleBrush}"/>
@@ -106,6 +116,7 @@
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="Padding" Value="0,4"/>
         <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="Regular"/>
         <Setter Property="BorderThickness" Value="0,0,0,1"/>
         <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
         <Setter Property="materialDesign:TextFieldAssist.UnderlineBrush" Value="{StaticResource PrimaryPurpleBrush}"/>

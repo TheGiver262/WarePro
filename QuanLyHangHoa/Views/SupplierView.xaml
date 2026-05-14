@@ -33,7 +33,7 @@
                     <Button Command="{Binding OpenAddSupplierDialogCommand}" Style="{StaticResource AppPrimaryButton}" Height="40" Padding="20,0">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Plus" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                            <TextBlock Text="THÊM MỚI" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold"/>
+                            <TextBlock Text="THÊM MỚI" VerticalAlignment="Center" FontSize="13"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -104,7 +104,7 @@
                                 Height="32" Padding="16,0">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="FileExcelOutline" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>
@@ -129,12 +129,12 @@
                                 <DataGridTemplateColumn.Header>
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                        <TextBlock Text="MÃ NCC" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                        <TextBlock Text="MÃ NCC" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <TextBlock Text="{Binding SupplierCode}" VerticalAlignment="Center" Margin="12,0" FontWeight="SemiBold" Foreground="{StaticResource AppPrimaryBrush}"/>
+                                        <TextBlock Text="{Binding SupplierCode}" VerticalAlignment="Center" Margin="12,0" Foreground="{StaticResource AppPrimaryBrush}"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -144,7 +144,7 @@
                                 <DataGridTemplateColumn.Header>
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                        <TextBlock Text="TÊN NHÀ CUNG CẤP" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                        <TextBlock Text="TÊN NHÀ CUNG CẤP" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
@@ -159,7 +159,7 @@
                                 <DataGridTemplateColumn.Header>
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                        <TextBlock Text="ĐIỆN THOẠI" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                        <TextBlock Text="ĐIỆN THOẠI" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
@@ -174,7 +174,7 @@
                                 <DataGridTemplateColumn.Header>
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                        <TextBlock Text="EMAIL" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                        <TextBlock Text="EMAIL" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
@@ -191,7 +191,7 @@
                                 <DataGridTemplateColumn.Header>
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                        <TextBlock Text="TRẠNG THÁI" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                        <TextBlock Text="TRẠNG THÁI" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </DataGridTemplateColumn.Header>
                             </DataGridTemplateColumn>

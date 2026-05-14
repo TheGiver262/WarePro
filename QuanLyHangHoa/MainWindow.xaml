@@ -52,7 +52,7 @@
                         </Style>
                     </StackPanel.Style>
                     <materialDesign:PackIcon Kind="ViewDashboard" Width="28" Height="28" Foreground="{StaticResource PrimaryPurpleBrush}"/>
-                    <TextBlock Text="WarePro" Foreground="{StaticResource TextOnPrimaryBrush}" FontWeight="Bold" FontSize="15" VerticalAlignment="Center" Margin="10,0,0,0"
+                    <TextBlock Text="WarePro" Foreground="{StaticResource TextOnPrimaryBrush}" FontWeight="Bold" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0"
                                Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
                 </StackPanel>
 
@@ -113,7 +113,7 @@
                         <StackPanel Grid.Column="1" Margin="10,0" VerticalAlignment="Center"
                                     Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                             <TextBlock Text="{Binding CurrentUser.FullName}" Foreground="{StaticResource SidebarTextBrush}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis"/>
-                            <TextBlock Text="{Binding CurrentUser.RoleCode}" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="11"/>
+                            <TextBlock Text="{Binding CurrentUser.RoleCode}" Foreground="{StaticResource SidebarMutedTextBrush}" FontWeight="Medium" FontSize="11"/>
                         </StackPanel>
                         <Button Grid.Column="2" Width="30" Height="30" Foreground="{StaticResource SidebarTextBrush}" Command="{Binding LogoutCommand}" ToolTip="Đăng xuất">
                             <Button.Style>

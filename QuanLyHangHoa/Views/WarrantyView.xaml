@@ -35,7 +35,7 @@
                     <Button Command="{Binding CreateWarrantyCommand}" Style="{StaticResource AppPrimaryButton}" Height="40" Padding="20,0">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Plus" Width="20" Height="20" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <TextBlock Text="TẠO PHIẾU BẢO HÀNH" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                            <TextBlock Text="TẠO PHIẾU BẢO HÀNH" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -123,7 +123,7 @@
                                     Height="32" Padding="12,0" Margin="0,0,8,0">
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="FilterVariant" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                    <TextBlock Text="BỘ LỌC NÂNG CAO" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <TextBlock Text="BỘ LỌC NÂNG CAO" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
 
@@ -132,7 +132,7 @@
                                     Height="32" Padding="16,0">
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Magnify" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                    <TextBlock Text="TÌM KIẾM" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <TextBlock Text="TÌM KIẾM" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
                         </StackPanel>
@@ -195,7 +195,7 @@
                             <DataGridTemplateColumn Header="MÃ PHIẾU" Width="120">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <TextBlock Text="{Binding Id}" FontWeight="Bold" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.md}"/>
+                                        <TextBlock Text="{Binding Id}" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.md}"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -204,7 +204,7 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding ProductSerial.Product.DisplayName}" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{Binding ProductSerial.Product.DisplayName}"/>
                                             <TextBlock Text="{Binding ProductSerial.SerialNumber}" Style="{StaticResource TypographyCaption}" Foreground="{StaticResource TextSecondaryBrush}"/>
                                         </StackPanel>
                                     </DataTemplate>
@@ -236,7 +236,7 @@
                                                     </Style.Triggers>
                                                 </Style>
                                             </Border.Style>
-                                            <TextBlock Text="{Binding Status}" FontWeight="SemiBold" FontSize="11">
+                                            <TextBlock Text="{Binding Status}" FontSize="11">
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock">
                                                         <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
