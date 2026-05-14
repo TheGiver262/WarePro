@@ -67,14 +67,14 @@
                     </Style.Triggers>
                 </Style>
             </Border.Style>
-            <TextBlock FontWeight="Bold" FontSize="11">
+            <TextBlock FontWeight="Bold" FontSize="10">
                 <TextBlock.Style>
                     <Style TargetType="TextBlock">
-                        <Setter Property="Text" Value="Dừng"/>
+                        <Setter Property="Text" Value="DỪNG"/>
                         <Setter Property="Foreground" Value="{StaticResource DangerTextBrush}"/>
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                <Setter Property="Text" Value="Hoạt động"/>
+                                <Setter Property="Text" Value="HOẠT ĐỘNG"/>
                                 <Setter Property="Foreground" Value="{StaticResource SuccessTextBrush}"/>
                             </DataTrigger>
                         </Style.Triggers>
@@ -178,7 +178,7 @@
                     </Style.Triggers>
                 </Style>
             </Border.Style>
-            <TextBlock FontWeight="Bold" FontSize="10.5" VerticalAlignment="Center" Margin="0,-1,0,0">
+            <TextBlock FontWeight="Bold" FontSize="10" VerticalAlignment="Center" Margin="0,-1,0,0">
                 <TextBlock.Style>
                     <Style TargetType="TextBlock">
                         <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
@@ -186,47 +186,47 @@
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding CurrentStatus}" Value="InStock">
                                 <Setter Property="Foreground" Value="#166534"/>
-                                <Setter Property="Text" Value="Trong kho"/>
+                                <Setter Property="Text" Value="TRONG KHO"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding CurrentStatus}" Value="Sold">
                                 <Setter Property="Foreground" Value="#1E40AF"/>
-                                <Setter Property="Text" Value="Đã bán"/>
+                                <Setter Property="Text" Value="ĐÃ BÁN"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding CurrentStatus}" Value="Reserved">
                                 <Setter Property="Foreground" Value="#92400E"/>
-                                <Setter Property="Text" Value="Đã đặt"/>
+                                <Setter Property="Text" Value="ĐÃ ĐẶT"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding CurrentStatus}" Value="InWarrantyProcess">
                                 <Setter Property="Foreground" Value="#6B21A8"/>
-                                <Setter Property="Text" Value="Đang bảo hành"/>
+                                <Setter Property="Text" Value="ĐANG BẢO HÀNH"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding CurrentStatus}" Value="WarrantyDefective">
                                 <Setter Property="Foreground" Value="#991B1B"/>
-                                <Setter Property="Text" Value="Lỗi bảo hành"/>
+                                <Setter Property="Text" Value="LỖI BẢO HÀNH"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding CurrentStatus}" Value="Returned">
                                 <Setter Property="Foreground" Value="#475569"/>
-                                <Setter Property="Text" Value="Đã trả hàng"/>
+                                <Setter Property="Text" Value="ĐÃ TRẢ HÀNG"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding CurrentStatus}" Value="Scrapped">
                                 <Setter Property="Foreground" Value="#991B1B"/>
-                                <Setter Property="Text" Value="Đã thanh lý"/>
+                                <Setter Property="Text" Value="ĐÃ THANH LÝ"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding CurrentStatus}" Value="Replaced">
                                 <Setter Property="Foreground" Value="#059669"/>
-                                <Setter Property="Text" Value="Đã đổi mới"/>
+                                <Setter Property="Text" Value="ĐÃ ĐỔI MỚI"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding CurrentStatus}" Value="Inactive">
                                 <Setter Property="Foreground" Value="#374151"/>
-                                <Setter Property="Text" Value="Dừng"/>
+                                <Setter Property="Text" Value="DỪNG"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding CurrentStatus}" Value="ReturnedToManufacturer">
                                 <Setter Property="Foreground" Value="#475569"/>
-                                <Setter Property="Text" Value="Trả lại NCC"/>
+                                <Setter Property="Text" Value="TRẢ LẠI NCC"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding CurrentStatus}" Value="returntomanufaturer">
                                 <Setter Property="Foreground" Value="#475569"/>
-                                <Setter Property="Text" Value="Trả lại NCC"/>
+                                <Setter Property="Text" Value="TRẢ LẠI NCC"/>
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>

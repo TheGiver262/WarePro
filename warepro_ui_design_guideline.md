@@ -214,27 +214,41 @@ Dùng font mặc định của Windows để hợp WPF:
 FontFamily: Segoe UI
 ```
 
-### Kích thước chữ
+### Kích thước và Quy tắc Typography (Pro Max Standard)
 
-| Loại text | Size | Weight | Màu |
-|---|---:|---:|---|
-| App name trong sidebar | 14-15 | 700 | White |
-| Page title | 20-22 | 700 | TextPrimary |
-| Page subtitle | 13-14 | 400/500 | TextSecondary |
-| Menu item | 14 | 500 | SidebarText |
-| Group heading sidebar | 11-12 | 700 | TextMuted |
-| Table header | 13 | 600 | TextSecondary |
-| Table cell | 13-14 | 400/500 | TextPrimary |
-| Input label | 12 | 500 | TextSecondary |
-| Button text | 13 | 600 | White/TextPrimary |
-| Dashboard stat number | 22-26 | 700 | TextPrimary |
+Hệ thống Typography được thiết kế để tạo cảm giác chuyên nghiệp, "locked-in" cho ứng dụng doanh nghiệp.
 
-### Quy tắc
+| Thành phần | Size | Weight | Casing (Hoa/Thường) | Màu sắc |
+|---|---:|---:|---|---|
+| **Page Title** | 22px | 700 (Bold) | Sentence Case | `TextPrimary` |
+| **Page Subtitle** | 13px | 400 (Regular) | Sentence Case | `TextSecondary` |
+| **Sidebar Group Heading** | 11px | 700 (Bold) | **UPPERCASE** | `TextMuted` |
+| **Sidebar Menu Item** | 14px | 500 (Medium) | Sentence Case | `SidebarText` |
+| **DataGrid Header** | 13px | 600 (SemiBold) | **UPPERCASE** | `TextSecondary` |
+| **DataGrid Cell** | 13px | 400 (Regular) | Sentence Case | `TextPrimary` |
+| **Input Label (Search/Form)** | 12px | 600 (SemiBold) | **UPPERCASE** | `TextSecondary` |
+| **Button Text** | 13px | 600 (SemiBold) | **UPPERCASE** | White / `TextPrimary` |
+| **Status Badge** | 10px | 700 (Bold) | **UPPERCASE** | Theo trạng thái |
+| **Dashboard Stat Number** | 24px | 700 (Bold) | N/A | `TextPrimary` |
 
-- Không dùng font quá tròn hoặc decorative.
-- Không dùng size chữ quá lớn trong bảng.
-- Page title ngắn, rõ: `Sản phẩm`, `Nhập kho`, `Hóa đơn bán`.
-- Subtitle mô tả một dòng: `Quản lý danh mục sản phẩm`, `Quản lý phiếu nhập kho`.
+### Quy tắc chi tiết
+
+1. **UPPERCASE (Viết hoa toàn bộ)**:
+    - Chỉ dùng cho các nhãn cấu trúc: Header bảng, Label ô nhập liệu, Tiêu đề nhóm Sidebar, và Chữ trên Button.
+    - Giúp tạo sự phân biệt rõ ràng giữa "Khung giao diện" và "Dữ liệu người dùng".
+    - **Lưu ý Tiếng Việt**: Kiểm tra kỹ các dấu tiếng Việt khi viết hoa (ví dụ: `HÓA ĐƠN`, `NHẬP KHO`).
+
+2. **Sentence Case (Viết hoa chữ cái đầu)**:
+    - Dùng cho toàn bộ dữ liệu hiển thị trong bảng (DataGrid Cells).
+    - Dùng cho Page Title và Subtitle.
+    - Giúp giảm mỏi mắt khi đọc lượng lớn dữ liệu.
+
+3. **Font Family**:
+    - Mặc định là `Segoe UI`. Không thay đổi font trừ khi có yêu cầu đặc biệt.
+
+4. **Độ đậm (Font Weight)**:
+    - Không dùng Medium (500) cho dữ liệu trong bảng, dùng Regular (400) để tăng độ thanh thoát.
+    - Header và Label luôn dùng SemiBold (600) hoặc Bold (700) để nhấn mạnh.
 
 ---
 
@@ -629,12 +643,11 @@ Bảng là thành phần quan trọng nhất. Cần giữ mật độ giống �
 - **Tên, Diễn giải, Nội dung**: Căn lề **TRÁI** (Mặc định).
 - **Căn dọc**: Toàn bộ các ô trong hàng phải được căn giữa theo chiều dọc (`VerticalAlignment="Center"`). Các `ElementStyle` chuẩn (`DataGridTextCenter`, `DataGridTextRight`) đã bao gồm thiết lập này.
 
-### 11.2 Header
+### 11.3 Typography trong bảng
 
-- Header text màu `#6F667C`.
-- Font semibold.
-- Có sort indicator nhỏ cạnh tên cột nếu làm được.
-- Không dùng header màu đậm.
+- **Header Text**: Phải dùng `FontWeight="SemiBold"` và `CharacterCasing="Upper"`. Màu `#6F667C`.
+- **Cell Text**: Dùng `FontSize="13"` và `FontWeight="Regular"`. Căn lề theo quy tắc tại mục 11.2.
+- **Information Density**: Giữ khoảng cách dòng vừa phải (RowHeight 42-46px) để đảm bảo hiển thị được nhiều bản ghi nhưng vẫn dễ đọc.
 
 ### 11.3 Row actions
 
@@ -679,8 +692,9 @@ Status chip xuất hiện trong nhiều bảng. Cần nhất quán.
 Height: 20-22px
 Padding: 2px 8px
 CornerRadius: 4px
-Font size: 10px
-Font weight: Bold
+FontSize: 10px
+FontWeight: Bold
+CharacterCasing: Upper
 VerticalAlignment: Center
 ```
 

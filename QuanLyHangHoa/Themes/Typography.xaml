@@ -14,7 +14,7 @@
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
     </Style>
 
-    <!-- H1 - Dashboard title -->
+    <!-- H1 - Dashboard/Page Title §5: 22px Bold -->
     <Style x:Key="TypographyH1" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}"/>
         <Setter Property="FontSize" Value="22"/>
@@ -38,18 +38,18 @@
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
     </Style>
 
-    <!-- Body text -->
+    <!-- Body text §5: 13px Regular (Standard for data and content) -->
     <Style x:Key="TypographyBody" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}"/>
-        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="FontSize" Value="13"/>
         <Setter Property="FontWeight" Value="Regular"/>
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
     </Style>
 
-    <!-- Label §5: 12px SemiBold -->
+    <!-- Label §5: 12px SemiBold (For structural labels/headers) -->
     <Style x:Key="TypographyLabel" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}"/>
-        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontSize" Value="12"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
     </Style>
