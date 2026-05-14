@@ -36,13 +36,13 @@
                     <Button Command="{Binding CancelCommand}" Style="{StaticResource AppSecondaryButton}" Height="40" Margin="0,0,12,0" Padding="20,0">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Close" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <TextBlock Text="HỦY PHIẾU" VerticalAlignment="Center"/>
+                            <TextBlock Text="HỦY PHIẾU" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold"/>
                         </StackPanel>
                     </Button>
                     <Button Command="{Binding SaveStockInCommand}" Style="{StaticResource AppPrimaryButton}" Height="40" Padding="20,0">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="ContentSaveCheck" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <TextBlock Text="XÁC NHẬN" VerticalAlignment="Center"/>
+                            <TextBlock Text="XÁC NHẬN" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>

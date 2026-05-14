@@ -46,8 +46,8 @@
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Grid.Column="0" Margin="0,0,16,0">
-                        <TextBlock Text="MÃ CHỨNG TỪ CẦN ĐẢO" Style="{StaticResource TypographyCaption}" Margin="0,0,0,6" FontWeight="Bold" Opacity="0.8"/>
-                        <TextBox Height="48" Style="{StaticResource AppTextBoxStyle}"
+                        <TextBlock Text="MÃ CHỨNG TỪ CẦN ĐẢO" Style="{StaticResource TypographyCaption}" Margin="0,0,0,6" FontWeight="Bold" Foreground="{StaticResource AppPrimaryBrush}"/>
+                        <TextBox Height="42" Style="{StaticResource AppTextBoxStyle}"
                                  materialDesign:HintAssist.Hint="DocumentId (VD: PIN-2024-001)"
                                  Text="{Binding DocumentIdText, UpdateSourceTrigger=PropertyChanged}"
                                  Background="{StaticResource SurfaceMutedBrush}">
@@ -58,16 +58,21 @@
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" Margin="0,0,16,0">
-                        <TextBlock Text="LÝ DO ĐẢO CHỨNG TỪ" Style="{StaticResource TypographyCaption}" Margin="0,0,0,6" FontWeight="Bold" Opacity="0.8"/>
-                        <TextBox Height="48" Style="{StaticResource AppTextBoxStyle}"
+                        <TextBlock Text="LÝ DO ĐẢO CHỨNG TỪ" Style="{StaticResource TypographyCaption}" Margin="0,0,0,6" FontWeight="Bold" Foreground="{StaticResource AppPrimaryBrush}"/>
+                        <TextBox Height="42" Style="{StaticResource AppTextBoxStyle}"
                                  materialDesign:HintAssist.Hint="Nhập lý do chi tiết..."
                                  Text="{Binding Reason, UpdateSourceTrigger=PropertyChanged}"
                                  Background="{StaticResource SurfaceMutedBrush}"/>
                     </StackPanel>
 
-                    <Button Grid.Column="2" Content="ĐẢO CHỨNG TỪ" Command="{Binding ReverseDocumentCommand}" 
+                    <Button Grid.Column="2" Command="{Binding ReverseDocumentCommand}" 
                             Style="{StaticResource AppDangerButton}"
-                            Height="48" Padding="24,0" VerticalAlignment="Bottom"/>
+                            Height="42" Padding="24,0" VerticalAlignment="Bottom">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="HistoryOff" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock Text="ĐẢO CHỨNG TỪ" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
                 </Grid>
             </materialDesign:Card>
 
@@ -94,14 +99,13 @@
                             </StackPanel>
                         </StackPanel>
                     </Border>
-                </StackPanel>
-            </materialDesign:Card>
-
-            <!-- Status Banner -->
-            <materialDesign:Card Grid.Row="3" Margin="0,16,0,0" Style="{StaticResource AppCard}" Padding="16,12" Background="{StaticResource SurfaceMutedBrush}" materialDesign:ShadowAssist.ShadowDepth="Depth0">
-                <StackPanel Orientation="Horizontal">
-                    <materialDesign:PackIcon Kind="Information" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center" Width="18" Height="18"/>
-                    <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppTertiaryBrush}" Margin="12,0,0,0" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                    <!-- Status Banner -->
+                    <Border Margin="0,20,0,0" Background="{StaticResource SurfaceMutedBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" Padding="16,12" CornerRadius="{StaticResource Radius.md}">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Information" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center" Width="18" Height="18"/>
+                            <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppTertiaryBrush}" Margin="12,0,0,0" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </materialDesign:Card>
         </Grid>
