@@ -40,13 +40,13 @@
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button Command="{Binding ExportCommand}" Style="{StaticResource SecondaryButton}" Height="32" Margin="0,0,12,0">
                         <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="FileExport" Width="18" Height="18" Margin="0,0,8,0"/>
+                            <materialDesign:PackIcon Kind="FileExport" Width="20" Height="20" Margin="0,0,8,0"/>
                             <TextBlock Text="XUẤT BÁO CÁO" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
                         </StackPanel>
                     </Button>
                     <Button Command="{Binding RefreshCommand}" Style="{StaticResource PrimaryButton}" Height="32">
                         <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18" Margin="0,0,8,0"/>
+                            <materialDesign:PackIcon Kind="Refresh" Width="20" Height="20" Margin="0,0,8,0"/>
                             <TextBlock Text="TẢI LẠI" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
                         </StackPanel>
                     </Button>
@@ -141,34 +141,30 @@
                             <DataGridTemplateColumn Width="150">
                                 <DataGridTemplateColumn.Header>
                                     <StackPanel Orientation="Horizontal">
-                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <materialDesign:PackIcon Kind="Filter" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
                                         <TextBlock Text="TỒN KHO" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
                                     </StackPanel>
                                 </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Border CornerRadius="12" Padding="12,4" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,16,0">
+                                        <Border Margin="0,0,16,0" HorizontalAlignment="Right">
                                             <Border.Style>
-                                                <Style TargetType="Border">
+                                                <Style TargetType="Border" BasedOn="{StaticResource ProMaxBadgeBorderStyle}">
+                                                    <Setter Property="Background" Value="{StaticResource SuccessBgBrush}"/>
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding IsLowStock}" Value="True">
                                                             <Setter Property="Background" Value="{StaticResource DangerBgBrush}"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding IsLowStock}" Value="False">
-                                                            <Setter Property="Background" Value="{StaticResource SuccessBgBrush}"/>
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
                                             </Border.Style>
                                             <TextBlock Text="{Binding StockQuantity, StringFormat='N0'}">
                                                 <TextBlock.Style>
-                                                    <Style TargetType="TextBlock" BasedOn="{StaticResource TypographyBody}">
+                                                    <Style TargetType="TextBlock" BasedOn="{StaticResource ProMaxBadgeTextBlockStyle}">
+                                                        <Setter Property="Foreground" Value="{StaticResource SuccessTextBrush}"/>
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding IsLowStock}" Value="True">
-                                                                <Setter Property="Foreground" Value="{StaticResource AppErrorBrush}"/>
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding IsLowStock}" Value="False">
-                                                                <Setter Property="Foreground" Value="{StaticResource AppSuccessBrush}"/>
+                                                                <Setter Property="Foreground" Value="{StaticResource DangerTextBrush}"/>
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>

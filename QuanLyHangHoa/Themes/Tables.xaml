@@ -4,11 +4,35 @@
 
     <!-- WarePro UI Design Guideline — DataGrid §11 + §16.5 -->
 
+    <!-- WarePro UI Design Guideline — DataGrid §11 + §16.5 -->
+
+    <!-- ======================================================= -->
+    <!-- ProMax Unified Badge Styles §12.2                       -->
+    <!-- ======================================================= -->
+    
+    <Style x:Key="ProMaxBadgeBorderStyle" TargetType="Border">
+        <Setter Property="CornerRadius" Value="12"/>
+        <Setter Property="Padding" Value="10,2"/>
+        <Setter Property="MinHeight" Value="24"/>
+        <Setter Property="MinWidth" Value="90"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <Style x:Key="ProMaxBadgeTextBlockStyle" TargetType="TextBlock" BasedOn="{StaticResource TypographyLabel}">
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="TextAlignment" Value="Center"/>
+        <Setter Property="Margin" Value="0,-1,0,0"/>
+    </Style>
+
     <!-- Boolean Status Badge Template §12.1 -->
     <DataTemplate x:Key="BooleanStatusBadgeTemplate">
-        <Border Padding="6,1" CornerRadius="10" HorizontalAlignment="Left" VerticalAlignment="Center">
+        <Border>
             <Border.Style>
-                <Style TargetType="Border">
+                <Style TargetType="Border" BasedOn="{StaticResource ProMaxBadgeBorderStyle}">
                     <Setter Property="Background" Value="{StaticResource DangerBgBrush}"/>
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding IsActive}" Value="True">
@@ -19,8 +43,7 @@
             </Border.Style>
             <TextBlock>
                 <TextBlock.Style>
-                    <Style TargetType="TextBlock" BasedOn="{StaticResource TypographyLabel}">
-                        <Setter Property="FontSize" Value="10"/>
+                    <Style TargetType="TextBlock" BasedOn="{StaticResource ProMaxBadgeTextBlockStyle}">
                         <Setter Property="Text" Value="DỪNG"/>
                         <Setter Property="Foreground" Value="{StaticResource DangerTextBrush}"/>
                         <Style.Triggers>
@@ -37,19 +60,19 @@
 
     <!-- Centralized Payment Status Badge Template §16.5 -->
     <DataTemplate x:Key="PaymentStatusBadgeTemplate">
-        <Border CornerRadius="10" Padding="8,1" HorizontalAlignment="Left" VerticalAlignment="Center" MinHeight="18">
+        <Border>
             <Border.Style>
-                <Style TargetType="Border">
-                    <Setter Property="Background" Value="#F3F4F6"/>
+                <Style TargetType="Border" BasedOn="{StaticResource ProMaxBadgeBorderStyle}">
+                    <Setter Property="Background" Value="{StaticResource NeutralBgBrush}"/>
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding PaymentStatus}" Value="Paid">
                             <Setter Property="Background" Value="{StaticResource SuccessBgBrush}"/>
                         </DataTrigger>
                         <DataTrigger Binding="{Binding PaymentStatus}" Value="Partial">
-                            <Setter Property="Background" Value="#FEF3C7"/>
+                            <Setter Property="Background" Value="{StaticResource WarningBgBrush}"/>
                         </DataTrigger>
                         <DataTrigger Binding="{Binding PaymentStatus}" Value="Unpaid">
-                            <Setter Property="Background" Value="#FEE2E2"/>
+                            <Setter Property="Background" Value="{StaticResource DangerBgBrush}"/>
                         </DataTrigger>
                         <DataTrigger Binding="{Binding PaymentStatus}" Value="Overdue">
                             <Setter Property="Background" Value="{StaticResource DangerBgBrush}"/>
@@ -57,27 +80,26 @@
                     </Style.Triggers>
                 </Style>
             </Border.Style>
-            <TextBlock x:Name="StatusText" VerticalAlignment="Center" Margin="0,-1,0,0">
+            <TextBlock>
                 <TextBlock.Style>
-                    <Style TargetType="TextBlock" BasedOn="{StaticResource TypographyLabel}">
-                        <Setter Property="FontSize" Value="10.5"/>
-                        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+                    <Style TargetType="TextBlock" BasedOn="{StaticResource ProMaxBadgeTextBlockStyle}">
+                        <Setter Property="Foreground" Value="{StaticResource NeutralTextBrush}"/>
                         <Setter Property="Text" Value="CHƯA TT"/>
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding PaymentStatus}" Value="Paid">
-                                <Setter Property="Foreground" Value="#166534"/>
+                                <Setter Property="Foreground" Value="{StaticResource SuccessTextBrush}"/>
                                 <Setter Property="Text" Value="ĐÃ TT"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding PaymentStatus}" Value="Partial">
-                                <Setter Property="Foreground" Value="#92400E"/>
+                                <Setter Property="Foreground" Value="{StaticResource WarningTextBrush}"/>
                                 <Setter Property="Text" Value="TT 1 PHẦN"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding PaymentStatus}" Value="Unpaid">
-                                <Setter Property="Foreground" Value="#991B1B"/>
+                                <Setter Property="Foreground" Value="{StaticResource DangerTextBrush}"/>
                                 <Setter Property="Text" Value="CHƯA TT"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding PaymentStatus}" Value="Overdue">
-                                <Setter Property="Foreground" Value="#92400E"/>
+                                <Setter Property="Foreground" Value="{StaticResource DangerTextBrush}"/>
                                 <Setter Property="Text" Value="QUÁ HẠN"/>
                             </DataTrigger>
                         </Style.Triggers>
@@ -89,64 +111,57 @@
 
     <!-- Serial Status Badge Template (Multi-status) -->
     <DataTemplate x:Key="SerialStatusBadgeTemplate">
-        <Border Padding="6,1" CornerRadius="10" HorizontalAlignment="Left" VerticalAlignment="Center" MinHeight="18">
+        <Border>
             <Border.Style>
-                <Style TargetType="Border">
-                    <Setter Property="Background" Value="{StaticResource SurfaceMutedBrush}"/>
+                <Style TargetType="Border" BasedOn="{StaticResource ProMaxBadgeBorderStyle}">
+                    <Setter Property="Background" Value="{StaticResource NeutralBgBrush}"/>
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding CurrentStatus}" Value="InStock">
-                            <Setter Property="Background" Value="#DCFCE7"/>
+                            <Setter Property="Background" Value="{StaticResource SuccessBgBrush}"/>
                         </DataTrigger>
                         <DataTrigger Binding="{Binding CurrentStatus}" Value="Sold">
-                            <Setter Property="Background" Value="#DBEAFE"/>
+                            <Setter Property="Background" Value="{StaticResource InfoBgBrush}"/>
                         </DataTrigger>
                         <DataTrigger Binding="{Binding CurrentStatus}" Value="Reserved">
-                            <Setter Property="Background" Value="#FEF3C7"/>
+                            <Setter Property="Background" Value="{StaticResource WarningBgBrush}"/>
                         </DataTrigger>
                         <DataTrigger Binding="{Binding CurrentStatus}" Value="InWarrantyProcess">
-                            <Setter Property="Background" Value="#F3E8FF"/>
+                            <Setter Property="Background" Value="#F3E8FF"/> <!-- Custom for warranty -->
                         </DataTrigger>
                         <DataTrigger Binding="{Binding CurrentStatus}" Value="WarrantyDefective">
-                            <Setter Property="Background" Value="#FEE2E2"/>
+                            <Setter Property="Background" Value="{StaticResource DangerBgBrush}"/>
                         </DataTrigger>
                         <DataTrigger Binding="{Binding CurrentStatus}" Value="Returned">
-                            <Setter Property="Background" Value="#F1F5F9"/>
+                            <Setter Property="Background" Value="{StaticResource NeutralBgBrush}"/>
                         </DataTrigger>
                         <DataTrigger Binding="{Binding CurrentStatus}" Value="Scrapped">
-                            <Setter Property="Background" Value="#FEE2E2"/>
+                            <Setter Property="Background" Value="{StaticResource DangerBgBrush}"/>
                         </DataTrigger>
                         <DataTrigger Binding="{Binding CurrentStatus}" Value="Replaced">
                             <Setter Property="Background" Value="#ECFDF5"/>
                         </DataTrigger>
                         <DataTrigger Binding="{Binding CurrentStatus}" Value="Inactive">
-                            <Setter Property="Background" Value="#F3F4F6"/>
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding CurrentStatus}" Value="ReturnedToManufacturer">
-                            <Setter Property="Background" Value="#F1F5F9"/>
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding CurrentStatus}" Value="returntomanufaturer">
-                            <Setter Property="Background" Value="#F1F5F9"/>
+                            <Setter Property="Background" Value="{StaticResource NeutralBgBrush}"/>
                         </DataTrigger>
                     </Style.Triggers>
                 </Style>
             </Border.Style>
-            <TextBlock VerticalAlignment="Center" Margin="0,-1,0,0">
+            <TextBlock>
                 <TextBlock.Style>
-                    <Style TargetType="TextBlock" BasedOn="{StaticResource TypographyLabel}">
-                        <Setter Property="FontSize" Value="10"/>
-                        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+                    <Style TargetType="TextBlock" BasedOn="{StaticResource ProMaxBadgeTextBlockStyle}">
+                        <Setter Property="Foreground" Value="{StaticResource NeutralTextBrush}"/>
                         <Setter Property="Text" Value="{Binding CurrentStatus}"/>
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding CurrentStatus}" Value="InStock">
-                                <Setter Property="Foreground" Value="#166534"/>
+                                <Setter Property="Foreground" Value="{StaticResource SuccessTextBrush}"/>
                                 <Setter Property="Text" Value="TRONG KHO"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding CurrentStatus}" Value="Sold">
-                                <Setter Property="Foreground" Value="#1E40AF"/>
+                                <Setter Property="Foreground" Value="{StaticResource InfoTextBrush}"/>
                                 <Setter Property="Text" Value="ĐÃ BÁN"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding CurrentStatus}" Value="Reserved">
-                                <Setter Property="Foreground" Value="#92400E"/>
+                                <Setter Property="Foreground" Value="{StaticResource WarningTextBrush}"/>
                                 <Setter Property="Text" Value="ĐÃ ĐẶT"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding CurrentStatus}" Value="InWarrantyProcess">
@@ -154,15 +169,15 @@
                                 <Setter Property="Text" Value="ĐANG BẢO HÀNH"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding CurrentStatus}" Value="WarrantyDefective">
-                                <Setter Property="Foreground" Value="#991B1B"/>
+                                <Setter Property="Foreground" Value="{StaticResource DangerTextBrush}"/>
                                 <Setter Property="Text" Value="LỖI BẢO HÀNH"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding CurrentStatus}" Value="Returned">
-                                <Setter Property="Foreground" Value="#475569"/>
+                                <Setter Property="Foreground" Value="{StaticResource NeutralTextBrush}"/>
                                 <Setter Property="Text" Value="ĐÃ TRẢ HÀNG"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding CurrentStatus}" Value="Scrapped">
-                                <Setter Property="Foreground" Value="#991B1B"/>
+                                <Setter Property="Foreground" Value="{StaticResource DangerTextBrush}"/>
                                 <Setter Property="Text" Value="ĐÃ THANH LÝ"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding CurrentStatus}" Value="Replaced">
@@ -170,21 +185,23 @@
                                 <Setter Property="Text" Value="ĐÃ ĐỔI MỚI"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding CurrentStatus}" Value="Inactive">
-                                <Setter Property="Foreground" Value="#374151"/>
+                                <Setter Property="Foreground" Value="{StaticResource NeutralTextBrush}"/>
                                 <Setter Property="Text" Value="DỪNG"/>
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding CurrentStatus}" Value="ReturnedToManufacturer">
-                                <Setter Property="Foreground" Value="#475569"/>
-                                <Setter Property="Text" Value="TRẢ LẠI NCC"/>
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding CurrentStatus}" Value="returntomanufaturer">
-                                <Setter Property="Foreground" Value="#475569"/>
-                                <Setter Property="Text" Value="TRẢ LẠI NCC"/>
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>
                 </TextBlock.Style>
             </TextBlock>
+        </Border>
+    </DataTemplate>
+
+    <!-- Global Inventory Status Badge Template §16.6 -->
+    <DataTemplate x:Key="InventoryStatusBadgeTemplate">
+        <Border Style="{StaticResource ProMaxBadgeBorderStyle}"
+                Background="{Binding Status, Converter={StaticResource StatusToBgBrushConverter}}">
+            <TextBlock Style="{StaticResource ProMaxBadgeTextBlockStyle}"
+                       Foreground="{Binding Status, Converter={StaticResource StatusToFgBrushConverter}}"
+                       Text="{Binding Status, Converter={StaticResource StatusToTextConverter}}"/>
         </Border>
     </DataTemplate>
 

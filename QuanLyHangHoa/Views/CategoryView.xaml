@@ -33,7 +33,7 @@
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Visibility="{Binding CanManage, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <Button Command="{Binding OpenAddCategoryDialogCommand}" Style="{StaticResource PrimaryButton}" Height="32">
                         <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="Plus" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <materialDesign:PackIcon Kind="Plus" Width="20" Height="20" VerticalAlignment="Center" Margin="0,0,6,0"/>
                             <TextBlock Text="THÊM MỚI" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
                         </StackPanel>
                     </Button>
@@ -82,13 +82,13 @@
                                 Command="{Binding RefreshCommand}"
                                 ToolTip="Làm mới bộ lọc"
                                 Width="32" Height="32" Padding="0" Margin="0,0,8,0">
-                            <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18"/>
+                            <materialDesign:PackIcon Kind="Refresh" Width="20" Height="20"/>
                         </Button>
                         <Button Style="{StaticResource PrimaryButton}" 
                                 Command="{Binding ExportToExcelCommand}"
                                 Width="140" Height="32">
                             <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="FileExcelOutline" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <materialDesign:PackIcon Kind="FileExcelOutline" Width="20" Height="20" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                 <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
                             </StackPanel>
                         </Button>
@@ -142,7 +142,7 @@
                             
                             <!-- Status Column with Filter Icon -->
                             <!-- Status Column -->
-                            <DataGridTemplateColumn Width="130" SortMemberPath="IsActive"
+                            <DataGridTemplateColumn Width="140" SortMemberPath="IsActive"
                                                     CellTemplate="{StaticResource BooleanStatusBadgeTemplate}">
                                 <DataGridTemplateColumn.Header>
                                     <StackPanel Orientation="Horizontal">
@@ -160,12 +160,12 @@
                                             <Button Style="{StaticResource ProMaxIconButtonStyle}" ToolTip="Chỉnh sửa"
                                                     Command="{Binding DataContext.EditCategoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}">
-                                                <materialDesign:PackIcon Kind="PencilOutline" Width="20" Height="20" Foreground="{StaticResource AppSecondaryBrush}"/>
+                                                <materialDesign:PackIcon Kind="PencilOutline" Width="18" Height="18" Foreground="{StaticResource AppSecondaryBrush}"/>
                                             </Button>
                                             <Button Style="{StaticResource ProMaxIconButtonStyle}" ToolTip="Xoá danh mục"
                                                     Command="{Binding DataContext.DeleteCategoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}">
-                                                <materialDesign:PackIcon Kind="TrashCanOutline" Width="20" Height="20" Foreground="{StaticResource AppErrorBrush}"/>
+                                                <materialDesign:PackIcon Kind="TrashCanOutline" Width="18" Height="18" Foreground="{StaticResource AppErrorBrush}"/>
                                             </Button>
                                         </StackPanel>
                                     </DataTemplate>

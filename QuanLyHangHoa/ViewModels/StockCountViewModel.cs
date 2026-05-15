@@ -30,6 +30,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private DateTime _countDate = DateTime.Now;
         [ObservableProperty] private string _statusMessage = string.Empty;
         [ObservableProperty] private string _searchText = string.Empty;
+        [ObservableProperty] private string _status = "Draft";
 
         public StockCountViewModel(AppUser? currentUser = null, Func<AppDbContext>? contextFactory = null)
         {

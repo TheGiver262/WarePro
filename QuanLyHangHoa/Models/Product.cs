@@ -39,6 +39,7 @@ public partial class Product
 
     public decimal StockQuantity => StockBalances?.Sum(b => b.OnHandQuantity) ?? 0;
     public bool IsLowStock => StockQuantity < 10; // Threshold for low stock
+    public string Status => IsLowStock ? "lowstock" : "instock";
     public decimal TotalValue => StockQuantity * (CostPrice ?? DefaultPrice);
 
     public virtual Brand Brand { get; set; } = null!;

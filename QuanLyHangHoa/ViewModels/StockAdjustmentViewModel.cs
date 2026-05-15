@@ -1,10 +1,12 @@
 using System;
-using QuanLyHangHoa.Data;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.EntityFrameworkCore;
+using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
 
@@ -12,92 +14,271 @@ namespace QuanLyHangHoa.ViewModels
 {
     public partial class StockAdjustmentLineEditor : ObservableObject
     {
+        private readonly ProductUnitService _unitService;
+        private readonly ProductSerialService _serialService;
+
+        public StockAdjustmentLineEditor(ProductUnitService unitService, ProductSerialService serialService)
+        {
+            _unitService = unitService;
+            _serialService = serialService;
+        }
+
         [ObservableProperty] private Product? _selectedProduct;
         [ObservableProperty] private string _direction = "In";
-        [ObservableProperty] private decimal _quantity;
+        [ObservableProperty] private decimal _quantity = 1;
+        [ObservableProperty] private decimal _baseQuantity;
+        [ObservableProperty] private ProductUnit? _selectedUnit;
+        [ObservableProperty] private ObservableCollection<ProductUnit> _availableUnits = new();
+        [ObservableProperty] private ProductSerial? _selectedSerial;
+        [ObservableProperty] private ObservableCollection<ProductSerial> _availableSerials = new();
+        [ObservableProperty] private bool _isSerialTracked;
+
+        partial void OnSelectedProductChanged(Product? value)
+        {
+            AvailableUnits.Clear();
+            AvailableSerials.Clear();
+            IsSerialTracked = value?.IsSerialTracked ?? false;
+
+            if (value != null)
+            {
+                var units = _unitService.GetByProductId(value.Id);
+                foreach (var unit in units) AvailableUnits.Add(unit);
+                SelectedUnit = AvailableUnits.FirstOrDefault(u => u.IsBaseUnit) ?? AvailableUnits.FirstOrDefault();
+                
+                if (IsSerialTracked)
+                {
+                    // Fetch serials for the product that are in stock
+                    var serials = _serialService.SearchSerials(string.Empty, value.ProductCode, string.Empty, "InStock");
+                    foreach (var serial in serials) AvailableSerials.Add(serial);
+                }
+            }
+        }
+
+        partial void OnSelectedUnitChanged(ProductUnit? value)
+        {
+            UpdateBaseQuantity();
+        }
+
+        partial void OnQuantityChanged(decimal value)
+        {
+            UpdateBaseQuantity();
+        }
+
+        private void UpdateBaseQuantity()
+        {
+            BaseQuantity = Quantity * (SelectedUnit?.ConversionFactor ?? 1);
+        }
     }
 
     public partial class StockAdjustmentViewModel : ObservableObject
     {
         private readonly ProductService _productService;
         private readonly StockAdjustmentService _adjustmentService;
+        private readonly ReferenceDataService _referenceDataService;
+        private readonly ProductUnitService _unitService;
+        private readonly ProductSerialService _serialService;
         private readonly AppUser _currentUser;
+        private readonly Func<AppDbContext> _contextFactory;
 
-        [ObservableProperty] private ObservableCollection<Product> _availableProducts;
-        [ObservableProperty] private ObservableCollection<StockAdjustmentLineEditor> _lines;
-        [ObservableProperty] private string _searchText = string.Empty;
+        // View State
+        [ObservableProperty] private bool _isListViewVisible = true;
+        [ObservableProperty] private bool _isDetailViewVisible = false;
+        [ObservableProperty] private bool _isEditMode = false;
+
+        // List Data
+        [ObservableProperty] private ObservableCollection<StockAdjustment> _adjustmentList = new();
+        [ObservableProperty] private string _searchDocumentCode = string.Empty;
+        [ObservableProperty] private DateTime? _filterFromDate;
+        [ObservableProperty] private DateTime? _filterToDate;
+        
+        // Summary
+        [ObservableProperty] private int _totalCount;
+        [ObservableProperty] private int _draftCount;
+        [ObservableProperty] private int _postedCount;
+
+        // Detail Data
+        [ObservableProperty] private int _editingId;
         [ObservableProperty] private string _documentCode = string.Empty;
-        [ObservableProperty] private int _warehouseId = 1;
-        [ObservableProperty] private string _reasonCode = string.Empty;
-        [ObservableProperty] private string _statusMessage = string.Empty;
+        [ObservableProperty] private int _warehouseId;
+        [ObservableProperty] private string _adjustmentType = "Manual";
+        [ObservableProperty] private string _reasonCode = "DAMAGED";
+        [ObservableProperty] private string _status = "Draft";
+        [ObservableProperty] private string _notes = string.Empty;
+        [ObservableProperty] private ObservableCollection<StockAdjustmentLineEditor> _lines = new();
 
-        [RelayCommand]
-        private void LoadData()
-        {
-            // Placeholder for search functionality
-        }
+        // Lookups
+        [ObservableProperty] private ObservableCollection<Product> _availableProducts = new();
+        [ObservableProperty] private ObservableCollection<Warehouse> _availableWarehouses = new();
+        [ObservableProperty] private List<string> _availableReasons = new() { "DAMAGED", "EXPIRED", "INVENTORY_COUNT", "LOST", "OTHER" };
 
         public StockAdjustmentViewModel(AppUser? currentUser = null, Func<AppDbContext>? contextFactory = null)
         {
             _currentUser = currentUser ?? new AppUser { Id = 1 };
-            var factory = contextFactory ?? (() => new QuanLyHangHoa.Data.AppDbContext());
-            _productService = new ProductService(factory);
-            _adjustmentService = new StockAdjustmentService(factory);
+            _contextFactory = contextFactory ?? (() => new AppDbContext());
+            _productService = new ProductService(_contextFactory);
+            _adjustmentService = new StockAdjustmentService(_contextFactory);
+            _referenceDataService = new ReferenceDataService(_contextFactory);
+            _unitService = new ProductUnitService(_contextFactory);
+            _serialService = new ProductSerialService(_contextFactory);
+
+            LoadInitialData();
+            LoadData();
+        }
+
+        private void LoadInitialData()
+        {
+            // Load products with serials to support adjustment
             AvailableProducts = new ObservableCollection<Product>(_productService.GetAllProducts());
-            Lines = new ObservableCollection<StockAdjustmentLineEditor>();
+            AvailableWarehouses = new ObservableCollection<Warehouse>(_referenceDataService.GetAllWarehouses());
+            WarehouseId = AvailableWarehouses.FirstOrDefault(w => w.IsDefault)?.Id ?? AvailableWarehouses.FirstOrDefault()?.Id ?? 1;
+        }
+
+        [RelayCommand]
+        private void LoadData()
+        {
+            var all = _adjustmentService.GetAll();
+            
+            var filtered = all.AsQueryable();
+            if (!string.IsNullOrWhiteSpace(SearchDocumentCode))
+                filtered = filtered.Where(x => x.DocumentCode.Contains(SearchDocumentCode, StringComparison.OrdinalIgnoreCase));
+            
+            if (FilterFromDate.HasValue)
+                filtered = filtered.Where(x => (x.PostedAt ?? x.ApprovedAt ?? DateTime.MinValue).Date >= FilterFromDate.Value.Date);
+            
+            if (FilterToDate.HasValue)
+                filtered = filtered.Where(x => (x.PostedAt ?? x.ApprovedAt ?? DateTime.MaxValue).Date <= FilterToDate.Value.Date);
+
+            AdjustmentList.Clear();
+            foreach (var item in filtered) AdjustmentList.Add(item);
+            UpdateSummaries();
+        }
+
+        private void UpdateSummaries()
+        {
+            TotalCount = AdjustmentList.Count;
+            DraftCount = AdjustmentList.Count(x => x.Status == "Draft");
+            PostedCount = AdjustmentList.Count(x => x.Status == "Posted");
+        }
+
+        [RelayCommand]
+        private void CreateNew()
+        {
+            EditingId = 0;
             DocumentCode = $"ADJ-{DateTime.Now:yyyyMMddHHmmss}";
+            WarehouseId = AvailableWarehouses.FirstOrDefault(w => w.IsDefault)?.Id ?? AvailableWarehouses.FirstOrDefault()?.Id ?? 1;
+            AdjustmentType = "Manual";
+            ReasonCode = "DAMAGED";
+            Status = "Draft";
+            Notes = string.Empty;
+            Lines.Clear();
+
+            IsListViewVisible = false;
+            IsDetailViewVisible = true;
+            IsEditMode = true;
+        }
+
+        [RelayCommand]
+        private void ViewDetail(StockAdjustment item)
+        {
+            if (item == null) return;
+            LoadForEditing(item.Id, false);
+        }
+
+        [RelayCommand]
+        private void EditDetail(StockAdjustment item)
+        {
+            if (item == null) return;
+            if (item.Status == "Posted")
+            {
+                MessageBox.Show("Không thể sửa phiếu đã ghi sổ.", "Thông báo");
+                return;
+            }
+            LoadForEditing(item.Id, true);
+        }
+
+        private void LoadForEditing(int id, bool editMode)
+        {
+            var adj = _adjustmentService.GetById(id);
+            if (adj == null) return;
+
+            EditingId = adj.Id;
+            DocumentCode = adj.DocumentCode;
+            WarehouseId = adj.WarehouseId;
+            AdjustmentType = adj.AdjustmentType;
+            ReasonCode = adj.ReasonCode;
+            Status = adj.Status;
+            Notes = adj.Notes ?? string.Empty;
+
+            Lines.Clear();
+            foreach (var line in adj.Lines)
+            {
+                var editor = new StockAdjustmentLineEditor(_unitService, _serialService)
+                {
+                    SelectedProduct = line.Product,
+                    Direction = line.Direction,
+                    Quantity = line.QuantityDelta,
+                    BaseQuantity = line.BaseQuantityDelta,
+                    SelectedSerial = line.ProductSerial
+                };
+                Lines.Add(editor);
+            }
+
+            IsListViewVisible = false;
+            IsDetailViewVisible = true;
+            IsEditMode = editMode;
+        }
+
+        [RelayCommand]
+        private void BackToList()
+        {
+            IsListViewVisible = true;
+            IsDetailViewVisible = false;
+            LoadData();
         }
 
         [RelayCommand]
         private void AddLine()
         {
-            Lines.Add(new StockAdjustmentLineEditor());
+            Lines.Add(new StockAdjustmentLineEditor(_unitService, _serialService));
         }
 
         [RelayCommand]
         private void RemoveLine(StockAdjustmentLineEditor line)
         {
-            if (line != null)
-            {
-                Lines.Remove(line);
-            }
+            if (line != null) Lines.Remove(line);
         }
 
         [RelayCommand]
-        private void SaveAdjustment()
+        private void SaveDraft()
         {
-            if (string.IsNullOrWhiteSpace(DocumentCode) || !Lines.Any())
-            {
-                MessageBox.Show("Vui lòng nhập đủ thông tin.", "Cảnh báo");
-                return;
-            }
+            if (!Validate()) return;
 
             try
             {
                 var adj = new StockAdjustment
                 {
+                    Id = EditingId,
                     DocumentCode = DocumentCode,
                     WarehouseId = WarehouseId,
-                    AdjustmentType = "Manual",
+                    AdjustmentType = AdjustmentType,
                     ReasonCode = ReasonCode,
-                    Status = "Posted",
-                    CreatedBy = _currentUser.Id,
-                    PostedBy = _currentUser.Id,
-                    PostedAt = DateTime.Now,
-                    ReferenceDocumentCode = "MANUAL"
+                    Notes = Notes,
+                    Status = Status
                 };
 
-                adj.Lines = Lines.Select(l => new StockAdjustmentLine
+                var lineModels = Lines.Select(l => new StockAdjustmentLine
                 {
                     ProductId = l.SelectedProduct?.Id ?? 0,
                     QuantityDelta = l.Quantity,
-                    BaseQuantityDelta = l.Quantity,
-                    Direction = l.Direction
+                    BaseQuantityDelta = l.BaseQuantity,
+                    Direction = l.Direction,
+                    ProductSerialId = l.SelectedSerial?.Id
                 }).ToList();
 
-                _adjustmentService.Post(adj);
-                MessageBox.Show("Đã lưu phiếu điều chỉnh kho.", "Thông báo");
-                ResetForm();
+                _adjustmentService.SaveDraft(adj, lineModels, _currentUser.Id);
+                MessageBox.Show("Đã lưu bản nháp.", "Thông báo");
+                EditingId = adj.Id;
+                Status = adj.Status;
             }
             catch (Exception ex)
             {
@@ -105,11 +286,63 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
-        private void ResetForm()
+        [RelayCommand]
+        private void ConfirmAndPost()
         {
-            Lines.Clear();
-            DocumentCode = $"ADJ-{DateTime.Now:yyyyMMddHHmmss}";
-            ReasonCode = string.Empty;
+            if (!Validate()) return;
+
+            var result = MessageBox.Show("Bạn có chắc chắn muốn ghi sổ phiếu điều chỉnh này? Sau khi ghi sổ sẽ không thể chỉnh sửa.", 
+                "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            
+            if (result != MessageBoxResult.Yes) return;
+
+            try
+            {
+                SaveDraft(); // Ensure current changes are saved
+                _adjustmentService.Post(EditingId, _currentUser.Id);
+                MessageBox.Show("Đã ghi sổ thành công.", "Thông báo");
+                BackToList();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Lỗi");
+            }
+        }
+
+        private bool Validate()
+        {
+            if (string.IsNullOrWhiteSpace(DocumentCode))
+            {
+                MessageBox.Show("Vui lòng nhập mã chứng từ.", "Cảnh báo");
+                return false;
+            }
+
+            if (!Lines.Any())
+            {
+                MessageBox.Show("Vui lòng thêm ít nhất một dòng hàng.", "Cảnh báo");
+                return false;
+            }
+
+            foreach (var line in Lines)
+            {
+                if (line.SelectedProduct == null)
+                {
+                    MessageBox.Show("Vui lòng chọn sản phẩm cho tất cả các dòng.", "Cảnh báo");
+                    return false;
+                }
+                if (line.Quantity <= 0)
+                {
+                    MessageBox.Show($"Số lượng của sản phẩm {line.SelectedProduct.DisplayName} phải lớn hơn 0.", "Cảnh báo");
+                    return false;
+                }
+                if (line.IsSerialTracked && line.SelectedSerial == null)
+                {
+                    MessageBox.Show($"Sản phẩm {line.SelectedProduct.DisplayName} yêu cầu chọn Serial.", "Cảnh báo");
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 }
