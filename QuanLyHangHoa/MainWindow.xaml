@@ -65,7 +65,7 @@
                         <RadioButton Content="Loại sản phẩm" Tag="TagOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenCategoryViewCommand}"/>
                         <RadioButton Content="Thương hiệu" Tag="Domain" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenBrandViewCommand}"/>
                         <RadioButton Content="Đơn vị tính" Tag="CubeOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenUnitViewCommand}"/>
-                        <RadioButton Content="Nhà cung cấp" Tag="TruckOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenSupplierViewCommand}"/>
+                        <RadioButton Content="Nhà cung cấp" Tag="HandshakeOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenSupplierViewCommand}"/>
                         <RadioButton Content="Khách hàng" Tag="AccountGroupOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenCustomerViewCommand}"/>
 
                         <TextBlock Text="SẢN PHẨM" Style="{StaticResource SidebarSectionHeader}"/>
