@@ -100,7 +100,7 @@
                                            ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
                         
                         <DataGridTextColumn Header="SL MỚI" Binding="{Binding NewQuantity}" Width="*" 
-                                           ElementStyle="{StaticResource AppDataGridTextCenterBold}">
+                                           ElementStyle="{DynamicResource AppDataGridTextCenterBold}">
                             <DataGridTextColumn.CellStyle>
                                 <Style TargetType="DataGridCell" BasedOn="{StaticResource MaterialDesignDataGridCell}">
                                     <Setter Property="FontWeight" Value="Bold"/>

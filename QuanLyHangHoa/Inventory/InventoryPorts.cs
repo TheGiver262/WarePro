@@ -13,7 +13,7 @@ public interface IInventoryUnitOfWork
     void SaveSerial(ProductSerialSnapshot serial);
     void AddLedger(StockLedgerEntry entry);
     void AddAudit(AuditLogEntry entry);
-    void MarkDocumentPosted(Guid documentId);
+    void MarkDocumentPosted(int documentId, string documentType);
     void Commit();
 }
 

@@ -23,6 +23,7 @@ namespace QuanLyHangHoa.Services
             return db.StockOuts
                 .Include(s => s.Customer)
                 .Include(s => s.Creator)
+                .Include(s => s.Warehouse)
                 .Include(s => s.Lines)
                     .ThenInclude(d => d.Product)
                 .OrderByDescending(s => s.CreatedAt)
@@ -63,7 +64,7 @@ namespace QuanLyHangHoa.Services
                 var serials = line.ProductSerials?.Select(s => s.SerialNumber).ToArray() ?? Array.Empty<string>();
                 
                 postingService.PostStockOut(new PostStockOutCommand(
-                    Guid.Empty,
+                    stockOut.Id,
                     stockOut.WarehouseId,
                     StockOutKind.Sale,
                     StockDocumentStatus.Posted,

@@ -75,6 +75,7 @@
                         <TextBlock Text="KHO" Style="{StaticResource SidebarSectionHeader}"/>
                         <RadioButton Content="Nhập kho" Tag="ArrowDownBold" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockInViewCommand}"/>
                         <RadioButton Content="Xuất kho" Tag="ArrowUpBold" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockOutViewCommand}"/>
+                        <RadioButton Content="Chuyển kho" Tag="SwapHorizontal" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockTransferViewCommand}"/>
                         <RadioButton Content="Tồn kho" Tag="ChartBar" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenInventoryViewCommand}"/>
                         <RadioButton Content="Điều chỉnh kho" Tag="Tune" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockAdjustmentViewCommand}"/>
                         <RadioButton Content="Kiểm kê" Tag="ClipboardCheckOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockCountViewCommand}"/>

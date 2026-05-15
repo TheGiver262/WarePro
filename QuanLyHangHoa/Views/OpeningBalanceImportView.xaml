@@ -91,7 +91,7 @@
                                RowHeight="54" Background="Transparent" BorderThickness="0">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="DÒNG" Binding="{Binding RowNumber}" Width="100" 
-                                              ElementStyle="{StaticResource AppDataGridTextCenter}"/>
+                                              ElementStyle="{DynamicResource AppDataGridTextCenter}"/>
                             
                             <DataGridTemplateColumn Header="DỮ LIỆU GỐC" Width="250">
                                 <DataGridTemplateColumn.CellTemplate>

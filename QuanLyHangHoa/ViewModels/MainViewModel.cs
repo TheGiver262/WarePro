@@ -75,6 +75,14 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        private void OpenStockTransferView()
+        {
+            CurrentView = new StockTransferView { DataContext = new StockTransferViewModel(CurrentUser, ContextFactory) };
+            CurrentViewTitle = "CHUYỂN KHO";
+            CurrentViewSubtitle = "Điều chuyển hàng hóa giữa các kho nội bộ";
+        }
+
+        [RelayCommand]
         private void OpenStockAdjustmentView()
         {
             CurrentView = new StockAdjustmentView { DataContext = new StockAdjustmentViewModel(CurrentUser, ContextFactory) };

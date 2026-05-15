@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:vm="clr-namespace:QuanLyHangHoa.ViewModels"
+        xmlns:converters="clr-namespace:QuanLyHangHoa.Converters"
         mc:Ignorable="d"
         Title="Đăng Nhập - Inventory Pro Max" Height="600" Width="460"
         WindowStartupLocation="CenterScreen" 
@@ -18,6 +19,7 @@
     </Window.DataContext>
 
     <Window.Resources>
+        <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
         <!-- Local override for Login TextBoxes - Reverted to Outlined as per user request -->
         <Style x:Key="LoginTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource MaterialDesignOutlinedTextBox}">
             <Setter Property="materialDesign:TextFieldAssist.HasClearButton" Value="False"/>

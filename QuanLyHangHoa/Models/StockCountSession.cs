@@ -24,6 +24,7 @@ public partial class StockCountSession
     public DateTime? ApprovedAt { get; set; }
 
     public DateTime? PostedAt { get; set; }
+    public string? Notes { get; set; }
 
     public virtual AppUser? Approver { get; set; }
 

@@ -15,7 +15,8 @@ namespace QuanLyHangHoa.Services
         CreateWarrantyClaim,
         ViewReports,
         ManageMasterData,
-        ManageAuditLogs
+        ManageAuditLogs,
+        ApproveStock
     }
 
     public class AuthorizationService

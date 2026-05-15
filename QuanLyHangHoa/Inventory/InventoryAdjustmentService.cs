@@ -143,7 +143,7 @@ public sealed class InventoryAdjustmentService
             _clock.Now,
             command.PostedByUserId));
 
-        _unitOfWork.MarkDocumentPosted(command.DocumentId);
+        _unitOfWork.MarkDocumentPosted(command.DocumentId, "StockAdjustment");
         _unitOfWork.Commit();
     }
 

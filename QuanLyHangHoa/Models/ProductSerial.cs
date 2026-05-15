@@ -20,6 +20,8 @@ public partial class ProductSerial
     public int LastStockInLineId { get; set; }
 
     public int? LastStockOutLineId { get; set; }
+    public int? StockTransferLineId { get; set; }
+    public virtual StockTransferLine? StockTransferLine { get; set; }
 
     public virtual Warehouse? CurrentWarehouse { get; set; }
 

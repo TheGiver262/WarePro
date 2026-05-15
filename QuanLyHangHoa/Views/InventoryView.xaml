@@ -133,10 +133,10 @@
                                BorderThickness="0" Background="Transparent"
                                SelectionMode="Single" RowHeight="54">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="MÃ SẢN PHẨM" Binding="{Binding ProductCode}" Width="150" ElementStyle="{StaticResource AppDataGridTextBold}"/>
+                            <DataGridTextColumn Header="MÃ SẢN PHẨM" Binding="{Binding ProductCode}" Width="150" ElementStyle="{DynamicResource AppDataGridTextBold}"/>
                             <DataGridTextColumn Header="TÊN SẢN PHẨM" Binding="{Binding ProductName}" Width="*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
                             <DataGridTextColumn Header="DANH MỤC" Binding="{Binding CategoryName}" Width="150" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                            <DataGridTextColumn Header="ĐƠN VỊ" Binding="{Binding UnitName}" Width="100" ElementStyle="{StaticResource AppDataGridTextCenter}"/>
+                            <DataGridTextColumn Header="ĐƠN VỊ" Binding="{Binding UnitName}" Width="100" ElementStyle="{DynamicResource AppDataGridTextCenter}"/>
                             
                             <DataGridTemplateColumn Width="150">
                                 <DataGridTemplateColumn.Header>
@@ -179,7 +179,7 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                             
-                            <DataGridTextColumn Header="GIÁ TRỊ" Binding="{Binding TotalValue, StringFormat='N0'}" Width="160" ElementStyle="{StaticResource AppDataGridTextRight}"/>
+                            <DataGridTextColumn Header="GIÁ TRỊ" Binding="{Binding TotalValue, StringFormat='N0'}" Width="160" ElementStyle="{DynamicResource AppDataGridTextRight}"/>
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>

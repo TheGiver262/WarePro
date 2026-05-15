@@ -67,6 +67,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<StockOut> StockOuts { get; set; }
 
     public virtual DbSet<StockOutLine> StockOutLines { get; set; }
+    public virtual DbSet<StockTransfer> StockTransfers { get; set; }
+    public virtual DbSet<StockTransferLine> StockTransferLines { get; set; }
 
     public virtual DbSet<Supplier> Suppliers { get; set; }
 
@@ -184,6 +186,7 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => e.ProductCode, "UX_Product_ProductCode").IsUnique();
 
             entity.Property(e => e.CostPrice).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Description).IsRequired(false);
             entity.Property(e => e.DefaultPrice).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.DisplayName).HasMaxLength(200);
             entity.Property(e => e.IsActive).HasDefaultValue(true);
@@ -215,6 +218,7 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => e.SerialNumber, "UX_ProductSerial_SerialNumber").IsUnique();
 
             entity.Property(e => e.CurrentStatus).HasMaxLength(50);
+            entity.Property(e => e.Note).IsRequired(false);
             entity.Property(e => e.SerialNumber).HasMaxLength(150);
 
             entity.HasOne(d => d.CurrentWarehouse).WithMany(p => p.ProductSerials)
@@ -234,6 +238,10 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.ProductId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_ProductSerial_Product");
+
+            entity.HasOne(d => d.StockTransferLine).WithMany(p => p.ProductSerials)
+                .HasForeignKey(d => d.StockTransferLineId)
+                .HasConstraintName("FK_ProductSerial_StockTransferLine");
         });
 
         modelBuilder.Entity<ProductUnit>(entity =>
@@ -270,6 +278,8 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => e.InvoiceCode, "UX_PurchaseInvoice_InvoiceCode").IsUnique();
 
             entity.Property(e => e.GrandTotal).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CreatedAt).HasPrecision(0);
+            entity.Property(e => e.Notes).IsRequired(false);
             entity.Property(e => e.PaidAmount).HasColumnType("decimal(18, 2)").HasDefaultValue(0m);
             entity.Property(e => e.PaymentStatus).HasMaxLength(50).HasDefaultValue("Unpaid");
             entity.Property(e => e.DueDate).HasPrecision(0);
@@ -337,6 +347,8 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => e.InvoiceCode, "UX_SalesInvoice_InvoiceCode").IsUnique();
 
             entity.Property(e => e.GrandTotal).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CreatedAt).HasPrecision(0);
+            entity.Property(e => e.Notes).IsRequired(false);
             entity.Property(e => e.PaidAmount).HasColumnType("decimal(18, 2)").HasDefaultValue(0m);
             entity.Property(e => e.PaymentStatus).HasMaxLength(50).HasDefaultValue("Unpaid");
             entity.Property(e => e.DueDate).HasPrecision(0);
@@ -410,6 +422,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.ReasonCode).HasMaxLength(100);
             entity.Property(e => e.ReferenceDocumentType).HasMaxLength(50);
             entity.Property(e => e.Status).HasMaxLength(50);
+            entity.Property(e => e.Notes).HasMaxLength(500);
             entity.Ignore(e => e.ReferenceDocumentCode);
 
             entity.HasOne(d => d.Approver).WithMany(p => p.StockAdjustmentApprovers)
@@ -513,6 +526,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.PostedAt).HasPrecision(0);
             entity.Property(e => e.SessionCode).HasMaxLength(50);
             entity.Property(e => e.Status).HasMaxLength(50);
+            entity.Property(e => e.Notes).HasMaxLength(500);
 
             entity.HasOne(d => d.Approver).WithMany(p => p.StockCountSessionApprovers)
                 .HasForeignKey(d => d.ApprovedBy)
@@ -554,6 +568,8 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.PurposeCode).HasMaxLength(50);
             entity.Property(e => e.Status).HasMaxLength(50);
             entity.Property(e => e.ImportDate).HasPrecision(0);
+            entity.Property(e => e.UpdatedAt).HasPrecision(0);
+            entity.Property(e => e.UpdatedBy).IsRequired(false);
             entity.Property(e => e.Notes).HasMaxLength(500);
 
             entity.HasOne(d => d.Approver).WithMany(p => p.StockInApprovers)
@@ -713,6 +729,69 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UnitId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_StockOutLine_Unit");
+        });
+
+        modelBuilder.Entity<StockTransfer>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK_StockTransfer");
+            entity.ToTable("StockTransfer");
+
+            entity.HasIndex(e => e.DocumentCode, "UX_StockTransfer_DocumentCode").IsUnique();
+
+            entity.Property(e => e.CreatedAt).HasPrecision(0).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.DocumentCode).HasMaxLength(50);
+            entity.Property(e => e.Status).HasMaxLength(50);
+            entity.Property(e => e.TransferDate).HasPrecision(0);
+            entity.Property(e => e.Notes).HasMaxLength(500);
+            entity.Property(e => e.UpdatedAt).HasPrecision(0);
+            entity.Property(e => e.UpdatedBy).IsRequired(false);
+
+            entity.HasOne(d => d.Approver).WithMany(p => p.StockTransferApprovers)
+                .HasForeignKey(d => d.ApprovedBy)
+                .HasConstraintName("FK_StockTransfer_ApprovedBy");
+
+            entity.HasOne(d => d.Creator).WithMany(p => p.StockTransferCreators)
+                .HasForeignKey(d => d.CreatedBy)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_StockTransfer_CreatedBy");
+
+            entity.HasOne(d => d.Poster).WithMany(p => p.StockTransferPosters)
+                .HasForeignKey(d => d.PostedBy)
+                .HasConstraintName("FK_StockTransfer_PostedBy");
+
+            entity.HasOne(d => d.FromWarehouse).WithMany(p => p.StockTransfersFrom)
+                .HasForeignKey(d => d.FromWarehouseId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_StockTransfer_FromWarehouse");
+
+            entity.HasOne(d => d.ToWarehouse).WithMany(p => p.StockTransfersTo)
+                .HasForeignKey(d => d.ToWarehouseId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_StockTransfer_ToWarehouse");
+        });
+
+        modelBuilder.Entity<StockTransferLine>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK_StockTransferLine");
+            entity.ToTable("StockTransferLine");
+
+            entity.Property(e => e.BaseQuantity).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Quantity).HasColumnType("decimal(18, 2)");
+
+            entity.HasOne(d => d.Product).WithMany(p => p.StockTransferLines)
+                .HasForeignKey(d => d.ProductId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_StockTransferLine_Product");
+
+            entity.HasOne(d => d.StockTransfer).WithMany(p => p.Lines)
+                .HasForeignKey(d => d.StockTransferId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_StockTransferLine_StockTransfer");
+
+            entity.HasOne(d => d.Unit).WithMany(p => p.StockTransferLines)
+                .HasForeignKey(d => d.UnitId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_StockTransferLine_Unit");
         });
 
         modelBuilder.Entity<Supplier>(entity =>

@@ -24,6 +24,7 @@ namespace QuanLyHangHoa.Services
             return db.StockIns.AsNoTracking()
                 .Include(s => s.Supplier)
                 .Include(s => s.Creator)
+                .Include(s => s.Warehouse)
                 .Include(s => s.Lines)
                     .ThenInclude(d => d.Product)
                 .Include(s => s.Lines)
@@ -32,41 +33,103 @@ namespace QuanLyHangHoa.Services
                 .ToList();
         }
 
-        public virtual void Create(StockIn stockIn, List<StockInLine> lines, int userId)
+        public virtual StockIn? GetById(int id)
         {
-            stockIn.Lines = lines;
-            stockIn.CreatedBy = userId;
+            using var db = _contextFactory();
+            return db.StockIns.AsNoTracking()
+                .Include(s => s.Supplier)
+                .Include(s => s.Creator)
+                .Include(s => s.Lines)
+                    .ThenInclude(d => d.Product)
+                .Include(s => s.Lines)
+                    .ThenInclude(d => d.ProductSerials)
+                .FirstOrDefault(s => s.Id == id);
+        }
+
+        public virtual void SaveDraft(StockIn stockIn, List<StockInLine> lines, int userId)
+        {
+            using var db = _contextFactory();
+            
+            StockIn? existing = null;
+            if (stockIn.Id > 0)
+            {
+                existing = db.StockIns
+                    .Include(s => s.Lines)
+                        .ThenInclude(l => l.ProductSerials)
+                    .FirstOrDefault(s => s.Id == stockIn.Id);
+            }
+
+            if (existing != null)
+            {
+                if (existing.Status == "Posted") throw new Exception("Không thể cập nhật phiếu đã ghi sổ.");
+
+                // Update properties
+                existing.WarehouseId = stockIn.WarehouseId;
+                existing.SupplierId = stockIn.SupplierId;
+                existing.ImportDate = stockIn.ImportDate;
+                existing.Notes = stockIn.Notes;
+                existing.UpdatedAt = DateTime.Now;
+                existing.UpdatedBy = userId;
+
+                // Simple strategy: Remove old lines and add new ones
+                // Or update matching lines. For simplicity in a draft, we can replace.
+                db.StockInLines.RemoveRange(existing.Lines);
+                existing.Lines = lines;
+                
+                db.SaveChanges();
+                stockIn.Id = existing.Id;
+                stockIn.Status = existing.Status;
+            }
+            else
+            {
+                stockIn.Lines = lines;
+                stockIn.CreatedBy = userId;
+                stockIn.CreatedAt = DateTime.Now;
+                stockIn.Status = "Draft";
+
+                if (string.IsNullOrWhiteSpace(stockIn.DocumentCode))
+                {
+                    stockIn.DocumentCode = $"SI-{DateTime.Now:yyyyMMddHHmmss}";
+                }
+
+                if (stockIn.WarehouseId == 0)
+                {
+                    stockIn.WarehouseId = new DbDefaultWarehouseProvider(db).GetDefaultWarehouseId();
+                }
+
+                db.StockIns.Add(stockIn);
+                db.SaveChanges();
+            }
+        }
+
+        public virtual void Post(int stockInId, int userId)
+        {
             using var db = _contextFactory();
             using var transaction = db.Database.BeginTransaction();
 
-            if (string.IsNullOrWhiteSpace(stockIn.DocumentCode))
-            {
-                stockIn.DocumentCode = $"SI-{DateTime.Now:yyyyMMddHHmmss}";
-            }
+            var stockIn = db.StockIns
+                .Include(s => s.Lines)
+                    .ThenInclude(l => l.ProductSerials)
+                .FirstOrDefault(s => s.Id == stockInId);
 
-            if (stockIn.WarehouseId == 0)
-            {
-                stockIn.WarehouseId = new DbDefaultWarehouseProvider(db).GetDefaultWarehouseId();
-            }
+            if (stockIn == null) throw new Exception("Không tìm thấy phiếu nhập kho.");
+            if (stockIn.Status == "Posted") throw new Exception("Phiếu này đã được ghi sổ.");
 
-            var serialsByLine = stockIn.Lines.ToDictionary(
-                line => line,
-                line => line.ProductSerials?
-                    .Select(serial => serial.SerialNumber)
-                    .Where(serialNumber => !string.IsNullOrWhiteSpace(serialNumber))
-                    .ToArray() ?? Array.Empty<string>());
-
+            // Validate serials before posting
             foreach (var line in stockIn.Lines)
             {
-                line.ProductSerials?.Clear();
+                var product = db.Products.Find(line.ProductId);
+                if (product != null && product.IsSerialTracked)
+                {
+                    if (line.ProductSerials.Count != (int)line.Quantity)
+                    {
+                        throw new Exception($"Sản phẩm {product.DisplayName} yêu cầu { (int)line.Quantity } serial, nhưng hiện có {line.ProductSerials.Count}.");
+                    }
+                }
             }
 
-            db.StockIns.Add(stockIn);
-            db.SaveChanges();
-
-            // Auto-post/approve
             stockIn.Status = "Posted";
-            stockIn.PostedBy = stockIn.CreatedBy;
+            stockIn.PostedBy = userId;
             stockIn.PostedAt = DateTime.Now;
             db.SaveChanges();
 
@@ -75,17 +138,20 @@ namespace QuanLyHangHoa.Services
                 new DbDefaultWarehouseProvider(db),
                 new SystemClock());
 
+            // Locking strategy: Order by ProductId to avoid deadlocks
             foreach (var line in stockIn.Lines.OrderBy(l => l.ProductId))
             {
+                var serials = line.ProductSerials.Select(s => s.SerialNumber).ToArray();
+
                 postingService.PostStockIn(new PostStockInCommand(
-                    Guid.Empty,
+                    stockIn.Id,
                     stockIn.WarehouseId,
                     StockInKind.Purchase,
                     StockDocumentStatus.Posted,
                     line.ProductId,
                     (int)line.Quantity,
-                    serialsByLine[line],
-                    stockIn.PostedBy ?? stockIn.CreatedBy));
+                    serials,
+                    userId));
             }
 
             transaction.Commit();

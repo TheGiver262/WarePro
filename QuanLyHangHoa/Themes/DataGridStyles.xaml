@@ -2,29 +2,131 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
 
-    <!-- DATA GRID CUSTOM COLUMN STYLES -->
-    <Style x:Key="MaterialDesignDataGridTextColumnElementStyle" TargetType="TextBlock" BasedOn="{StaticResource MaterialDesignDataGridTextColumnStyle}">
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="pack://application:,,,/QuanLyHangHoa;component/Themes/Colors.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/QuanLyHangHoa;component/Themes/Typography.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+    <!-- ==================================================================== -->
+    <!-- WAREPRO DATA GRID SYSTEM §11                                         -->
+    <!-- ==================================================================== -->
+
+    <!-- Base Text Column Style §11.4 -->
+    <Style x:Key="AppBaseDataGridTextStyle" TargetType="TextBlock">
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="Padding" Value="8,4"/>
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
         <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}"/>
     </Style>
 
-    <Style x:Key="MaterialDesignDataGridTextColumnCenterElementStyle" TargetType="TextBlock" BasedOn="{StaticResource MaterialDesignDataGridTextColumnElementStyle}">
+    <!-- Alias for MaterialDesign key compatibility -->
+    <Style x:Key="MaterialDesignDataGridTextColumnElementStyle" TargetType="TextBlock" BasedOn="{StaticResource AppBaseDataGridTextStyle}"/>
+
+    <Style x:Key="MaterialDesignDataGridTextColumnCenterElementStyle" TargetType="TextBlock" BasedOn="{StaticResource AppBaseDataGridTextStyle}">
         <Setter Property="HorizontalAlignment" Value="Center"/>
         <Setter Property="TextAlignment" Value="Center"/>
     </Style>
 
-    <Style x:Key="MaterialDesignDataGridTextColumnRightElementStyle" TargetType="TextBlock" BasedOn="{StaticResource MaterialDesignDataGridTextColumnElementStyle}">
+    <Style x:Key="MaterialDesignDataGridTextColumnRightElementStyle" TargetType="TextBlock" BasedOn="{StaticResource AppBaseDataGridTextStyle}">
         <Setter Property="HorizontalAlignment" Value="Right"/>
         <Setter Property="TextAlignment" Value="Right"/>
     </Style>
 
-    <Style x:Key="MaterialDesignDataGridTextColumnEditingElementStyle" TargetType="TextBox" BasedOn="{StaticResource MaterialDesignDataGridTextColumnEditingStyle}">
+    <!-- Base Editing Column Style -->
+    <Style x:Key="AppBaseDataGridEditingStyle" TargetType="TextBox">
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="Padding" Value="8,4"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Background" Value="Transparent"/>
+    </Style>
+
+    <!-- Alias for MaterialDesign key compatibility -->
+    <Style x:Key="MaterialDesignDataGridTextColumnEditingElementStyle" TargetType="TextBox" BasedOn="{StaticResource AppBaseDataGridEditingStyle}"/>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- DataGrid Text Column Helper Styles (NEW)                -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    
+    <Style x:Key="AppDataGridText" TargetType="TextBlock" BasedOn="{StaticResource AppBaseDataGridTextStyle}">
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <Style x:Key="AppDataGridTextBold" TargetType="TextBlock" BasedOn="{StaticResource AppDataGridText}">
+        <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+
+    <Style x:Key="AppDataGridTextItalic" TargetType="TextBlock" BasedOn="{StaticResource AppDataGridText}">
+        <Setter Property="FontStyle" Value="Italic"/>
+        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+    </Style>
+
+    <Style x:Key="AppDataGridTextRight" TargetType="TextBlock" BasedOn="{StaticResource AppDataGridText}">
+        <Setter Property="HorizontalAlignment" Value="Right"/>
+        <Setter Property="TextAlignment" Value="Right"/>
+    </Style>
+
+    <Style x:Key="AppDataGridTextRightBold" TargetType="TextBlock" BasedOn="{StaticResource AppDataGridTextRight}">
+        <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+
+    <Style x:Key="AppDataGridTextCenter" TargetType="TextBlock" BasedOn="{StaticResource AppDataGridText}">
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="TextAlignment" Value="Center"/>
+    </Style>
+
+    <Style x:Key="AppDataGridTextCenterBold" TargetType="TextBlock" BasedOn="{StaticResource AppDataGridTextCenter}">
+        <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- Global DataGrid Component Overrides                     -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+
+    <Style TargetType="DataGrid" BasedOn="{StaticResource MaterialDesignDataGrid}">
+        <Setter Property="Background" Value="{StaticResource SurfaceMutedBrush}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+        <Setter Property="RowHeight" Value="44"/>
+        <Setter Property="ColumnHeaderHeight" Value="38"/>
+        <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}"/>
+        <Setter Property="materialDesign:DataGridAssist.CellPadding" Value="14,0"/>
+        <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource GridLineBrush}"/>
+        <Setter Property="VerticalGridLinesBrush" Value="Transparent"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="Regular"/>
+        <Setter Property="CanUserAddRows" Value="False"/>
+        <Setter Property="SelectionMode" Value="Single"/>
+        <Setter Property="SelectionUnit" Value="FullRow"/>
+        <Setter Property="AutoGenerateColumns" Value="False"/>
+        <Setter Property="HeadersVisibility" Value="Column"/>
+    </Style>
+
+    <Style TargetType="DataGridColumnHeadersPresenter">
+        <Setter Property="Background" Value="{StaticResource SurfaceMutedBrush}"/>
+    </Style>
+
+    <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource MaterialDesignDataGridColumnHeader}">
+        <Setter Property="Background" Value="{StaticResource SurfaceMutedBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+        <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Padding" Value="14,0"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="BorderBrush" Value="{StaticResource GridLineBrush}"/>
+    </Style>
+
+    <Style TargetType="DataGridRow" BasedOn="{StaticResource MaterialDesignDataGridRow}">
+        <Setter Property="Background" Value="{StaticResource AppSurfaceBrush}"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{StaticResource RowHoverBrush}"/>
+            </Trigger>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="#F0ECFA"/>
+                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            </Trigger>
+        </Style.Triggers>
     </Style>
 
 </ResourceDictionary>

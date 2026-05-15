@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace QuanLyHangHoa.Models;
@@ -24,4 +24,5 @@ public partial class Unit
     public virtual ICollection<StockInLine> StockInLines { get; set; } = new List<StockInLine>();
 
     public virtual ICollection<StockOutLine> StockOutLines { get; set; } = new List<StockOutLine>();
+    public virtual ICollection<StockTransferLine> StockTransferLines { get; set; } = new List<StockTransferLine>();
 }

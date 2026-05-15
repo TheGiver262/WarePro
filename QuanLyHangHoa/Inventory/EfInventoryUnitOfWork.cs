@@ -105,6 +105,7 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
         serial.ProductId = snapshot.ProductId;
         serial.CurrentWarehouseId = snapshot.CurrentWarehouseId;
         serial.CurrentStatus = snapshot.Status.ToString();
+        serial.StockTransferLineId = snapshot.StockTransferLineId;
     }
 
     public void AddLedger(StockLedgerEntry entry)
@@ -112,9 +113,10 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
         _context.StockLedgers.Add(new StockLedger
         {
             SourceDocumentType = "InventoryDocument", 
-            SourceDocumentId = 0, // Guid mapping not supported in this simple implementation
+            SourceDocumentId = entry.DocumentId,
             ProductId = entry.ProductId,
             WarehouseId = entry.WarehouseId,
+            ProductSerialId = entry.ProductSerialId,
             MovementType = entry.Direction.ToString(),
             Quantity = entry.Quantity,
             PostedAt = entry.PostedAt,
@@ -127,15 +129,34 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
         _context.AuditLogs.Add(new AuditLog
         {
             EntityName = "InventoryDocument",
-            EntityId = 0, 
+            EntityId = entry.DocumentId, 
             ActionCode = entry.ActionCode.ToString(),
             PerformedAt = entry.PerformedAt,
             PerformedBy = entry.PerformedByUserId
         });
     }
 
-    public void MarkDocumentPosted(Guid documentId)
+    public void MarkDocumentPosted(int documentId, string documentType)
     {
+        switch (documentType)
+        {
+            case "StockIn":
+                var stockIn = _context.StockIns.Find(documentId);
+                if (stockIn != null) stockIn.Status = "Posted";
+                break;
+            case "StockOut":
+                var stockOut = _context.StockOuts.Find(documentId);
+                if (stockOut != null) stockOut.Status = "Posted";
+                break;
+            case "StockTransfer":
+                var transfer = _context.StockTransfers.Find(documentId);
+                if (transfer != null) transfer.Status = "Posted";
+                break;
+            case "StockAdjustment":
+                var adj = _context.StockAdjustments.Find(documentId);
+                if (adj != null) adj.Status = "Posted";
+                break;
+        }
     }
 
     public void Commit()
@@ -164,7 +185,8 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
             serial.SerialNumber,
             serial.ProductId,
             serial.CurrentWarehouseId,
-            status);
+            status,
+            serial.StockTransferLineId);
     }
 
     private StockBalance? FindTrackedOrPersistedBalance(int productId, int warehouseId)

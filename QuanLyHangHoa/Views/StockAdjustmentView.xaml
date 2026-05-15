@@ -118,7 +118,7 @@
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="STT" Width="60" CanUserSort="False"
                                                 Binding="{Binding (ItemsControl.AlternationIndex), RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowIndexConverter}}"
-                                                ElementStyle="{StaticResource AppDataGridTextCenter}"/>
+                                                ElementStyle="{DynamicResource AppDataGridTextCenter}"/>
 
                             <DataGridTemplateColumn Width="*">
                                 <DataGridTemplateColumn.Header>

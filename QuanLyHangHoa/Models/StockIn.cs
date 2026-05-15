@@ -30,6 +30,8 @@ public partial class StockIn
     public DateTime? ApprovedAt { get; set; }
 
     public DateTime? PostedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public int? UpdatedBy { get; set; }
 
     public virtual AppUser? Approver { get; set; }
 

@@ -9,7 +9,8 @@ public sealed record ProductSerialSnapshot(
     string SerialNumber,
     int ProductId,
     int? CurrentWarehouseId,
-    SerialStatus Status);
+    SerialStatus Status,
+    int? StockTransferLineId = null);
 
 public sealed record StockBalanceSnapshot(
     int ProductId,
@@ -19,22 +20,23 @@ public sealed record StockBalanceSnapshot(
     int ReservedQuantity);
 
 public sealed record StockLedgerEntry(
-    Guid DocumentId,
+    int DocumentId,
     int ProductId,
     int WarehouseId,
     StockLedgerDirection Direction,
     int Quantity,
     DateTime PostedAt,
-    int PostedByUserId);
+    int PostedByUserId,
+    int? ProductSerialId = null);
 
 public sealed record AuditLogEntry(
-    Guid DocumentId,
+    int DocumentId,
     AuditActionCode ActionCode,
     DateTime PerformedAt,
     int PerformedByUserId);
 
 public sealed record PostStockInCommand(
-    Guid DocumentId,
+    int DocumentId,
     int WarehouseId,
     StockInKind Kind,
     StockDocumentStatus Status,
@@ -44,7 +46,7 @@ public sealed record PostStockInCommand(
     int PostedByUserId);
 
 public sealed record PostStockOutCommand(
-    Guid DocumentId,
+    int DocumentId,
     int WarehouseId,
     StockOutKind Kind,
     StockDocumentStatus Status,
@@ -60,9 +62,19 @@ public sealed record StockAdjustmentLineCommand(
     IReadOnlyCollection<string> SerialNumbers);
 
 public sealed record PostStockAdjustmentCommand(
-    Guid DocumentId,
+    int DocumentId,
     StockDocumentStatus Status,
     string ReferenceDocumentCode,
     string Reason,
     IReadOnlyCollection<StockAdjustmentLineCommand> Lines,
+    int PostedByUserId);
+
+public sealed record PostStockTransferCommand(
+    int DocumentId,
+    int FromWarehouseId,
+    int ToWarehouseId,
+    StockDocumentStatus Status,
+    int ProductId,
+    int Quantity,
+    IReadOnlyCollection<string> SerialNumbers,
     int PostedByUserId);

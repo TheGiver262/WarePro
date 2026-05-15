@@ -30,7 +30,7 @@ namespace QuanLyHangHoa.Services
                 new SystemClock());
 
             postingService.PostAdjustment(new PostStockAdjustmentCommand(
-                Guid.NewGuid(),
+                adjustment.Id,
                 ParseStatus(adjustment.Status),
                 adjustment.ReferenceDocumentCode ?? string.Empty,
                 adjustment.ReasonCode ?? string.Empty,

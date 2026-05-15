@@ -66,4 +66,5 @@ public partial class Product
     public virtual ICollection<StockLedger> StockLedgers { get; set; } = new List<StockLedger>();
 
     public virtual ICollection<StockOutLine> StockOutLines { get; set; } = new List<StockOutLine>();
+    public virtual ICollection<StockTransferLine> StockTransferLines { get; set; } = new List<StockTransferLine>();
 }

@@ -93,7 +93,7 @@ public sealed class InventoryPostingService
 
         // Note: Marking document posted should ideally be handled by the caller or a higher-level orchestration
         // but we keep it here for now as part of the atomic posting action.
-        _unitOfWork.MarkDocumentPosted(command.DocumentId);
+        _unitOfWork.MarkDocumentPosted(command.DocumentId, "StockIn");
         _unitOfWork.Commit();
     }
 
@@ -183,13 +183,112 @@ public sealed class InventoryPostingService
             _clock.Now,
             command.PostedByUserId));
 
-        _unitOfWork.AddAudit(new AuditLogEntry(
+        _unitOfWork.MarkDocumentPosted(command.DocumentId, "StockOut");
+        _unitOfWork.Commit();
+    }
+
+    public void PostStockTransfer(PostStockTransferCommand command)
+    {
+        if (command.Status != StockDocumentStatus.Approved && command.Status != StockDocumentStatus.Posted)
+        {
+            throw new InventoryDomainException("Only approved or ready-to-post stock-transfer documents can be posted.");
+        }
+
+        if (command.Quantity <= 0)
+        {
+            throw new InventoryDomainException("Transfer quantity must be greater than zero.");
+        }
+
+        if (command.FromWarehouseId == command.ToWarehouseId)
+        {
+            throw new InventoryDomainException("Source and destination warehouses must be different.");
+        }
+
+        var product = _unitOfWork.GetProduct(command.ProductId);
+        var serialNumbers = command.SerialNumbers
+            .Select(s => s.Trim())
+            .Where(s => s.Length > 0)
+            .ToArray();
+
+        EnsureNoDuplicateSerials(serialNumbers);
+
+        if (product.IsSerialTracked && serialNumbers.Length != command.Quantity)
+        {
+            throw new InventoryDomainException("Serial count must match transfer quantity.");
+        }
+
+        // 1. Process From Warehouse (Stock Out)
+        var fromBalance = _unitOfWork.FindBalance(command.ProductId, command.FromWarehouseId);
+        if (fromBalance is null || fromBalance.AvailableQuantity < command.Quantity)
+        {
+            throw new InventoryDomainException("Insufficient available stock in source warehouse.");
+        }
+
+        _unitOfWork.SaveBalance(fromBalance with
+        {
+            OnHandQuantity = fromBalance.OnHandQuantity - (int)command.Quantity,
+            AvailableQuantity = fromBalance.AvailableQuantity - (int)command.Quantity
+        });
+
+        // 2. Process To Warehouse (Stock In)
+        var toBalance = _unitOfWork.GetOrCreateBalance(command.ProductId, command.ToWarehouseId);
+        _unitOfWork.SaveBalance(toBalance with
+        {
+            OnHandQuantity = toBalance.OnHandQuantity + (int)command.Quantity,
+            AvailableQuantity = toBalance.AvailableQuantity + (int)command.Quantity
+        });
+
+        // 3. Update Serials
+        foreach (var serialNumber in serialNumbers)
+        {
+            var serial = _unitOfWork.GetSerial(serialNumber);
+            if (serial.ProductId != command.ProductId)
+            {
+                throw new InventoryDomainException($"Serial {serialNumber} does not belong to product {command.ProductId}.");
+            }
+
+            if (serial.CurrentWarehouseId != command.FromWarehouseId)
+            {
+                throw new InventoryDomainException($"Serial {serialNumber} is not in the source warehouse.");
+            }
+
+            if (serial.Status != SerialStatus.InStock)
+            {
+                throw new InventoryDomainException($"Serial {serialNumber} is not available for transfer.");
+            }
+
+            _unitOfWork.SaveSerial(serial with
+            {
+                CurrentWarehouseId = command.ToWarehouseId
+            });
+        }
+
+        // 4. Ledger Entries
+        _unitOfWork.AddLedger(new StockLedgerEntry(
             command.DocumentId,
-            AuditActionCode.PostStockOut,
+            command.ProductId,
+            command.FromWarehouseId,
+            StockLedgerDirection.Out,
+            (int)command.Quantity,
             _clock.Now,
             command.PostedByUserId));
 
-        _unitOfWork.MarkDocumentPosted(command.DocumentId);
+        _unitOfWork.AddLedger(new StockLedgerEntry(
+            command.DocumentId,
+            command.ProductId,
+            command.ToWarehouseId,
+            StockLedgerDirection.In,
+            (int)command.Quantity,
+            _clock.Now,
+            command.PostedByUserId));
+
+        _unitOfWork.AddAudit(new AuditLogEntry(
+            command.DocumentId,
+            AuditActionCode.PostStockTransfer,
+            _clock.Now,
+            command.PostedByUserId));
+
+        _unitOfWork.MarkDocumentPosted(command.DocumentId, "StockTransfer");
         _unitOfWork.Commit();
     }
 

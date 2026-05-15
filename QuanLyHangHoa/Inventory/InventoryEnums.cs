@@ -44,5 +44,6 @@ public enum AuditActionCode
 {
     PostStockIn,
     PostStockOut,
-    PostStockAdjustment
+    PostStockAdjustment,
+    PostStockTransfer
 }

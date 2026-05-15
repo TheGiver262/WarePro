@@ -53,7 +53,7 @@ namespace QuanLyHangHoa.Services
                         new SystemClock());
 
                     postingService.PostStockIn(new PostStockInCommand(
-                        Guid.NewGuid(),
+                        0,
                         warehouseId,
                         StockInKind.OpeningBalance,
                         StockDocumentStatus.Approved,

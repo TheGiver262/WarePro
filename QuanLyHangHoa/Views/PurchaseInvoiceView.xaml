@@ -189,12 +189,12 @@
                                       SelectionMode="Single"
                                       CanUserAddRows="False">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="SỐ HĐ" Binding="{Binding InvoiceCode}" Width="Auto" ElementStyle="{StaticResource AppDataGridTextBold}"/>
-                                    <DataGridTextColumn Header="NGÀY NHẬP" Binding="{Binding InvoiceDate, StringFormat='dd/MM/yyyy'}" Width="Auto" ElementStyle="{StaticResource AppDataGridTextCenter}"/>
+                                    <DataGridTextColumn Header="SỐ HĐ" Binding="{Binding InvoiceCode}" Width="Auto" ElementStyle="{DynamicResource AppDataGridTextBold}"/>
+                                    <DataGridTextColumn Header="NGÀY NHẬP" Binding="{Binding InvoiceDate, StringFormat='dd/MM/yyyy'}" Width="Auto" ElementStyle="{DynamicResource AppDataGridTextCenter}"/>
                                     <DataGridTextColumn Header="NHÀ CUNG CẤP" Binding="{Binding Supplier.DisplayName}" Width="*"/>
-                                    <DataGridTextColumn Header="TRƯỚC THUẾ" Binding="{Binding SubTotal, StringFormat='N0'}" Width="Auto" ElementStyle="{StaticResource AppDataGridTextRight}"/>
-                                    <DataGridTextColumn Header="THUẾ" Binding="{Binding TaxAmount, StringFormat='N0'}" Width="Auto" ElementStyle="{StaticResource AppDataGridTextRight}"/>
-                                    <DataGridTextColumn Header="TỔNG TIỀN" Binding="{Binding GrandTotal, StringFormat='N0'}" Width="Auto" ElementStyle="{StaticResource AppDataGridTextRightBold}"/>
+                                    <DataGridTextColumn Header="TRƯỚC THUẾ" Binding="{Binding SubTotal, StringFormat='N0'}" Width="Auto" ElementStyle="{DynamicResource AppDataGridTextRight}"/>
+                                    <DataGridTextColumn Header="THUẾ" Binding="{Binding TaxAmount, StringFormat='N0'}" Width="Auto" ElementStyle="{DynamicResource AppDataGridTextRight}"/>
+                                    <DataGridTextColumn Header="TỔNG TIỀN" Binding="{Binding GrandTotal, StringFormat='N0'}" Width="Auto" ElementStyle="{DynamicResource AppDataGridTextRightBold}"/>
                                     <DataGridTemplateColumn Header="TRẠNG THÁI TT" Width="Auto" CellTemplate="{StaticResource PaymentStatusBadgeTemplate}"/>
                                     <DataGridTemplateColumn Header="THAO TÁC" Width="130">
                                         <DataGridTemplateColumn.CellTemplate>
@@ -363,7 +363,7 @@
                                                   GridLinesVisibility="None"
                                                   IsReadOnly="{Binding IsViewMode}">
                                             <DataGrid.Columns>
-                                                <DataGridTextColumn Header="MÃ SẢN PHẨM" Binding="{Binding SelectedProduct.ProductCode}" Width="140" IsReadOnly="True" ElementStyle="{StaticResource AppDataGridTextCenter}"/>
+                                                <DataGridTextColumn Header="MÃ SẢN PHẨM" Binding="{Binding SelectedProduct.ProductCode}" Width="140" IsReadOnly="True" ElementStyle="{DynamicResource AppDataGridTextCenter}"/>
                                                 <DataGridTemplateColumn Header="SẢN PHẨM" Width="*">
                                                     <DataGridTemplateColumn.CellTemplate>
                                                         <DataTemplate>
@@ -376,10 +376,10 @@
                                                         </DataTemplate>
                                                     </DataGridTemplateColumn.CellTemplate>
                                                 </DataGridTemplateColumn>
-                                                <DataGridTextColumn Header="SỐ LƯỢNG" Binding="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" Width="100" ElementStyle="{StaticResource AppDataGridTextCenter}"/>
-                                                <DataGridTextColumn Header="ĐƠN GIÁ" Binding="{Binding UnitPrice, StringFormat='N0', UpdateSourceTrigger=PropertyChanged}" Width="140" ElementStyle="{StaticResource AppDataGridTextRightBold}"/>
-                                                <DataGridTextColumn Header="THUẾ (%)" Binding="{Binding TaxRate, StringFormat='P0', UpdateSourceTrigger=PropertyChanged}" Width="100" ElementStyle="{StaticResource AppDataGridTextCenter}"/>
-                                                <DataGridTextColumn Header="THÀNH TIỀN" Binding="{Binding TotalPrice, StringFormat='N0'}" Width="140" IsReadOnly="True" ElementStyle="{StaticResource AppDataGridTextRightBold}"/>
+                                                <DataGridTextColumn Header="SỐ LƯỢNG" Binding="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" Width="100" ElementStyle="{DynamicResource AppDataGridTextCenter}"/>
+                                                <DataGridTextColumn Header="ĐƠN GIÁ" Binding="{Binding UnitPrice, StringFormat='N0', UpdateSourceTrigger=PropertyChanged}" Width="140" ElementStyle="{DynamicResource AppDataGridTextRightBold}"/>
+                                                <DataGridTextColumn Header="THUẾ (%)" Binding="{Binding TaxRate, StringFormat='P0', UpdateSourceTrigger=PropertyChanged}" Width="100" ElementStyle="{DynamicResource AppDataGridTextCenter}"/>
+                                                <DataGridTextColumn Header="THÀNH TIỀN" Binding="{Binding TotalPrice, StringFormat='N0'}" Width="140" IsReadOnly="True" ElementStyle="{DynamicResource AppDataGridTextRightBold}"/>
                                                 
                                                 <DataGridTemplateColumn Width="Auto">
                                                     <DataGridTemplateColumn.CellTemplate>

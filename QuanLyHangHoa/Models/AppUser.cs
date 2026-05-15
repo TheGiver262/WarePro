@@ -72,4 +72,7 @@ public partial class AppUser
     public virtual ICollection<WarrantyClaim> WarrantyClaimApprovers { get; set; } = new List<WarrantyClaim>();
 
     public virtual ICollection<WarrantyClaim> WarrantyClaimProcessors { get; set; } = new List<WarrantyClaim>();
+    public virtual ICollection<StockTransfer> StockTransferApprovers { get; set; } = new List<StockTransfer>();
+    public virtual ICollection<StockTransfer> StockTransferCreators { get; set; } = new List<StockTransfer>();
+    public virtual ICollection<StockTransfer> StockTransferPosters { get; set; } = new List<StockTransfer>();
 }
