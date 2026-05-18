@@ -78,8 +78,8 @@ namespace QuanLyHangHoa.Tests
                 // Our simple mapper just sets values if it finds the column header matching the property Name.
                 Assert.NotNull(result);
                 Assert.Single(result.ImportedItems);
-                // DisplayName should be empty because 'InvalidHeaderName' doesn't map to 'DisplayName' and it initializes to string.Empty
-                Assert.Empty(result.ImportedItems[0].DisplayName);
+                // DisplayName should be null because 'InvalidHeaderName' doesn't map to 'DisplayName' and it is uninitialized
+                Assert.Null(result.ImportedItems[0].DisplayName);
             }
             finally
             {

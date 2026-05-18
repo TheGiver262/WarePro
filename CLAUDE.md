@@ -1,43 +1,21 @@
-<!-- gitnexus:start -->
-# GitNexus — Code Intelligence
+# CLAUDE.md - Root Context for ProductManagement
 
-This project is indexed by GitNexus as **ProductManagement_Antigravity** (3127 symbols, 7749 relationships, 190 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+Global guidelines and context routing map for AI coding agents.
 
-> If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
+## Context Routing
 
-## Always Do
+When working on specific sub-components, immediately load the relevant subdirectory context file:
+- Views (WPF UI/XAML): [QuanLyHangHoa/Views/CLAUDE.md](file:///f:/Codex%20Project/ProductManagement_Antigravity/QuanLyHangHoa/Views/CLAUDE.md)
+- ViewModels (C# MVVM): [QuanLyHangHoa/ViewModels/CLAUDE.md](file:///f:/Codex%20Project/ProductManagement_Antigravity/QuanLyHangHoa/ViewModels/CLAUDE.md)
 
-- **MUST run impact analysis before editing any symbol.** Before modifying a function, class, or method, run `gitnexus_impact({target: "symbolName", direction: "upstream"})` and report the blast radius (direct callers, affected processes, risk level) to the user.
-- **MUST run `gitnexus_detect_changes()` before committing** to verify your changes only affect expected symbols and execution flows.
-- **MUST warn the user** if impact analysis returns HIGH or CRITICAL risk before proceeding with edits.
-- When exploring unfamiliar code, use `gitnexus_query({query: "concept"})` to find execution flows instead of grepping. It returns process-grouped results ranked by relevance.
-- When you need full context on a specific symbol — callers, callees, which execution flows it participates in — use `gitnexus_context({name: "symbolName"})`.
+## Core Development Standards
 
-## Never Do
+- **Aesthetics & UI**: Strictly follow the Pro Max design standard (3-row layout, glassmorphism, HSL tailormade colors).
+- **Purple Ban**: NEVER use standard purple or violet colors/accents in any UI styling.
+- **WPF Compilation**: Run `dotnet build` from the workspace root to compile the solution.
+- **Interactive Memory (Option B)**: Newly inferred decisions/preferences must be written to [.memory/inbox.md](file:///f:/Codex%20Project/ProductManagement_Antigravity/.memory/inbox.md) first for user review.
 
-- NEVER edit a function, class, or method without first running `gitnexus_impact` on it.
-- NEVER ignore HIGH or CRITICAL risk warnings from impact analysis.
-- NEVER rename symbols with find-and-replace — use `gitnexus_rename` which understands the call graph.
-- NEVER commit changes without running `gitnexus_detect_changes()` to check affected scope.
+## Commands
 
-## Resources
-
-| Resource | Use for |
-|----------|---------|
-| `gitnexus://repo/ProductManagement_Antigravity/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/ProductManagement_Antigravity/clusters` | All functional areas |
-| `gitnexus://repo/ProductManagement_Antigravity/processes` | All execution flows |
-| `gitnexus://repo/ProductManagement_Antigravity/process/{name}` | Step-by-step execution trace |
-
-## CLI
-
-| Task | Read this skill file |
-|------|---------------------|
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
-| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
-| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
-| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
-| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
-
-<!-- gitnexus:end -->
+- Build Solution: `dotnet build`
+- Run Tests: `dotnet test`

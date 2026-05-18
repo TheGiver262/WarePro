@@ -156,7 +156,7 @@ File:         ./dashboard-analytics.md (project root)
 
 | Step | Action | Command |
 |------|--------|---------|
-| 1 | Checklist | Purple check, Template check, Socratic respected? |
+| 1 | Checklist | Palette rules check, Template check, Socratic respected? |
 | 2 | Scripts | `security_scan.py`, `ux_audit.py`, `lighthouse_audit.py` |
 | 3 | Build | `npm run build` |
 | 4 | Run & Test | `npm run dev` + manual test |
@@ -352,7 +352,7 @@ python .agent/skills/webapp-testing/scripts/playwright_runner.py http://localhos
 ```
 
 #### 4. Rule Compliance (Manual Check)
-- [ ] No purple/violet hex codes
+- [ ] Palette design matches user's request (e.g. purple allowed)
 - [ ] No standard template layouts
 - [ ] Socratic Gate was respected
 

@@ -12,7 +12,7 @@ public class PostStockInTests
         store.Products[10] = new ProductSnapshot(10, false);
         var service = new InventoryPostingService(store, new FixedWarehouseProvider(1), new FixedClock(new DateTime(2026, 4, 26, 8, 30, 0)));
         var command = new PostStockInCommand(WarehouseId: 1, 
-            DocumentId: Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            DocumentId: 201,
             Kind: StockInKind.OpeningBalance,
             Status: StockDocumentStatus.Approved,
             ProductId: 10,
@@ -32,7 +32,7 @@ public class PostStockInTests
         Assert.Single(store.Audits);
         Assert.Equal(AuditActionCode.PostStockIn, store.Audits[0].ActionCode);
         Assert.Equal(0, store.PurchaseInvoiceCreatedCount);
-        Assert.Equal(StockDocumentStatus.Posted, store.DocumentStatuses[command.DocumentId]);
+        Assert.Equal(StockDocumentStatus.Posted, store.DocumentStatuses[(command.DocumentId, "StockIn")]);
         Assert.True(store.WasCommitted);
     }
 
@@ -43,7 +43,7 @@ public class PostStockInTests
         store.Products[10] = new ProductSnapshot(10, false);
         var service = new InventoryPostingService(store, new FixedWarehouseProvider(1), new FixedClock(new DateTime(2026, 4, 26, 8, 30, 0)));
         var command = new PostStockInCommand(WarehouseId: 1, 
-            DocumentId: Guid.Parse("22222222-2222-2222-2222-222222222222"),
+            DocumentId: 202,
             Kind: StockInKind.Purchase,
             Status: StockDocumentStatus.Approved,
             ProductId: 10,
@@ -60,7 +60,7 @@ public class PostStockInTests
         Assert.Equal(StockLedgerDirection.In, store.Ledgers[0].Direction);
         Assert.Single(store.Audits);
         Assert.Equal(AuditActionCode.PostStockIn, store.Audits[0].ActionCode);
-        Assert.Equal(StockDocumentStatus.Posted, store.DocumentStatuses[command.DocumentId]);
+        Assert.Equal(StockDocumentStatus.Posted, store.DocumentStatuses[(command.DocumentId, "StockIn")]);
         Assert.True(store.WasCommitted);
     }
 
@@ -71,7 +71,7 @@ public class PostStockInTests
         store.Products[10] = new ProductSnapshot(10, false);
         var service = new InventoryPostingService(store, new FixedWarehouseProvider(1), new FixedClock(new DateTime(2026, 4, 26, 8, 30, 0)));
         var command = new PostStockInCommand(WarehouseId: 1, 
-            DocumentId: Guid.Parse("33333333-3333-3333-3333-333333333333"),
+            DocumentId: 203,
             Kind: StockInKind.OpeningBalance,
             Status: StockDocumentStatus.Draft,
             ProductId: 10,
@@ -93,7 +93,7 @@ public class PostStockInTests
         store.Products[10] = new ProductSnapshot(10, false);
         var service = new InventoryPostingService(store, new FixedWarehouseProvider(1), new FixedClock(new DateTime(2026, 4, 26, 8, 30, 0)));
         var command = new PostStockInCommand(WarehouseId: 1, 
-            DocumentId: Guid.Parse("44444444-4444-4444-4444-444444444444"),
+            DocumentId: 204,
             Kind: StockInKind.OpeningBalance,
             Status: StockDocumentStatus.Approved,
             ProductId: 10,
@@ -113,7 +113,7 @@ public class PostStockInTests
         store.Products[10] = new ProductSnapshot(10, false);
         var service = new InventoryPostingService(store, new FixedWarehouseProvider(1), new FixedClock(new DateTime(2026, 4, 26, 8, 30, 0)));
         var command = new PostStockInCommand(WarehouseId: 1, 
-            DocumentId: Guid.Parse("55555555-5555-5555-5555-555555555555"),
+            DocumentId: 205,
             Kind: StockInKind.OpeningBalance,
             Status: StockDocumentStatus.Approved,
             ProductId: 10,
@@ -133,7 +133,7 @@ public class PostStockInTests
         store.Products[20] = new ProductSnapshot(20, true);
         var service = new InventoryPostingService(store, new FixedWarehouseProvider(1), new FixedClock(new DateTime(2026, 4, 26, 9, 0, 0)));
         var command = new PostStockInCommand(WarehouseId: 1, 
-            DocumentId: Guid.Parse("22222222-2222-2222-2222-222222222222"),
+            DocumentId: 206,
             Kind: StockInKind.OpeningBalance,
             Status: StockDocumentStatus.Approved,
             ProductId: 20,
@@ -157,7 +157,7 @@ public class PostStockInTests
         store.Products[21] = new ProductSnapshot(21, true);
         var service = new InventoryPostingService(store, new FixedWarehouseProvider(1), new FixedClock(new DateTime(2026, 4, 26, 9, 15, 0)));
         var command = new PostStockInCommand(WarehouseId: 1, 
-            DocumentId: Guid.Parse("33333333-3333-3333-3333-333333333333"),
+            DocumentId: 207,
             Kind: StockInKind.OpeningBalance,
             Status: StockDocumentStatus.Approved,
             ProductId: 21,
@@ -182,7 +182,7 @@ public class PostStockInTests
         store.Balances[(10, 1)] = new StockBalanceSnapshot(10, 1, 3, 1, 2);
         var service = new InventoryPostingService(store, new FixedWarehouseProvider(1), new FixedClock(new DateTime(2026, 4, 26, 8, 30, 0)));
         var command = new PostStockInCommand(WarehouseId: 1, 
-            DocumentId: Guid.Parse("66666666-6666-6666-6666-666666666666"),
+            DocumentId: 208,
             Kind: StockInKind.OpeningBalance,
             Status: StockDocumentStatus.Approved,
             ProductId: 10,

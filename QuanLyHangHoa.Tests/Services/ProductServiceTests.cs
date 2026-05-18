@@ -4,6 +4,7 @@ using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Inventory;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
+using QuanLyHangHoa.Tests.Helpers;
 using Xunit;
 
 namespace QuanLyHangHoa.Tests.Services;
@@ -17,7 +18,7 @@ public class ProductServiceTests
         connection.Open();
         using (var seedContext = CreateContext(connection))
         {
-            seedContext.Database.EnsureCreated();
+            DatabaseHelper.SeedBasicData(seedContext);
             seedContext.Products.Add(new Product { Id = 1100, ProductCode = "P1100",
                 DisplayName = "Initial stock product",
                 CategoryId = 1,

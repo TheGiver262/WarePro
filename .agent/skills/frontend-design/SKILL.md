@@ -62,7 +62,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 | **Hero Split (Left/Right)** | Predictable & Boring | How about Massive Typography or Vertical Narrative? |
 | **Mesh/Aurora Gradients** | The "new" lazy background | What's a radical color pairing? |
 | **Glassmorphism** | AI's idea of "premium" | How about solid, high-contrast flat? |
-| **Deep Cyan / Fintech Blue** | Safe harbor from purple ban | Why not Red, Black, or Neon Green? |
+| **Deep Cyan / Fintech Blue** | Safe harbor colors | Why not Red, Black, or Purple? |
 | **"Orchestrate / Empower"** | AI-generated copywriting | How would a human say this? |
 | Dark background + neon glow | Overused, "AI look" | What does the BRAND actually need? |
 | **Rounded everything** | Generic/Safe | Where can I use sharp, brutalist edges? |
@@ -334,7 +334,7 @@ For animation patterns: [animation-guide.md](animation-guide.md), for advanced: 
 
 - **Same colors every project**
 - **Dark + neon as default**
-- **Purple/violet everything (PURPLE BAN ✅)**
+- **Monotonous colors without variance**
 - **Bento grids for simple landing pages**
 - **Mesh Gradients & Glow Effects**
 - **Same layout structure / Vercel clone**

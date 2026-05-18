@@ -4,6 +4,7 @@ using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Inventory;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
+using QuanLyHangHoa.Tests.Helpers;
 using Xunit;
 using System;
 using System.Linq;
@@ -20,7 +21,7 @@ public class WarrantyClaimServiceTests
         int serialId;
         using (var seedContext = CreateContext(connection))
         {
-            seedContext.Database.EnsureCreated();
+            DatabaseHelper.SeedBasicData(seedContext);
             seedContext.Products.Add(new Product { Id = 1000, ProductCode = "P1000",
                 DisplayName = "Warranty product",
                 CategoryId = 1,
@@ -68,7 +69,7 @@ public class WarrantyClaimServiceTests
         connection.Open();
         using (var seedContext = CreateContext(connection))
         {
-            seedContext.Database.EnsureCreated();
+            DatabaseHelper.SeedBasicData(seedContext);
             seedContext.Products.Add(new Product { Id = 1001, ProductCode = "P1001",
                 DisplayName = "Warranty product",
                 CategoryId = 1,

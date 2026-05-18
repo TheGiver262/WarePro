@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
+using QuanLyHangHoa.Tests.Helpers;
 using Xunit;
 
 namespace QuanLyHangHoa.Tests.Services;
@@ -17,9 +18,9 @@ public class InvoiceServiceTests
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
-        using (var seedContext = CreateContext(connection))
+        using (var seedContext = DatabaseHelper.CreateContext(connection))
         {
-            seedContext.Database.EnsureCreated();
+            DatabaseHelper.SeedBasicData(seedContext);
             seedContext.Products.Add(new Product { Id = 900, ProductCode = "P900",
                 DisplayName = "Invoice product",
                 CategoryId = 1,
@@ -30,7 +31,7 @@ public class InvoiceServiceTests
             seedContext.SaveChanges();
         }
 
-        var service = new InvoiceService(() => CreateContext(connection));
+        var service = new InvoiceService(() => DatabaseHelper.CreateContext(connection));
         var invoice = new SalesInvoice
         {
             InvoiceCode = "SI-0001",
@@ -51,7 +52,7 @@ public class InvoiceServiceTests
 
         service.SaveSalesInvoice(invoice);
 
-        using var assertContext = CreateContext(connection);
+        using var assertContext = DatabaseHelper.CreateContext(connection);
         var saved = assertContext.SalesInvoices.Include(i => i.Lines).Single();
         Assert.Equal(200m, saved.SubTotal);
         Assert.Equal(20m, saved.TaxAmount);
@@ -68,9 +69,9 @@ public class InvoiceServiceTests
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
-        using (var seedContext = CreateContext(connection))
+        using (var seedContext = DatabaseHelper.CreateContext(connection))
         {
-            seedContext.Database.EnsureCreated();
+            DatabaseHelper.SeedBasicData(seedContext);
             seedContext.Products.Add(new Product { Id = 901, ProductCode = "P901",
                 DisplayName = "Purchase invoice product",
                 CategoryId = 1,
@@ -81,7 +82,7 @@ public class InvoiceServiceTests
             seedContext.SaveChanges();
         }
 
-        var service = new InvoiceService(() => CreateContext(connection));
+        var service = new InvoiceService(() => DatabaseHelper.CreateContext(connection));
         var invoice = new PurchaseInvoice
         {
             InvoiceCode = "PI-0001",
@@ -102,19 +103,10 @@ public class InvoiceServiceTests
 
         service.SavePurchaseInvoice(invoice);
 
-        using var assertContext = CreateContext(connection);
+        using var assertContext = DatabaseHelper.CreateContext(connection);
         var saved = assertContext.PurchaseInvoices.Include(i => i.Lines).Single();
         Assert.Equal(100m, saved.SubTotal);
         Assert.Equal(10m, saved.TaxAmount);
         Assert.Equal(110m, saved.GrandTotal);
-    }
-
-    private static AppDbContext CreateContext(SqliteConnection connection)
-    {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlite(connection)
-            .Options;
-
-        return new AppDbContext(options);
     }
 }

@@ -81,20 +81,18 @@
                                 </StackPanel>
                             </Button>
 
-                            <Button Style="{StaticResource SecondaryButton}" 
+                            <Button Style="{StaticResource ProMaxIconButtonStyle}" 
                                     Command="{Binding RefreshCommand}"
                                     ToolTip="Làm mới bộ lọc"
-                                    Width="32" Height="32" Padding="0" Margin="0,0,8,0">
-                                <materialDesign:PackIcon Kind="Refresh" Width="20" Height="20"/>
+                                    Width="32" Height="32" Margin="0,0,8,0">
+                                <materialDesign:PackIcon Kind="FilterOffOutline" Width="20" Height="20"/>
                             </Button>
 
-                            <Button Style="{StaticResource PrimaryButton}" 
-                                    Width="140" Height="32"
-                                    Command="{Binding ExportToExcelCommand}">
-                                <StackPanel Orientation="Horizontal">
-                                    <materialDesign:PackIcon Kind="FileExcelOutline" Width="20" Height="20" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                    <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
-                                </StackPanel>
+                            <Button Style="{StaticResource ProMaxIconButtonStyle}" 
+                                    Command="{Binding ExportToExcelCommand}"
+                                    ToolTip="Xuất Excel"
+                                    Width="32" Height="32">
+                                <materialDesign:PackIcon Kind="FileExcelOutline" Width="22" Height="22" Foreground="#10B981"/>
                             </Button>
                         </StackPanel>
                     </Grid>

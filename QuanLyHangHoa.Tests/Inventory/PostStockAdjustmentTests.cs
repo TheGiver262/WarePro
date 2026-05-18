@@ -16,7 +16,7 @@ public class PostStockAdjustmentTests
             new FixedWarehouseProvider(1),
             new FixedClock(new DateTime(2026, 4, 27, 13, 0, 0)));
         var command = new PostStockAdjustmentCommand(
-            Guid.Parse("99999999-9999-9999-9999-999999999999"),
+            101,
             StockDocumentStatus.Approved,
             "COUNT-001",
             "Stock count surplus",
@@ -36,7 +36,7 @@ public class PostStockAdjustmentTests
         Assert.Equal(3, store.Ledgers[0].Quantity);
         Assert.Single(store.Audits);
         Assert.Equal(AuditActionCode.PostStockAdjustment, store.Audits[0].ActionCode);
-        Assert.Equal(StockDocumentStatus.Posted, store.DocumentStatuses[command.DocumentId]);
+        Assert.Equal(StockDocumentStatus.Posted, store.DocumentStatuses[(command.DocumentId, "StockAdjustment")]);
         Assert.True(store.WasCommitted);
     }
 
@@ -50,7 +50,7 @@ public class PostStockAdjustmentTests
             new FixedWarehouseProvider(1),
             new FixedClock(new DateTime(2026, 4, 27, 13, 15, 0)));
         var command = new PostStockAdjustmentCommand(
-            Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"),
+            102,
             StockDocumentStatus.Approved,
             "COUNT-002",
             "Found serials during stock count",
@@ -81,7 +81,7 @@ public class PostStockAdjustmentTests
             new FixedWarehouseProvider(1),
             new FixedClock(new DateTime(2026, 4, 27, 13, 30, 0)));
         var command = new PostStockAdjustmentCommand(
-            Guid.Parse("bbbbbbbb-cccc-dddd-eeee-ffffffffffff"),
+            103,
             StockDocumentStatus.Approved,
             "COUNT-003",
             "Missing serial during stock count",

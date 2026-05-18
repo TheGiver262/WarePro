@@ -17,6 +17,7 @@ namespace QuanLyHangHoa.Tests.ViewModels
 
             var viewModel = new WarrantyViewModel(
                 new AppUser { Id = 42, FullName = "Nhan vien" },
+                () => null!,
                 (code, serial, problem, userId) =>
                 {
                     claimCode = code;
@@ -50,6 +51,7 @@ namespace QuanLyHangHoa.Tests.ViewModels
 
             var viewModel = new WarrantyViewModel(
                 new AppUser { Id = 42 },
+                () => null!,
                 (_, _, _, _) => 1,
                 (id, inputConclusion, userId) =>
                 {

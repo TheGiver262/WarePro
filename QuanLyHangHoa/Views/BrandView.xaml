@@ -8,7 +8,7 @@
              mc:Ignorable="d" d:DesignHeight="800" d:DesignWidth="1100">
 
     <Grid Background="{StaticResource AppBackgroundBrush}">
-        <Grid Margin="{StaticResource PagePadding}">
+        <Grid Margin="{StaticResource PagePadding}" MaxWidth="1600" HorizontalAlignment="Stretch">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/> <!-- Header -->
                 <RowDefinition Height="Auto"/> <!-- Search -->
@@ -53,52 +53,43 @@
 
                     <!-- Code Search -->
                     <StackPanel Grid.Column="0" Margin="{StaticResource Margin.Right.md}">
-                        <TextBlock Text="MÃ THƯƠNG HIỆU" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                        <TextBox materialDesign:HintAssist.Hint="Mã..." 
-                                 Height="32" VerticalContentAlignment="Center"
+                        <TextBlock Text="MÃ THƯƠNG HIỆU" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
+                        <TextBox Style="{StaticResource AppTextBoxStyle}" materialDesign:HintAssist.Hint="Mã..." 
+                                 Height="40"
                                  Text="{Binding SearchCode, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
                     <!-- Name Search -->
                     <StackPanel Grid.Column="1" Margin="{StaticResource Margin.Right.md}">
-                        <TextBlock Text="TÊN THƯƠNG HIỆU" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                        <TextBox materialDesign:HintAssist.Hint="Tìm theo tên..." 
-                                 Height="32" VerticalContentAlignment="Center"
+                        <TextBlock Text="TÊN THƯƠNG HIỆU" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
+                        <TextBox Style="{StaticResource AppTextBoxStyle}" materialDesign:HintAssist.Hint="Tìm theo tên..." 
+                                 Height="40"
                                  Text="{Binding SearchName, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
                     <!-- Origin Search -->
                     <StackPanel Grid.Column="2" Margin="{StaticResource Margin.Right.md}">
-                        <TextBlock Text="XUẤT XỨ" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                        <ComboBox Height="32" VerticalContentAlignment="Center"
+                        <TextBlock Text="XUẤT XỨ" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
+                        <ComboBox Style="{StaticResource AppComboBoxStyle}" Height="40"
                                   ItemsSource="{Binding OriginOptions}"
                                   SelectedItem="{Binding SearchOrigin, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
                     <!-- Status Filter -->
                     <StackPanel Grid.Column="3" Margin="{StaticResource Margin.Right.md}">
-                        <TextBlock Text="TRẠNG THÁI" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                        <ComboBox  
-                                  Height="32" VerticalContentAlignment="Center"
+                        <TextBlock Text="TRẠNG THÁI" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
+                        <ComboBox Style="{StaticResource AppComboBoxStyle}" Height="40"
                                   ItemsSource="{Binding StatusOptions}"
                                   SelectedItem="{Binding SearchStatus, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
                     <!-- Actions -->
                     <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Bottom">
-                        <Button Style="{StaticResource SecondaryButton}" 
-                                Command="{Binding RefreshCommand}"
-                                ToolTip="Làm mới bộ lọc"
-                                Width="32" Height="32" Padding="0" Margin="0,0,8,0">
-                            <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18"/>
+                        <Button Command="{Binding RefreshCommand}" Style="{StaticResource ProMaxIconButtonStyle}" Width="40" Height="40" Margin="0,0,8,0" ToolTip="Làm mới bộ lọc">
+                            <materialDesign:PackIcon Kind="FilterOffOutline" Width="22" Height="22"/>
                         </Button>
-                        <Button Style="{StaticResource PrimaryButton}" 
-                                Command="{Binding ExportToExcelCommand}"
-                                Width="140" Height="32">
-                            <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="FileExcelOutline" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
-                            </StackPanel>
+                        <Button Command="{Binding ExportToExcelCommand}" Style="{StaticResource ProMaxIconButtonStyle}" Width="40" Height="40" ToolTip="Xuất Excel">
+                            <materialDesign:PackIcon Kind="FileExcelOutline" Width="24" Height="24" Foreground="#10B981"/>
                         </Button>
                     </StackPanel>
                 </Grid>

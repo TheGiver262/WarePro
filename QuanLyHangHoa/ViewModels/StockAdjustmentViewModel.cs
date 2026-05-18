@@ -102,7 +102,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private int _warehouseId;
         [ObservableProperty] private string _adjustmentType = "Manual";
         [ObservableProperty] private string _reasonCode = "DAMAGED";
-        [ObservableProperty] private string _status = "Draft";
+        [ObservableProperty] private string _status = "nháp";
         [ObservableProperty] private string _notes = string.Empty;
         [ObservableProperty] private ObservableCollection<StockAdjustmentLineEditor> _lines = new();
 
@@ -156,8 +156,8 @@ namespace QuanLyHangHoa.ViewModels
         private void UpdateSummaries()
         {
             TotalCount = AdjustmentList.Count;
-            DraftCount = AdjustmentList.Count(x => x.Status == "Draft");
-            PostedCount = AdjustmentList.Count(x => x.Status == "Posted");
+            DraftCount = AdjustmentList.Count(x => x.Status == "nháp");
+            PostedCount = AdjustmentList.Count(x => x.Status == "đã ghi sổ");
         }
 
         [RelayCommand]
@@ -168,7 +168,7 @@ namespace QuanLyHangHoa.ViewModels
             WarehouseId = AvailableWarehouses.FirstOrDefault(w => w.IsDefault)?.Id ?? AvailableWarehouses.FirstOrDefault()?.Id ?? 1;
             AdjustmentType = "Manual";
             ReasonCode = "DAMAGED";
-            Status = "Draft";
+            Status = "nháp";
             Notes = string.Empty;
             Lines.Clear();
 
@@ -188,7 +188,7 @@ namespace QuanLyHangHoa.ViewModels
         private void EditDetail(StockAdjustment item)
         {
             if (item == null) return;
-            if (item.Status == "Posted")
+            if (item.Status == "đã ghi sổ")
             {
                 MessageBox.Show("Không thể sửa phiếu đã ghi sổ.", "Thông báo");
                 return;
@@ -307,6 +307,66 @@ namespace QuanLyHangHoa.ViewModels
             {
                 MessageBox.Show(ex.Message, "Lỗi");
             }
+        }
+
+        [RelayCommand]
+        private void ExportExcel()
+        {
+            try
+            {
+                using var workbook = new ClosedXML.Excel.XLWorkbook();
+                var worksheet = workbook.Worksheets.Add("PhieuDieuChinh");
+                
+                // Headers
+                var headers = new[] { "Mã Phiếu", "Ngày Điều Chỉnh", "Kho", "Lý Do", "Trạng Thái", "Ghi Chú" };
+                for (int col = 0; col < headers.Length; col++)
+                {
+                    var cell = worksheet.Cell(1, col + 1);
+                    cell.Value = headers[col];
+                    cell.Style.Font.Bold = true;
+                    cell.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.LightBlue;
+                }
+
+                // Data
+                for (int i = 0; i < AdjustmentList.Count; i++)
+                {
+                    var adj = AdjustmentList[i];
+
+                    worksheet.Cell(i + 2, 1).Value = adj.DocumentCode;
+                    worksheet.Cell(i + 2, 2).Value = adj.PostedAt?.ToString("dd/MM/yyyy HH:mm") ?? adj.ApprovedAt?.ToString("dd/MM/yyyy HH:mm") ?? "";
+                    worksheet.Cell(i + 2, 3).Value = adj.Warehouse?.DisplayName ?? "";
+                    worksheet.Cell(i + 2, 4).Value = adj.ReasonCode;
+                    worksheet.Cell(i + 2, 5).Value = adj.Status == "đã ghi sổ" ? "Đã ghi sổ" : "Phiếu nháp";
+                    worksheet.Cell(i + 2, 6).Value = adj.Notes ?? "";
+                }
+
+                worksheet.Columns().AdjustToContents();
+
+                var saveDialog = new Microsoft.Win32.SaveFileDialog
+                {
+                    Filter = "Excel Workbook (*.xlsx)|*.xlsx",
+                    FileName = $"PhieuDieuChinh_{DateTime.Now:yyyyMMdd_HHmm}"
+                };
+
+                if (saveDialog.ShowDialog() == true)
+                {
+                    workbook.SaveAs(saveDialog.FileName);
+                    MessageBox.Show("Xuất Excel thành công!", "Thông báo");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi xuất Excel: {ex.Message}", "Lỗi");
+            }
+        }
+
+        [RelayCommand]
+        private void ResetFilter()
+        {
+            SearchDocumentCode = string.Empty;
+            FilterFromDate = null;
+            FilterToDate = null;
+            LoadData();
         }
 
         private bool Validate()

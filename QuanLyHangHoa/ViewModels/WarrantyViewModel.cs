@@ -92,11 +92,20 @@ namespace QuanLyHangHoa.ViewModels
             _replaceSerial = replaceSerial;
             _showMessage = showMessage;
             ClaimCode = CreateDefaultClaimCode();
-            LoadData();
         }
 
         [RelayCommand]
         private void ToggleAdvancedFilter() => IsAdvancedFilterOpen = !IsAdvancedFilterOpen;
+
+        [RelayCommand]
+        private void ResetFilter()
+        {
+            SearchText = string.Empty;
+            SelectedStatusFilter = "Tất cả";
+            SearchFromDate = null;
+            SearchToDate = null;
+            LoadData();
+        }
 
         [RelayCommand]
         public void LoadData()

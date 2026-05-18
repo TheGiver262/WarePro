@@ -32,7 +32,11 @@ namespace QuanLyHangHoa.Services
             ["Quản lý"] = AllPermissionsExcept(PermissionAction.ManageUsers),
 
             // Staff Roles (Specific tasks, View Reports, NO Master Data management)
-            ["Staff"] = ViewOnlyPermissions(),
+            ["Staff"] = new()
+            {
+                PermissionAction.CreateSalesInvoice,
+                PermissionAction.ViewReports
+            },
             ["Nhân viên bảo hành"] = new()
             {
                 PermissionAction.CreateWarrantyClaim,

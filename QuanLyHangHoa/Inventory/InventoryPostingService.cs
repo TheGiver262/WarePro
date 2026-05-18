@@ -183,6 +183,12 @@ public sealed class InventoryPostingService
             _clock.Now,
             command.PostedByUserId));
 
+        _unitOfWork.AddAudit(new AuditLogEntry(
+            command.DocumentId,
+            AuditActionCode.PostStockOut,
+            _clock.Now,
+            command.PostedByUserId));
+
         _unitOfWork.MarkDocumentPosted(command.DocumentId, "StockOut");
         _unitOfWork.Commit();
     }

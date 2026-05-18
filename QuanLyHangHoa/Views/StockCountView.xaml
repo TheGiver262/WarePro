@@ -29,7 +29,7 @@
                         <TextBlock Text="KIỂM KÊ KHO" Style="{StaticResource TypographyH1}" Foreground="{StaticResource AppTertiaryBrush}"/>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="Đối soát số lượng thực tế tại kho và cập nhật hệ thống" Style="{StaticResource TypographyCaption}" Opacity="0.7" VerticalAlignment="Center"/>
-                            <ContentControl Content="{Binding Status}" ContentTemplate="{StaticResource InventoryStatusBadgeTemplate}" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                            <ContentControl Content="{Binding}" ContentTemplate="{StaticResource InventoryStatusBadgeTemplate}" VerticalAlignment="Center" Margin="12,0,0,0"/>
                         </StackPanel>
                     </StackPanel>
                 </StackPanel>

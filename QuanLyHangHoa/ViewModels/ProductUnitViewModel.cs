@@ -41,12 +41,12 @@ namespace QuanLyHangHoa.ViewModels
 
         private void LoadProducts()
         {
-            Products = new ObservableCollection<Product>(_productService.GetAllProducts());
+            Products = new ObservableCollection<Product>(_productService.GetAllProducts() ?? new List<Product>());
         }
 
         private void LoadUnits()
         {
-            AvailableUnits = new ObservableCollection<Unit>(_refDataService.GetAllUnits());
+            AvailableUnits = new ObservableCollection<Unit>(_refDataService.GetAllUnits() ?? new List<Unit>());
         }
 
         partial void OnSelectedProductChanged(Product? value)

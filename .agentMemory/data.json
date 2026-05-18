@@ -1,0 +1,35 @@
+{
+  "cache": [
+    [
+      "ProductManagement_Antigravity:_index_ProductManagement_Antigravity",
+      {
+        "value": "{\"value\":[\"adr-1-wpf-pro-max-ui-layout\",\"adr-2-excel-export-dynamic\",\"adr-3-filter-reset-non-collapsible\",\"design-aesthetic-promax-colors\"],\"expires\":null}"
+      }
+    ],
+    [
+      "ProductManagement_Antigravity:adr-1-wpf-pro-max-ui-layout",
+      {
+        "value": "{\"value\":{\"id\":\"adr-1-wpf-layout-1779088454278\",\"projectId\":\"ProductManagement_Antigravity\",\"key\":\"adr-1-wpf-pro-max-ui-layout\",\"type\":\"decision\",\"content\":\"# ADR 1: WPF Pro Max UI Standard Layout\\n\\n* **Status**: Approved\\n* **Date**: 2026-05-18\\n* **Context**: Main views suffered from layout inconsistency on wide monitors.\\n* **Decision**: All list-based Views must implement:\\n  - Container Grid with `MaxWidth=\\\"1600\\\"` and `HorizontalAlignment=\\\"Stretch\\\"`.\\n  - Consistent 3-Row Layout: Row 0 (Header card), Row 1 (Filter controls card), Row 2 (DataGrid).\\n  - Standardized control buttons using `ProMaxIconButtonStyle`.\",\"tags\":[\"wpf\",\"layout\",\"promax\",\"adr\",\"ui\"],\"relationships\":{\"dependsOn\":[],\"implements\":[]},\"metadata\":{\"accessCount\":0,\"createdBy\":\"setup-agent\"},\"createdAt\":1779088454278,\"updatedAt\":1779088454278},\"expires\":null}"
+      }
+    ],
+    [
+      "ProductManagement_Antigravity:adr-2-excel-export-dynamic",
+      {
+        "value": "{\"value\":{\"id\":\"adr-2-excel-1779088454278\",\"projectId\":\"ProductManagement_Antigravity\",\"key\":\"adr-2-excel-export-dynamic\",\"type\":\"decision\",\"content\":\"# ADR 2: Excel Export dynamically bounded\\n\\n* **Status**: Approved\\n* **Date**: 2026-05-18\\n* **Context**: Exporting full database records caused high database overhead and ignored UI filters.\\n* **Decision**: All Excel exports must use ClosedXML (`XLWorkbook` / `XLWorksheet`) and loop directly through the in-memory ObservableCollection currently bound to the DataGrid. It must only export rows currently shown on screen and avoid re-querying the database.\",\"tags\":[\"excel\",\"closedxml\",\"export\",\"adr\",\"performance\"],\"relationships\":{\"dependsOn\":[],\"implements\":[]},\"metadata\":{\"accessCount\":0,\"createdBy\":\"setup-agent\"},\"createdAt\":1779088454278,\"updatedAt\":1779088454278},\"expires\":null}"
+      }
+    ],
+    [
+      "ProductManagement_Antigravity:adr-3-filter-reset-non-collapsible",
+      {
+        "value": "{\"value\":{\"id\":\"adr-3-filter-1779088454278\",\"projectId\":\"ProductManagement_Antigravity\",\"key\":\"adr-3-filter-reset-non-collapsible\",\"type\":\"decision\",\"content\":\"# ADR 3: Non-Collapsible Filter Resets\\n\\n* **Status**: Approved\\n* **Date**: 2026-05-18\\n* **Context**: Pressing the reset filter button collapsed the advanced filter panel, disrupting search flow.\\n* **Decision**: The `ResetFilter()` command in ViewModels must ONLY clear values and search keywords. It must NOT set `IsAdvancedFilterOpen = false`.\",\"tags\":[\"filter\",\"wpf\",\"viewmodel\",\"adr\",\"ux\"],\"relationships\":{\"dependsOn\":[],\"implements\":[]},\"metadata\":{\"accessCount\":0,\"createdBy\":\"setup-agent\"},\"createdAt\":1779088454278,\"updatedAt\":1779088454278},\"expires\":null}"
+      }
+    ],
+    [
+      "ProductManagement_Antigravity:design-aesthetic-promax-colors",
+      {
+        "value": "{\"value\":{\"id\":\"pattern-design-1779088454278\",\"projectId\":\"ProductManagement_Antigravity\",\"key\":\"design-aesthetic-promax-colors\",\"type\":\"pattern\",\"content\":\"# Pro Max UI Design Guidelines and Palette\\n\\n* **Theme**: Glassmorphism, Dark Elegance, Vibrant Micro-interactions, and Purple-Friendly Modern Aesthetics\\n* **Primary Color**: Elegant HSL Sapphire Blue (`#1A56DB` / `#2563EB`) and approved Purple/Indigo ranges\\n* **Secondary Color**: Soft Jade Green (`#10B981`) or custom accent shades\\n* **Backgrounds**: Slate Dark & Glassmorphism Blur panels\\n* **Typography**: Outfits / Inter\\n* **Micro-interactions**: Scale transforms (`1.02` on hover) and soft border glows on key active items. No harsh borders.\\n* **Palette Note**: Purple color family (including violet, magenta, and indigo) is fully allowed and welcome for premium elements.\",\"tags\":[\"design\",\"css\",\"wpf\",\"aesthetic\",\"promax\"],\"relationships\":{\"dependsOn\":[\"adr-1-wpf-pro-max-ui-layout\"],\"implements\":[]},\"metadata\":{\"accessCount\":1,\"createdBy\":\"setup-agent\"},\"createdAt\":1779088454278,\"updatedAt\":1779091948182},\"expires\":null}"
+      }
+    ]
+  ],
+  "lastExpire": 1779088454277
+}

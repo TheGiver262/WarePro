@@ -32,7 +32,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private DateTime? _searchDate;
         [ObservableProperty] private bool _isEditPanelOpen;
 
-        public ObservableCollection<string> Roles { get; } = ["Tất cả", "Quản trị viên", "Quản lý", "Nhân viên bảo hành", "Nhân viên bán hàng", "Nhân viên kho"];
+        public ObservableCollection<string> Roles { get; } = ["Tất cả", "Quản trị viên", "Quản lý", "Manager", "Staff", "Nhân viên bảo hành", "Nhân viên bán hàng", "Nhân viên kho", "Admin"];
         public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Hoạt động", "Dừng"];
 
         private readonly Func<AppDbContext> _contextFactory;
@@ -45,7 +45,7 @@ namespace QuanLyHangHoa.ViewModels
             LoadData();
         }
 
-        public bool IsAdmin => _currentUser?.RoleCode == "Quản trị viên";
+        public bool IsAdmin => AuthorizationService.CanPerform(_currentUser, PermissionAction.ManageUsers);
 
         [RelayCommand]
         private void OpenAddUserDialog()
@@ -104,6 +104,16 @@ namespace QuanLyHangHoa.ViewModels
         public void Search()
         {
             LoadData();
+        }
+
+        [RelayCommand]
+        private void ResetFilter()
+        {
+            SearchFullName = string.Empty;
+            SearchUsername = string.Empty;
+            SearchRole = "Tất cả";
+            SearchStatus = "Tất cả";
+            SearchDate = null;
         }
 
         [RelayCommand]

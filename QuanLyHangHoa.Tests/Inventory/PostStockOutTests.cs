@@ -15,7 +15,7 @@ public class PostStockOutTests
         store.Serials["SALE-002"] = new ProductSerialSnapshot("SALE-002", 30, 1, SerialStatus.InStock);
         var service = new InventoryPostingService(store, new FixedWarehouseProvider(1), new FixedClock(new DateTime(2026, 4, 26, 10, 0, 0)));
         var command = new PostStockOutCommand(WarehouseId: 1, 
-            DocumentId: Guid.Parse("44444444-4444-4444-4444-444444444444"),
+            DocumentId: 301,
             Kind: StockOutKind.Sale,
             Status: StockDocumentStatus.Approved,
             ProductId: 30,
@@ -41,7 +41,7 @@ public class PostStockOutTests
         Assert.Equal(new DateTime(2026, 4, 26, 10, 0, 0), store.Ledgers[0].PostedAt);
         Assert.Single(store.Audits);
         Assert.Equal(AuditActionCode.PostStockOut, store.Audits[0].ActionCode);
-        Assert.Equal(StockDocumentStatus.Posted, store.DocumentStatuses[command.DocumentId]);
+        Assert.Equal(StockDocumentStatus.Posted, store.DocumentStatuses[(command.DocumentId, "StockOut")]);
         Assert.True(store.WasCommitted);
     }
 
@@ -54,7 +54,7 @@ public class PostStockOutTests
         store.Serials["WR-001"] = new ProductSerialSnapshot("WR-001", 30, 1, SerialStatus.InStock);
         var service = new InventoryPostingService(store, new FixedWarehouseProvider(1), new FixedClock(new DateTime(2026, 4, 26, 10, 0, 0)));
         var command = new PostStockOutCommand(WarehouseId: 1, 
-            DocumentId: Guid.Parse("55555555-5555-5555-5555-555555555555"),
+            DocumentId: 302,
             Kind: StockOutKind.WarrantyReplacement,
             Status: StockDocumentStatus.Approved,
             ProductId: 30,
@@ -72,7 +72,7 @@ public class PostStockOutTests
         Assert.Equal(1, store.Serials["WR-001"].CurrentWarehouseId);
         Assert.Empty(store.Ledgers);
         Assert.Empty(store.Audits);
-        Assert.False(store.DocumentStatuses.ContainsKey(command.DocumentId));
+        Assert.False(store.DocumentStatuses.ContainsKey((command.DocumentId, "StockOut")));
         Assert.False(store.WasCommitted);
     }
 
@@ -84,7 +84,7 @@ public class PostStockOutTests
         store.Balances[(40, 1)] = new StockBalanceSnapshot(40, 1, 1, 1, 0);
         var service = new InventoryPostingService(store, new FixedWarehouseProvider(1), new FixedClock(new DateTime(2026, 4, 26, 10, 30, 0)));
         var command = new PostStockOutCommand(WarehouseId: 1, 
-            DocumentId: Guid.Parse("55555555-5555-5555-5555-555555555555"),
+            DocumentId: 303,
             Kind: StockOutKind.Sale,
             Status: StockDocumentStatus.Approved,
             ProductId: 40,
@@ -100,7 +100,7 @@ public class PostStockOutTests
         Assert.Equal(1, balance.AvailableQuantity);
         Assert.Empty(store.Ledgers);
         Assert.Empty(store.Audits);
-        Assert.False(store.DocumentStatuses.ContainsKey(command.DocumentId));
+        Assert.False(store.DocumentStatuses.ContainsKey((command.DocumentId, "StockOut")));
         Assert.False(store.WasCommitted);
     }
 
@@ -111,7 +111,7 @@ public class PostStockOutTests
         store.Products[41] = new ProductSnapshot(41, false);
         var service = new InventoryPostingService(store, new FixedWarehouseProvider(1), new FixedClock(new DateTime(2026, 4, 26, 10, 45, 0)));
         var command = new PostStockOutCommand(WarehouseId: 1, 
-            DocumentId: Guid.Parse("99999999-9999-9999-9999-999999999999"),
+            DocumentId: 304,
             Kind: StockOutKind.Sale,
             Status: StockDocumentStatus.Approved,
             ProductId: 41,
@@ -125,7 +125,7 @@ public class PostStockOutTests
         Assert.Empty(store.Balances);
         Assert.Empty(store.Ledgers);
         Assert.Empty(store.Audits);
-        Assert.False(store.DocumentStatuses.ContainsKey(command.DocumentId));
+        Assert.False(store.DocumentStatuses.ContainsKey((command.DocumentId, "StockOut")));
         Assert.False(store.WasCommitted);
     }
 }

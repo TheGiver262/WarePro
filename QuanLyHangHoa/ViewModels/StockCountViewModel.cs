@@ -30,7 +30,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private DateTime _countDate = DateTime.Now;
         [ObservableProperty] private string _statusMessage = string.Empty;
         [ObservableProperty] private string _searchText = string.Empty;
-        [ObservableProperty] private string _status = "Draft";
+        [ObservableProperty] private string _status = "nháp";
 
         public StockCountViewModel(AppUser? currentUser = null, Func<AppDbContext>? contextFactory = null)
         {
@@ -94,7 +94,7 @@ namespace QuanLyHangHoa.ViewModels
                     SessionCode = SessionCode,
                     WarehouseId = WarehouseId,
                     CountDate = CountDate,
-                    Status = "Counted", // Mark as counted for processing
+                    Status = "đã kiểm kê", // Mark as counted for processing
                     CreatedBy = _currentUser.Id
                 };
 

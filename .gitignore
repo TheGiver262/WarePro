@@ -10,3 +10,4 @@ graphify-out/
 .superpowers/
 __pycache__/
 *.pyc
+node_modules/

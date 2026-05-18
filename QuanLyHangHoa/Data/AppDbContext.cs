@@ -82,6 +82,8 @@ public partial class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        var isSqlite = Database.ProviderName?.Contains("Sqlite") ?? false;
+        var defaultDateTime = isSqlite ? "CURRENT_TIMESTAMP" : "sysutcdatetime()";
         modelBuilder.Entity<AppUser>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__AppUser__3214EC07BB2116D3");
@@ -94,7 +96,7 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.CreatedAt)
                 .HasPrecision(0)
-                .HasDefaultValueSql("(sysutcdatetime())");
+                .HasDefaultValueSql(defaultDateTime);
             entity.Property(e => e.FullName).HasMaxLength(200);
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.LastFailedLoginAt).HasPrecision(0);
@@ -123,7 +125,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.EntityName).HasMaxLength(100);
             entity.Property(e => e.PerformedAt)
                 .HasPrecision(0)
-                .HasDefaultValueSql("(sysutcdatetime())");
+                .HasDefaultValueSql(defaultDateTime);
 
             entity.HasOne(d => d.Performer).WithMany(p => p.AuditLogs)
                 .HasForeignKey(d => d.PerformedBy)
@@ -252,7 +254,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.ProductId, "UX_ProductUnit_BaseUnit")
                 .IsUnique()
-                .HasFilter("([IsBaseUnit]=(1))");
+                .HasFilter("IsBaseUnit = 1");
 
             entity.HasIndex(e => new { e.ProductId, e.UnitId }, "UX_ProductUnit_Product_Unit").IsUnique();
 
@@ -562,7 +564,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.ApprovedAt).HasPrecision(0);
             entity.Property(e => e.CreatedAt)
                 .HasPrecision(0)
-                .HasDefaultValueSql("(sysutcdatetime())");
+                .HasDefaultValueSql(defaultDateTime);
             entity.Property(e => e.DocumentCode).HasMaxLength(50);
             entity.Property(e => e.PostedAt).HasPrecision(0);
             entity.Property(e => e.PurposeCode).HasMaxLength(50);
@@ -634,7 +636,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.MovementType).HasMaxLength(50);
             entity.Property(e => e.PostedAt)
                 .HasPrecision(0)
-                .HasDefaultValueSql("(sysutcdatetime())");
+                .HasDefaultValueSql(defaultDateTime);
             entity.Property(e => e.Quantity).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.SourceDocumentType).HasMaxLength(50);
 
@@ -673,7 +675,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.ApprovedAt).HasPrecision(0);
             entity.Property(e => e.CreatedAt)
                 .HasPrecision(0)
-                .HasDefaultValueSql("(sysutcdatetime())");
+                .HasDefaultValueSql(defaultDateTime);
             entity.Property(e => e.DocumentCode).HasMaxLength(50);
             entity.Property(e => e.PostedAt).HasPrecision(0);
             entity.Property(e => e.PurposeCode).HasMaxLength(50);
@@ -738,7 +740,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.DocumentCode, "UX_StockTransfer_DocumentCode").IsUnique();
 
-            entity.Property(e => e.CreatedAt).HasPrecision(0).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.CreatedAt).HasPrecision(0).HasDefaultValueSql(defaultDateTime);
             entity.Property(e => e.DocumentCode).HasMaxLength(50);
             entity.Property(e => e.Status).HasMaxLength(50);
             entity.Property(e => e.TransferDate).HasPrecision(0);
@@ -830,7 +832,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.IsDefault, "UX_Warehouse_SingleDefault")
                 .IsUnique()
-                .HasFilter("([IsDefault]=(1))");
+                .HasFilter("IsDefault = 1");
 
             entity.HasIndex(e => e.WarehouseCode, "UX_Warehouse_WarehouseCode").IsUnique();
 
@@ -851,7 +853,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.ProductSerialId, "UX_WarrantyClaim_OpenClaim_PerSerial")
                 .IsUnique()
-                .HasFilter("([Status]<>N'Closed')");
+                .HasFilter("Status != 'Closed'");
 
             entity.Property(e => e.ClaimCode).HasMaxLength(50);
             entity.Property(e => e.ClosedDate).HasPrecision(0);
@@ -902,7 +904,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.ProductSerialId, "UX_WarrantyCoverage_Active_PerSerial")
                 .IsUnique()
-                .HasFilter("([CoverageStatus]=N'Active')");
+                .HasFilter("CoverageStatus = 'Active'");
 
             entity.Property(e => e.CoverageStatus).HasMaxLength(50);
             entity.Property(e => e.WarrantyEndDate).HasPrecision(0);

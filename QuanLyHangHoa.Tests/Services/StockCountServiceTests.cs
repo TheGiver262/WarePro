@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
+using QuanLyHangHoa.Tests.Helpers;
 using Xunit;
 
 namespace QuanLyHangHoa.Tests.Services;
@@ -17,12 +18,12 @@ public class StockCountServiceTests
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
-        using (var setupContext = CreateContext(connection))
+        using (var setupContext = DatabaseHelper.CreateContext(connection))
         {
-            setupContext.Database.EnsureCreated();
+            DatabaseHelper.SeedBasicData(setupContext);
         }
 
-        var service = new StockCountService(() => CreateContext(connection));
+        var service = new StockCountService(() => DatabaseHelper.CreateContext(connection));
         var session = new StockCountSession
         {
             SessionCode = "CNT-001",
@@ -34,7 +35,7 @@ public class StockCountServiceTests
 
         service.CreateSession(session);
 
-        using var assertContext = CreateContext(connection);
+        using var assertContext = DatabaseHelper.CreateContext(connection);
         var saved = assertContext.StockCountSessions.Single();
         Assert.Equal("CNT-001", saved.SessionCode);
     }
@@ -45,9 +46,9 @@ public class StockCountServiceTests
         using var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
         int sessionId;
-        using (var seedContext = CreateContext(connection))
+        using (var seedContext = DatabaseHelper.CreateContext(connection))
         {
-            seedContext.Database.EnsureCreated();
+            DatabaseHelper.SeedBasicData(seedContext);
             seedContext.Products.Add(new Product { 
                 Id = 600, 
                 ProductCode = "P600", 
@@ -55,11 +56,13 @@ public class StockCountServiceTests
                 CategoryId = 1, 
                 BrandId = 1, 
                 DefaultUnitId = 1, 
-                DefaultPrice = 10m  
+                DefaultPrice = 10m,
+                IsActive = true
             });
             
             var session = new StockCountSession
             {
+                SessionCode = "CNT-002",
                 WarehouseId = 1,
                 Status = "Counted",
                 CountDate = DateTime.UtcNow,
@@ -80,10 +83,10 @@ public class StockCountServiceTests
             sessionId = session.Id;
         }
 
-        var service = new StockCountService(() => CreateContext(connection));
+        var service = new StockCountService(() => DatabaseHelper.CreateContext(connection));
         service.ProcessResults(sessionId, 1);
 
-        using var assertContext = CreateContext(connection);
+        using var assertContext = DatabaseHelper.CreateContext(connection);
         var sessionAfter = assertContext.StockCountSessions.Find(sessionId);
         Assert.NotNull(sessionAfter);
         Assert.Equal("Completed", sessionAfter.Status);
@@ -98,14 +101,5 @@ public class StockCountServiceTests
         Assert.NotNull(adjustment.Lines);
         var line = Assert.Single(adjustment.Lines);
         Assert.Equal(600, line.ProductId);
-    }
-
-    private static AppDbContext CreateContext(SqliteConnection connection)
-    {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlite(connection)
-            .Options;
-
-        return new AppDbContext(options);
     }
 }

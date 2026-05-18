@@ -16,7 +16,7 @@ namespace QuanLyHangHoa.Services
             _contextFactory = contextFactory;
         }
 
-        public List<Category> GetAllCategories(bool onlyActive = true)
+        public virtual List<Category> GetAllCategories(bool onlyActive = true)
         {
             using var db = _contextFactory();
             var query = db.Categories.AsNoTracking().AsQueryable();
@@ -24,7 +24,7 @@ namespace QuanLyHangHoa.Services
             return query.OrderBy(c => c.DisplayName).ToList();
         }
 
-        public List<Brand> GetAllBrands(bool onlyActive = true)
+        public virtual List<Brand> GetAllBrands(bool onlyActive = true)
         {
             using var db = _contextFactory();
             var query = db.Brands.AsNoTracking().AsQueryable();
@@ -32,7 +32,7 @@ namespace QuanLyHangHoa.Services
             return query.OrderBy(b => b.DisplayName).ToList();
         }
 
-        public List<Unit> GetAllUnits(bool onlyActive = true)
+        public virtual List<Unit> GetAllUnits(bool onlyActive = true)
         {
             using var db = _contextFactory();
             var query = db.Units.AsNoTracking().AsQueryable();
@@ -40,7 +40,7 @@ namespace QuanLyHangHoa.Services
             return query.OrderBy(u => u.DisplayName).ToList();
         }
 
-        public List<Warehouse> GetAllWarehouses(bool onlyActive = true)
+        public virtual List<Warehouse> GetAllWarehouses(bool onlyActive = true)
         {
             using var db = _contextFactory();
             var query = db.Warehouses.AsNoTracking().AsQueryable();
@@ -48,7 +48,7 @@ namespace QuanLyHangHoa.Services
             return query.OrderBy(w => w.DisplayName).ToList();
         }
 
-        public List<Supplier> GetAllSuppliers(bool onlyActive = true)
+        public virtual List<Supplier> GetAllSuppliers(bool onlyActive = true)
         {
             using var db = _contextFactory();
             var query = db.Suppliers.AsNoTracking().AsQueryable();
@@ -56,7 +56,7 @@ namespace QuanLyHangHoa.Services
             return query.OrderBy(s => s.DisplayName).ToList();
         }
 
-        public List<Customer> GetAllCustomers(bool onlyActive = true)
+        public virtual List<Customer> GetAllCustomers(bool onlyActive = true)
         {
             using var db = _contextFactory();
             var query = db.Customers.AsNoTracking().AsQueryable();

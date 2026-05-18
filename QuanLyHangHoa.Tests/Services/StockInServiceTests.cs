@@ -7,6 +7,7 @@ using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Inventory;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
+using QuanLyHangHoa.Tests.Helpers;
 using Xunit;
 
 namespace QuanLyHangHoa.Tests.Services;
@@ -20,7 +21,7 @@ public class StockInServiceTests
         connection.Open();
         using (var seedContext = CreateContext(connection))
         {
-            seedContext.Database.EnsureCreated();
+            DatabaseHelper.SeedBasicData(seedContext);
             seedContext.Products.Add(new Product { Id = 200, ProductCode = "P200",
                 DisplayName = "Service stock-in product",
                 CategoryId = 1, BrandId = 1, DefaultUnitId = 1, DefaultPrice = 10m, IsSerialTracked = false });
@@ -46,7 +47,8 @@ public class StockInServiceTests
             }
         };
 
-        service.Create(stockIn, lines, 1);
+        service.SaveDraft(stockIn, lines, 1);
+        service.Post(stockIn.Id, 1);
 
         using var assertContext = CreateContext(connection);
         var savedStockIn = assertContext.StockIns.Include(s => s.Lines).Single();

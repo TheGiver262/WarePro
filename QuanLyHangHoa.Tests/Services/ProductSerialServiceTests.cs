@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
+using QuanLyHangHoa.Tests.Helpers;
 using Xunit;
 
 namespace QuanLyHangHoa.Tests.Services;
@@ -16,20 +17,20 @@ public class ProductSerialServiceTests
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
-        using (var seedContext = CreateContext(connection))
+        using (var seedContext = DatabaseHelper.CreateContext(connection))
         {
-            seedContext.Database.EnsureCreated();
+            DatabaseHelper.SeedBasicData(seedContext);
             SeedSerials(seedContext);
         }
 
-        var service = new ProductSerialService(() => CreateContext(connection));
+        var service = new ProductSerialService(() => DatabaseHelper.CreateContext(connection));
 
-        var serials = service.SearchSerials("ABC", "All");
+        var serials = service.SearchSerials("ABC", string.Empty, string.Empty, "All");
 
         var serial = Assert.Single(serials);
         Assert.Equal("ABC-001", serial.SerialNumber);
         Assert.Equal("Serial product", serial.Product?.DisplayName);
-        Assert.Equal("Main warehouse", serial.CurrentWarehouse?.DisplayName);
+        Assert.Equal("Main Warehouse", serial.CurrentWarehouse?.DisplayName);
     }
 
     [Fact]
@@ -37,15 +38,15 @@ public class ProductSerialServiceTests
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
-        using (var seedContext = CreateContext(connection))
+        using (var seedContext = DatabaseHelper.CreateContext(connection))
         {
-            seedContext.Database.EnsureCreated();
+            DatabaseHelper.SeedBasicData(seedContext);
             SeedSerials(seedContext);
         }
 
-        var service = new ProductSerialService(() => CreateContext(connection));
+        var service = new ProductSerialService(() => DatabaseHelper.CreateContext(connection));
 
-        var serials = service.SearchSerials(string.Empty, "Sold");
+        var serials = service.SearchSerials(string.Empty, string.Empty, string.Empty, "Sold");
 
         var serial = Assert.Single(serials);
         Assert.Equal("SOLD-001", serial.SerialNumber);
@@ -62,7 +63,6 @@ public class ProductSerialServiceTests
             DefaultPrice = 10m,
             IsSerialTracked = true
              });
-        context.Warehouses.Add(new Warehouse { Id = 1, WarehouseCode = "W1", DisplayName = "Main warehouse", IsActive = true });
         context.ProductSerials.AddRange(
             new ProductSerial { ProductId = 1300,
                 SerialNumber = "ABC-001",
@@ -77,14 +77,5 @@ public class ProductSerialServiceTests
                 LastStockInLineId = 0
                  });
         context.SaveChanges();
-    }
-
-    private static AppDbContext CreateContext(SqliteConnection connection)
-    {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlite(connection)
-            .Options;
-
-        return new AppDbContext(options);
     }
 }

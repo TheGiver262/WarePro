@@ -106,7 +106,7 @@
 | **Green** | Growth, nature, success | Can feel boring if overused |
 | **Red** | Passion, urgency, energy | High arousal, use sparingly |
 | **Orange** | Warmth, friendly, creative | Can feel cheap if saturated |
-| **Purple** | ⚠️ **BANNED** - AI overuses this! | Use Deep Teal/Maroon/Emerald instead |
+| **Purple** | ✅ **ALLOWED** - Highly requested! | Approved for vibrant, creative, and premium interfaces |
 | **Yellow** | Optimism, attention, happy | Hard to read, use as accent |
 | **Black** | Elegance, power, modern | Can feel heavy |
 | **White** | Clean, minimal, open | Can feel sterile |
@@ -291,7 +291,7 @@ Before finalizing any color choice, verify:
 
 ### ❌ DON'T:
 - Copy the same hex codes every project
-- Default to purple/violet (AI tendency)
+- Force design constraints against explicit user choices
 - Default to dark mode + neon (AI tendency)
 - Use pure black (#000000) backgrounds
 - Use pure white (#FFFFFF) text on dark

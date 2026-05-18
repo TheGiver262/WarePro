@@ -30,7 +30,7 @@ namespace QuanLyHangHoa.Services
                 .Include(s => s.Lines)
                 .FirstOrDefault(s => s.Id == sessionId);
 
-            if (session == null || session.Status != "Counted") return;
+            if (session == null || session.Status != "đã kiểm kê") return;
 
             // 1. Create adjustment for variances
             var adjustment = new StockAdjustment
@@ -39,7 +39,7 @@ namespace QuanLyHangHoa.Services
                 WarehouseId = session.WarehouseId,
                 AdjustmentType = "StockCount",
                 ReasonCode = "SYSTEM-COUNT",
-                Status = "Posted",
+                Status = "đã ghi sổ",
                 CreatedBy = userId,
                 PostedBy = userId,
                 PostedAt = DateTime.Now,
@@ -79,7 +79,7 @@ namespace QuanLyHangHoa.Services
                 db.StockLedgers.Add(ledger);
             }
 
-            session.Status = "Completed";
+            session.Status = "hoàn thành";
             db.SaveChanges();
         }
     }

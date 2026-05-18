@@ -4,6 +4,8 @@ using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Inventory;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
+using QuanLyHangHoa.Tests.Helpers;
+using Xunit;
 
 namespace QuanLyHangHoa.Tests.Services;
 
@@ -14,13 +16,13 @@ public class OpeningBalanceImportServiceTests
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
-        using (var seedContext = CreateContext(connection))
+        using (var seedContext = DatabaseHelper.CreateContext(connection))
         {
-            seedContext.Database.EnsureCreated();
+            DatabaseHelper.SeedBasicData(seedContext);
             SeedProducts(seedContext);
         }
 
-        var service = new OpeningBalanceImportService(() => CreateContext(connection));
+        var service = new OpeningBalanceImportService(() => DatabaseHelper.CreateContext(connection));
 
         var result = service.ImportRows(new[]
         {
@@ -28,22 +30,22 @@ public class OpeningBalanceImportServiceTests
             {
                 RowNumber = 2,
                 ProductId = 1400,
-                
+                Quantity = 3,
                 SerialNumbers = string.Empty
             },
             new OpeningBalanceImportRow
             {
                 RowNumber = 3,
                 ProductId = 1401,
-                
+                Quantity = 2,
                 SerialNumbers = "SER-001,SER-002"
             }
-        }, postedByUserId: 9);
+        }, postedByUserId: 1);
 
         Assert.Equal(2, result.SuccessCount);
         Assert.Empty(result.Errors);
 
-        using var assertContext = CreateContext(connection);
+        using var assertContext = DatabaseHelper.CreateContext(connection);
         var balances = assertContext.StockBalances.OrderBy(balance => balance.ProductId).ToList();
         Assert.Equal(2, balances.Count);
         Assert.Equal(3, balances[0].OnHandQuantity);
@@ -60,13 +62,13 @@ public class OpeningBalanceImportServiceTests
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
-        using (var seedContext = CreateContext(connection))
+        using (var seedContext = DatabaseHelper.CreateContext(connection))
         {
             seedContext.Database.EnsureCreated();
             SeedProducts(seedContext);
         }
 
-        var service = new OpeningBalanceImportService(() => CreateContext(connection));
+        var service = new OpeningBalanceImportService(() => DatabaseHelper.CreateContext(connection));
 
         var result = service.ImportRows(new[]
         {
@@ -74,17 +76,17 @@ public class OpeningBalanceImportServiceTests
             {
                 RowNumber = 5,
                 ProductId = 1401,
-                
+                Quantity = 2,
                 SerialNumbers = "ONLY-ONE"
             }
-        }, postedByUserId: 9);
+        }, postedByUserId: 1);
 
         Assert.Equal(0, result.SuccessCount);
         var error = Assert.Single(result.Errors);
         Assert.Equal(5, error.RowNumber);
         Assert.Equal("Serial count must match stock-in quantity.", error.ErrorMessage);
 
-        using var assertContext = CreateContext(connection);
+        using var assertContext = DatabaseHelper.CreateContext(connection);
         Assert.Empty(assertContext.StockBalances);
         Assert.Empty(assertContext.ProductSerials);
         Assert.Empty(assertContext.StockLedgers);
@@ -112,14 +114,5 @@ public class OpeningBalanceImportServiceTests
                 IsSerialTracked = true
                  });
         context.SaveChanges();
-    }
-
-    private static AppDbContext CreateContext(SqliteConnection connection)
-    {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlite(connection)
-            .Options;
-
-        return new AppDbContext(options);
     }
 }

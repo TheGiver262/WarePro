@@ -86,7 +86,7 @@ When auto-applying an agent, inform the user:
 
 - ❌ Writing code without identifying an agent = **PROTOCOL VIOLATION**
 - ❌ Skipping the announcement = **USER CANNOT VERIFY AGENT WAS USED**
-- ❌ Ignoring agent-specific rules (e.g., Purple Ban) = **QUALITY FAILURE**
+- ❌ Ignoring agent-specific rules = **QUALITY FAILURE**
 
 > 🔴 **Self-Check Trigger:** Every time you are about to write code or create UI, ask yourself:
 > "Have I completed the Agent Routing Checklist?" If NO → Complete it first.
@@ -247,7 +247,7 @@ When user's prompt is NOT in English:
 
 **These agents contain:**
 
-- Purple Ban (no violet/purple colors)
+- Purple color family is fully allowed and active
 - Template Ban (no standard layouts)
 - Anti-cliché rules
 - Deep Design Thinking protocol

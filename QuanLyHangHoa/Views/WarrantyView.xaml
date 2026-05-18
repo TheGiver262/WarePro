@@ -8,7 +8,7 @@
              d:DesignHeight="800" d:DesignWidth="1200">
     
     <Grid Background="{StaticResource AppBackgroundBrush}">
-        <Grid Margin="{StaticResource PagePadding}">
+        <Grid Margin="{StaticResource PagePadding}" MaxWidth="1600" HorizontalAlignment="Stretch">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -103,37 +103,37 @@
 
                         <!-- Primary Search -->
                         <StackPanel Grid.Column="0" Margin="{StaticResource Margin.Right.md}">
-                            <TextBlock Text="TÌM KIẾM" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                            <TextBlock Text="TÌM KIẾM" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
                             <Grid>
-                                <TextBox materialDesign:HintAssist.Hint="Tìm mã phiếu, Serial/IMEI, khách hàng..." 
-                                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                                         Height="32" VerticalContentAlignment="Center">
+                                <TextBox Style="{StaticResource AppTextBoxStyle}" Height="40" materialDesign:HintAssist.Hint="Tìm mã phiếu, Serial/IMEI, khách hàng..." 
+                                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}">
                                     <TextBox.InputBindings>
                                         <KeyBinding Key="Enter" Command="{Binding LoadDataCommand}"/>
                                     </TextBox.InputBindings>
                                 </TextBox>
-                                <materialDesign:PackIcon Kind="Search" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,0" Foreground="{StaticResource TextDisabledBrush}"/>
+                                <materialDesign:PackIcon Kind="Search" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,12,0" Foreground="{StaticResource TextDisabledBrush}" Width="20" Height="20"/>
                             </Grid>
                         </StackPanel>
 
                         <!-- Action Buttons -->
                         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Bottom">
-                            <Button Style="{StaticResource SecondaryButton}" 
-                                    Command="{Binding ToggleAdvancedFilterCommand}"
-                                    Height="32" Padding="12,0" Margin="0,0,8,0">
-                                <StackPanel Orientation="Horizontal">
-                                    <materialDesign:PackIcon Kind="FilterVariant" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                    <TextBlock Text="BỘ LỌC NÂNG CAO" VerticalAlignment="Center"/>
-                                </StackPanel>
+                            <Button Command="{Binding LoadDataCommand}" 
+                                    Style="{StaticResource ProMaxIconButtonStyle}" Width="40" Height="40" Margin="0,0,8,0"
+                                    ToolTip="Tìm kiếm">
+                                <materialDesign:PackIcon Kind="Magnify" Width="22" Height="22"/>
                             </Button>
 
-                            <Button Style="{StaticResource PrimaryButton}" 
-                                    Command="{Binding LoadDataCommand}"
-                                    Height="32" Padding="16,0">
-                                <StackPanel Orientation="Horizontal">
-                                    <materialDesign:PackIcon Kind="Magnify" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                    <TextBlock Text="TÌM KIẾM" VerticalAlignment="Center"/>
-                                </StackPanel>
+                            <Button Command="{Binding ToggleAdvancedFilterCommand}" 
+                                    Style="{StaticResource ProMaxIconButtonStyle}" Width="40" Height="40" Margin="0,0,8,0"
+                                    ToolTip="Bộ lọc nâng cao">
+                                <materialDesign:PackIcon Kind="FilterVariant" Width="22" Height="22" 
+                                                         Foreground="{Binding IsAdvancedFilterOpen, Converter={StaticResource StatusToBrushConverter}, ConverterParameter='PrimaryIfTrue'}"/>
+                            </Button>
+
+                            <Button Command="{Binding ResetFilterCommand}" 
+                                    Style="{StaticResource ProMaxIconButtonStyle}" Width="40" Height="40"
+                                    ToolTip="Làm mới bộ lọc">
+                                <materialDesign:PackIcon Kind="FilterOffOutline" Width="22" Height="22"/>
                             </Button>
                         </StackPanel>
                     </Grid>
@@ -149,25 +149,27 @@
 
                         <!-- Status Filter -->
                         <StackPanel Grid.Column="0" Margin="{StaticResource Margin.Right.md}">
-                            <TextBlock Text="TRẠNG THÁI" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                            <TextBlock Text="TRẠNG THÁI" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
                             <ComboBox ItemsSource="{Binding StatusList}" 
                                       SelectedItem="{Binding SelectedStatusFilter}"
                                       Style="{StaticResource AppComboBoxStyle}"
-                                      Height="32" VerticalContentAlignment="Center"/>
+                                      Height="40" VerticalContentAlignment="Center"/>
                         </StackPanel>
 
                         <!-- From Date -->
                         <StackPanel Grid.Column="1" Margin="{StaticResource Margin.Right.md}">
-                            <TextBlock Text="TỪ NGÀY" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                            <TextBlock Text="TỪ NGÀY" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
                             <DatePicker SelectedDate="{Binding SearchFromDate}"
-                                       Height="32" VerticalContentAlignment="Center"/>
+                                       Style="{StaticResource AppDatePickerStyle}"
+                                       Height="40" VerticalContentAlignment="Center"/>
                         </StackPanel>
 
                         <!-- To Date -->
                         <StackPanel Grid.Column="2" Margin="{StaticResource Margin.Right.md}">
-                            <TextBlock Text="ĐẾN NGÀY" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                            <TextBlock Text="ĐẾN NGÀY" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
                             <DatePicker SelectedDate="{Binding SearchToDate}"
-                                       Height="32" VerticalContentAlignment="Center"/>
+                                       Style="{StaticResource AppDatePickerStyle}"
+                                       Height="40" VerticalContentAlignment="Center"/>
                         </StackPanel>
                     </Grid>
                 </StackPanel>

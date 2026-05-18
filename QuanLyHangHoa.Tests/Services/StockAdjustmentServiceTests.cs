@@ -4,6 +4,7 @@ using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Inventory;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
+using QuanLyHangHoa.Tests.Helpers;
 using Xunit;
 using System.Collections.Generic;
 using System;
@@ -17,9 +18,9 @@ public class StockAdjustmentServiceTests
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
-        using (var seedContext = CreateContext(connection))
+        using (var seedContext = DatabaseHelper.CreateContext(connection))
         {
-            seedContext.Database.EnsureCreated();
+            DatabaseHelper.SeedBasicData(seedContext);
             seedContext.Products.Add(new Product { Id = 500, ProductCode = "P500",
                 DisplayName = "Adjustment service product",
                 CategoryId = 1,
@@ -38,7 +39,7 @@ public class StockAdjustmentServiceTests
             seedContext.SaveChanges();
         }
 
-        var service = new StockAdjustmentService(() => CreateContext(connection));
+        var service = new StockAdjustmentService(() => DatabaseHelper.CreateContext(connection));
         var adjustment = new StockAdjustment
         {
             DocumentCode = "ADJ-SVC-001",
@@ -60,9 +61,10 @@ public class StockAdjustmentServiceTests
             Direction = "Out"
         });
 
-        service.Post(adjustment);
+        service.SaveDraft(adjustment, adjustment.Lines.ToList(), 1);
+        service.Post(adjustment.Id, 1);
 
-        using var assertContext = CreateContext(connection);
+        using var assertContext = DatabaseHelper.CreateContext(connection);
         var savedAdjustment = Assert.Single(assertContext.StockAdjustments.Include(a => a.Lines));
         Assert.Equal(StockDocumentStatus.Posted.ToString(), savedAdjustment.Status);
         Assert.NotNull(savedAdjustment.PostedAt);
@@ -79,14 +81,5 @@ public class StockAdjustmentServiceTests
 
         var audit = Assert.Single(assertContext.AuditLogs);
         Assert.Equal(AuditActionCode.PostStockAdjustment.ToString(), audit.ActionCode);
-    }
-
-    private static AppDbContext CreateContext(SqliteConnection connection)
-    {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlite(connection)
-            .Options;
-
-        return new AppDbContext(options);
     }
 }

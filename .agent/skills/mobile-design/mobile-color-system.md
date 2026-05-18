@@ -354,7 +354,7 @@ AI tends to:
 ├── Use same colors for light/dark
 ├── Ignore OLED battery implications
 ├── Skip contrast calculations
-├── Default to purple/violet (BANNED)
+├── Overuse single color families without user choice
 ├── Use low contrast "aesthetic" grays
 ├── Not test in outdoor conditions
 └── Forget colorblind users

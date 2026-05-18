@@ -14,15 +14,15 @@ public class ProductUnitViewModelTests
     public void SaveCommand_AddsNewProductUnit_WhenSelectedProductUnitIsNull()
     {
         // Arrange
-        var mockProductUnitService = new Mock<ProductUnitService>();
-        var mockProductService = new Mock<ProductService>();
-        var mockRefDataService = new Mock<ReferenceDataService>();
+        var mockProductUnitService = new Mock<ProductUnitService>(new object[] { null });
+        var mockProductService = new Mock<ProductService>(new object[] { null });
+        var mockRefDataService = new Mock<ReferenceDataService>(new object[] { null });
 
         var products = new List<Product> { new() { Id = 10, DisplayName = "May in" } };
         var units = new List<Unit> { new() { Id = 20, DisplayName = "Thung" } };
 
-        mockProductService.Setup(s => s.GetAllProducts()).Returns(products);
-        mockRefDataService.Setup(s => s.GetAllUnits()).Returns(units);
+        mockProductService.Setup(s => s.GetAllProducts(It.IsAny<bool>())).Returns(products);
+        mockRefDataService.Setup(s => s.GetAllUnits(It.IsAny<bool>())).Returns(units);
         mockProductUnitService.Setup(s => s.GetByProductId(It.IsAny<int>())).Returns(new List<ProductUnit>());
 
         var viewModel = new ProductUnitViewModel(mockProductUnitService.Object, mockProductService.Object, mockRefDataService.Object);
@@ -45,9 +45,9 @@ public class ProductUnitViewModelTests
     public void SaveCommand_RejectsMissingProductOrUnit()
     {
         // Arrange
-        var mockProductUnitService = new Mock<ProductUnitService>();
-        var mockProductService = new Mock<ProductService>();
-        var mockRefDataService = new Mock<ReferenceDataService>();
+        var mockProductUnitService = new Mock<ProductUnitService>(new object[] { null });
+        var mockProductService = new Mock<ProductService>(new object[] { null });
+        var mockRefDataService = new Mock<ReferenceDataService>(new object[] { null });
 
         var viewModel = new ProductUnitViewModel(mockProductUnitService.Object, mockProductService.Object, mockRefDataService.Object);
 

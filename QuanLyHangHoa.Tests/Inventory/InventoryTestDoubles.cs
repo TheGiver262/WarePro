@@ -9,7 +9,7 @@ internal sealed class InMemoryInventoryStore : IInventoryUnitOfWork
     public Dictionary<string, ProductSerialSnapshot> Serials { get; } = new(StringComparer.OrdinalIgnoreCase);
     public List<StockLedgerEntry> Ledgers { get; } = new();
     public List<AuditLogEntry> Audits { get; } = new();
-    public Dictionary<Guid, StockDocumentStatus> DocumentStatuses { get; } = new();
+    public Dictionary<(int Id, string Type), StockDocumentStatus> DocumentStatuses { get; } = new();
     public int PurchaseInvoiceCreatedCount { get; private set; }
     public bool WasCommitted { get; private set; }
 
@@ -71,9 +71,9 @@ internal sealed class InMemoryInventoryStore : IInventoryUnitOfWork
         Audits.Add(entry);
     }
 
-    public void MarkDocumentPosted(Guid documentId)
+    public void MarkDocumentPosted(int documentId, string documentType)
     {
-        DocumentStatuses[documentId] = StockDocumentStatus.Posted;
+        DocumentStatuses[(documentId, documentType)] = StockDocumentStatus.Posted;
     }
 
     public void Commit()

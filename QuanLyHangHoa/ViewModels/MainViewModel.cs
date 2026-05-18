@@ -120,7 +120,9 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void OpenWarrantyView()
         {
-            var view = new WarrantyView { DataContext = new WarrantyViewModel(CurrentUser, ContextFactory) };
+            var vm = new WarrantyViewModel(CurrentUser, ContextFactory);
+            vm.LoadData();
+            var view = new WarrantyView { DataContext = vm };
             CurrentView = view;
             CurrentViewTitle = "BẢO HÀNH";
             CurrentViewSubtitle = "Quản lý phiếu bảo hành và sửa chữa";

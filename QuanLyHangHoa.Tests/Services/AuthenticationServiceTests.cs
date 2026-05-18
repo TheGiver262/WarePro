@@ -71,7 +71,7 @@ public class AuthenticationServiceTests
         var ex = Assert.Throws<InvalidOperationException>(() =>
             service.ChangePassword(11, "wrong-pass", "new-pass"));
 
-        Assert.Equal("Current password is incorrect.", ex.Message);
+        Assert.Equal("Mật khẩu hiện tại không chính xác.", ex.Message);
         
         using var assertContext = CreateContext(connection);
         var user = assertContext.AppUsers.Single(u => u.Id == 11);

@@ -29,7 +29,7 @@ public class EfInventoryUnitOfWorkTests
         context.SaveChanges();
 
         var postedAt = new DateTime(2026, 4, 27, 9, 0, 0);
-        var documentId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        var documentId = 501;
         var service = new InventoryPostingService(
             new EfInventoryUnitOfWork(context),
             new TestWarehouseProvider(1),
@@ -97,7 +97,7 @@ public class EfInventoryUnitOfWorkTests
 
         var exception = Assert.Throws<InventoryDomainException>(() => service.PostStockOut(
             new PostStockOutCommand(
-                Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"), WarehouseId: 1,
+                502, WarehouseId: 1,
                 StockOutKind.Sale,
                 StockDocumentStatus.Approved,
                 101,

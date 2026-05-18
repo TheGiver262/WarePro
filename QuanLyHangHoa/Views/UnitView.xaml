@@ -7,7 +7,7 @@
              xmlns:vm="clr-namespace:QuanLyHangHoa.ViewModels"
              mc:Ignorable="d" d:DesignHeight="800" d:DesignWidth="1100">
     <Grid Background="{StaticResource AppBackgroundBrush}">
-        <Grid Margin="{StaticResource PagePadding}">
+        <Grid Margin="{StaticResource PagePadding}" MaxWidth="1600" HorizontalAlignment="Stretch">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/> <!-- Header -->
                 <RowDefinition Height="Auto"/> <!-- Search -->
@@ -51,42 +51,34 @@
 
                     <!-- Code -->
                     <StackPanel Grid.Column="0" Margin="{StaticResource Margin.Right.md}">
-                        <TextBlock Text="MÃ ĐƠN VỊ" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                        <TextBox materialDesign:HintAssist.Hint="Tìm theo mã..." 
-                                 Height="32" VerticalContentAlignment="Center"
+                        <TextBlock Text="MÃ ĐƠN VỊ" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
+                        <TextBox Style="{StaticResource AppTextBoxStyle}" materialDesign:HintAssist.Hint="Tìm theo mã..." 
+                                 Height="40" VerticalContentAlignment="Center"
                                  Text="{Binding SearchCode, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
                     <!-- Name -->
                     <StackPanel Grid.Column="1" Margin="{StaticResource Margin.Right.md}">
-                        <TextBlock Text="TÊN ĐƠN VỊ" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                        <TextBox materialDesign:HintAssist.Hint="Tìm theo tên..." 
-                                 Height="32" VerticalContentAlignment="Center"
+                        <TextBlock Text="TÊN ĐƠN VỊ" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
+                        <TextBox Style="{StaticResource AppTextBoxStyle}" materialDesign:HintAssist.Hint="Tìm theo tên..." 
+                                 Height="40" VerticalContentAlignment="Center"
                                  Text="{Binding SearchName, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
                     <!-- Status Filter -->
                     <StackPanel Grid.Column="2" Margin="{StaticResource Margin.Right.md}">
-                        <TextBlock Text="TRẠNG THÁI" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                        <ComboBox Height="32" VerticalContentAlignment="Center"
+                        <TextBlock Text="TRẠNG THÁI" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
+                        <ComboBox Style="{StaticResource AppComboBoxStyle}" Height="40" VerticalContentAlignment="Center"
                                   ItemsSource="{Binding StatusOptions}"
                                   SelectedItem="{Binding SearchStatus, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Bottom">
-                        <Button Style="{StaticResource SecondaryButton}" 
-                                Command="{Binding RefreshCommand}"
-                                ToolTip="Làm mới bộ lọc"
-                                Width="32" Height="32" Padding="0" Margin="0,0,8,0">
-                            <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18"/>
+                        <Button Command="{Binding RefreshCommand}" Style="{StaticResource ProMaxIconButtonStyle}" Width="40" Height="40" Margin="0,0,8,0" ToolTip="Làm mới bộ lọc">
+                            <materialDesign:PackIcon Kind="FilterOffOutline" Width="22" Height="22"/>
                         </Button>
-                        <Button Style="{StaticResource PrimaryButton}" 
-                                Width="140" Height="32"
-                                Command="{Binding ExportToExcelCommand}">
-                            <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="FileExcelOutline" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
-                            </StackPanel>
+                        <Button Command="{Binding ExportToExcelCommand}" Style="{StaticResource ProMaxIconButtonStyle}" Width="40" Height="40" ToolTip="Xuất Excel">
+                            <materialDesign:PackIcon Kind="FileExcelOutline" Width="24" Height="24" Foreground="#10B981"/>
                         </Button>
                     </StackPanel>
                 </Grid>
@@ -96,11 +88,20 @@
             <materialDesign:Card Grid.Row="2" Style="{StaticResource AppCard}" Padding="0">
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/> <!-- Table Header Border -->
+                        <RowDefinition Height="*"/>    <!-- DataGrid -->
+                        <RowDefinition Height="Auto"/> <!-- Footer -->
                     </Grid.RowDefinitions>
                     
-                    <DataGrid Grid.Row="0" ItemsSource="{Binding Units}" SelectedItem="{Binding SelectedUnit, Mode=TwoWay}"
+                    <!-- Table Header Border -->
+                    <Border Grid.Row="0" Padding="{StaticResource Spacing.md}" Background="{StaticResource AppSurfaceBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="ListBox" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}" Width="20" Height="20"/>
+                            <TextBlock Text="DANH SÁCH ĐƠN VỊ TÍNH" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.md}"/>
+                        </StackPanel>
+                    </Border>
+                    
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding Units}" SelectedItem="{Binding SelectedUnit, Mode=TwoWay}"
                                AlternationCount="10000" EnableRowVirtualization="False"
                                AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                                RowHeight="52">
@@ -111,7 +112,7 @@
                                 <DataGridTemplateColumn.Header>
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                        <TextBlock Text="MÃ ĐƠN VỊ" VerticalAlignment="Center"/>
+                                        <TextBlock Text="MÃ ĐƠN VỊ" VerticalAlignment="Center" FontWeight="SemiBold"/>
                                     </StackPanel>
                                 </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
@@ -126,7 +127,7 @@
                                 <DataGridTemplateColumn.Header>
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                        <TextBlock Text="TÊN ĐƠN VỊ TÍNH" VerticalAlignment="Center"/>
+                                        <TextBlock Text="TÊN ĐƠN VỊ TÍNH" VerticalAlignment="Center" FontWeight="SemiBold"/>
                                     </StackPanel>
                                 </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
@@ -143,7 +144,7 @@
                                 <DataGridTemplateColumn.Header>
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                        <TextBlock Text="TRẠNG THÁI" VerticalAlignment="Center"/>
+                                        <TextBlock Text="TRẠNG THÁI" VerticalAlignment="Center" FontWeight="SemiBold"/>
                                     </StackPanel>
                                 </DataGridTemplateColumn.Header>
                             </DataGridTemplateColumn>
@@ -171,7 +172,7 @@
                     </DataGrid>
 
                     <!-- Footer -->
-                    <Border Grid.Row="1" VerticalAlignment="Bottom" Padding="20,12" Background="{StaticResource AppFooterBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
+                    <Border Grid.Row="2" VerticalAlignment="Bottom" Padding="20,12" Background="{StaticResource AppFooterBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
                         <TextBlock FontSize="13" Foreground="{StaticResource AppSecondaryBrush}">
                             <TextBlock.Text>
                                 <MultiBinding StringFormat="{}Hiện có {0} đơn vị tính trong hệ thống">

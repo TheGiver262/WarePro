@@ -49,29 +49,46 @@
 
                 <!-- Filter Card -->
                 <materialDesign:Card Style="{StaticResource AppCard}" Padding="16">
-                    <StackPanel Orientation="Horizontal">
-                        <StackPanel Margin="0,0,24,0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="180"/>
+                            <ColumnDefinition Width="150"/>
+                            <ColumnDefinition Width="150"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" Margin="0,0,16,0">
                             <TextBlock Text="MÃ PHIẾU" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
-                            <TextBox Width="180" Style="{StaticResource AppTextBoxStyle}" materialDesign:HintAssist.Hint="Tìm theo mã..."
+                            <TextBox Style="{StaticResource AppTextBoxStyle}" Height="40" materialDesign:HintAssist.Hint="Tìm theo mã..."
                                      Text="{Binding SearchDocumentCode, UpdateSourceTrigger=PropertyChanged}"/>
                         </StackPanel>
 
-                        <StackPanel Margin="0,0,24,0">
+                        <StackPanel Grid.Column="1" Margin="0,0,16,0">
                             <TextBlock Text="TỪ NGÀY" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
-                            <DatePicker Width="150" Style="{StaticResource AppDatePickerStyle}" 
+                            <DatePicker Style="{StaticResource AppDatePickerStyle}" Height="40"
                                         SelectedDate="{Binding FilterFromDate}"/>
                         </StackPanel>
 
-                        <StackPanel Margin="0,0,24,0">
+                        <StackPanel Grid.Column="2" Margin="0,0,16,0">
                             <TextBlock Text="ĐẾN NGÀY" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
-                            <DatePicker Width="150" Style="{StaticResource AppDatePickerStyle}" 
+                            <DatePicker Style="{StaticResource AppDatePickerStyle}" Height="40"
                                         SelectedDate="{Binding FilterToDate}"/>
                         </StackPanel>
 
-                        <Button Command="{Binding LoadDataCommand}" Style="{StaticResource SecondaryButton}" VerticalAlignment="Bottom" Height="42" Margin="0,0,0,2">
-                            <materialDesign:PackIcon Kind="Refresh" Width="20" Height="20"/>
-                        </Button>
-                    </StackPanel>
+                        <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Bottom">
+                            <Button Command="{Binding LoadDataCommand}" Style="{StaticResource ProMaxIconButtonStyle}" Width="40" Height="40" ToolTip="Tìm kiếm / Tải dữ liệu">
+                                <materialDesign:PackIcon Kind="Refresh" Width="22" Height="22"/>
+                            </Button>
+                            
+                            <Button Command="{Binding ExportExcelCommand}" Style="{StaticResource ProMaxIconButtonStyle}" Width="40" Height="40" Margin="8,0,0,0" ToolTip="Xuất Excel">
+                                <materialDesign:PackIcon Kind="FileExcelOutline" Width="24" Height="24" Foreground="#10B981"/>
+                            </Button>
+
+                            <Button Command="{Binding ResetFilterCommand}" Style="{StaticResource ProMaxIconButtonStyle}" Width="40" Height="40" Margin="8,0,0,0" ToolTip="Làm mới bộ lọc">
+                                <materialDesign:PackIcon Kind="FilterOffOutline" Width="22" Height="22"/>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
                 </materialDesign:Card>
 
                 <!-- Stats Summary -->
@@ -104,7 +121,7 @@
                         <DataGridTemplateColumn Header="TRẠNG THÁI" Width="120">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <ContentControl Content="{Binding Status}" ContentTemplate="{StaticResource InventoryStatusBadgeTemplate}"/>
+                                    <ContentControl Content="{Binding}" ContentTemplate="{StaticResource InventoryStatusBadgeTemplate}"/>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
@@ -157,7 +174,7 @@
                     <StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{Binding DocumentCode}" Style="{StaticResource TypographyH1}" Foreground="{StaticResource AppTertiaryBrush}"/>
-                            <ContentControl Content="{Binding Status}" ContentTemplate="{StaticResource InventoryStatusBadgeTemplate}" Margin="16,0,0,0" VerticalAlignment="Center"/>
+                            <ContentControl Content="{Binding}" ContentTemplate="{StaticResource InventoryStatusBadgeTemplate}" Margin="16,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
                         <TextBlock Text="Chi tiết phiếu điều chỉnh hàng hóa" Style="{StaticResource TypographyCaption}" Opacity="0.7"/>
                     </StackPanel>

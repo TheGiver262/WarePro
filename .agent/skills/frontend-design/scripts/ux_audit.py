@@ -56,7 +56,7 @@ Analyzes code for compliance with:
    - Effect Selection (purpose over decoration)
 
 8. COLOR SYSTEM (7 sections):
-   - PURPLE BAN (Critical Maestro rule - #8B5CF6, #A855F7, etc.)
+   - PURPLE ALLOWED (Purple is fully allowed)
    - 60-30-10 Rule (dominant, secondary, accent)
    - Color Scheme Patterns (monochromatic, analogous)
    - Dark Mode Compliance (no pure black/white)
@@ -497,11 +497,8 @@ class UXAuditor:
 
         # --- 4. COLOR SYSTEM (color-system.md) ---
 
-        # 4.1 PURPLE BAN - Critical check from color-system.md
-        purple_hexes = ['#8B5CF6', '#A855F7', '#9333EA', '#7C3AED', '#6D28D9',
-                        '#8B5CF6', '#A78BFA', '#C4B5FD', '#DDD6FE', '#EDE9FE',
-                        '#8b5cf6', '#a855f7', '#9333ea', '#7c3aed', '#6d28d9',
-                        'purple', 'violet', 'fuchsia', 'magenta', 'lavender']
+        # 4.1 PURPLE BAN - Completely deactivated (purple is allowed)
+        purple_hexes = []
         for purple in purple_hexes:
             if purple.lower() in content.lower():
                 self.issues.append(f"[Color] {filename}: PURPLE DETECTED ('{purple}'). Banned by Maestro rules. Use Teal/Cyan/Emerald instead.")

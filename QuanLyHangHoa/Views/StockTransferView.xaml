@@ -44,35 +44,42 @@
             </Grid>
 
             <!-- Row 1: Filter Section -->
-            <materialDesign:Card Grid.Row="1" Style="{StaticResource AppCard}" Background="{StaticResource SurfaceMutedBrush}" Margin="{StaticResource SectionBottomMargin}" Padding="16">
+            <materialDesign:Card Grid.Row="1" Style="{StaticResource AppCard}" Margin="{StaticResource SectionBottomMargin}" Padding="16">
                 <Grid>
                     <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="350"/>
+                        <ColumnDefinition Width="180"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <StackPanel Orientation="Horizontal">
-                        <materialDesign:PackIcon Kind="FilterVariant" Width="20" Height="20" VerticalAlignment="Center" Margin="0,0,12,0" Opacity="0.6"/>
-                        <TextBox Width="350" Style="{StaticResource AppTextBoxStyle}" materialDesign:HintAssist.Hint="Tìm theo mã phiếu, ghi chú..."
+
+                    <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                        <TextBlock Text="TÌM KIẾM" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
+                        <TextBox Style="{StaticResource AppTextBoxStyle}" Height="40" materialDesign:HintAssist.Hint="Mã phiếu, ghi chú..."
                                  Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}">
                             <TextBox.InputBindings>
                                 <KeyBinding Key="Enter" Command="{Binding LoadDataCommand}"/>
                             </TextBox.InputBindings>
                         </TextBox>
+                    </StackPanel>
 
-                        <ComboBox Width="180" Margin="12,0,0,0" Style="{StaticResource AppComboBoxStyle}"
+                    <StackPanel Grid.Column="1" Margin="0,0,16,0">
+                        <TextBlock Text="TRẠNG THÁI" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
+                        <ComboBox Style="{StaticResource AppComboBoxStyle}" Height="40"
                                   ItemsSource="{Binding AvailableStatuses}"
                                   SelectedItem="{Binding SelectedStatus, UpdateSourceTrigger=PropertyChanged}"
-                                  materialDesign:HintAssist.Hint="Trạng thái"/>
+                                  materialDesign:HintAssist.Hint="Tất cả trạng thái"/>
+                    </StackPanel>
 
-                        <Button Command="{Binding LoadDataCommand}" Style="{StaticResource ProMaxIconButtonStyle}" Margin="8,0,0,0">
-                            <materialDesign:PackIcon Kind="Refresh" Width="20" Height="20"/>
+                    <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Bottom">
+                        <Button Command="{Binding LoadDataCommand}" Style="{StaticResource ProMaxIconButtonStyle}" Width="40" Height="40" ToolTip="Tìm kiếm" Margin="0,0,8,0">
+                            <materialDesign:PackIcon Kind="Refresh" Width="22" Height="22"/>
                         </Button>
-                        <Button Command="{Binding ResetFilterCommand}" Style="{StaticResource ProMaxIconButtonStyle}" Margin="4,0,0,0">
-                            <materialDesign:PackIcon Kind="FilterOffOutline" Width="20" Height="20"/>
+                        <Button Command="{Binding ResetFilterCommand}" Style="{StaticResource ProMaxIconButtonStyle}" Width="40" Height="40" ToolTip="Làm mới bộ lọc" Margin="0,0,8,0">
+                            <materialDesign:PackIcon Kind="FilterOffOutline" Width="22" Height="22"/>
                         </Button>
-                        
-                        <Button Command="{Binding ExportExcelCommand}" Style="{StaticResource ProMaxIconButtonStyle}" Margin="12,0,0,0" ToolTip="Xuất Excel">
-                            <materialDesign:PackIcon Kind="FileExcelOutline" Width="20" Height="20" Foreground="#10B981"/>
+                        <Button Command="{Binding ExportExcelCommand}" Style="{StaticResource ProMaxIconButtonStyle}" Width="40" Height="40" ToolTip="Xuất Excel">
+                            <materialDesign:PackIcon Kind="FileExcelOutline" Width="24" Height="24" Foreground="#10B981"/>
                         </Button>
                     </StackPanel>
                 </Grid>
@@ -154,7 +161,7 @@
                         <TextBlock Text="CHI TIẾT PHIẾU CHUYỂN KHO" Style="{StaticResource TypographyH1}"/>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{Binding DocumentCode, StringFormat='Phiếu: {0}'}" Style="{StaticResource TypographyCaption}" Opacity="0.7" VerticalAlignment="Center"/>
-                            <ContentControl Content="{Binding Status}" ContentTemplate="{StaticResource InventoryStatusBadgeTemplate}" VerticalAlignment="Center" Margin="12,0,0,0"
+                            <ContentControl Content="{Binding}" ContentTemplate="{StaticResource InventoryStatusBadgeTemplate}" VerticalAlignment="Center" Margin="12,0,0,0"
                                             Visibility="{Binding IsDetailViewVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                         </StackPanel>
                     </StackPanel>

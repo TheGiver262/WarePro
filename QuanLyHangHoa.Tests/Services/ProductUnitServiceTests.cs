@@ -20,14 +20,15 @@ public class ProductUnitServiceTests
         {
             seedContext.Database.EnsureCreated();
             seedContext.Units.AddRange(
-                new Unit { Id = 101, DisplayName = "Cai" },
-                new Unit { Id = 102, DisplayName = "Thung" });
+                new Unit { Id = 101, UnitCode = "CAI", DisplayName = "Cai", IsActive = true },
+                new Unit { Id = 102, UnitCode = "THUNG", DisplayName = "Thung", IsActive = true });
             seedContext.Products.Add(new Product { Id = 1200, ProductCode = "P1200",
                 DisplayName = "Unit product",
                 CategoryId = 1,
                 BrandId = 1,
                 DefaultUnitId = 101,
-                DefaultPrice = 10m
+                DefaultPrice = 10m,
+                IsActive = true
                  });
             seedContext.SaveChanges();
         }
@@ -74,10 +75,6 @@ public class ProductUnitServiceTests
 
     private static AppDbContext CreateContext(SqliteConnection connection)
     {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlite(connection)
-            .Options;
-
-        return new AppDbContext(options);
+        return DatabaseHelper.CreateContext(connection);
     }
 }

@@ -14,9 +14,9 @@ namespace QuanLyHangHoa.Converters
             
             string brushKey = status switch
             {
-                "đã tt" or "paid" or "posted" or "hoàn thành" or "đã trả" or "đã nhập" or "đã xuất" or "đã điều chuyển" or "instock" => "SuccessTextBrush",
-                "tt 1 phần" or "partial" or "đang sửa" => "WarningTextBrush",
-                "chưa tt" or "unpaid" or "quá hạn" or "overdue" or "lowstock" => "DangerTextBrush",
+                "đã tt" or "paid" or "posted" or "hoàn thành" or "đã trả" or "đã nhập" or "đã xuất" or "đã chuyển" or "instock" or "adjusted" or "đã kiểm kê" or "đã điều chỉnh" or "đã ghi sổ" => "SuccessTextBrush",
+                "tt 1 phần" or "partial" or "đang sửa" or "counted" or "pending" or "đang kiểm kê" => "WarningTextBrush",
+                "chưa tt" or "unpaid" or "quá hạn" or "overdue" or "lowstock" or "cancelled" or "deleted" or "scrapped" or "hủy" => "DangerTextBrush",
                 "nháp" or "draft" or "tiếp nhận" => "NeutralTextBrush",
                 _ => "NeutralTextBrush"
             };
@@ -38,9 +38,9 @@ namespace QuanLyHangHoa.Converters
             
             string brushKey = status switch
             {
-                "đã tt" or "paid" or "posted" or "hoàn thành" or "đã trả" or "đã nhập" or "đã xuất" or "đã điều chuyển" or "instock" => "SuccessBgBrush",
-                "tt 1 phần" or "partial" or "đang sửa" => "WarningBgBrush",
-                "chưa tt" or "unpaid" or "quá hạn" or "overdue" or "lowstock" => "DangerBgBrush",
+                "đã tt" or "paid" or "posted" or "hoàn thành" or "đã trả" or "đã nhập" or "đã xuất" or "đã chuyển" or "instock" or "adjusted" or "đã kiểm kê" or "đã điều chỉnh" or "đã ghi sổ" => "SuccessBgBrush",
+                "tt 1 phần" or "partial" or "đang sửa" or "counted" or "pending" or "đang kiểm kê" => "WarningBgBrush",
+                "chưa tt" or "unpaid" or "quá hạn" or "overdue" or "lowstock" or "cancelled" or "deleted" or "scrapped" or "hủy" => "DangerBgBrush",
                 "nháp" or "draft" or "tiếp nhận" => "NeutralBgBrush",
                 _ => "NeutralBgBrush"
             };
@@ -66,17 +66,23 @@ namespace QuanLyHangHoa.Converters
                 "tt 1 phần" or "partial" => "TT 1 phần",
                 "chưa tt" or "unpaid" => "Chưa TT",
                 "quá hạn" or "overdue" => "Quá hạn",
-                "posted" => "Đã ghi sổ",
-                "draft" => "Phiếu nháp",
+                "posted" or "đã ghi sổ" => "Đã ghi sổ",
+                "draft" or "nháp" => "Dự thảo",
+                "counted" or "đã kiểm kê" => "Đã kiểm kê",
+                "đang kiểm kê" => "Đang kiểm kê",
+                "adjusted" or "đã cân bằng" or "đã điều chỉnh" => "Đã điều chỉnh",
+                "pending" or "chờ duyệt" => "Chờ duyệt",
+                "cancelled" or "deleted" or "hủy" => "Đã hủy",
                 "hoàn thành" => "Hoàn thành",
                 "đã trả" => "Đã trả khách",
                 "đang sửa" => "Đang sửa",
                 "tiếp nhận" => "Tiếp nhận",
                 "đã nhập" => "Đã nhập kho",
                 "đã xuất" => "Đã xuất kho",
-                "đã điều chuyển" => "Đã chuyển",
+                "đã điều chuyển" or "đã chuyển" => "Đã chuyển",
                 "instock" => "Còn hàng",
                 "lowstock" => "Sắp hết",
+                "scrapped" => "Đã thanh lý",
                 _ => value?.ToString() ?? ""
             };
         }
@@ -86,6 +92,7 @@ namespace QuanLyHangHoa.Converters
             throw new NotImplementedException();
         }
     }
+
     public class StatusToEditVisibilityConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
@@ -114,9 +121,9 @@ namespace QuanLyHangHoa.Converters
             string status = value?.ToString()?.ToLower() ?? "";
             string brushKey = status switch
             {
-                "đã tt" or "paid" or "posted" or "hoàn thành" or "đã trả" or "đã nhập" or "đã xuất" or "đã điều chuyển" => "SuccessTextBrush",
-                "tt 1 phần" or "partial" or "đang sửa" => "WarningTextBrush",
-                "chưa tt" or "unpaid" or "quá hạn" or "overdue" => "DangerTextBrush",
+                "đã tt" or "paid" or "posted" or "hoàn thành" or "đã trả" or "đã nhập" or "đã xuất" or "đã điều chuyển" or "đã chuyển" or "adjusted" or "đã kiểm kê" or "đã điều chỉnh" or "đã ghi sổ" => "SuccessTextBrush",
+                "tt 1 phần" or "partial" or "đang sửa" or "counted" or "pending" or "đang kiểm kê" => "WarningTextBrush",
+                "chưa tt" or "unpaid" or "quá hạn" or "overdue" or "cancelled" or "deleted" or "scrapped" or "hủy" => "DangerTextBrush",
                 "nháp" or "draft" or "tiếp nhận" => "NeutralTextBrush",
                 _ => "TextSecondaryBrush"
             };
@@ -130,3 +137,4 @@ namespace QuanLyHangHoa.Converters
         }
     }
 }
+
