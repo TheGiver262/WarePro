@@ -31,7 +31,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _searchCode = string.Empty;
         [ObservableProperty] private string _searchName = string.Empty;
         [ObservableProperty] private string? _searchStatus = "Tất cả";
-        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Ho\u00E1t \u0111\u1ED9ng", "D\u1EEBng"];
+        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Ho\u1EA1t \u0111\u1ED9ng", "D\u1EEBng"];
 
         public CategoryViewModel(Func<AppDbContext> contextFactory, AppUser currentUser)
         {
@@ -54,7 +54,7 @@ namespace QuanLyHangHoa.ViewModels
             if (!string.IsNullOrWhiteSpace(SearchName))
                 query = query.Where(c => c.DisplayName.Contains(SearchName));
 
-            if (SearchStatus == "Ho\u00E1t \u0111\u1ED9ng")
+            if (SearchStatus == "Ho\u1EA1t \u0111\u1ED9ng")
                 query = query.Where(c => c.IsActive);
             else if (SearchStatus == "D\u1EEBng")
                 query = query.Where(c => !c.IsActive);
@@ -169,7 +169,7 @@ namespace QuanLyHangHoa.ViewModels
                         {
                             worksheet.Cell(i + 2, 1).Value = Categories[i].CategoryCode;
                             worksheet.Cell(i + 2, 2).Value = Categories[i].DisplayName;
-                            worksheet.Cell(i + 2, 3).Value = Categories[i].IsActive ? "Ho\u00E1t \u0111\u1ED9ng" : "D\u1EEBng";
+                            worksheet.Cell(i + 2, 3).Value = Categories[i].IsActive ? "Ho\u1EA1t \u0111\u1ED9ng" : "D\u1EEBng";
                         }
 
                         worksheet.Columns().AdjustToContents();

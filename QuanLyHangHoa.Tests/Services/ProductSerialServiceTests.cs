@@ -63,18 +63,41 @@ public class ProductSerialServiceTests
             DefaultPrice = 10m,
             IsSerialTracked = true
              });
+
+        context.StockIns.Add(new StockIn
+        {
+            Id = 500,
+            DocumentCode = "IN001",
+            WarehouseId = 1,
+            PurposeCode = "Import",
+            Status = "Posted",
+            CreatedBy = 1,
+            CreatedAt = DateTime.UtcNow
+        });
+
+        context.StockInLines.Add(new StockInLine
+        {
+            Id = 600,
+            StockInId = 500,
+            ProductId = 1300,
+            UnitId = 1,
+            Quantity = 2,
+            BaseQuantity = 2,
+            UnitPrice = 10m
+        });
+
         context.ProductSerials.AddRange(
             new ProductSerial { ProductId = 1300,
                 SerialNumber = "ABC-001",
                 CurrentStatus = "InStock",
                 CurrentWarehouseId = 1,
-                LastStockInLineId = 0 // Dummy or valid id
+                LastStockInLineId = 600
                  },
             new ProductSerial { ProductId = 1300,
                 SerialNumber = "SOLD-001",
                 CurrentStatus = "Sold",
                 CurrentWarehouseId = null,
-                LastStockInLineId = 0
+                LastStockInLineId = 600
                  });
         context.SaveChanges();
     }

@@ -77,11 +77,18 @@
 
                     <!-- Actions -->
                     <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button Command="{Binding RefreshCommand}" Style="{StaticResource ProMaxIconButtonStyle}" Width="40" Height="40" Margin="0,0,8,0" ToolTip="Làm mới bộ lọc">
-                            <materialDesign:PackIcon Kind="FilterOffOutline" Width="22" Height="22"/>
+                        <Button Style="{StaticResource AppRefreshButton}" 
+                                Command="{Binding RefreshCommand}"
+                                ToolTip="Làm mới bộ lọc"
+                                Margin="0,0,8,0">
+                            <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18"/>
                         </Button>
-                        <Button Command="{Binding ExportToExcelCommand}" Style="{StaticResource ProMaxIconButtonStyle}" Width="40" Height="40" ToolTip="Xuất Excel">
-                            <materialDesign:PackIcon Kind="FileExcelOutline" Width="24" Height="24" Foreground="#10B981"/>
+                        <Button Style="{StaticResource AppExcelButton}" 
+                                Command="{Binding ExportToExcelCommand}">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="FileExcelOutline" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
+                            </StackPanel>
                         </Button>
                     </StackPanel>
                 </Grid>
@@ -97,14 +104,7 @@
                     </Grid.RowDefinitions>
 
                     <!-- Table Header -->
-                    <Border Grid.Row="0" Padding="{StaticResource Spacing.md}" Background="{StaticResource AppSurfaceBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1">
-                        <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="ListBox" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}" Width="20" Height="20"/>
-                            <TextBlock Text="DANH SÁCH DANH MỤC SẢN PHẨM" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.md}"/>
-                        </StackPanel>
-                    </Border>
-
-                    <DataGrid Grid.Row="1" ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory, Mode=TwoWay}"
+                    <DataGrid Grid.Row="0" ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory, Mode=TwoWay}"
                                AlternationCount="10000" EnableRowVirtualization="False"
                                AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                                BorderThickness="0" RowHeight="56" Background="Transparent">

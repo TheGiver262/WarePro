@@ -105,12 +105,19 @@
                                                         Foreground="{Binding IsAdvancedFilterVisible, Converter={StaticResource StatusToBrushConverter}, ConverterParameter='PrimaryIfTrue'}"/>
                             </Button>
 
-                            <Button Grid.Column="5" Command="{Binding ExportExcelCommand}" Style="{StaticResource ProMaxIconButtonStyle}" Width="40" Height="40" VerticalAlignment="Bottom" Margin="0,0,8,0" ToolTip="Xuất Excel">
-                                <materialDesign:PackIcon Kind="FileExcelOutline" Width="24" Height="24" Foreground="#10B981"/>
+                            <Button Grid.Column="5" Style="{StaticResource AppRefreshButton}" 
+                                    Command="{Binding ResetFilterCommand}"
+                                    ToolTip="Làm mới bộ lọc"
+                                    VerticalAlignment="Bottom" Margin="0,0,8,0">
+                                <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18"/>
                             </Button>
-
-                            <Button Grid.Column="6" Command="{Binding ResetFilterCommand}" Style="{StaticResource ProMaxIconButtonStyle}" Width="40" Height="40" VerticalAlignment="Bottom" ToolTip="Làm mới bộ lọc">
-                                <materialDesign:PackIcon Kind="FilterOffOutline" Width="22" Height="22"/>
+                            <Button Grid.Column="6" Style="{StaticResource AppExcelButton}" 
+                                    Command="{Binding ExportExcelCommand}"
+                                    VerticalAlignment="Bottom">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="FileExcelOutline" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
+                                </StackPanel>
                             </Button>
                         </Grid>
 

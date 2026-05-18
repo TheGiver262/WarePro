@@ -11,7 +11,14 @@ public partial class ProductSerial
 
     public string SerialNumber { get; set; } = null!;
 
-    public string CurrentStatus { get; set; } = null!;
+    private string _currentStatus = null!;
+    public string CurrentStatus
+    {
+        get => _currentStatus;
+        set => _currentStatus = string.Equals(value, "ReturnedToManufacturer", StringComparison.OrdinalIgnoreCase) 
+            ? "ReturnedToManufacturer" 
+            : (value ?? string.Empty);
+    }
 
     public string? Note { get; set; }
 

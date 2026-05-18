@@ -131,10 +131,9 @@
                             </Button>
 
                             <Button Command="{Binding ResetFilterCommand}" 
-                                    Style="{StaticResource ProMaxIconButtonStyle}" Width="40" Height="40"
-                                    ToolTip="Làm mới bộ lọc">
-                                <materialDesign:PackIcon Kind="FilterOffOutline" Width="22" Height="22"/>
-                            </Button>
+                                    Style="{StaticResource AppRefreshButton}" 
+                                    Height="40"
+                                    ToolTip="Làm mới bộ lọc"/>
                         </StackPanel>
                     </Grid>
 

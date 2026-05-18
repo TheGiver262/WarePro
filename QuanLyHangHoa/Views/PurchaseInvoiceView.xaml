@@ -87,11 +87,8 @@
 
                                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Bottom">
                                     <Button Command="{Binding RefreshCommand}"
-                                            Style="{StaticResource ProMaxIconButtonStyle}" 
-                                            Width="32" Height="32" Margin="0,0,8,0"
-                                            ToolTip="Làm mới bộ lọc">
-                                        <materialDesign:PackIcon Kind="FilterOffOutline" Width="20" Height="20"/>
-                                    </Button>
+                                            Style="{StaticResource AppRefreshButton}" 
+                                            Height="32" Margin="0,0,8,0"/>
 
                                     <Button Command="{Binding ToggleAdvancedFilterCommand}"
                                             Style="{StaticResource SecondaryButton}" 
@@ -104,11 +101,8 @@
                                     </Button>
 
                                     <Button Command="{Binding ExportToExcelCommand}"
-                                            Style="{StaticResource ProMaxIconButtonStyle}" 
-                                            Width="32" Height="32" Margin="0,0,0,0"
-                                            ToolTip="Xuất Excel">
-                                        <materialDesign:PackIcon Kind="FileExcelOutline" Width="22" Height="22" Foreground="#10B981"/>
-                                    </Button>
+                                            Style="{StaticResource AppExcelButton}" 
+                                            Height="32"/>
                                 </StackPanel>
                             </Grid>
 

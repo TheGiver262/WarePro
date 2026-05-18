@@ -55,7 +55,7 @@
                     <StackPanel Grid.Column="0" Margin="{StaticResource Margin.Right.md}">
                         <TextBlock Text="MÃ NHÀ CUNG CẤP" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
                         <TextBox Style="{StaticResource AppTextBoxStyle}" materialDesign:HintAssist.Hint="Mã..." 
-                                 Height="40"
+                                 Height="32"
                                  Text="{Binding SearchCode, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
@@ -63,7 +63,7 @@
                     <StackPanel Grid.Column="1" Margin="{StaticResource Margin.Right.md}">
                         <TextBlock Text="TÊN NHÀ CUNG CẤP" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
                         <TextBox Style="{StaticResource AppTextBoxStyle}" materialDesign:HintAssist.Hint="Nhập tên nhà cung cấp..." 
-                                 Height="40"
+                                 Height="32"
                                  Text="{Binding SearchName, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
@@ -71,7 +71,7 @@
                     <StackPanel Grid.Column="2" Margin="{StaticResource Margin.Right.md}">
                         <TextBlock Text="SỐ ĐIỆN THOẠI" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
                         <TextBox Style="{StaticResource AppTextBoxStyle}" materialDesign:HintAssist.Hint="Tìm theo SĐT..." 
-                                 Height="40"
+                                 Height="32"
                                  Text="{Binding SearchPhone, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
@@ -79,25 +79,32 @@
                     <StackPanel Grid.Column="3" Margin="{StaticResource Margin.Right.md}">
                         <TextBlock Text="EMAIL" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
                         <TextBox Style="{StaticResource AppTextBoxStyle}" materialDesign:HintAssist.Hint="Tìm theo email..." 
-                                 Height="40"
+                                 Height="32"
                                  Text="{Binding SearchEmail, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
                     <!-- Status Filter -->
                     <StackPanel Grid.Column="4" Margin="{StaticResource Margin.Right.md}">
                         <TextBlock Text="TRẠNG THÁI" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
-                        <ComboBox Style="{StaticResource AppComboBoxStyle}" Height="40"
+                        <ComboBox Style="{StaticResource AppComboBoxStyle}" Height="32"
                                   ItemsSource="{Binding StatusOptions}"
                                   SelectedItem="{Binding SearchStatus, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
                     <!-- Actions -->
-                    <StackPanel Grid.Column="5" Orientation="Horizontal" VerticalAlignment="Bottom">
-                        <Button Command="{Binding RefreshCommand}" Style="{StaticResource ProMaxIconButtonStyle}" Width="40" Height="40" Margin="0,0,8,0" ToolTip="Làm mới bộ lọc">
-                            <materialDesign:PackIcon Kind="FilterOffOutline" Width="22" Height="22"/>
+                    <StackPanel Grid.Column="5" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Style="{StaticResource AppRefreshButton}" 
+                                Command="{Binding RefreshCommand}"
+                                ToolTip="Làm mới bộ lọc"
+                                Margin="0,0,8,0">
+                                <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18"/>
                         </Button>
-                        <Button Command="{Binding ExportToExcelCommand}" Style="{StaticResource ProMaxIconButtonStyle}" Width="40" Height="40" ToolTip="Xuất Excel">
-                            <materialDesign:PackIcon Kind="FileExcelOutline" Width="24" Height="24" Foreground="#10B981"/>
+                        <Button Style="{StaticResource AppExcelButton}" 
+                                Command="{Binding ExportToExcelCommand}">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="FileExcelOutline" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
+                                </StackPanel>
                         </Button>
                     </StackPanel>
                 </Grid>

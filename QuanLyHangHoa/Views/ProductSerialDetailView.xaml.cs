@@ -45,6 +45,9 @@ namespace QuanLyHangHoa.Views
 
         private string GetStatusDisplay(string status)
         {
+            if (string.Equals(status, "ReturnedToManufacturer", StringComparison.OrdinalIgnoreCase))
+                return "Trả lại NCC";
+
             return status switch
             {
                 "InStock" => "Trong kho",
@@ -53,7 +56,7 @@ namespace QuanLyHangHoa.Views
                 "InWarrantyProcess" => "Đang bảo hành",
                 "WarrantyDefective" => "Lỗi bảo hành",
                 "Returned" => "Đã trả hàng",
-                "ReturnedToManufacturer" => "Đã trả hàng",
+                "ReturnedToManufacturer" => "Trả lại NCC",
                 "Scrapped" => "Đã thanh lý",
                 "Replaced" => "Đã đổi mới",
                 "Inactive" => "Dừng",
@@ -63,13 +66,16 @@ namespace QuanLyHangHoa.Views
 
         private Brush GetStatusBrush(string status)
         {
+            if (string.Equals(status, "ReturnedToManufacturer", StringComparison.OrdinalIgnoreCase))
+                return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FEF3C7")); // Amber 100
+
             return status switch
             {
                 "InStock" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#D1FAE5")), // Green 100
                 "Sold" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#DBEAFE")),    // Blue 100
                 "Reserved" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FEF3C7")), // Amber 100
                 "Returned" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F1F5F9")), // Slate 100
-                "ReturnedToManufacturer" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F1F5F9")),
+                "ReturnedToManufacturer" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FEF3C7")), // Amber 100
                 "Inactive" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#F3F4F6")), // Gray 100
                 _ => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FEE2E2"))         // Red 100
             };
@@ -77,13 +83,16 @@ namespace QuanLyHangHoa.Views
 
         private Brush GetStatusTextBrush(string status)
         {
+            if (string.Equals(status, "ReturnedToManufacturer", StringComparison.OrdinalIgnoreCase))
+                return new SolidColorBrush((Color)ColorConverter.ConvertFromString("#D97706")); // WarningTextBrush
+
             return status switch
             {
                 "InStock" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#065F46")),
                 "Sold" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1E40AF")),
                 "Reserved" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#92400E")),
                 "Returned" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#475569")),
-                "ReturnedToManufacturer" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#475569")),
+                "ReturnedToManufacturer" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#D97706")), // WarningTextBrush
                 "Inactive" => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#374151")),
                 _ => new SolidColorBrush((Color)ColorConverter.ConvertFromString("#991B1B"))
             };

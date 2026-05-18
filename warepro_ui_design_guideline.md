@@ -519,11 +519,15 @@ Trong thiết kế "Pro Max", thanh tìm kiếm nằm trong card table, phía tr
 - **Đồng bộ chiều cao & Style**: 
   - Tất cả các control (`TextBox`, `ComboBox`, `DatePicker`, `Button`) phải có `Height="32"`.
   - Sử dụng style **Underline** (không có viền hộp - boxed), gán `materialDesign:TextFieldAssist.HasClearButton="True"` cho TextBox. Đây là style mặc định cho toàn bộ ứng dụng.
+- **Nút Làm mới (Refresh)**:
+  - Style: `{StaticResource AppRefreshButton}` (Thừa kế từ SecondaryButton, không cần đặt cứng `Width="32"` hay `Padding="0"`).
+  - Icon: `Refresh` (Kích thước `Width="18" Height="18"`).
+  - Vị trí: Đặt bên phải nút Bộ lọc nâng cao (nếu có) và trước nút Xuất Excel, `Margin="0,0,8,0"`.
 - **Nút Xuất Excel**:
-  - Style: `{StaticResource AppPrimaryButton}` (Solid style).
+  - Style: `{StaticResource AppExcelButton}` (Thừa kế từ PrimaryButton, không cần đặt cứng `Width="140"` hay `Height="32"`).
   - Content: "XUẤT EXCEL" (In hoa).
-  - Icon: `FileExcelOutline` hoặc `FileExcel`.
-  - Vị trí: Cột cuối cùng bên phải của thanh tìm kiếm, `VerticalAlignment="Bottom"`.
+  - Icon: `FileExcelOutline` hoặc `FileExcel` (Kích thước `Width="18" Height="18"`).
+  - Vị trí: Đặt ở góc phải cùng của thanh tìm kiếm, `VerticalAlignment="Bottom"`.
 
 #### 10.2.1 Cấu trúc XAML mẫu (Audit Log)
 
@@ -533,7 +537,6 @@ Trong thiết kế "Pro Max", thanh tìm kiếm nằm trong card table, phía tr
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>         <!-- Ô tìm kiếm chính -->
             <ColumnDefinition Width="Auto"/>      <!-- Filter 1 -->
-            <ColumnDefinition Width="Auto"/>      <!-- Filter 2 -->
             <ColumnDefinition Width="Auto"/>      <!-- Nút hành động -->
         </Grid.ColumnDefinitions>
 
@@ -549,12 +552,21 @@ Trong thiết kế "Pro Max", thanh tìm kiếm nằm trong card table, phía tr
             <ComboBox Height="32"/>
         </StackPanel>
 
-        <!-- Export Button -->
-        <StackPanel Grid.Column="3" VerticalAlignment="Bottom">
-            <Button Command="{Binding ExportLogsCommand}" Style="{StaticResource AppPrimaryButton}" Height="32">
+        <!-- Action Buttons -->
+        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Bottom">
+            <!-- Nút Làm mới -->
+            <Button Style="{StaticResource AppRefreshButton}" 
+                    Command="{Binding RefreshCommand}"
+                    ToolTip="Làm mới bộ lọc"
+                    Margin="0,0,8,0">
+                <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18"/>
+            </Button>
+            
+            <!-- Nút Xuất Excel -->
+            <Button Command="{Binding ExportLogsCommand}" Style="{StaticResource AppExcelButton}">
                 <StackPanel Orientation="Horizontal">
-                    <materialDesign:PackIcon Kind="FileExcelOutline" Width="18" Height="18" VerticalAlignment="Center"/>
-                    <TextBlock Text="XUẤT EXCEL" Margin="8,0,0,0" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                    <materialDesign:PackIcon Kind="FileExcelOutline" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
                 </StackPanel>
             </Button>
         </StackPanel>

@@ -73,14 +73,14 @@
                         <Button Command="{Binding SearchCommand}" Style="{StaticResource ProMaxIconButtonStyle}" Width="40" Height="40" Margin="12,0,8,0" ToolTip="Tìm kiếm">
                             <materialDesign:PackIcon Kind="Magnify" Width="22" Height="22"/>
                         </Button>
-                        <Button Command="{Binding RefreshCommand}" Style="{StaticResource ProMaxIconButtonStyle}" Width="40" Height="40" Margin="0,0,8,0" ToolTip="Làm mới bộ lọc">
-                            <materialDesign:PackIcon Kind="FilterOffOutline" Width="22" Height="22"/>
+                        <Button Style="{StaticResource AppRefreshButton}" 
+                                Command="{Binding RefreshCommand}"
+                                ToolTip="Làm mới bộ lọc"
+                                Margin="0,0,8,0">
+                            <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18"/>
                         </Button>
-                        <Button Style="{StaticResource PrimaryButton}" 
-                                Command="{Binding ExportCommand}"
-                                Width="140" Height="40"
-                                Margin="0,0,0,0"
-                                ToolTip="Xuất Excel">
+                        <Button Style="{StaticResource AppExcelButton}" 
+                                Command="{Binding ExportCommand}">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="FileExcelOutline" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                 <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>

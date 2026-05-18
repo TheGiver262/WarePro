@@ -192,6 +192,9 @@ namespace QuanLyHangHoa.ViewModels
 
         private string GetStatusDisplay(string status)
         {
+            if (string.Equals(status, "ReturnedToManufacturer", StringComparison.OrdinalIgnoreCase))
+                return "Trả lại NCC";
+
             return status switch
             {
                 "InStock" => "Trong kho",

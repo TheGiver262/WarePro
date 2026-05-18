@@ -134,6 +134,9 @@
                         <DataTrigger Binding="{Binding CurrentStatus}" Value="Returned">
                             <Setter Property="Background" Value="{StaticResource NeutralBgBrush}"/>
                         </DataTrigger>
+                        <DataTrigger Binding="{Binding CurrentStatus}" Value="ReturnedToManufacturer">
+                            <Setter Property="Background" Value="{StaticResource WarningBgBrush}"/>
+                        </DataTrigger>
                         <DataTrigger Binding="{Binding CurrentStatus}" Value="Scrapped">
                             <Setter Property="Background" Value="{StaticResource DangerBgBrush}"/>
                         </DataTrigger>
@@ -175,6 +178,10 @@
                             <DataTrigger Binding="{Binding CurrentStatus}" Value="Returned">
                                 <Setter Property="Foreground" Value="{StaticResource NeutralTextBrush}"/>
                                 <Setter Property="Text" Value="ĐÃ TRẢ HÀNG"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding CurrentStatus}" Value="ReturnedToManufacturer">
+                                <Setter Property="Foreground" Value="{StaticResource WarningTextBrush}"/>
+                                <Setter Property="Text" Value="TRẢ LẠI NCC"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding CurrentStatus}" Value="Scrapped">
                                 <Setter Property="Foreground" Value="{StaticResource DangerTextBrush}"/>

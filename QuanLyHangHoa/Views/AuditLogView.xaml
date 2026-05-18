@@ -95,11 +95,18 @@
 
                     <!-- Action Buttons -->
                     <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Bottom">
-                        <Button Command="{Binding ResetFiltersCommand}" Style="{StaticResource ProMaxIconButtonStyle}" Width="40" Height="40" Margin="0,0,8,0" ToolTip="Làm mới bộ lọc">
-                            <materialDesign:PackIcon Kind="FilterOffOutline" Width="22" Height="22"/>
+                        <Button Style="{StaticResource AppRefreshButton}" 
+                                Command="{Binding ResetFiltersCommand}"
+                                ToolTip="Làm mới bộ lọc"
+                                Margin="0,0,8,0">
+                            <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18"/>
                         </Button>
-                        <Button Command="{Binding ExportLogsCommand}" Style="{StaticResource ProMaxIconButtonStyle}" Width="40" Height="40" ToolTip="Xuất Excel">
-                            <materialDesign:PackIcon Kind="FileExcelOutline" Width="24" Height="24" Foreground="#10B981"/>
+                        <Button Style="{StaticResource AppExcelButton}" 
+                                Command="{Binding ExportLogsCommand}">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="FileExcelOutline" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
+                            </StackPanel>
                         </Button>
                     </StackPanel>
                 </Grid>

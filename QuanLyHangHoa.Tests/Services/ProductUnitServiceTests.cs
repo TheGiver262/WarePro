@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
+using QuanLyHangHoa.Tests.Helpers;
 using Xunit;
 
 namespace QuanLyHangHoa.Tests.Services;

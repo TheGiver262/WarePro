@@ -42,6 +42,7 @@ namespace QuanLyHangHoa.ViewModels
                 "Đang bảo hành",
                 "Lỗi bảo hành",
                 "Đã trả hàng",
+                "Trả lại NCC",
                 "Đã đổi mới",
                 "Đã thanh lý",
                 "Dừng"
@@ -53,6 +54,9 @@ namespace QuanLyHangHoa.ViewModels
         private string GetStatusDisplay(string? status)
         {
             if (status == null) return "N/A";
+            if (string.Equals(status, "ReturnedToManufacturer", StringComparison.OrdinalIgnoreCase))
+                return "Trả lại NCC";
+
             return status switch
             {
                 "InStock" => "Trong kho",
@@ -61,6 +65,7 @@ namespace QuanLyHangHoa.ViewModels
                 "InWarrantyProcess" => "Đang bảo hành",
                 "WarrantyDefective" => "Lỗi bảo hành",
                 "Returned" => "Đã trả hàng",
+                "ReturnedToManufacturer" => "Trả lại NCC",
                 "Scrapped" => "Đã thanh lý",
                 "Replaced" => "Đã đổi mới",
                 "Inactive" => "Dừng",
@@ -79,6 +84,7 @@ namespace QuanLyHangHoa.ViewModels
                 "Đang bảo hành" => "InWarrantyProcess",
                 "Lỗi bảo hành" => "WarrantyDefective",
                 "Đã trả hàng" => "Returned",
+                "Trả lại NCC" => "ReturnedToManufacturer",
                 "Đã thanh lý" => "Scrapped",
                 "Đã đổi mới" => "Replaced",
                 "Dừng" => "Inactive",

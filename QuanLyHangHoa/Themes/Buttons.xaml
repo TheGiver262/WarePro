@@ -88,6 +88,33 @@
         </Setter>
     </Style>
 
+    <!-- ProMax Standardized Buttons -->
+    <Style x:Key="AppRefreshButton" TargetType="Button" BasedOn="{StaticResource AppSecondaryButton}">
+        <Setter Property="Width" Value="32"/>
+        <Setter Property="Height" Value="32"/>
+        <Setter Property="MinWidth" Value="0"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Content">
+            <Setter.Value>
+                <materialDesign:PackIcon Kind="Refresh" Width="16" Height="16"/>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="AppExcelButton" TargetType="Button" BasedOn="{StaticResource AppPrimaryButton}">
+        <Setter Property="Width" Value="140"/>
+        <Setter Property="Height" Value="32"/>
+        <Setter Property="MinWidth" Value="0"/>
+        <Setter Property="Content">
+            <Setter.Value>
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="FileExcelOutline" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold"/>
+                </StackPanel>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Aliases for easier use in views -->
     <Style x:Key="PrimaryButton" BasedOn="{StaticResource AppPrimaryButton}" TargetType="Button"/>
     <Style x:Key="SecondaryButton" BasedOn="{StaticResource AppSecondaryButton}" TargetType="Button"/>
