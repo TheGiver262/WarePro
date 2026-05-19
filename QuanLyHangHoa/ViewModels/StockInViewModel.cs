@@ -119,7 +119,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private DateTime? _filterToDate;
 
         // Advanced Filter
-        [ObservableProperty] private bool _isAdvancedFilterVisible;
+        [ObservableProperty] private bool _isAdvancedFilterOpen;
         [ObservableProperty] private Warehouse? _selectedWarehouseFilter;
         [ObservableProperty] private string _selectedStatusFilter = "Tất cả";
         public ObservableCollection<string> StatusOptions { get; } = new() { "Tất cả", "Phiếu nháp", "Đã ghi sổ" };
@@ -134,6 +134,7 @@ namespace QuanLyHangHoa.ViewModels
         // Footer stats
         [ObservableProperty] private int _totalCount;
         [ObservableProperty] private int _draftCount;
+        [ObservableProperty] private int _postedCount;
 
         public decimal TotalAmount => Lines.Sum(l => l.Quantity * l.Price);
         public bool CanEdit => !IsPosted;
@@ -200,6 +201,7 @@ namespace QuanLyHangHoa.ViewModels
             StockInList = new ObservableCollection<StockIn>(all);
             TotalCount = all.Count;
             DraftCount = all.Count(s => s.Status == "nháp");
+            PostedCount = all.Count(s => s.Status == "đã ghi sổ");
         }
 
         [RelayCommand]
@@ -272,7 +274,7 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void ToggleAdvancedFilter()
         {
-            IsAdvancedFilterVisible = !IsAdvancedFilterVisible;
+            IsAdvancedFilterOpen = !IsAdvancedFilterOpen;
         }
 
         [RelayCommand]

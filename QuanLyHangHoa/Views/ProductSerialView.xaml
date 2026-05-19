@@ -119,7 +119,7 @@
                     </Grid>
 
                     <!-- Advanced Filter Row (Expandable) -->
-                    <Grid Margin="0,16,0,0" Visibility="{Binding IsAdvancedFilterVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <Grid Margin="0,16,0,0" Visibility="{Binding IsAdvancedFilterOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="200"/>    <!-- From Date -->
                             <ColumnDefinition Width="200"/>    <!-- To Date -->

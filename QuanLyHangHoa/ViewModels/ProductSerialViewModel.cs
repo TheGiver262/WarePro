@@ -30,7 +30,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _selectedStatus = "Tất cả trạng thái";
 
         // Advanced Filters
-        [ObservableProperty] private bool _isAdvancedFilterVisible;
+        [ObservableProperty] private bool _isAdvancedFilterOpen;
         [ObservableProperty] private DateTime? _searchFromDate;
         [ObservableProperty] private DateTime? _searchToDate;
         [ObservableProperty] private string _searchNote = string.Empty;
@@ -90,8 +90,8 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void ToggleAdvancedFilter()
         {
-            IsAdvancedFilterVisible = !IsAdvancedFilterVisible;
-            if (!IsAdvancedFilterVisible)
+            IsAdvancedFilterOpen = !IsAdvancedFilterOpen;
+            if (!IsAdvancedFilterOpen)
             {
                 SearchFromDate = null;
                 SearchToDate = null;
