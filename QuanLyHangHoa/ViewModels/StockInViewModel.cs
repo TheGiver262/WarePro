@@ -545,7 +545,7 @@ namespace QuanLyHangHoa.ViewModels
                 Status = DocumentStatus.Draft,
                 CreatedBy = _currentUser.Id,
                 CreatedAt = DateTime.Now,
-                PurposeCode = "Import"
+                PurposeCode = "Purchase"
             };
         }
 

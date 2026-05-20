@@ -23,7 +23,7 @@ public class ProductUnitViewModelTests
 
         mockProductService.Setup(s => s.GetAllProducts(It.IsAny<bool>())).Returns(products);
         mockRefDataService.Setup(s => s.GetAllUnits(It.IsAny<bool>())).Returns(units);
-        mockProductUnitService.Setup(s => s.GetByProductId(It.IsAny<int>())).Returns(new List<ProductUnit>());
+        mockProductUnitService.Setup(s => s.GetByProductId(It.IsAny<int>(), It.IsAny<bool>())).Returns(new List<ProductUnit>());
 
         var viewModel = new ProductUnitViewModel(mockProductUnitService.Object, mockProductService.Object, mockRefDataService.Object);
         viewModel.SelectedProduct = products.First();

@@ -73,6 +73,12 @@ namespace QuanLyHangHoa.Services
 
                 // Simple strategy: Remove old lines and add new ones
                 // Or update matching lines. For simplicity in a draft, we can replace.
+                var oldSerials = existing.Lines.SelectMany(l => l.ProductSerials).ToList();
+                if (oldSerials.Any())
+                {
+                    db.ProductSerials.RemoveRange(oldSerials);
+                }
+
                 db.StockInLines.RemoveRange(existing.Lines);
                 existing.Lines = lines;
                 

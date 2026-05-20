@@ -34,7 +34,7 @@ public class StockInServiceTests
             DocumentCode = "SI-001",
             SupplierId = 1,
             WarehouseId = 1,
-            PurposeCode = "Import",
+            PurposeCode = "Purchase",
             CreatedAt = new DateTime(2026, 4, 27, 11, 30, 0)
         };
         var lines = new List<StockInLine>

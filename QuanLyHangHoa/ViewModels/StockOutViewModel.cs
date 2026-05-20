@@ -485,7 +485,7 @@ namespace QuanLyHangHoa.ViewModels
                     ExportDate = ExportDate,
                     Notes = Notes,
                     Status = DocumentStatus.Draft, // Default to Draft
-                    PurposeCode = "SALE",
+                    PurposeCode = "Sale",
                     CreatedBy = _currentUser.Id,
                     CreatedAt = DateTime.Now
                 };
