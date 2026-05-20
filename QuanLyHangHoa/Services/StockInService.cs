@@ -61,7 +61,7 @@ namespace QuanLyHangHoa.Services
 
             if (existing != null)
             {
-                if (existing.Status == "đã ghi sổ") throw new Exception("Không thể cập nhật phiếu đã ghi sổ.");
+                if (existing.Status == DocumentStatus.Posted) throw new Exception("Không thể cập nhật phiếu đã ghi sổ.");
 
                 // Update properties
                 existing.WarehouseId = stockIn.WarehouseId;
@@ -85,7 +85,7 @@ namespace QuanLyHangHoa.Services
                 stockIn.Lines = lines;
                 stockIn.CreatedBy = userId;
                 stockIn.CreatedAt = DateTime.Now;
-                stockIn.Status = "nháp";
+                stockIn.Status = DocumentStatus.Draft;
 
                 if (string.IsNullOrWhiteSpace(stockIn.DocumentCode))
                 {
@@ -113,7 +113,7 @@ namespace QuanLyHangHoa.Services
                 .FirstOrDefault(s => s.Id == stockInId);
 
             if (stockIn == null) throw new Exception("Không tìm thấy phiếu nhập kho.");
-            if (stockIn.Status == "đã ghi sổ") throw new Exception("Phiếu này đã được ghi sổ.");
+            if (stockIn.Status == DocumentStatus.Posted) throw new Exception("Phiếu này đã được ghi sổ.");
 
             // Validate serials before posting
             foreach (var line in stockIn.Lines)
@@ -128,7 +128,7 @@ namespace QuanLyHangHoa.Services
                 }
             }
 
-            stockIn.Status = "đã ghi sổ";
+            stockIn.Status = DocumentStatus.Posted;
             stockIn.PostedBy = userId;
             stockIn.PostedAt = DateTime.Now;
             db.SaveChanges();

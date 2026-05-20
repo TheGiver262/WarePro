@@ -48,7 +48,7 @@ namespace QuanLyHangHoa.Services
             db.SaveChanges();
 
             // Auto-approve and post for now to match current simple logic
-            stockOut.Status = "đã ghi sổ";
+            stockOut.Status = DocumentStatus.Posted;
             stockOut.PostedBy = userId;
             stockOut.PostedAt = DateTime.Now;
             db.SaveChanges();

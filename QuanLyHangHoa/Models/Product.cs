@@ -30,7 +30,7 @@ public partial class Product
 
     public bool IsSerialTracked { get; set; }
 
-    public bool IsActive { get; set; }
+    public bool IsActive { get; set; } = true;
 
     public string CategoryName => Category?.DisplayName ?? "N/A";
     public string BrandName => Brand?.DisplayName ?? "N/A";

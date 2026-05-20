@@ -2,6 +2,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
+using QuanLyHangHoa.Tests.Helpers;
 using Xunit;
 
 namespace QuanLyHangHoa.Tests.Inventory;
@@ -62,10 +63,6 @@ public class StockAdjustmentPersistenceTests
 
     private static AppDbContext CreateContext(SqliteConnection connection)
     {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlite(connection)
-            .Options;
-
-        return new AppDbContext(options);
+        return DatabaseHelper.CreateContext(connection);
     }
 }

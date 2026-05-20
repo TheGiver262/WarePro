@@ -64,7 +64,7 @@ public class StockCountServiceTests
             {
                 SessionCode = "CNT-002",
                 WarehouseId = 1,
-                Status = "Counted",
+                Status = "đã kiểm kê",
                 CountDate = DateTime.UtcNow,
                 CreatedBy = 1,
                 Lines = new List<StockCountLine>
@@ -89,14 +89,14 @@ public class StockCountServiceTests
         using var assertContext = DatabaseHelper.CreateContext(connection);
         var sessionAfter = assertContext.StockCountSessions.Find(sessionId);
         Assert.NotNull(sessionAfter);
-        Assert.Equal("Completed", sessionAfter.Status);
+        Assert.Equal("hoàn thành", sessionAfter.Status);
 
         var adjustment = assertContext.StockAdjustments
             .Include(a => a.Lines)
             .Single(a => a.ReferenceDocumentId == sessionId && a.ReferenceDocumentType == "StockCountSession");
             
         Assert.Equal("StockCount", adjustment.AdjustmentType);
-        Assert.Equal("Posted", adjustment.Status);
+        Assert.Equal("đã ghi sổ", adjustment.Status);
         
         Assert.NotNull(adjustment.Lines);
         var line = Assert.Single(adjustment.Lines);

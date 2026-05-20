@@ -25,7 +25,6 @@
                 <RowDefinition Height="Auto"/> <!-- Header -->
                 <RowDefinition Height="Auto"/> <!-- Filter Section -->
                 <RowDefinition Height="*"/>    <!-- Data Table -->
-                <RowDefinition Height="Auto"/> <!-- Footer Stats -->
             </Grid.RowDefinitions>
 
             <!-- Row 0: List Header -->
@@ -149,58 +148,65 @@
 
             <!-- DataGrid Section -->
             <materialDesign:Card Grid.Row="2" Style="{StaticResource AppCard}" Padding="0">
-                <DataGrid ItemsSource="{Binding StockOutList}" AutoGenerateColumns="False" CanUserAddRows="False" RowHeight="56">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="MÃ PHIẾU" Binding="{Binding DocumentCode}" Width="150" ElementStyle="{DynamicResource AppDataGridTextBold}"/>
-                        <DataGridTextColumn Header="NGÀY XUẤT" Binding="{Binding ExportDate, StringFormat='dd/MM/yyyy'}" Width="120" ElementStyle="{DynamicResource AppDataGridTextCenter}"/>
-                        <DataGridTextColumn Header="KHÁCH HÀNG" Binding="{Binding Customer.DisplayName}" Width="*" ElementStyle="{DynamicResource AppDataGridText}"/>
-                        <DataGridTextColumn Header="KHO" Binding="{Binding Warehouse.DisplayName}" Width="150" ElementStyle="{DynamicResource AppDataGridText}"/>
-                        <DataGridTextColumn Header="NGƯỜI LẬP" Binding="{Binding Creator.FullName}" Width="150" ElementStyle="{DynamicResource AppDataGridText}"/>
-                        
-                        <DataGridTemplateColumn Header="TRẠNG THÁI" Width="140" CellTemplate="{StaticResource InventoryStatusBadgeTemplate}"/>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    
+                    <DataGrid Grid.Row="0" ItemsSource="{Binding StockOutList}" AutoGenerateColumns="False" CanUserAddRows="False" RowHeight="56">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="MÃ PHIẾU" Binding="{Binding DocumentCode}" Width="150" ElementStyle="{DynamicResource AppDataGridTextBold}"/>
+                            <DataGridTextColumn Header="NGÀY XUẤT" Binding="{Binding ExportDate, StringFormat='dd/MM/yyyy'}" Width="120" ElementStyle="{DynamicResource AppDataGridTextCenter}"/>
+                            <DataGridTextColumn Header="KHÁCH HÀNG" Binding="{Binding Customer.DisplayName}" Width="*" ElementStyle="{DynamicResource AppDataGridText}"/>
+                            <DataGridTextColumn Header="KHO" Binding="{Binding Warehouse.DisplayName}" Width="150" ElementStyle="{DynamicResource AppDataGridText}"/>
+                            <DataGridTextColumn Header="NGƯỜI LẬP" Binding="{Binding Creator.FullName}" Width="150" ElementStyle="{DynamicResource AppDataGridText}"/>
+                            
+                            <DataGridTemplateColumn Header="TRẠNG THÁI" Width="140" CellTemplate="{StaticResource InventoryStatusBadgeTemplate}"/>
 
-                        <DataGridTemplateColumn Header="THAO TÁC" Width="140">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <Button Style="{StaticResource ProMaxIconButtonStyle}" ToolTip="Xem chi tiết"
-                                                Command="{Binding DataContext.ViewDetailCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
-                                            <materialDesign:PackIcon Kind="EyeOutline" Width="20" Height="20" Foreground="{StaticResource AppPrimaryBrush}"/>
-                                        </Button>
-                                        <Button Style="{StaticResource ProMaxIconButtonStyle}" ToolTip="Chỉnh sửa"
-                                                Command="{Binding DataContext.EditDetailCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
-                                                Visibility="{Binding Status, Converter={StaticResource StatusToEditVisibilityConverter}}">
-                                            <materialDesign:PackIcon Kind="PencilOutline" Width="20" Height="20" Foreground="{StaticResource AppSecondaryBrush}"/>
-                                        </Button>
-                                        <Button Style="{StaticResource ProMaxIconButtonStyle}" ToolTip="In phiếu"
-                                                Command="{Binding DataContext.PrintCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
-                                            <materialDesign:PackIcon Kind="PrinterOutline" Width="20" Height="20" Foreground="{StaticResource AppTertiaryBrush}"/>
-                                        </Button>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
+                            <DataGridTemplateColumn Header="THAO TÁC" Width="140">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                            <Button Style="{StaticResource ProMaxIconButtonStyle}" ToolTip="Xem chi tiết"
+                                                    Command="{Binding DataContext.ViewDetailCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                                <materialDesign:PackIcon Kind="EyeOutline" Width="20" Height="20" Foreground="{StaticResource AppPrimaryBrush}"/>
+                                            </Button>
+                                            <Button Style="{StaticResource ProMaxIconButtonStyle}" ToolTip="Chỉnh sửa"
+                                                    Command="{Binding DataContext.EditDetailCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                                                    Visibility="{Binding Status, Converter={StaticResource StatusToEditVisibilityConverter}}">
+                                                <materialDesign:PackIcon Kind="PencilOutline" Width="20" Height="20" Foreground="{StaticResource AppSecondaryBrush}"/>
+                                            </Button>
+                                            <Button Style="{StaticResource ProMaxIconButtonStyle}" ToolTip="In phiếu"
+                                                    Command="{Binding DataContext.PrintCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                                <materialDesign:PackIcon Kind="PrinterOutline" Width="20" Height="20" Foreground="{StaticResource AppTertiaryBrush}"/>
+                                            </Button>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!-- Footer Stats -->
+                    <Border Grid.Row="1" Padding="20,12" Background="{StaticResource AppFooterBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,24,0">
+                                <TextBlock Text="Tổng số phiếu:" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center" Opacity="0.7"/>
+                                <TextBlock Text="{Binding TotalCount}" Style="{StaticResource TypographyStatNumber}" Margin="8,0,0,0" FontSize="14"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,24,0">
+                                <TextBlock Text="Phiếu nháp:" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center" Opacity="0.7"/>
+                                <TextBlock Text="{Binding DraftCount}" Style="{StaticResource TypographyStatNumber}" Margin="8,0,0,0" FontSize="14" Foreground="#F59E0B"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Đã ghi sổ:" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center" Opacity="0.7"/>
+                                <TextBlock Text="{Binding PostedCount}" Style="{StaticResource TypographyStatNumber}" Margin="8,0,0,0" FontSize="14" Foreground="{StaticResource SuccessTextBrush}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </Grid>
             </materialDesign:Card>
-
-            <!-- Row 3: Footer Stats -->
-            <Border Grid.Row="3" Padding="20,12" Background="{StaticResource AppFooterBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                    <StackPanel Orientation="Horizontal" Margin="0,0,24,0">
-                        <TextBlock Text="Tổng số phiếu:" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center" Opacity="0.7"/>
-                        <TextBlock Text="{Binding TotalCount}" Style="{StaticResource TypographyStatNumber}" Margin="8,0,0,0" FontSize="14"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,24,0">
-                        <TextBlock Text="Phiếu nháp:" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center" Opacity="0.7"/>
-                        <TextBlock Text="{Binding DraftCount}" Style="{StaticResource TypographyStatNumber}" Margin="8,0,0,0" FontSize="14" Foreground="#F59E0B"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Đã ghi sổ:" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center" Opacity="0.7"/>
-                        <TextBlock Text="{Binding PostedCount}" Style="{StaticResource TypographyStatNumber}" Margin="8,0,0,0" FontSize="14" Foreground="{StaticResource SuccessTextBrush}"/>
-                    </StackPanel>
-                </StackPanel>
-            </Border>
         </Grid>
 
         <!-- ═══════════════════════════════════════════ -->

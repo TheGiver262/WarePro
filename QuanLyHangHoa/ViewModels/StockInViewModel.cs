@@ -8,6 +8,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
+using QuanLyHangHoa.Inventory;
 
 namespace QuanLyHangHoa.ViewModels
 {
@@ -101,7 +102,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private ObservableCollection<StockInLineEditor> _lines = new();
 
         [ObservableProperty] private int _stockInId;
-        [ObservableProperty] private string _status = "nháp";
+        [ObservableProperty] private string _status = DocumentStatus.Draft;
         [ObservableProperty] private bool _isPosted;
         [ObservableProperty] private string _documentCode = string.Empty;
         [ObservableProperty] private Warehouse? _selectedWarehouse;
@@ -138,7 +139,7 @@ namespace QuanLyHangHoa.ViewModels
 
         public decimal TotalAmount => Lines.Sum(l => l.Quantity * l.Price);
         public bool CanEdit => !IsPosted;
-        public bool CanApprove => AuthorizationService.CanPerform(_currentUser, PermissionAction.ApproveStock) && Status == "nháp";
+        public bool CanApprove => AuthorizationService.CanPerform(_currentUser, PermissionAction.ApproveStock) && (Status == DocumentStatus.Draft || Status == "nháp");
 
         public StockInViewModel(AppUser? currentUser = null, Func<AppDbContext>? contextFactory = null)
         {
@@ -194,14 +195,14 @@ namespace QuanLyHangHoa.ViewModels
 
             if (SelectedStatusFilter != "Tất cả")
             {
-                string targetStatus = SelectedStatusFilter == "Đã ghi sổ" ? "đã ghi sổ" : "nháp";
-                all = all.Where(s => s.Status == targetStatus).ToList();
+                string targetStatus = SelectedStatusFilter == "Đã ghi sổ" ? DocumentStatus.Posted : DocumentStatus.Draft;
+                all = all.Where(s => s.Status == targetStatus || (targetStatus == DocumentStatus.Draft && s.Status == "nháp") || (targetStatus == DocumentStatus.Posted && s.Status == "đã ghi sổ")).ToList();
             }
 
             StockInList = new ObservableCollection<StockIn>(all);
             TotalCount = all.Count;
-            DraftCount = all.Count(s => s.Status == "nháp");
-            PostedCount = all.Count(s => s.Status == "đã ghi sổ");
+            DraftCount = all.Count(s => s.Status == DocumentStatus.Draft || s.Status == "nháp");
+            PostedCount = all.Count(s => s.Status == DocumentStatus.Posted || s.Status == "đã ghi sổ");
         }
 
         [RelayCommand]
@@ -233,7 +234,7 @@ namespace QuanLyHangHoa.ViewModels
                     worksheet.Cell(i + 2, 3).Value = si.Supplier?.DisplayName ?? "";
                     worksheet.Cell(i + 2, 4).Value = si.Warehouse?.DisplayName ?? "";
                     worksheet.Cell(i + 2, 5).Value = si.Creator?.FullName ?? "";
-                    worksheet.Cell(i + 2, 6).Value = si.Status == "đã ghi sổ" ? "Đã ghi sổ" : "Phiếu nháp";
+                    worksheet.Cell(i + 2, 6).Value = (si.Status == DocumentStatus.Posted || si.Status == "đã ghi sổ") ? "Đã ghi sổ" : "Phiếu nháp";
                     worksheet.Cell(i + 2, 7).Value = si.Notes ?? "";
                     worksheet.Cell(i + 2, 8).Value = totalAmount;
                     worksheet.Cell(i + 2, 8).Style.NumberFormat.Format = "#,##0";
@@ -298,7 +299,7 @@ namespace QuanLyHangHoa.ViewModels
         private void EditDetail(StockIn si)
         {
             if (si == null) return;
-            if (si.Status == "đã ghi sổ")
+            if (si.Status == DocumentStatus.Posted || si.Status == "đã ghi sổ")
             {
                 MessageBox.Show("Không thể sửa phiếu đã ghi sổ.", "Thông báo");
                 return;
@@ -332,7 +333,7 @@ namespace QuanLyHangHoa.ViewModels
             ImportDate = si.ImportDate ?? DateTime.Now;
             Notes = si.Notes ?? string.Empty;
             Status = si.Status;
-            IsPosted = si.Status == "đã ghi sổ";
+            IsPosted = si.Status == DocumentStatus.Posted || si.Status == "đã ghi sổ";
             
             Lines.Clear();
             foreach (var line in si.Lines)
@@ -462,7 +463,7 @@ namespace QuanLyHangHoa.ViewModels
             {
                 _stockInService.Post(StockInId, _currentUser.Id);
                 IsPosted = true;
-                Status = "đã ghi sổ";
+                Status = DocumentStatus.Posted;
                 OnPropertyChanged(nameof(CanEdit));
                 
                 MessageBox.Show("Đã ghi sổ thành công. Hàng hóa đã được nhập vào kho.", "Thông báo");
@@ -501,7 +502,7 @@ namespace QuanLyHangHoa.ViewModels
                 SupplierId = SelectedSupplier?.Id,
                 ImportDate = ImportDate,
                 Notes = Notes,
-                Status = "nháp",
+                Status = DocumentStatus.Draft,
                 CreatedBy = _currentUser.Id,
                 CreatedAt = DateTime.Now,
                 PurposeCode = "Import"
@@ -536,7 +537,7 @@ namespace QuanLyHangHoa.ViewModels
         private void ResetForm()
         {
             StockInId = 0;
-            Status = "nháp";
+            Status = DocumentStatus.Draft;
             IsPosted = false;
             OnPropertyChanged(nameof(CanEdit));
             

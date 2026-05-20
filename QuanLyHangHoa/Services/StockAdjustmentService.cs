@@ -55,7 +55,7 @@ namespace QuanLyHangHoa.Services
 
             if (existing != null)
             {
-                if (existing.Status == "đã ghi sổ") throw new Exception("Không thể cập nhật phiếu đã ghi sổ.");
+                if (existing.Status == DocumentStatus.Posted) throw new Exception("Không thể cập nhật phiếu đã ghi sổ.");
 
                 // Update header
                 existing.WarehouseId = adjustment.WarehouseId;
@@ -82,7 +82,7 @@ namespace QuanLyHangHoa.Services
             {
                 adjustment.Lines = lines;
                 adjustment.CreatedBy = userId;
-                adjustment.Status = "nháp";
+                adjustment.Status = DocumentStatus.Draft;
 
                 if (string.IsNullOrWhiteSpace(adjustment.DocumentCode))
                 {
@@ -104,9 +104,9 @@ namespace QuanLyHangHoa.Services
                 .FirstOrDefault(s => s.Id == adjustmentId);
 
             if (adjustment == null) throw new Exception("Không tìm thấy phiếu điều chỉnh.");
-            if (adjustment.Status == "đã ghi sổ") throw new Exception("Phiếu này đã được ghi sổ.");
+            if (adjustment.Status == DocumentStatus.Posted) throw new Exception("Phiếu này đã được ghi sổ.");
 
-            adjustment.Status = "đã ghi sổ";
+            adjustment.Status = DocumentStatus.Posted;
             adjustment.PostedBy = userId;
             adjustment.PostedAt = DateTime.Now;
             db.SaveChanges();
@@ -151,8 +151,8 @@ namespace QuanLyHangHoa.Services
 
         private static StockDocumentStatus ParseStatus(string status)
         {
-            if (status == "nháp") return StockDocumentStatus.Draft;
-            if (status == "đã ghi sổ") return StockDocumentStatus.Posted;
+            if (status == "nháp" || status == DocumentStatus.Draft) return StockDocumentStatus.Draft;
+            if (status == "đã ghi sổ" || status == DocumentStatus.Posted) return StockDocumentStatus.Posted;
 
             return Enum.TryParse<StockDocumentStatus>(status, out var parsed)
                 ? parsed

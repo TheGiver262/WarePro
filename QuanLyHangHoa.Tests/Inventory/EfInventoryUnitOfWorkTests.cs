@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Inventory;
 using QuanLyHangHoa.Models;
+using QuanLyHangHoa.Tests.Helpers;
 using Xunit;
 
 namespace QuanLyHangHoa.Tests.Inventory;
@@ -60,14 +61,14 @@ public class EfInventoryUnitOfWorkTests
         });
 
         var ledger = Assert.Single(context.StockLedgers);
-        Assert.Equal(0, ledger.SourceDocumentId);
+        Assert.Equal(501, ledger.SourceDocumentId);
         Assert.Equal("In", ledger.MovementType);
         Assert.Equal(2, ledger.Quantity);
         Assert.Equal(postedAt, ledger.PostedAt);
         Assert.Equal(1, ledger.PostedBy);
 
         var audit = Assert.Single(context.AuditLogs);
-        Assert.Equal(0, audit.EntityId);
+        Assert.Equal(501, audit.EntityId);
         Assert.Equal(AuditActionCode.PostStockIn.ToString(), audit.ActionCode);
         Assert.Equal(postedAt, audit.PerformedAt);
         Assert.Equal(1, audit.PerformedBy);
@@ -113,11 +114,7 @@ public class EfInventoryUnitOfWorkTests
 
     private static AppDbContext CreateContext(SqliteConnection connection)
     {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlite(connection)
-            .Options;
-
-        return new AppDbContext(options);
+        return DatabaseHelper.CreateContext(connection);
     }
 
     private sealed class TestWarehouseProvider : IDefaultWarehouseProvider

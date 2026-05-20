@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
+using QuanLyHangHoa.Tests.Helpers;
 using Xunit;
 using System;
 using System.Linq;
@@ -80,10 +81,6 @@ public class AuthenticationServiceTests
 
     private static AppDbContext CreateContext(SqliteConnection connection)
     {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlite(connection)
-            .Options;
-
-        return new AppDbContext(options);
+        return DatabaseHelper.CreateContext(connection);
     }
 }

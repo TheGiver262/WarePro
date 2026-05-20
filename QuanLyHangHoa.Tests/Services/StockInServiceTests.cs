@@ -34,6 +34,7 @@ public class StockInServiceTests
             DocumentCode = "SI-001",
             SupplierId = 1,
             WarehouseId = 1,
+            PurposeCode = "Import",
             CreatedAt = new DateTime(2026, 4, 27, 11, 30, 0)
         };
         var lines = new List<StockInLine>
@@ -65,10 +66,6 @@ public class StockInServiceTests
 
     private static AppDbContext CreateContext(SqliteConnection connection)
     {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlite(connection)
-            .Options;
-
-        return new AppDbContext(options);
+        return DatabaseHelper.CreateContext(connection);
     }
 }

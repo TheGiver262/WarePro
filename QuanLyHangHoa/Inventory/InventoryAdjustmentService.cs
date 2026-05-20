@@ -20,9 +20,9 @@ public sealed class InventoryAdjustmentService
 
     public void PostAdjustment(PostStockAdjustmentCommand command)
     {
-        if (command.Status != StockDocumentStatus.Approved)
+        if (command.Status != StockDocumentStatus.Approved && command.Status != StockDocumentStatus.Posted)
         {
-            throw new InventoryDomainException("Only approved stock adjustments can be posted.");
+            throw new InventoryDomainException("Only approved or ready-to-post stock adjustments can be posted.");
         }
 
         if (string.IsNullOrWhiteSpace(command.Reason))

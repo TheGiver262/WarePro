@@ -64,6 +64,12 @@ namespace QuanLyHangHoa.Services
             var coverage = db.WarrantyCoverages.FirstOrDefault(c => c.ProductSerialId == serial.Id && c.CoverageStatus == "Active" && c.WarrantyEndDate >= DateTime.Now)
                 ?? throw new InvalidOperationException($"No active warranty coverage found for serial {serialNumber}.");
 
+            var hasOpenClaim = db.WarrantyClaims.Any(c => c.ProductSerialId == serial.Id && c.Status == "Open");
+            if (hasOpenClaim)
+            {
+                throw new InvalidOperationException($"Serial {serialNumber} already has an open warranty claim.");
+            }
+
             var claim = new WarrantyClaim
             {
                 ClaimCode = claimCode,

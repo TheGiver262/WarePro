@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
+using QuanLyHangHoa.Inventory;
 
 namespace QuanLyHangHoa.ViewModels
 {
@@ -102,7 +103,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private int _warehouseId;
         [ObservableProperty] private string _adjustmentType = "Manual";
         [ObservableProperty] private string _reasonCode = "DAMAGED";
-        [ObservableProperty] private string _status = "nháp";
+        [ObservableProperty] private string _status = DocumentStatus.Draft;
         [ObservableProperty] private string _notes = string.Empty;
         [ObservableProperty] private ObservableCollection<StockAdjustmentLineEditor> _lines = new();
 
@@ -156,8 +157,8 @@ namespace QuanLyHangHoa.ViewModels
         private void UpdateSummaries()
         {
             TotalCount = AdjustmentList.Count;
-            DraftCount = AdjustmentList.Count(x => x.Status == "nháp");
-            PostedCount = AdjustmentList.Count(x => x.Status == "đã ghi sổ");
+            DraftCount = AdjustmentList.Count(x => x.Status == DocumentStatus.Draft || x.Status == "nháp");
+            PostedCount = AdjustmentList.Count(x => x.Status == DocumentStatus.Posted || x.Status == "đã ghi sổ");
         }
 
         [RelayCommand]
@@ -168,7 +169,7 @@ namespace QuanLyHangHoa.ViewModels
             WarehouseId = AvailableWarehouses.FirstOrDefault(w => w.IsDefault)?.Id ?? AvailableWarehouses.FirstOrDefault()?.Id ?? 1;
             AdjustmentType = "Manual";
             ReasonCode = "DAMAGED";
-            Status = "nháp";
+            Status = DocumentStatus.Draft;
             Notes = string.Empty;
             Lines.Clear();
 
@@ -188,7 +189,7 @@ namespace QuanLyHangHoa.ViewModels
         private void EditDetail(StockAdjustment item)
         {
             if (item == null) return;
-            if (item.Status == "đã ghi sổ")
+            if (item.Status == DocumentStatus.Posted || item.Status == "đã ghi sổ")
             {
                 MessageBox.Show("Không thể sửa phiếu đã ghi sổ.", "Thông báo");
                 return;
@@ -336,7 +337,7 @@ namespace QuanLyHangHoa.ViewModels
                     worksheet.Cell(i + 2, 2).Value = adj.PostedAt?.ToString("dd/MM/yyyy HH:mm") ?? adj.ApprovedAt?.ToString("dd/MM/yyyy HH:mm") ?? "";
                     worksheet.Cell(i + 2, 3).Value = adj.Warehouse?.DisplayName ?? "";
                     worksheet.Cell(i + 2, 4).Value = adj.ReasonCode;
-                    worksheet.Cell(i + 2, 5).Value = adj.Status == "đã ghi sổ" ? "Đã ghi sổ" : "Phiếu nháp";
+                    worksheet.Cell(i + 2, 5).Value = (adj.Status == DocumentStatus.Posted || adj.Status == "đã ghi sổ") ? "Đã ghi sổ" : "Phiếu nháp";
                     worksheet.Cell(i + 2, 6).Value = adj.Notes ?? "";
                 }
 

@@ -116,11 +116,7 @@ public class WarrantyClaimServiceTests
 
     private static AppDbContext CreateContext(SqliteConnection connection)
     {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlite(connection)
-            .Options;
-
-        return new AppDbContext(options);
+        return DatabaseHelper.CreateContext(connection);
     }
 
     private static int SeedOpenClaim(AppDbContext context, string serialNumber, string claimCode)

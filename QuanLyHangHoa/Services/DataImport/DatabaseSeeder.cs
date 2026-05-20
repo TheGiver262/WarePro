@@ -132,7 +132,12 @@ namespace QuanLyHangHoa.Services.DataImport
                     item.DocumentCode = row.GetString("DocumentCode") ?? row.GetString("VoucherCode") ?? "PNK";
                     item.CreatedAt = row.GetDateTime("Ngày nhập") ?? row.GetDateTime("VoucherDate") ?? row.GetDateTime("CreatedAt") ?? DateTime.Now;
                     item.WarehouseId = warehouse.Id;
-                    item.Status = row.GetString("Status") ?? "Completed";
+                    var status = row.GetString("Status") ?? "Posted";
+                    if (status.Equals("Completed", StringComparison.OrdinalIgnoreCase) || status.Equals("Complete", StringComparison.OrdinalIgnoreCase))
+                    {
+                        status = "Posted";
+                    }
+                    item.Status = status;
                     item.PurposeCode = row.GetString("PurposeCode") ?? "OpeningBalance";
                     item.CreatedBy = 1;
                     var supRef = row.GetString("SupplierId");
@@ -247,7 +252,12 @@ namespace QuanLyHangHoa.Services.DataImport
                     item.DocumentCode = row.GetString("DocumentCode") ?? row.GetString("VoucherCode") ?? "PXK";
                     item.CreatedAt = row.GetDateTime("Ngày xuất") ?? row.GetDateTime("VoucherDate") ?? row.GetDateTime("CreatedAt") ?? DateTime.Now;
                     item.WarehouseId = warehouse.Id;
-                    item.Status = row.GetString("Status") ?? "Completed";
+                    var status = row.GetString("Status") ?? "Posted";
+                    if (status.Equals("Completed", StringComparison.OrdinalIgnoreCase) || status.Equals("Complete", StringComparison.OrdinalIgnoreCase))
+                    {
+                        status = "Posted";
+                    }
+                    item.Status = status;
                     
                     // Map Excel 'StockOutType' to DB 'PurposeCode'
                     string type = row.GetString("StockOutType") ?? row.GetString("PurposeCode") ?? "Sale";

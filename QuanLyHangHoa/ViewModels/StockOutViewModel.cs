@@ -8,6 +8,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
+using QuanLyHangHoa.Inventory;
 
 namespace QuanLyHangHoa.ViewModels
 {
@@ -119,7 +120,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private DateTime _exportDate = DateTime.Now;
         [ObservableProperty] private string _notes = string.Empty;
         [ObservableProperty] private Customer? _selectedCustomer;
-        [ObservableProperty] private string _status = "nháp";
+        [ObservableProperty] private string _status = DocumentStatus.Draft;
         [ObservableProperty] private bool _isPosted;
         [ObservableProperty] private decimal _totalAmount;
         [ObservableProperty] private string _statusMessage = string.Empty;
@@ -183,14 +184,14 @@ namespace QuanLyHangHoa.ViewModels
 
             if (!string.IsNullOrWhiteSpace(SelectedStatusFilter) && SelectedStatusFilter != "Tất cả")
             {
-                string dbStatus = SelectedStatusFilter == "Đã ghi sổ" ? "đã ghi sổ" : "nháp";
-                data = data.Where(s => s.Status == dbStatus).ToList();
+                string dbStatus = SelectedStatusFilter == "Đã ghi sổ" ? DocumentStatus.Posted : DocumentStatus.Draft;
+                data = data.Where(s => s.Status == dbStatus || (dbStatus == DocumentStatus.Draft && s.Status == "nháp") || (dbStatus == DocumentStatus.Posted && s.Status == "đã ghi sổ")).ToList();
             }
 
             StockOutList = new ObservableCollection<StockOut>(data);
             TotalCount = data.Count;
-            DraftCount = data.Count(s => s.Status == "nháp");
-            PostedCount = data.Count(s => s.Status == "đã ghi sổ");
+            DraftCount = data.Count(s => s.Status == DocumentStatus.Draft || s.Status == "nháp");
+            PostedCount = data.Count(s => s.Status == DocumentStatus.Posted || s.Status == "đã ghi sổ");
         }
 
         [RelayCommand]
@@ -234,7 +235,7 @@ namespace QuanLyHangHoa.ViewModels
                     worksheet.Cell(i + 2, 3).Value = so.Customer?.DisplayName ?? "";
                     worksheet.Cell(i + 2, 4).Value = so.Warehouse?.DisplayName ?? "";
                     worksheet.Cell(i + 2, 5).Value = so.Creator?.FullName ?? "";
-                    worksheet.Cell(i + 2, 6).Value = so.Status == "đã ghi sổ" ? "Đã ghi sổ" : "Phiếu nháp";
+                    worksheet.Cell(i + 2, 6).Value = (so.Status == DocumentStatus.Posted || so.Status == "đã ghi sổ") ? "Đã ghi sổ" : "Phiếu nháp";
                     worksheet.Cell(i + 2, 7).Value = so.Notes ?? "";
                     worksheet.Cell(i + 2, 8).Value = totalAmount;
                     worksheet.Cell(i + 2, 8).Style.NumberFormat.Format = "#,##0";
@@ -287,7 +288,7 @@ namespace QuanLyHangHoa.ViewModels
         private void EditDetail(StockOut stockOut)
         {
             if (stockOut == null) return;
-            if (stockOut.Status == "đã ghi sổ")
+            if (stockOut.Status == DocumentStatus.Posted || stockOut.Status == "đã ghi sổ")
             {
                 MessageBox.Show("Không thể sửa phiếu đã ghi sổ.", "Thông báo");
                 return;
@@ -313,7 +314,7 @@ namespace QuanLyHangHoa.ViewModels
             ExportDate = so.ExportDate ?? DateTime.Now;
             Notes = so.Notes ?? string.Empty;
             Status = so.Status;
-            IsPosted = so.Status == "đã ghi sổ";
+            IsPosted = so.Status == DocumentStatus.Posted || so.Status == "đã ghi sổ";
             OnPropertyChanged(nameof(CanEdit));
             
             Lines.Clear();
@@ -374,7 +375,7 @@ namespace QuanLyHangHoa.ViewModels
                     CustomerId = SelectedCustomer.Id,
                     ExportDate = ExportDate,
                     Notes = Notes,
-                    Status = "nháp", // Default to Draft
+                    Status = DocumentStatus.Draft, // Default to Draft
                     PurposeCode = "SALE",
                     CreatedBy = _currentUser.Id,
                     CreatedAt = DateTime.Now
@@ -414,7 +415,7 @@ namespace QuanLyHangHoa.ViewModels
             SelectedCustomer = null;
             ExportDate = DateTime.Now;
             TotalAmount = 0;
-            Status = "nháp";
+            Status = DocumentStatus.Draft;
             IsPosted = false;
             OnPropertyChanged(nameof(CanEdit));
         }

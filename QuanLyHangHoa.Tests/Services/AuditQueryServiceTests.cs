@@ -4,6 +4,7 @@ using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Inventory;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
+using QuanLyHangHoa.Tests.Helpers;
 using Xunit;
 
 namespace QuanLyHangHoa.Tests.Services;
@@ -28,6 +29,7 @@ public class AuditQueryServiceTests
                  });
             seedContext.StockLedgers.Add(new StockLedger
             {
+                SourceDocumentType = "StockIn",
                 SourceDocumentId = documentId,
                 ProductId = 800,
                 WarehouseId = 1,
@@ -80,6 +82,7 @@ public class AuditQueryServiceTests
             seedContext.StockLedgers.AddRange(
                 new StockLedger
                 {
+                    SourceDocumentType = "StockIn",
                     SourceDocumentId = 101,
                     ProductId = 801,
                     WarehouseId = 1,
@@ -90,6 +93,7 @@ public class AuditQueryServiceTests
                 },
                 new StockLedger
                 {
+                    SourceDocumentType = "StockOut",
                     SourceDocumentId = 102,
                     ProductId = 801,
                     WarehouseId = 1,
@@ -114,10 +118,6 @@ public class AuditQueryServiceTests
 
     private static AppDbContext CreateContext(SqliteConnection connection)
     {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlite(connection)
-            .Options;
-
-        return new AppDbContext(options);
+        return DatabaseHelper.CreateContext(connection);
     }
 }
