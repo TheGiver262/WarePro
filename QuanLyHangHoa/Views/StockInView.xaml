@@ -333,6 +333,7 @@
                                     <DataTemplate>
                                         <ComboBox ItemsSource="{Binding DataContext.AvailableProducts, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                   SelectedItem="{Binding SelectedProduct, UpdateSourceTrigger=PropertyChanged}"
+                                                  IsEditable="True" LostFocus="ProductComboBox_LostFocus"
                                                   DisplayMemberPath="DisplayName" Style="{StaticResource AppComboBoxStyle}" Margin="8,4" BorderThickness="0" Height="36"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -349,6 +350,7 @@
                                     <DataTemplate>
                                         <ComboBox ItemsSource="{Binding AvailableUnits}" 
                                                   SelectedItem="{Binding SelectedUnit, UpdateSourceTrigger=PropertyChanged}"
+                                                  IsEditable="True" LostFocus="UnitComboBox_LostFocus"
                                                   DisplayMemberPath="DisplayName" Style="{StaticResource AppComboBoxStyle}" Margin="8,4" BorderThickness="0" Height="36"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -364,7 +366,7 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBox Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" HorizontalContentAlignment="Right" 
-                                                 Style="{StaticResource AppTextBoxStyle}" Margin="8,4" Height="36"/>
+                                                  Style="{StaticResource AppTextBoxStyle}" Margin="8,4" Height="36"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -378,8 +380,8 @@
                                 </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <TextBox Text="{Binding Price, UpdateSourceTrigger=PropertyChanged, StringFormat='N0'}" HorizontalContentAlignment="Right" 
-                                                 Style="{StaticResource AppTextBoxStyle}" Margin="8,4" Height="36"/>
+                                        <TextBox Text="{Binding Price, UpdateSourceTrigger=PropertyChanged, StringFormat='N0'}" IsReadOnly="True" HorizontalContentAlignment="Right" 
+                                                  Style="{StaticResource AppTextBoxStyle}" Margin="8,4" Height="36"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>

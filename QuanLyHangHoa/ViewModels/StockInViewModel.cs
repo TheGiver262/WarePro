@@ -74,7 +74,7 @@ namespace QuanLyHangHoa.ViewModels
 
         private void LoadUnits(int productId)
         {
-            var productUnits = _productUnitService.GetByProductId(productId);
+            var productUnits = _productUnitService.GetByProductId(productId, includeDefault: true);
             AvailableUnits.Clear();
             foreach (var pu in productUnits)
             {
@@ -157,9 +157,34 @@ namespace QuanLyHangHoa.ViewModels
             SelectedWarehouse = AvailableWarehouses.FirstOrDefault(w => w.IsDefault) ?? AvailableWarehouses.FirstOrDefault();
             DocumentCode = $"IN-{DateTime.Now:yyyyMMddHHmmss}";
 
-            Lines.CollectionChanged += (s, e) => OnPropertyChanged(nameof(TotalAmount));
+            Lines.CollectionChanged += (s, e) => 
+            {
+                if (e.NewItems != null)
+                {
+                    foreach (StockInLineEditor item in e.NewItems)
+                    {
+                        item.PropertyChanged += Line_PropertyChanged;
+                    }
+                }
+                if (e.OldItems != null)
+                {
+                    foreach (StockInLineEditor item in e.OldItems)
+                    {
+                        item.PropertyChanged -= Line_PropertyChanged;
+                    }
+                }
+                OnPropertyChanged(nameof(TotalAmount));
+            };
             
             LoadData();
+        }
+
+        private void Line_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(StockInLineEditor.Quantity) || e.PropertyName == nameof(StockInLineEditor.Price))
+            {
+                OnPropertyChanged(nameof(TotalAmount));
+            }
         }
 
         [RelayCommand]
@@ -340,7 +365,7 @@ namespace QuanLyHangHoa.ViewModels
             {
                 var editor = new StockInLineEditor(_productUnitService)
                 {
-                    SelectedProduct = line.Product,
+                    SelectedProduct = AvailableProducts.FirstOrDefault(p => p.Id == line.ProductId) ?? line.Product,
                     Quantity = line.Quantity,
                     Price = line.UnitPrice,
                     SelectedUnit = line.Unit
@@ -395,6 +420,7 @@ namespace QuanLyHangHoa.ViewModels
                 {
                     line.SerialNumbers.Add(sn);
                 }
+                line.Quantity = serials.Count;
                 line.NotifySerialChanges();
             }
         }
@@ -487,6 +513,20 @@ namespace QuanLyHangHoa.ViewModels
             {
                 MessageBox.Show("Vui lòng chọn kho nhập.", "Cảnh báo");
                 return false;
+            }
+
+            foreach (var line in Lines)
+            {
+                if (line.SelectedProduct == null)
+                {
+                    MessageBox.Show("Có dòng hàng chưa chọn sản phẩm. Vui lòng kiểm tra lại.", "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return false;
+                }
+                if (line.SelectedUnit == null)
+                {
+                    MessageBox.Show($"Sản phẩm '{line.SelectedProduct.DisplayName}' chưa chọn đơn vị tính. Vui lòng kiểm tra lại.", "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return false;
+                }
             }
 
             return true;

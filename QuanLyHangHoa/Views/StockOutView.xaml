@@ -317,6 +317,7 @@
                                     <DataTemplate>
                                         <ComboBox ItemsSource="{Binding DataContext.AvailableProducts, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                   SelectedItem="{Binding SelectedProduct, UpdateSourceTrigger=PropertyChanged}"
+                                                  IsEditable="True" LostFocus="ProductComboBox_LostFocus"
                                                   DisplayMemberPath="DisplayName" Style="{StaticResource AppComboBoxStyle}" Margin="8,4" BorderThickness="0" Height="36"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -327,6 +328,7 @@
                                     <DataTemplate>
                                         <ComboBox ItemsSource="{Binding AvailableUnits}" 
                                                   SelectedItem="{Binding SelectedUnit, UpdateSourceTrigger=PropertyChanged}"
+                                                  IsEditable="True" LostFocus="UnitComboBox_LostFocus"
                                                   DisplayMemberPath="DisplayName" Style="{StaticResource AppComboBoxStyle}" Margin="8,4" BorderThickness="0" Height="36"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -335,8 +337,8 @@
                             <DataGridTemplateColumn Header="ĐƠN GIÁ" Width="150">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <TextBox Text="{Binding Price, UpdateSourceTrigger=PropertyChanged, StringFormat='N0'}" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="8,4"
-                                                 Style="{StaticResource AppTextBoxStyle}" Height="36" BorderThickness="0" Background="{StaticResource SurfaceMutedBrush}"/>
+                                        <TextBox Text="{Binding Price, UpdateSourceTrigger=PropertyChanged, StringFormat='N0'}" IsReadOnly="True" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="8,4"
+                                                  Style="{StaticResource AppTextBoxStyle}" Height="36" BorderThickness="0" Background="{StaticResource SurfaceMutedBrush}"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -345,7 +347,47 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBox Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource AppPrimaryBrush}"
-                                                 Style="{StaticResource AppTextBoxStyle}" Height="36" BorderThickness="0" Background="{StaticResource SurfaceMutedBrush}"/>
+                                                  Style="{StaticResource AppTextBoxStyle}" Height="36" BorderThickness="0" Background="{StaticResource SurfaceMutedBrush}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTemplateColumn Header="SERIAL" Width="180">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="8,4">
+                                            <Button Style="{StaticResource ProMaxIconButtonStyle}"
+                                                    Visibility="{Binding IsSerialRequired, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                    Command="{Binding DataContext.OpenSerialInputCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"
+                                                    HorizontalAlignment="Left" Padding="0" Height="36">
+                                                <StackPanel Orientation="Horizontal" Margin="8,0">
+                                                    <materialDesign:PackIcon Kind="BarcodeScan" Width="20" Height="20" VerticalAlignment="Center" Margin="0,0,8,0">
+                                                        <materialDesign:PackIcon.Style>
+                                                            <Style TargetType="materialDesign:PackIcon">
+                                                                <Setter Property="Foreground" Value="{StaticResource AppPrimaryBrush}"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsSerialComplete}" Value="False">
+                                                                        <Setter Property="Foreground" Value="{StaticResource AppErrorBrush}"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </materialDesign:PackIcon.Style>
+                                                    </materialDesign:PackIcon>
+                                                    <TextBlock Text="{Binding SerialSummary}" VerticalAlignment="Center">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock" BasedOn="{StaticResource TypographyCaption}">
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsSerialComplete}" Value="False">
+                                                                        <Setter Property="Foreground" Value="{StaticResource AppErrorBrush}"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </StackPanel>
+                                            </Button>
+                                        </Grid>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -373,7 +415,7 @@
                                     </MultiBinding>
                                 </TextBlock.Text>
                             </TextBlock>
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                 <TextBlock Text="TỔNG GIÁ TRỊ" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}" Margin="0,0,16,0" Foreground="{StaticResource AppSecondaryBrush}"/>
                                 <TextBlock Text="{Binding TotalAmount, StringFormat='N0'}" VerticalAlignment="Center" Style="{StaticResource TypographyStatNumber}" Foreground="{StaticResource AppPrimaryBrush}" FontSize="24"/>
                                 <TextBlock Text="VNĐ" VerticalAlignment="Center" Style="{StaticResource TypographyCaption}" Margin="8,4,0,0" Foreground="{StaticResource AppSecondaryBrush}"/>

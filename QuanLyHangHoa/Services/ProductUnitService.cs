@@ -17,13 +17,35 @@ namespace QuanLyHangHoa.Services
             _contextFactory = contextFactory;
         }
 
-        public virtual List<ProductUnit> GetByProductId(int productId)
+        public virtual List<ProductUnit> GetByProductId(int productId, bool includeDefault = false)
         {
             using var db = _contextFactory();
-            return db.ProductUnits
+            var list = db.ProductUnits
                 .Include(pu => pu.Unit)
                 .Where(pu => pu.ProductId == productId)
                 .ToList();
+
+            if (includeDefault)
+            {
+                var product = db.Products.Include(p => p.DefaultUnit).FirstOrDefault(p => p.Id == productId);
+                if (product != null && product.DefaultUnit != null)
+                {
+                    if (!list.Any(pu => pu.UnitId == product.DefaultUnitId))
+                    {
+                        list.Insert(0, new ProductUnit
+                        {
+                            ProductId = productId,
+                            UnitId = product.DefaultUnitId,
+                            Unit = product.DefaultUnit,
+                            ConversionFactor = 1,
+                            IsBaseUnit = true,
+                            IsPurchaseUnit = true,
+                            IsSalesUnit = true
+                        });
+                    }
+                }
+            }
+            return list;
         }
 
         public virtual void Add(ProductUnit pu)

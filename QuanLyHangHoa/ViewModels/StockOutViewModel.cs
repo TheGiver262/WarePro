@@ -17,16 +17,27 @@ namespace QuanLyHangHoa.ViewModels
         private readonly ProductUnitService _productUnitService;
 
         [ObservableProperty] private Product? _selectedProduct;
-        [ObservableProperty] private decimal _quantity = 1;
+        [ObservableProperty] [NotifyPropertyChangedFor(nameof(IsSerialComplete))] private decimal _quantity = 1;
         [ObservableProperty] private decimal _price;
         [ObservableProperty] private Unit? _selectedUnit;
         [ObservableProperty] private ObservableCollection<Unit> _availableUnits = new();
-        [ObservableProperty] private ObservableCollection<ProductSerial> _selectedSerials = new();
+        [ObservableProperty] private ObservableCollection<string> _serialNumbers = new();
+        [ObservableProperty] [NotifyPropertyChangedFor(nameof(IsSerialComplete))] private bool _isSerialRequired;
         [ObservableProperty] private decimal _baseQuantity;
+
+        public string SerialSummary => SerialNumbers.Count > 0 ? $"{SerialNumbers.Count} Serial" : "Chưa có Serial";
+        public bool IsSerialComplete => !IsSerialRequired || SerialNumbers.Count == (int)Quantity;
 
         public StockOutLineEditor(ProductUnitService productUnitService)
         {
             _productUnitService = productUnitService;
+            SerialNumbers.CollectionChanged += (s, e) => NotifySerialChanges();
+        }
+
+        public void NotifySerialChanges()
+        {
+            OnPropertyChanged(nameof(SerialSummary));
+            OnPropertyChanged(nameof(IsSerialComplete));
         }
 
         partial void OnQuantityChanged(decimal value) => UpdateBaseQuantity();
@@ -49,19 +60,21 @@ namespace QuanLyHangHoa.ViewModels
             if (value != null)
             {
                 Price = value.DefaultPrice;
+                IsSerialRequired = value.IsSerialTracked;
                 LoadUnits(value.Id);
                 UpdateBaseQuantity();
             }
             else
             {
                 AvailableUnits.Clear();
+                IsSerialRequired = false;
                 BaseQuantity = 0;
             }
         }
 
         private void LoadUnits(int productId)
         {
-            var productUnits = _productUnitService.GetByProductId(productId);
+            var productUnits = _productUnitService.GetByProductId(productId, includeDefault: true);
             AvailableUnits.Clear();
             foreach (var pu in productUnits)
             {
@@ -148,8 +161,33 @@ namespace QuanLyHangHoa.ViewModels
             
             CanApprove = AuthorizationService.CanPerform(_currentUser, PermissionAction.ApproveStock);
             
+            Lines.CollectionChanged += (s, e) => 
+            {
+                if (e.NewItems != null)
+                {
+                    foreach (StockOutLineEditor item in e.NewItems)
+                    {
+                        item.PropertyChanged += Line_PropertyChanged;
+                    }
+                }
+                if (e.OldItems != null)
+                {
+                    foreach (StockOutLineEditor item in e.OldItems)
+                    {
+                        item.PropertyChanged -= Line_PropertyChanged;
+                    }
+                }
+                RecalculateTotal();
+            };
             LoadData();
-            Lines.CollectionChanged += (s, e) => RecalculateTotal();
+        }
+
+        private void Line_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(StockOutLineEditor.Quantity) || e.PropertyName == nameof(StockOutLineEditor.Price))
+            {
+                RecalculateTotal();
+            }
         }
 
         [RelayCommand]
@@ -318,16 +356,31 @@ namespace QuanLyHangHoa.ViewModels
             OnPropertyChanged(nameof(CanEdit));
             
             Lines.Clear();
-            foreach (var line in so.Lines)
+            using (var db = _contextFactory())
             {
-                var editor = new StockOutLineEditor(_productUnitService)
+                foreach (var line in so.Lines)
                 {
-                    SelectedProduct = AvailableProducts.FirstOrDefault(p => p.Id == line.ProductId),
-                    Quantity = line.Quantity,
-                    Price = line.UnitPrice,
-                    SelectedUnit = line.Unit
-                };
-                Lines.Add(editor);
+                    var editor = new StockOutLineEditor(_productUnitService)
+                    {
+                        SelectedProduct = AvailableProducts.FirstOrDefault(p => p.Id == line.ProductId),
+                        Quantity = line.Quantity,
+                        Price = line.UnitPrice,
+                        SelectedUnit = db.Units.FirstOrDefault(u => u.Id == line.UnitId)
+                    };
+
+                    // Load serial numbers from DB
+                    var serials = db.ProductSerials
+                        .Where(ps => ps.LastStockOutLineId == line.Id)
+                        .Select(ps => ps.SerialNumber)
+                        .ToList();
+
+                    foreach (var sn in serials)
+                    {
+                        editor.SerialNumbers.Add(sn);
+                    }
+
+                    Lines.Add(editor);
+                }
             }
             RecalculateTotal();
         }
@@ -338,14 +391,44 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        private void OpenSerialInput(StockOutLineEditor line)
+        {
+            if (!CanEdit) return;
+            if (line == null || line.SelectedProduct == null) return;
+            
+            var available = _stockOutService.GetInStockSerials(line.SelectedProduct.Id, WarehouseId);
+            var existing = string.Join("\n", line.SerialNumbers);
+            var dialog = new Views.SerialInputWindow(existing, available);
+            dialog.Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(x => x.IsActive) ?? Application.Current.MainWindow;
+            
+            if (dialog.ShowDialog() == true)
+            {
+                var serials = StockInService.ParseSerialRange(dialog.SerialInput);
+                var availableSerialsSet = new HashSet<string>(available.Select(s => s.SerialNumber), StringComparer.OrdinalIgnoreCase);
+                var invalidSerials = serials.Where(s => !availableSerialsSet.Contains(s)).ToList();
+
+                if (invalidSerials.Any())
+                {
+                    MessageBox.Show(
+                        $"Các serial sau không có sẵn trong kho hoặc không thuộc sản phẩm này: {string.Join(", ", invalidSerials)}.\n\nVui lòng chỉ chọn từ danh sách serial hiện có.",
+                        "Lỗi Serial", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                line.SerialNumbers.Clear();
+                foreach (var sn in serials)
+                {
+                    line.SerialNumbers.Add(sn);
+                }
+                line.Quantity = serials.Count;
+                line.NotifySerialChanges();
+            }
+        }
+
+        [RelayCommand]
         private void AddLine()
         {
-            var newLine = new StockOutLineEditor(_productUnitService);
-            newLine.PropertyChanged += (s, e) => {
-                if (e.PropertyName == nameof(StockOutLineEditor.Quantity) || e.PropertyName == nameof(StockOutLineEditor.Price))
-                    RecalculateTotal();
-            };
-            Lines.Add(newLine);
+            Lines.Add(new StockOutLineEditor(_productUnitService));
         }
 
         [RelayCommand]
@@ -357,14 +440,40 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
-        [RelayCommand]
-        private void SaveStockOut()
+        private bool ValidateForm()
         {
             if (SelectedCustomer == null || !Lines.Any())
             {
                 MessageBox.Show("Vui lòng chọn khách hàng và nhập ít nhất 1 mặt hàng.", "Thông báo");
-                return;
+                return false;
             }
+
+            foreach (var line in Lines)
+            {
+                if (line.SelectedProduct == null)
+                {
+                    MessageBox.Show("Có dòng hàng chưa chọn sản phẩm. Vui lòng kiểm tra lại.", "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return false;
+                }
+                if (line.SelectedUnit == null)
+                {
+                    MessageBox.Show($"Sản phẩm '{line.SelectedProduct.DisplayName}' chưa chọn đơn vị tính. Vui lòng kiểm tra lại.", "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return false;
+                }
+                if (line.IsSerialRequired && line.SerialNumbers.Count != (int)line.Quantity)
+                {
+                    MessageBox.Show($"Sản phẩm {line.SelectedProduct.DisplayName} yêu cầu {(int)line.Quantity} serial, nhưng hiện có {line.SerialNumbers.Count}.", "Thiếu Serial", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        [RelayCommand]
+        private void SaveStockOut()
+        {
+            if (!ValidateForm()) return;
 
             try
             {
@@ -372,7 +481,7 @@ namespace QuanLyHangHoa.ViewModels
                 {
                     DocumentCode = DocumentCode,
                     WarehouseId = WarehouseId,
-                    CustomerId = SelectedCustomer.Id,
+                    CustomerId = SelectedCustomer!.Id,
                     ExportDate = ExportDate,
                     Notes = Notes,
                     Status = DocumentStatus.Draft, // Default to Draft
@@ -381,13 +490,27 @@ namespace QuanLyHangHoa.ViewModels
                     CreatedAt = DateTime.Now
                 };
 
-                var soLines = Lines.Select(l => new StockOutLine
-                {
-                    ProductId = l.SelectedProduct?.Id ?? 0,
-                    Quantity = l.Quantity,
-                    UnitPrice = l.Price,
-                    UnitId = l.SelectedUnit?.Id ?? 0,
-                    BaseQuantity = _productUnitService.ConvertToBaseUnit(l.SelectedProduct?.Id ?? 0, l.SelectedUnit?.Id ?? 0, l.Quantity)
+                var soLines = Lines.Select(l => {
+                    var line = new StockOutLine
+                    {
+                        ProductId = l.SelectedProduct?.Id ?? 0,
+                        Quantity = l.Quantity,
+                        UnitPrice = l.Price,
+                        UnitId = l.SelectedUnit?.Id ?? 0,
+                        BaseQuantity = _productUnitService.ConvertToBaseUnit(l.SelectedProduct?.Id ?? 0, l.SelectedUnit?.Id ?? 0, l.Quantity)
+                    };
+                    
+                    if (l.IsSerialRequired)
+                    {
+                        foreach (var sn in l.SerialNumbers)
+                        {
+                            line.ProductSerials.Add(new ProductSerial { 
+                                SerialNumber = sn,
+                                ProductId = line.ProductId
+                            });
+                        }
+                    }
+                    return line;
                 }).ToList();
 
                 _stockOutService.Create(so, soLines, _currentUser.Id);

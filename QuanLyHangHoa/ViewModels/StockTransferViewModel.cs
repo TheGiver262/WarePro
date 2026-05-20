@@ -73,7 +73,7 @@ namespace QuanLyHangHoa.ViewModels
 
         private void LoadUnits(int productId)
         {
-            var productUnits = _productUnitService.GetByProductId(productId);
+            var productUnits = _productUnitService.GetByProductId(productId, includeDefault: true);
             AvailableUnits.Clear();
             foreach (var pu in productUnits)
             {
