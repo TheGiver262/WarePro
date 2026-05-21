@@ -89,7 +89,7 @@ namespace QuanLyHangHoa.ViewModels
         }
     }
 
-    public partial class StockInViewModel : ObservableObject
+    public partial class StockInViewModel : ObservableObject, IRefreshable
     {
         private readonly ProductService _productService;
         private readonly StockInService _stockInService;
@@ -583,6 +583,11 @@ namespace QuanLyHangHoa.ViewModels
             
             Lines.Clear();
             DocumentCode = $"IN-{DateTime.Now:yyyyMMddHHmmss}";
+        }
+
+        public void RefreshData()
+        {
+            LoadData();
         }
     }
 }

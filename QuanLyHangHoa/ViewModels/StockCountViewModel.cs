@@ -16,7 +16,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private decimal _countedQuantity;
     }
 
-    public partial class StockCountViewModel : ObservableObject
+    public partial class StockCountViewModel : ObservableObject, IRefreshable
     {
         private readonly ProductService _productService;
         private readonly StockCountService _stockCountService;
@@ -122,6 +122,11 @@ namespace QuanLyHangHoa.ViewModels
         private static string CreateDefaultSessionCode()
         {
             return $"COUNT-{DateTime.Now:yyyyMMddHHmmss}";
+        }
+
+        public void RefreshData()
+        {
+            LoadData();
         }
     }
 }

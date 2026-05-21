@@ -12,7 +12,7 @@ using System.Text.Json;
 
 namespace QuanLyHangHoa.ViewModels
 {
-    public partial class ProductViewModel : ObservableObject
+    public partial class ProductViewModel : ObservableObject, IRefreshable
     {
         private readonly Func<AppDbContext> _contextFactory;
         private readonly ProductService _service;
@@ -284,6 +284,11 @@ namespace QuanLyHangHoa.ViewModels
                     MessageBox.Show($"Lỗi khi xuất Excel: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
+        }
+
+        public void RefreshData()
+        {
+            LoadData();
         }
     }
 }

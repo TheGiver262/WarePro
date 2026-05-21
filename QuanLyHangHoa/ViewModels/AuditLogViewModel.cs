@@ -15,7 +15,7 @@ using QuanLyHangHoa.Services;
 
 namespace QuanLyHangHoa.ViewModels
 {
-    public partial class AuditLogViewModel : ObservableObject
+    public partial class AuditLogViewModel : ObservableObject, IRefreshable
     {
         private readonly AuditQueryService _auditService = null!;
         private readonly AppUserService _userService = null!;
@@ -380,6 +380,11 @@ namespace QuanLyHangHoa.ViewModels
                 return JsonSerializer.Serialize(obj, new JsonSerializerOptions { WriteIndented = true });
             }
             catch { return json; }
+        }
+
+        public void RefreshData()
+        {
+            LoadLogs();
         }
     }
 }

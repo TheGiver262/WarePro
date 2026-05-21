@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace QuanLyHangHoa.ViewModels
 {
-    public partial class WarrantyViewModel : ObservableObject
+    public partial class WarrantyViewModel : ObservableObject, IRefreshable
     {
         private readonly Func<string, string, string, int, int> _createClaim;
         private readonly Action<int, string, int> _completeRepair;
@@ -332,6 +332,11 @@ namespace QuanLyHangHoa.ViewModels
         private static string CreateDefaultClaimCode()
         {
             return $"WC-{DateTime.Now:yyyyMMddHHmmss}";
+        }
+
+        public void RefreshData()
+        {
+            LoadData();
         }
     }
 }

@@ -71,7 +71,7 @@ namespace QuanLyHangHoa.ViewModels
         }
     }
 
-    public partial class StockAdjustmentViewModel : ObservableObject
+    public partial class StockAdjustmentViewModel : ObservableObject, IRefreshable
     {
         private readonly ProductService _productService;
         private readonly StockAdjustmentService _adjustmentService;
@@ -404,6 +404,11 @@ namespace QuanLyHangHoa.ViewModels
             }
 
             return true;
+        }
+
+        public void RefreshData()
+        {
+            LoadData();
         }
     }
 }

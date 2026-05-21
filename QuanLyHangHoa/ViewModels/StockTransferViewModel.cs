@@ -88,7 +88,7 @@ namespace QuanLyHangHoa.ViewModels
         }
     }
 
-    public partial class StockTransferViewModel : ObservableObject
+    public partial class StockTransferViewModel : ObservableObject, IRefreshable
     {
         private readonly ProductService _productService;
         private readonly StockTransferService _stockTransferService;
@@ -491,6 +491,11 @@ namespace QuanLyHangHoa.ViewModels
             DocumentCode = $"ST-{DateTime.Now:yyyyMMddHHmmss}";
             TransferDate = DateTime.Now;
             Notes = string.Empty;
+        }
+
+        public void RefreshData()
+        {
+            LoadData();
         }
     }
 }

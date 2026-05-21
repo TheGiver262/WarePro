@@ -89,7 +89,7 @@ namespace QuanLyHangHoa.ViewModels
         }
     }
 
-    public partial class StockOutViewModel : ObservableObject
+    public partial class StockOutViewModel : ObservableObject, IRefreshable
     {
         private readonly ProductService _productService;
         private readonly StockOutService _stockOutService;
@@ -541,6 +541,11 @@ namespace QuanLyHangHoa.ViewModels
             Status = DocumentStatus.Draft;
             IsPosted = false;
             OnPropertyChanged(nameof(CanEdit));
+        }
+
+        public void RefreshData()
+        {
+            LoadData();
         }
     }
 }

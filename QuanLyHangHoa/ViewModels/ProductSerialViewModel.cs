@@ -14,7 +14,7 @@ using QuanLyHangHoa.Services;
 
 namespace QuanLyHangHoa.ViewModels
 {
-    public partial class ProductSerialViewModel : ObservableObject
+    public partial class ProductSerialViewModel : ObservableObject, IRefreshable
     {
         private readonly Func<string, string, string, string, DateTime?, DateTime?, string, List<ProductSerial>> _serialLoader;
         private readonly IProductSerialImportService _importService;
@@ -311,6 +311,11 @@ namespace QuanLyHangHoa.ViewModels
             
             if (string.IsNullOrEmpty(StatusMessage) || StatusMessage.Contains("Tìm thấy"))
                 StatusMessage = $"Tìm thấy {Serials.Count} serial.";
+        }
+
+        public void RefreshData()
+        {
+            LoadSerials();
         }
     }
 }

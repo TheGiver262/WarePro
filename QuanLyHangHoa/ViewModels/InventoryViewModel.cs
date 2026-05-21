@@ -9,7 +9,7 @@ using QuanLyHangHoa.Services;
 
 namespace QuanLyHangHoa.ViewModels
 {
-    public partial class InventoryViewModel : ObservableObject
+    public partial class InventoryViewModel : ObservableObject, IRefreshable
     {
         private readonly ProductService _productService;
 
@@ -113,6 +113,11 @@ namespace QuanLyHangHoa.ViewModels
                     MessageBox.Show($"Lỗi khi xuất Excel: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
+        }
+
+        public void RefreshData()
+        {
+            LoadData();
         }
     }
 }

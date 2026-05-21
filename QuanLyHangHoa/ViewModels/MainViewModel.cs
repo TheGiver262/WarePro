@@ -30,6 +30,7 @@ namespace QuanLyHangHoa.ViewModels
 
         public Func<Data.AppDbContext> ContextFactory { get; }
         private readonly DashboardService _dashboardService;
+        private readonly System.Collections.Generic.Dictionary<string, UserControl> _viewCache = new();
 
         public MainViewModel(AppUser user, Func<Data.AppDbContext> contextFactory)
         {
@@ -40,181 +41,156 @@ namespace QuanLyHangHoa.ViewModels
             OpenDashboard();
         }
 
+        private void NavigateToView<TView>(string cacheKey, Func<TView> viewFactory, string title, string subtitle) where TView : UserControl
+        {
+            if (!_viewCache.TryGetValue(cacheKey, out var view))
+            {
+                view = viewFactory();
+                _viewCache[cacheKey] = view;
+            }
+            else
+            {
+                if (view.DataContext is IRefreshable refreshable)
+                {
+                    refreshable.RefreshData();
+                }
+            }
+            CurrentView = view;
+            CurrentViewTitle = title;
+            CurrentViewSubtitle = subtitle;
+        }
+
         // ── Navigation Commands ────────────────────────────────────────────────
         [RelayCommand]
         private void OpenDashboard()
         {
-            CurrentView = new DashboardView { DataContext = new DashboardViewModel(_dashboardService, this) };
-            CurrentViewTitle = "DASHBOARD";
-            CurrentViewSubtitle = "Tổng quan hoạt động kinh doanh";
+            NavigateToView("Dashboard", () => new DashboardView { DataContext = new DashboardViewModel(_dashboardService, this) }, "DASHBOARD", "Tổng quan hoạt động kinh doanh");
         }
 
         [RelayCommand]
         private void OpenProductView()
         {
-            CurrentView = new ProductView { DataContext = new ProductViewModel(ContextFactory, CurrentUser) };
-            CurrentViewTitle = "KHO HÀNG";
-            CurrentViewSubtitle = "Quản lý danh mục sản phẩm và tồn kho";
+            NavigateToView("Product", () => new ProductView { DataContext = new ProductViewModel(ContextFactory, CurrentUser) }, "KHO HÀNG", "Quản lý danh mục sản phẩm và tồn kho");
         }
 
         [RelayCommand]
         private void OpenStockOutView()
         {
-            var view = new StockOutView { DataContext = new StockOutViewModel(CurrentUser, ContextFactory) };
-            CurrentView = view;
-            CurrentViewTitle = "XUẤT KHO";
-            CurrentViewSubtitle = "Lập phiếu xuất kho và quản lý hàng xuất";
+            NavigateToView("StockOut", () => new StockOutView { DataContext = new StockOutViewModel(CurrentUser, ContextFactory) }, "XUẤT KHO", "Lập phiếu xuất kho và quản lý hàng xuất");
         }
 
         [RelayCommand]
         private void OpenStockInView()
         {
-            CurrentView = new StockInView { DataContext = new StockInViewModel(CurrentUser, ContextFactory) };
-            CurrentViewTitle = "NHẬP KHO";
-            CurrentViewSubtitle = "Lập phiếu nhập kho và quản lý hàng nhập";
+            NavigateToView("StockIn", () => new StockInView { DataContext = new StockInViewModel(CurrentUser, ContextFactory) }, "NHẬP KHO", "Lập phiếu nhập kho và quản lý hàng nhập");
         }
 
         [RelayCommand]
         private void OpenStockTransferView()
         {
-            CurrentView = new StockTransferView { DataContext = new StockTransferViewModel(CurrentUser, ContextFactory) };
-            CurrentViewTitle = "CHUYỂN KHO";
-            CurrentViewSubtitle = "Điều chuyển hàng hóa giữa các kho nội bộ";
+            NavigateToView("StockTransfer", () => new StockTransferView { DataContext = new StockTransferViewModel(CurrentUser, ContextFactory) }, "CHUYỂN KHO", "Điều chuyển hàng hóa giữa các kho nội bộ");
         }
 
         [RelayCommand]
         private void OpenStockAdjustmentView()
         {
-            CurrentView = new StockAdjustmentView { DataContext = new StockAdjustmentViewModel(CurrentUser, ContextFactory) };
-            CurrentViewTitle = "ĐIỀU CHỈNH";
-            CurrentViewSubtitle = "Điều chỉnh số lượng tồn kho thực tế";
+            NavigateToView("StockAdjustment", () => new StockAdjustmentView { DataContext = new StockAdjustmentViewModel(CurrentUser, ContextFactory) }, "ĐIỀU CHỈNH", "Điều chỉnh số lượng tồn kho thực tế");
         }
 
         [RelayCommand]
         private void OpenStockCountView()
         {
-            var view = new StockCountView { DataContext = new StockCountViewModel(CurrentUser, ContextFactory) };
-            CurrentView = view;
-            CurrentViewTitle = "KIỂM KÊ";
-            CurrentViewSubtitle = "Kiểm kê định kỳ và đối soát hàng hóa";
+            NavigateToView("StockCount", () => new StockCountView { DataContext = new StockCountViewModel(CurrentUser, ContextFactory) }, "KIỂM KÊ", "Kiểm kê định kỳ và đối soát hàng hóa");
         }
 
         [RelayCommand]
         private void OpenPurchaseInvoiceView()
         {
-            CurrentView = new PurchaseInvoiceView { DataContext = new PurchaseInvoiceViewModel(this) };
-            CurrentViewTitle = "HÓA ĐƠN MUA";
-            CurrentViewSubtitle = "Quản lý hóa đơn nhập hàng từ NCC";
+            NavigateToView("PurchaseInvoice", () => new PurchaseInvoiceView { DataContext = new PurchaseInvoiceViewModel(this) }, "HÓA ĐƠN MUA", "Quản lý hóa đơn nhập hàng từ NCC");
         }
 
         [RelayCommand]
         private void OpenSalesInvoiceView()
         {
-            CurrentView = new SalesInvoiceView { DataContext = new SalesInvoiceViewModel(this) };
-            CurrentViewTitle = "HÓA ĐƠN BÁN";
-            CurrentViewSubtitle = "Quản lý hóa đơn bán lẻ cho khách hàng";
+            NavigateToView("SalesInvoice", () => new SalesInvoiceView { DataContext = new SalesInvoiceViewModel(this) }, "HÓA ĐƠN BÁN", "Quản lý hóa đơn bán lẻ cho khách hàng");
         }
-
-
 
         [RelayCommand]
         private void OpenWarrantyView()
         {
-            var vm = new WarrantyViewModel(CurrentUser, ContextFactory);
-            vm.LoadData();
-            var view = new WarrantyView { DataContext = vm };
-            CurrentView = view;
-            CurrentViewTitle = "BẢO HÀNH";
-            CurrentViewSubtitle = "Quản lý phiếu bảo hành và sửa chữa";
+            NavigateToView("Warranty", () => 
+            {
+                var vm = new WarrantyViewModel(CurrentUser, ContextFactory);
+                vm.LoadData();
+                return new WarrantyView { DataContext = vm };
+            }, "BẢO HÀNH", "Quản lý phiếu bảo hành và sửa chữa");
         }
 
         // ── Reference Data ─────────────────────────────────────────────────────
         [RelayCommand]
         private void OpenCategoryView()
         {
-            CurrentView = new CategoryView { DataContext = new CategoryViewModel(ContextFactory, CurrentUser!) };
-            CurrentViewTitle = "DANH MỤC";
-            CurrentViewSubtitle = "Quản lý nhóm phân loại sản phẩm";
+            NavigateToView("Category", () => new CategoryView { DataContext = new CategoryViewModel(ContextFactory, CurrentUser!) }, "DANH MỤC", "Quản lý nhóm phân loại sản phẩm");
         }
 
         [RelayCommand]
         private void OpenBrandView()
         {
-            CurrentView = new BrandView { DataContext = new BrandViewModel(ContextFactory, CurrentUser!) };
-            CurrentViewTitle = "THƯƠNG HIỆU";
-            CurrentViewSubtitle = "Quản lý các hãng sản xuất";
+            NavigateToView("Brand", () => new BrandView { DataContext = new BrandViewModel(ContextFactory, CurrentUser!) }, "THƯƠNG HIỆU", "Quản lý các hãng sản xuất");
         }
 
         [RelayCommand]
         private void OpenUnitView()
         {
-            CurrentView = new UnitView { DataContext = new UnitViewModel(ContextFactory, CurrentUser!) };
-            CurrentViewTitle = "ĐƠN VỊ TÍNH";
-            CurrentViewSubtitle = "Quản lý đơn vị đo lường";
+            NavigateToView("Unit", () => new UnitView { DataContext = new UnitViewModel(ContextFactory, CurrentUser!) }, "ĐƠN VỊ TÍNH", "Quản lý đơn vị đo lường");
         }
 
         [RelayCommand]
         private void OpenSupplierView()
         {
-            CurrentView = new SupplierView { DataContext = new SupplierViewModel(ContextFactory, CurrentUser!) };
-            CurrentViewTitle = "NHÀ CUNG CẤP";
-            CurrentViewSubtitle = "Quản lý đối tác nhập hàng";
+            NavigateToView("Supplier", () => new SupplierView { DataContext = new SupplierViewModel(ContextFactory, CurrentUser!) }, "NHÀ CUNG CẤP", "Quản lý đối tác nhập hàng");
         }
 
         [RelayCommand]
         private void OpenCustomerView()
         {
-            CurrentView = new CustomerView { DataContext = new CustomerViewModel(ContextFactory, CurrentUser!) };
-            CurrentViewTitle = "KHÁCH HÀNG";
-            CurrentViewSubtitle = "Quản lý thông tin khách hàng";
+            NavigateToView("Customer", () => new CustomerView { DataContext = new CustomerViewModel(ContextFactory, CurrentUser!) }, "KHÁCH HÀNG", "Quản lý thông tin khách hàng");
         }
 
         [RelayCommand]
         private void OpenInventoryView()
         {
-            CurrentView = new InventoryView { DataContext = new InventoryViewModel(ContextFactory) };
-            CurrentViewTitle = "TỒN KHO";
-            CurrentViewSubtitle = "Theo dõi số lượng và giá trị hàng hóa hiện có";
+            NavigateToView("Inventory", () => new InventoryView { DataContext = new InventoryViewModel(ContextFactory) }, "TỒN KHO", "Theo dõi số lượng và giá trị hàng hóa hiện có");
         }
 
         [RelayCommand]
         private void OpenProductSerialView()
         {
-            CurrentView = new ProductSerialView { DataContext = new ProductSerialViewModel(ContextFactory, CurrentUser) };
-            CurrentViewTitle = "QUẢN LÝ SERIAL";
-            CurrentViewSubtitle = "Quản lý số Serial và IMEI sản phẩm";
+            NavigateToView("ProductSerial", () => new ProductSerialView { DataContext = new ProductSerialViewModel(ContextFactory, CurrentUser) }, "QUẢN LÝ SERIAL", "Quản lý số Serial và IMEI sản phẩm");
         }
 
         [RelayCommand]
         private void OpenOpeningBalanceImportView()
         {
-            CurrentView = new OpeningBalanceImportView { DataContext = new OpeningBalanceImportViewModel(CurrentUser.Id, ContextFactory) };
-            CurrentViewTitle = "NHẬP TỒN ĐẦU KỲ";
-            CurrentViewSubtitle = "Import số dư đầu kỳ từ file Excel/CSV";
+            NavigateToView("OpeningBalanceImport", () => new OpeningBalanceImportView { DataContext = new OpeningBalanceImportViewModel(CurrentUser.Id, ContextFactory) }, "NHẬP TỒN ĐẦU KỲ", "Import số dư đầu kỳ từ file Excel/CSV");
         }
 
         [RelayCommand]
         private void OpenAuditQueryView()
         {
-            CurrentView = new AuditQueryView { DataContext = new AuditQueryViewModel(ContextFactory) };
-            CurrentViewTitle = "TRUY VẤN LỊCH SỬ";
-            CurrentViewSubtitle = "Xem lịch sử biến động kho và chứng từ";
+            NavigateToView("AuditQuery", () => new AuditQueryView { DataContext = new AuditQueryViewModel(ContextFactory) }, "TRUY VẤN LỊCH SỬ", "Xem lịch sử biến động kho và chứng từ");
         }
 
         [RelayCommand]
         private void OpenWarrantyCoverageView()
         {
-            CurrentView = new WarrantyCoverageView { DataContext = new WarrantyCoverageViewModel(ContextFactory) };
-            CurrentViewTitle = "QUYỀN BẢO HÀNH";
-            CurrentViewSubtitle = "Thiết lập các gói và điều kiện bảo hành";
+            NavigateToView("WarrantyCoverage", () => new WarrantyCoverageView { DataContext = new WarrantyCoverageViewModel(ContextFactory) }, "QUYỀN BẢO HÀNH", "Thiết lập các gói và điều kiện bảo hành");
         }
 
         [RelayCommand]
         private void OpenReportView()
         {
-            CurrentView = new ReportView { DataContext = new ReportViewModel() };
-            CurrentViewTitle = "BÁO CÁO";
-            CurrentViewSubtitle = "Phân tích hiệu quả kinh doanh và tài chính";
+            NavigateToView("Report", () => new ReportView { DataContext = new ReportViewModel() }, "BÁO CÁO", "Phân tích hiệu quả kinh doanh và tài chính");
         }
 
         // ── Administration ─────────────────────────────────────────────────────
@@ -223,9 +199,7 @@ namespace QuanLyHangHoa.ViewModels
         {
             if (IsAdmin)
             {
-                CurrentView = new AppUserView { DataContext = new AppUserViewModel(CurrentUser, ContextFactory) };
-                CurrentViewTitle = "NGƯỜI DÙNG";
-                CurrentViewSubtitle = "Quản lý tài khoản hệ thống";
+                NavigateToView("AppUser", () => new AppUserView { DataContext = new AppUserViewModel(CurrentUser, ContextFactory) }, "NGƯỜI DÙNG", "Quản lý tài khoản hệ thống");
             }
             else
             {
@@ -238,23 +212,17 @@ namespace QuanLyHangHoa.ViewModels
         {
             if (CanViewLogs)
             {
-                CurrentView = new AuditLogView { DataContext = new AuditLogViewModel(ContextFactory) };
-                CurrentViewTitle = "NHẬT KÝ HỆ THỐNG";
-                CurrentViewSubtitle = "Theo dõi lịch sử thay đổi dữ liệu toàn hệ thống";
+                NavigateToView("AuditLog", () => new AuditLogView { DataContext = new AuditLogViewModel(ContextFactory) }, "NHẬT KÝ HỆ THỐNG", "Theo dõi lịch sử thay đổi dữ liệu toàn hệ thống");
             }
             else
             {
                 System.Windows.MessageBox.Show("Bạn không có quyền truy cập!", "Thông báo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
             }
         }
-
         [RelayCommand]
         private void OpenChangePasswordView()
         {
-            var view = new ChangePasswordView { DataContext = new ChangePasswordViewModel(CurrentUser, ContextFactory) };
-            CurrentView = view;
-            CurrentViewTitle = "ĐỔI MẬT KHẨU";
-            CurrentViewSubtitle = "Cập nhật mật khẩu truy cập";
+            NavigateToView("ChangePassword", () => new ChangePasswordView { DataContext = new ChangePasswordViewModel(CurrentUser, ContextFactory) }, "ĐỔI MẬT KHẨU", "Cập nhật mật khẩu truy cập");
         }
 
         [RelayCommand]
