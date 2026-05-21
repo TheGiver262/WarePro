@@ -8,120 +8,557 @@
              mc:Ignorable="d" 
              d:DesignHeight="800" d:DesignWidth="1100">
 
-
-
     <Grid Background="{StaticResource AppBackgroundBrush}">
         <Grid Margin="{StaticResource PagePadding}">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/> <!-- Row 0: Header -->
-                <RowDefinition Height="Auto"/> <!-- Row 1: File Selector -->
-                <RowDefinition Height="*"/>    <!-- Row 2: Error List -->
+                <RowDefinition Height="Auto"/> <!-- Header & Step Progress -->
+                <RowDefinition Height="*"/>    <!-- Active Step Content -->
             </Grid.RowDefinitions>
 
-            <!-- Row 0: Header Section -->
-            <Grid Grid.Row="0" Margin="{StaticResource SectionBottomMargin}">
-                <StackPanel>
+            <!-- Row 0: Header Section & Progress Steps -->
+            <Grid Grid.Row="0" Margin="0,0,0,24">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
                     <StackPanel Orientation="Horizontal">
                         <materialDesign:PackIcon Kind="DatabaseImport" Width="32" Height="32" 
                                                Foreground="{StaticResource AppPrimaryBrush}" VerticalAlignment="Center"/>
-                        <TextBlock Text="NHẬP TỒN ĐẦU KỲ" Style="{StaticResource TypographyH1}" 
-                                 Margin="16,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
+                        <TextBlock Text="NHẬP DỮ LIỆU THÔNG MINH" Style="{StaticResource TypographyH1}" 
+                                  Margin="16,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
                     </StackPanel>
-                    <TextBlock Text="Import dữ liệu tồn kho đầu kỳ từ file Excel hoặc CSV để khởi tạo hệ thống" 
-                             Style="{StaticResource TypographyCaption}" Margin="48,4,0,0" 
-                             Opacity="0.7"/>
+                    <TextBlock Text="Nhập tồn kho, sản phẩm, đối tác từ file Excel/CSV bằng cách ánh xạ các cột tự động" 
+                              Style="{StaticResource TypographyCaption}" Margin="48,4,0,0" 
+                              Opacity="0.7"/>
+                </StackPanel>
+
+                <!-- Wizard Step Progress Indicator -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,24,0">
+                    <!-- Step 1 Indicator -->
+                    <StackPanel Orientation="Horizontal">
+                        <Border Width="26" Height="26" CornerRadius="13" VerticalAlignment="Center">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Background" Value="{StaticResource AppPrimaryBrush}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ActiveStep}" Value="1">
+                                            <Setter Property="Background" Value="{StaticResource AppPrimaryBrush}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <TextBlock Text="1" Foreground="White" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold" FontSize="12"/>
+                        </Border>
+                        <TextBlock Text="Chọn file" VerticalAlignment="Center" Margin="8,0,0,0" Style="{StaticResource TypographyLabel}"/>
+                    </StackPanel>
+
+                    <Line X1="0" Y1="0" X2="30" Y2="0" Stroke="{StaticResource AppBorderBrush}" StrokeThickness="2" VerticalAlignment="Center" Margin="12,0"/>
+
+                    <!-- Step 2 Indicator -->
+                    <StackPanel Orientation="Horizontal">
+                        <Border Width="26" Height="26" CornerRadius="13" VerticalAlignment="Center">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Background" Value="{StaticResource SurfaceMutedBrush}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ActiveStep}" Value="2">
+                                            <Setter Property="Background" Value="{StaticResource AppPrimaryBrush}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ActiveStep}" Value="3">
+                                            <Setter Property="Background" Value="{StaticResource AppPrimaryBrush}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ActiveStep}" Value="4">
+                                            <Setter Property="Background" Value="{StaticResource AppPrimaryBrush}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <TextBlock Text="2" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold" FontSize="12">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{StaticResource AppSecondaryBrush}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ActiveStep}" Value="2">
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding ActiveStep}" Value="3">
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding ActiveStep}" Value="4">
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Border>
+                        <TextBlock Text="Ánh xạ" VerticalAlignment="Center" Margin="8,0,0,0">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource TypographyLabel}">
+                                    <Setter Property="Opacity" Value="0.5"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ActiveStep}" Value="2">
+                                            <Setter Property="Opacity" Value="1"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ActiveStep}" Value="3">
+                                            <Setter Property="Opacity" Value="1"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ActiveStep}" Value="4">
+                                            <Setter Property="Opacity" Value="1"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
+
+                    <Line X1="0" Y1="0" X2="30" Y2="0" Stroke="{StaticResource AppBorderBrush}" StrokeThickness="2" VerticalAlignment="Center" Margin="12,0"/>
+
+                    <!-- Step 3 Indicator -->
+                    <StackPanel Orientation="Horizontal">
+                        <Border Width="26" Height="26" CornerRadius="13" VerticalAlignment="Center">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Background" Value="{StaticResource SurfaceMutedBrush}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ActiveStep}" Value="3">
+                                            <Setter Property="Background" Value="{StaticResource AppPrimaryBrush}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ActiveStep}" Value="4">
+                                            <Setter Property="Background" Value="{StaticResource AppPrimaryBrush}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <TextBlock Text="3" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold" FontSize="12">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{StaticResource AppSecondaryBrush}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ActiveStep}" Value="3">
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding ActiveStep}" Value="4">
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Border>
+                        <TextBlock Text="Xem trước" VerticalAlignment="Center" Margin="8,0,0,0">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource TypographyLabel}">
+                                    <Setter Property="Opacity" Value="0.5"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ActiveStep}" Value="3">
+                                            <Setter Property="Opacity" Value="1"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ActiveStep}" Value="4">
+                                            <Setter Property="Opacity" Value="1"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
+
+                    <Line X1="0" Y1="0" X2="30" Y2="0" Stroke="{StaticResource AppBorderBrush}" StrokeThickness="2" VerticalAlignment="Center" Margin="12,0"/>
+
+                    <!-- Step 4 Indicator -->
+                    <StackPanel Orientation="Horizontal">
+                        <Border Width="26" Height="26" CornerRadius="13" VerticalAlignment="Center">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Background" Value="{StaticResource SurfaceMutedBrush}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ActiveStep}" Value="4">
+                                            <Setter Property="Background" Value="{StaticResource AppPrimaryBrush}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <TextBlock Text="4" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold" FontSize="12">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{StaticResource AppSecondaryBrush}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ActiveStep}" Value="4">
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Border>
+                        <TextBlock Text="Hoàn thành" VerticalAlignment="Center" Margin="8,0,0,0">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource TypographyLabel}">
+                                    <Setter Property="Opacity" Value="0.5"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ActiveStep}" Value="4">
+                                            <Setter Property="Opacity" Value="1"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
                 </StackPanel>
             </Grid>
 
-            <!-- Row 1: File Selector Card -->
-            <materialDesign:Card Grid.Row="1" Style="{StaticResource AppCard}" Padding="24" 
-                                Background="{StaticResource SurfaceMutedBrush}"
-                                Margin="{StaticResource SectionBottomMargin}">
+            <!-- Row 1: Active Step Content Switcher -->
+            <Grid Grid.Row="1">
+                
+                <!-- STEP 1: FILE SELECTION -->
                 <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ActiveStep}" Value="1">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
 
-                    <TextBox Grid.Column="0" Style="{StaticResource AppTextBoxStyle}" 
-                             materialDesign:HintAssist.Hint="Đường dẫn file CSV/Excel (.xlsx, .csv)" Margin="0,0,24,0"
-                             Text="{Binding FilePath, UpdateSourceTrigger=PropertyChanged}" 
-                             IsReadOnly="True" VerticalAlignment="Center" Height="44"/>
+                    <materialDesign:Card Style="{StaticResource AppCard}" Padding="40" VerticalAlignment="Center" HorizontalAlignment="Center" Width="600" Height="360" Background="{StaticResource SurfaceMutedBrush}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
 
-                    <Button Grid.Column="1" Command="{Binding BrowseFileCommand}" 
-                            Style="{StaticResource SecondaryButton}" Margin="0,0,16,0" Height="32">
-                        <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="FileSearch" Margin="0,0,8,0" VerticalAlignment="Center" Width="18" Height="18"/>
-                            <TextBlock Text="CHỌN FILE" Style="{StaticResource TypographyButtonText}" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Button>
+                            <materialDesign:PackIcon Grid.Row="0" Kind="UploadNetworkOutline" Width="72" Height="72" 
+                                                   Foreground="{StaticResource AppPrimaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
-                    <Button Grid.Column="2" Command="{Binding ImportOpeningBalanceCommand}" 
-                            Style="{StaticResource PrimaryButton}" Height="32">
-                        <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="Upload" Margin="0,0,8,0" VerticalAlignment="Center" Width="18" Height="18"/>
-                            <TextBlock Text="IMPORT DỮ LIỆU" Style="{StaticResource TypographyButtonText}" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Button>
+                            <TextBlock Grid.Row="1" Text="TẢI FILE DỮ LIỆU LÊN" Style="{StaticResource TypographyH2}" HorizontalAlignment="Center" Margin="0,16,0,8" Foreground="{StaticResource AppTertiaryBrush}"/>
+                            <TextBlock Grid.Row="2" Text="Hỗ trợ file Excel (.xlsx, .xls) hoặc file CSV (.csv). Hệ thống sẽ tự động quét các tiêu đề cột để chuẩn bị ánh xạ trường cơ sở dữ liệu." 
+                                     Style="{StaticResource TypographyBody}" TextAlignment="Center" Margin="0,0,0,32" Opacity="0.7"/>
+
+                            <Button Grid.Row="3" Command="{Binding BrowseFileCommand}" Style="{StaticResource PrimaryButton}" Height="44" Width="240" HorizontalAlignment="Center">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="FolderOpen" Margin="0,0,10,0" VerticalAlignment="Center" Width="20" Height="20"/>
+                                    <TextBlock Text="CHỌN TÀI LIỆU TỪ MÁY" Style="{StaticResource TypographyButtonText}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                    </materialDesign:Card>
                 </Grid>
-            </materialDesign:Card>
 
-            <!-- Row 2: Error List Card -->
-            <materialDesign:Card Grid.Row="2" Style="{StaticResource AppCard}" Padding="0">
+                <!-- STEP 2: COLUMN MAPPING -->
                 <Grid>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ActiveStep}" Value="2">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/> <!-- Top options: Type Selector -->
+                        <RowDefinition Height="*"/>    <!-- Mapping items -->
+                        <RowDefinition Height="Auto"/> <!-- Buttons footer -->
+                    </Grid.RowDefinitions>
+
+                    <!-- Type Selector Card -->
+                    <materialDesign:Card Grid.Row="0" Style="{StaticResource AppCard}" Padding="20" Background="{StaticResource SurfaceMutedBrush}" Margin="0,0,0,16">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,24,0">
+                                <TextBlock Text="NHẬN DIỆN DỮ LIỆU FILE" Style="{StaticResource TypographyH4}" Foreground="{StaticResource AppPrimaryBrush}"/>
+                                <TextBlock Text="Xác nhận kiểu dữ liệu mà bạn muốn nhập vào hệ thống" Style="{StaticResource TypographyCaption}" Opacity="0.6"/>
+                            </StackPanel>
+
+                            <ComboBox Grid.Column="1" 
+                                      ItemsSource="{Binding ImportTypes}" 
+                                      SelectedItem="{Binding SelectedImportTypeItem}"
+                                      Style="{StaticResource AppComboBoxStyle}"
+                                      Height="38" Width="260" HorizontalAlignment="Left">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"/>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
+                                <CheckBox IsChecked="{Binding AutoCreateReferences}" Style="{StaticResource MaterialDesignCheckBox}" VerticalAlignment="Center"/>
+                                <StackPanel VerticalAlignment="Center" Margin="8,0,0,0">
+                                    <TextBlock Text="TỰ ĐỘNG TẠO ĐỐI TƯỢNG MỚI" Style="{StaticResource TypographyLabel}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Tự động thêm Sản phẩm, Khách hàng, NCC... nếu chưa có" Style="{StaticResource TypographyCaption}" Opacity="0.6"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Grid>
+                    </materialDesign:Card>
+
+                    <!-- Mapping Form list -->
+                    <materialDesign:Card Grid.Row="1" Style="{StaticResource AppCard}" Padding="0" Margin="0,0,0,16">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <Border Padding="20,14" Background="{StaticResource SurfaceMutedBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="2*"/>
+                                        <ColumnDefinition Width="2*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="CỘT TRONG CƠ SỞ DỮ LIỆU (TIẾNG VIỆT)" Style="{StaticResource TypographyLabel}" Opacity="0.7"/>
+                                    <TextBlock Grid.Column="1" Text="CỘT ÁNH XẠ TRONG FILE CỦA BẠN" Style="{StaticResource TypographyLabel}" Opacity="0.7" Margin="16,0,0,0"/>
+                                </Grid>
+                            </Border>
+
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,8">
+                                <ItemsControl ItemsSource="{Binding ColumnMappings}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1" Padding="20,12">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="2*"/>
+                                                        <ColumnDefinition Width="2*"/>
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding DbFieldName}" Style="{StaticResource TypographyBody}" FontWeight="SemiBold"/>
+                                                        <TextBlock Text=" *" Foreground="{StaticResource AppErrorBrush}" FontWeight="Bold" Margin="4,0,0,0">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsRequired}" Value="True">
+                                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                    </StackPanel>
+
+                                                    <ComboBox Grid.Column="1" 
+                                                              ItemsSource="{Binding DataContext.ExcelHeaders, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                              SelectedItem="{Binding ExcelHeader}"
+                                                              Style="{StaticResource AppComboBoxStyle}"
+                                                              Height="38" Margin="16,0,0,0">
+                                                        <ComboBox.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <TextBlock Text="{Binding}" VerticalAlignment="Center"/>
+                                                            </DataTemplate>
+                                                        </ComboBox.ItemTemplate>
+                                                    </ComboBox>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Grid>
+                    </materialDesign:Card>
+
+                    <!-- Footer Action buttons -->
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" Command="{Binding BackToFileSelectCommand}" Style="{StaticResource SecondaryButton}" Height="34">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="ArrowLeft" Margin="0,0,8,0" VerticalAlignment="Center" Width="16" Height="16"/>
+                                <TextBlock Text="QUAY LẠI" Style="{StaticResource TypographyButtonText}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Grid.Column="2" Command="{Binding NextToPreviewCommand}" Style="{StaticResource PrimaryButton}" Height="34">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="XEM TRƯỚC DỮ LIỆU" Style="{StaticResource TypographyButtonText}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <materialDesign:PackIcon Kind="ArrowRight" VerticalAlignment="Center" Width="16" Height="16"/>
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </Grid>
+
+                <!-- STEP 3: PREVIEW DATA -->
+                <Grid>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ActiveStep}" Value="3">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+
+                    <Grid.RowDefinitions>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <Border Padding="20,16" Background="{StaticResource SurfaceMutedBrush}" 
-                            BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1">
-                        <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="AlertCircleOutline" Width="20" Height="20" 
-                                                   Foreground="{StaticResource AppErrorBrush}" VerticalAlignment="Center"/>
-                            <TextBlock Text="DANH SÁCH LỖI IMPORT" Style="{StaticResource TypographyH4}" 
-                                     Foreground="{StaticResource AppPrimaryBrush}" Margin="12,0,0,0" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Border>
+                    <materialDesign:Card Grid.Row="0" Style="{StaticResource AppCard}" Padding="0" Margin="0,0,0,16">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
 
-                    <DataGrid Grid.Row="1" ItemsSource="{Binding Errors}" AutoGenerateColumns="False" 
-                               CanUserAddRows="False" IsReadOnly="True"
-                               RowHeight="54" Background="Transparent" BorderThickness="0">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="DÒNG" Binding="{Binding RowNumber}" Width="100" 
-                                              ElementStyle="{DynamicResource AppDataGridTextCenter}"/>
-                            
-                            <DataGridTemplateColumn Header="DỮ LIỆU GỐC" Width="250">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding Data}" VerticalAlignment="Center" Margin="16,0" Opacity="0.7" FontStyle="Italic"/>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
+                            <Border Padding="20,16" Background="{StaticResource SurfaceMutedBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1">
+                                <StackPanel>
+                                    <TextBlock Text="XEM TRƯỚC DÒNG MẪU IMPORT" Style="{StaticResource TypographyH4}" Foreground="{StaticResource AppPrimaryBrush}"/>
+                                    <TextBlock Text="Hiển thị tối đa 5 dòng dữ liệu đầu tiên theo sơ đồ ánh xạ đã chọn" Style="{StaticResource TypographyCaption}" Opacity="0.6" Margin="0,4,0,0"/>
+                                </StackPanel>
+                            </Border>
 
-                            <DataGridTemplateColumn Header="CHI TIẾT LỖI" Width="*">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding ErrorMessage}" VerticalAlignment="Center" Margin="16,0" Foreground="{StaticResource AppErrorBrush}" FontWeight="SemiBold"/>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                        </DataGrid.Columns>
-                    </DataGrid>
+                            <DataGrid Grid.Row="1" 
+                                      ItemsSource="{Binding PreviewData.DefaultView}" 
+                                      AutoGenerateColumns="True" 
+                                      CanUserAddRows="False" 
+                                      IsReadOnly="True"
+                                      RowHeight="44" 
+                                      Background="Transparent" 
+                                      BorderThickness="0"/>
+                        </Grid>
+                    </materialDesign:Card>
 
-                    <!-- Status Footer -->
-                    <Border Grid.Row="2" Padding="20,12" Background="{StaticResource AppFooterBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
-                        <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="Information" Width="18" Height="18"
-                                                   Foreground="{StaticResource AppPrimaryBrush}" VerticalAlignment="Center"/>
-                            <TextBlock Text="{Binding StatusMessage}" FontSize="13" 
-                                     Foreground="{StaticResource AppSecondaryBrush}" Margin="12,0,0,0" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Border>
+                    <!-- Action buttons footer -->
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" Command="{Binding BackToMappingCommand}" Style="{StaticResource SecondaryButton}" Height="34">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="ArrowLeft" Margin="0,0,8,0" VerticalAlignment="Center" Width="16" Height="16"/>
+                                <TextBlock Text="QUAY LẠI ÁNH XẠ" Style="{StaticResource TypographyButtonText}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Grid.Column="2" Command="{Binding ConfirmImportCommand}" Style="{StaticResource PrimaryButton}" Height="34">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="DatabaseCheck" Margin="0,0,8,0" VerticalAlignment="Center" Width="18" Height="18"/>
+                                <TextBlock Text="XÁC NHẬN IMPORT VÀO DB" Style="{StaticResource TypographyButtonText}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </Grid>
                 </Grid>
-            </materialDesign:Card>
+
+                <!-- STEP 4: IMPORT RESULTS -->
+                <Grid>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ActiveStep}" Value="4">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/> <!-- Status overview -->
+                        <RowDefinition Height="*"/>    <!-- Error grid (only if errors present) -->
+                        <RowDefinition Height="Auto"/> <!-- Footer command button -->
+                    </Grid.RowDefinitions>
+
+                    <!-- Status overview Card -->
+                    <materialDesign:Card Grid.Row="0" Style="{StaticResource AppCard}" Padding="30" Background="{StaticResource SurfaceMutedBrush}" Margin="0,0,0,16">
+                        <StackPanel HorizontalAlignment="Center">
+                            <materialDesign:PackIcon Kind="CheckCircle" Width="64" Height="64" Foreground="ForestGreen" HorizontalAlignment="Center">
+                                <materialDesign:PackIcon.Style>
+                                    <Style TargetType="materialDesign:PackIcon">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Errors.Count}" Value="0">
+                                                <Setter Property="Kind" Value="CheckCircle"/>
+                                                <Setter Property="Foreground" Value="ForestGreen"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                        <!-- Fallback or dynamic change -->
+                                        <Setter Property="Kind" Value="AlertCircle"/>
+                                        <Setter Property="Foreground" Value="Orange"/>
+                                    </Style>
+                                </materialDesign:PackIcon.Style>
+                            </materialDesign:PackIcon>
+
+                            <TextBlock Text="QUÁ TRÌNH IMPORT HOÀN TẤT" Style="{StaticResource TypographyH2}" Foreground="{StaticResource AppTertiaryBrush}" HorizontalAlignment="Center" Margin="0,16,0,8"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <TextBlock Text="Thành công: " Style="{StaticResource TypographyBody}"/>
+                                <TextBlock Text="{Binding SuccessCount}" FontWeight="Bold" Foreground="ForestGreen" Style="{StaticResource TypographyBody}"/>
+                                <TextBlock Text=" dòng | " Style="{StaticResource TypographyBody}" Margin="8,0"/>
+                                <TextBlock Text="Thất bại: " Style="{StaticResource TypographyBody}"/>
+                                <TextBlock Text="{Binding Errors.Count}" FontWeight="Bold" Foreground="{StaticResource AppErrorBrush}" Style="{StaticResource TypographyBody}"/>
+                                <TextBlock Text=" dòng." Style="{StaticResource TypographyBody}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </materialDesign:Card>
+
+                    <!-- Errors Card -->
+                    <materialDesign:Card Grid.Row="1" Style="{StaticResource AppCard}" Padding="0" Margin="0,0,0,16">
+                        <Grid>
+                            <Grid.Style>
+                                <Style TargetType="Grid">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Errors.Count}" Value="0">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Grid.Style>
+
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <Border Padding="20,12" Background="{StaticResource SurfaceMutedBrush}" BorderThickness="0,0,0,1" BorderBrush="{StaticResource AppBorderBrush}">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="AlertCircleOutline" Foreground="{StaticResource AppErrorBrush}" Width="20" Height="20" VerticalAlignment="Center"/>
+                                    <TextBlock Text="DANH SÁCH DÒNG LỖI CHI TIẾT" Style="{StaticResource TypographyH4}" Foreground="{StaticResource AppPrimaryBrush}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+
+                            <DataGrid Grid.Row="1" ItemsSource="{Binding Errors}" AutoGenerateColumns="False" 
+                                      CanUserAddRows="False" IsReadOnly="True"
+                                      RowHeight="44" Background="Transparent" BorderThickness="0">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="DÒNG EXCEL" Binding="{Binding RowNumber}" Width="110" 
+                                                      ElementStyle="{DynamicResource AppDataGridTextCenter}"/>
+                                    <DataGridTextColumn Header="MÔ TẢ CHI TIẾT LỖI CÚ PHÁP / RÀNG BUỘC DB" Binding="{Binding ErrorMessage}" Width="*" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </materialDesign:Card>
+
+                    <!-- Footer Action buttons -->
+                    <Grid Grid.Row="2">
+                        <Button HorizontalAlignment="Right" Command="{Binding ResetWizardCommand}" Style="{StaticResource SecondaryButton}" Height="34">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Refresh" Margin="0,0,8,0" VerticalAlignment="Center" Width="16" Height="16"/>
+                                <TextBlock Text="NHẬP TÀI LIỆU MỚI" Style="{StaticResource TypographyButtonText}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </Grid>
+
+            </Grid>
         </Grid>
     </Grid>
 </UserControl>

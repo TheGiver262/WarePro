@@ -42,7 +42,7 @@ public partial class ProductSerial
 
     public virtual ICollection<StockLedger> StockLedgers { get; set; } = new List<StockLedger>();
 
-    public virtual WarrantyClaim? WarrantyClaimProductSerial { get; set; }
+    public virtual ICollection<WarrantyClaim> WarrantyClaims { get; set; } = new List<WarrantyClaim>();
 
     public virtual ICollection<WarrantyClaim> WarrantyClaimReplacementSerials { get; set; } = new List<WarrantyClaim>();
 

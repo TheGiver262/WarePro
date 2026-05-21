@@ -63,7 +63,7 @@ public class WarrantyClaimServiceTests
     }
 
     [Fact]
-    public void CreateClaim_rejects_when_serial_already_has_open_claim()
+    public void CreateClaim_allows_multiple_open_claims_for_same_serial()
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
@@ -101,17 +101,105 @@ public class WarrantyClaimServiceTests
                 ProductSerialId = serial.Id,
                 ReceivedDate = new DateTime(2026, 4, 20),
                 Status = "Open",
-                ProblemDescription = "Already open"
+                ProblemDescription = "Already open",
+                ProcessedBy = 4
             });
             seedContext.SaveChanges();
         }
 
         var service = new WarrantyClaimService(() => CreateContext(connection));
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            service.CreateClaim("WC-0002", "WARRANTY-002", "Battery issue", userId: 4));
+        // Should allow creating another claim instead of throwing exception
+        var claimId2 = service.CreateClaim("WC-0002", "WARRANTY-002", "Battery issue", userId: 4);
 
-        Assert.Equal("Serial WARRANTY-002 already has an open warranty claim.", ex.Message);
+        using var assertContext = CreateContext(connection);
+        var claims = assertContext.WarrantyClaims.ToList();
+        Assert.Equal(2, claims.Count);
+        Assert.Contains(claims, c => c.ClaimCode == "WC-OPEN");
+        Assert.Contains(claims, c => c.ClaimCode == "WC-0002");
+    }
+
+    [Fact]
+    public void DeleteClaim_rejects_when_has_related_stockout_or_stockin()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        int claimId;
+        using (var seedContext = CreateContext(connection))
+        {
+            DatabaseHelper.SeedBasicData(seedContext);
+            seedContext.Products.Add(new Product { Id = 1002, ProductCode = "P1002", DisplayName = "P2", CategoryId = 1, BrandId = 1, DefaultUnitId = 1, DefaultPrice = 10m, IsSerialTracked = true });
+            var serial = new ProductSerial { SerialNumber = "SERIAL-DELETE-TEST", ProductId = 1002, CurrentStatus = "InWarrantyProcess" };
+            seedContext.ProductSerials.Add(serial);
+            seedContext.SaveChanges();
+            
+            var coverage = new WarrantyCoverage { ProductSerialId = serial.Id, CustomerId = 1, WarrantyStartDate = new DateTime(2026, 1, 1), WarrantyEndDate = new DateTime(2027, 1, 1), CoverageStatus = "Active" };
+            seedContext.WarrantyCoverages.Add(coverage);
+            
+            var claim = new WarrantyClaim
+            {
+                ClaimCode = "WC-DEL",
+                WarrantyCoverageId = coverage.Id,
+                ProductSerialId = serial.Id,
+                ReceivedDate = DateTime.Now,
+                Status = "Open",
+                ReplacementStockOutId = 999
+            };
+            seedContext.WarrantyClaims.Add(claim);
+            seedContext.SaveChanges();
+            claimId = claim.Id;
+        }
+
+        var service = new WarrantyClaimService(() => CreateContext(connection));
+        var ex = Assert.Throws<InvalidOperationException>(() => service.DeleteClaim(claimId));
+        Assert.Contains("Không thể xóa phiếu bảo hành", ex.Message);
+    }
+
+    [Fact]
+    public void DeleteClaim_restores_serial_status_only_when_no_other_open_claims()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        int claimId1;
+        int serialId;
+        using (var seedContext = CreateContext(connection))
+        {
+            DatabaseHelper.SeedBasicData(seedContext);
+            seedContext.Products.Add(new Product { Id = 1003, ProductCode = "P1003", DisplayName = "P3", CategoryId = 1, BrandId = 1, DefaultUnitId = 1, DefaultPrice = 10m, IsSerialTracked = true });
+            var serial = new ProductSerial { SerialNumber = "SERIAL-MULTI-TEST", ProductId = 1003, CurrentStatus = "InWarrantyProcess" };
+            seedContext.ProductSerials.Add(serial);
+            seedContext.SaveChanges();
+            serialId = serial.Id;
+
+            var coverage = new WarrantyCoverage { ProductSerialId = serial.Id, CustomerId = 1, WarrantyStartDate = new DateTime(2026, 1, 1), WarrantyEndDate = new DateTime(2027, 1, 1), CoverageStatus = "Active" };
+            seedContext.WarrantyCoverages.Add(coverage);
+
+            var claim1 = new WarrantyClaim { ClaimCode = "WC-1", WarrantyCoverageId = coverage.Id, ProductSerialId = serial.Id, ReceivedDate = DateTime.Now, Status = "Open" };
+            var claim2 = new WarrantyClaim { ClaimCode = "WC-2", WarrantyCoverageId = coverage.Id, ProductSerialId = serial.Id, ReceivedDate = DateTime.Now, Status = "Open" };
+            seedContext.WarrantyClaims.AddRange(claim1, claim2);
+            seedContext.SaveChanges();
+            claimId1 = claim1.Id;
+        }
+
+        var service = new WarrantyClaimService(() => CreateContext(connection));
+
+        service.DeleteClaim(claimId1);
+
+        using (var assertContext = CreateContext(connection))
+        {
+            var serial = assertContext.ProductSerials.Find(serialId);
+            Assert.Equal("InWarrantyProcess", serial.CurrentStatus);
+
+            var claim2 = assertContext.WarrantyClaims.First();
+            var service2 = new WarrantyClaimService(() => assertContext);
+            service2.DeleteClaim(claim2.Id);
+        }
+
+        using (var assertContext2 = CreateContext(connection))
+        {
+            var serial = assertContext2.ProductSerials.Find(serialId);
+            Assert.Equal("Sold", serial.CurrentStatus);
+        }
     }
 
     private static AppDbContext CreateContext(SqliteConnection connection)

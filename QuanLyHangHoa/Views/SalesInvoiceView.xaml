@@ -239,23 +239,27 @@
             <TabItem Header="TẠO MỚI">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <Grid Margin="0,24,0,0">
-                        <materialDesign:Card UniformCornerRadius="12" Padding="32" Background="White"
-                                             materialDesign:ShadowAssist.ShadowDepth="Depth2">
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/> <!-- Header -->
-                                    <RowDefinition Height="Auto"/> <!-- Info Grid -->
-                                    <RowDefinition Height="Auto"/> <!-- Ghi chú -->
-                                    <RowDefinition Height="*"/>    <!-- Products Table -->
-                                    <RowDefinition Height="Auto"/> <!-- Summary & Actions -->
-                                </Grid.RowDefinitions>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/> <!-- Header -->
+                                <RowDefinition Height="Auto"/> <!-- Info Card -->
+                                <RowDefinition Height="Auto"/> <!-- Add Line Button -->
+                                <RowDefinition Height="*"/>    <!-- Products Table -->
+                                <RowDefinition Height="Auto"/> <!-- Summary & Actions -->
+                            </Grid.RowDefinitions>
 
-                                <!-- ROW 0: HEADER -->
-                                <Grid Grid.Row="0" Margin="0,0,0,32">
-                                    <StackPanel>
+                            <!-- ROW 0: HEADER -->
+                            <Grid Grid.Row="0" Margin="0,0,0,20">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <materialDesign:PackIcon Kind="ReceiptTextOutline" Width="32" Height="32" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
+                                    <StackPanel Margin="16,0,0,0">
                                         <TextBlock>
                                             <TextBlock.Style>
-                                                <Style TargetType="TextBlock" BasedOn="{StaticResource TitleText}">
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource TypographyH1}">
                                                     <Setter Property="Text" Value="TẠO MỚI HÓA ĐƠN BÁN"/>
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding IsViewMode}" Value="True">
@@ -268,15 +272,40 @@
                                                 </Style>
                                             </TextBlock.Style>
                                         </TextBlock>
-                                        <TextBlock Text="Nhập thông tin chi tiết hàng hóa và thanh toán khách hàng" Style="{StaticResource SubtitleText}"/>
+                                        <TextBlock Text="Nhập thông tin chi tiết hàng hóa và thanh toán khách hàng" Style="{StaticResource TypographyCaption}" Opacity="0.7"/>
                                     </StackPanel>
-                                    <Button HorizontalAlignment="Right" Content="TRỞ LẠI DANH SÁCH" 
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Content="TRỞ LẠI DANH SÁCH" 
                                             Click="BackToList_Click"
-                                            Style="{StaticResource SecondaryButton}"/>
-                                </Grid>
+                                            Style="{StaticResource SecondaryButton}" Height="36" Margin="0,0,12,0"/>
+                                    <Button Command="{Binding SaveInvoiceCommand}"
+                                            Style="{StaticResource PrimaryButton}" Height="36"
+                                            Visibility="{Binding IsViewMode, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                                        <Button.Content>
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="ContentSaveOutline" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                                <TextBlock VerticalAlignment="Center">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock" BasedOn="{StaticResource TypographyButtonText}">
+                                                            <Setter Property="Text" Value="LƯU HOÁ ĐƠN"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsEditMode}" Value="True">
+                                                                    <Setter Property="Text" Value="CẬP NHẬT"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </Button.Content>
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
 
-                                <!-- ROW 1: INFO GRID (3 COLUMNS) -->
-                                <Grid Grid.Row="1" Margin="0,0,0,24">
+                            <!-- ROW 1: INFO CARD -->
+                            <materialDesign:Card Grid.Row="1" Style="{StaticResource AppCard}" Background="{StaticResource SurfaceMutedBrush}" Padding="20" Margin="0,0,0,12">
+                                <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="*"/>
@@ -285,213 +314,248 @@
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
 
-                                    <!-- Column 0: Invoice Details -->
+                                    <!-- Row 0 -->
                                     <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,16,16">
-                                        <TextBlock Text="SỐ HOÁ ĐƠN" Margin="0,0,0,6"/>
-                                        <TextBox Text="{Binding InvoiceCode}"
-                                                 Height="32" VerticalContentAlignment="Center"
+                                        <TextBlock Text="SỐ HOÁ ĐƠN" Style="{StaticResource DetailFormLabel}"/>
+                                        <TextBox Text="{Binding InvoiceCode}" Style="{StaticResource DetailFormTextBoxStyle}"
                                                  IsEnabled="{Binding IsViewMode, Converter={StaticResource InverseBooleanConverter}}"/>
                                     </StackPanel>
 
-                                    <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,16,0">
-                                        <TextBlock Text="NGÀY LẬP HOÁ ĐƠN" Margin="0,0,0,6"/>
-                                        <DatePicker SelectedDate="{Binding InvoiceDate}"
-                                                    Height="32" VerticalContentAlignment="Center"
-                                                    IsEnabled="{Binding IsViewMode, Converter={StaticResource InverseBooleanConverter}}"/>
-                                    </StackPanel>
-
-                                    <!-- Column 1: Partner & Document -->
-                                    <StackPanel Grid.Row="0" Grid.Column="1" Margin="16,0,16,16">
-                                        <TextBlock Text="KHÁCH HÀNG" Margin="0,0,0,6"/>
-                                        <ComboBox ItemsSource="{Binding AvailableCustomers}"
-                                                  SelectedItem="{Binding SelectedCustomer}"
-                                                  DisplayMemberPath="DisplayName"
-                                                  Height="32" VerticalContentAlignment="Center"
+                                    <StackPanel Grid.Row="0" Grid.Column="1" Margin="8,0,8,16">
+                                        <TextBlock Text="KHÁCH HÀNG" Style="{StaticResource DetailFormLabel}"/>
+                                        <ComboBox ItemsSource="{Binding AvailableCustomers}" SelectedItem="{Binding SelectedCustomer}"
+                                                  DisplayMemberPath="DisplayName" Style="{StaticResource DetailFormComboBoxStyle}"
                                                   IsEnabled="{Binding IsViewMode, Converter={StaticResource InverseBooleanConverter}}"/>
                                     </StackPanel>
 
-                                    <StackPanel Grid.Row="1" Grid.Column="1" Margin="16,0,16,0">
-                                        <TextBlock Text="PHIẾU XUẤT KHO" Margin="0,0,0,6"/>
-                                        <ComboBox ItemsSource="{Binding AvailableStockOuts}"
-                                                  SelectedItem="{Binding SelectedStockOut}"
-                                                  DisplayMemberPath="StockOutCode"
-                                                  Height="32" VerticalContentAlignment="Center"
-                                                  IsEnabled="{Binding IsViewMode, Converter={StaticResource InverseBooleanConverter}}"/>
-                                    </StackPanel>
-
-                                    <!-- Column 2: Payment & Terms -->
                                     <StackPanel Grid.Row="0" Grid.Column="2" Margin="16,0,0,16">
-                                        <TextBlock Text="HẠN THANH TOÁN" Margin="0,0,0,6"/>
-                                        <DatePicker SelectedDate="{Binding DueDate}"
-                                                    Height="32" VerticalContentAlignment="Center"
+                                        <TextBlock Text="PHIẾU XUẤT KHO" Style="{StaticResource DetailFormLabel}"/>
+                                        <ComboBox ItemsSource="{Binding AvailableStockOuts}" SelectedItem="{Binding SelectedStockOut}"
+                                                  DisplayMemberPath="StockOutCode" Style="{StaticResource DetailFormComboBoxStyle}"
+                                                  IsEnabled="{Binding IsViewMode, Converter={StaticResource InverseBooleanConverter}}"/>
+                                    </StackPanel>
+
+                                    <!-- Row 1 -->
+                                    <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,16,16">
+                                        <TextBlock Text="NGÀY LẬP HOÁ ĐƠN" Style="{StaticResource DetailFormLabel}"/>
+                                        <DatePicker SelectedDate="{Binding InvoiceDate}" Style="{StaticResource DetailFormDatePickerStyle}"
                                                     IsEnabled="{Binding IsViewMode, Converter={StaticResource InverseBooleanConverter}}"/>
                                     </StackPanel>
 
-                                    <StackPanel Grid.Row="1" Grid.Column="2" Margin="16,0,0,0">
-                                        <TextBlock Text="TRẠNG THÁI THANH TOÁN" Margin="0,0,0,6"/>
-                                        <ComboBox ItemsSource="{Binding AvailablePaymentStatuses}"
-                                                  SelectedItem="{Binding SelectedPaymentStatus}"
-                                                  Height="32" VerticalContentAlignment="Center"
+                                    <StackPanel Grid.Row="1" Grid.Column="1" Margin="8,0,8,16">
+                                        <TextBlock Text="HẠN THANH TOÁN" Style="{StaticResource DetailFormLabel}"/>
+                                        <DatePicker SelectedDate="{Binding DueDate}" Style="{StaticResource DetailFormDatePickerStyle}"
+                                                    IsEnabled="{Binding IsViewMode, Converter={StaticResource InverseBooleanConverter}}"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="1" Grid.Column="2" Margin="16,0,0,16">
+                                        <TextBlock Text="TRẠNG THÁI THANH TOÁN" Style="{StaticResource DetailFormLabel}"/>
+                                        <ComboBox ItemsSource="{Binding AvailablePaymentStatuses}" SelectedItem="{Binding SelectedPaymentStatus}"
+                                                  Style="{StaticResource DetailFormComboBoxStyle}"
                                                   IsEnabled="{Binding IsViewMode, Converter={StaticResource InverseBooleanConverter}}"/>
+                                    </StackPanel>
+
+                                    <!-- Row 2: Notes (full width) -->
+                                    <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3">
+                                        <TextBlock Text="GHI CHÚ" Style="{StaticResource DetailFormLabel}"/>
+                                        <TextBox Text="{Binding Notes}" Style="{StaticResource DetailFormNotesStyle}"
+                                                 materialDesign:HintAssist.Hint="Nhập nội dung ghi chú hoá đơn..."
+                                                 IsEnabled="{Binding IsViewMode, Converter={StaticResource InverseBooleanConverter}}"/>
                                     </StackPanel>
                                 </Grid>
+                            </materialDesign:Card>
 
-                                <!-- ROW 2: GHI CHÚ (FULL WIDTH) -->
-                                <StackPanel Grid.Row="2" Margin="0,0,0,32">
-                                    <TextBlock Text="GHI CHÚ" Margin="0,0,0,6"/>
-                                    <TextBox Text="{Binding Notes}"
-                                             materialDesign:HintAssist.Hint="Nhập nội dung ghi chú hoá đơn..."
-                                             AcceptsReturn="True" Height="60"
-                                             VerticalContentAlignment="Top"
-                                             IsEnabled="{Binding IsViewMode, Converter={StaticResource InverseBooleanConverter}}"/>
+                            <!-- ROW 2: ADD LINE BUTTON -->
+                            <Button Grid.Row="2" Command="{Binding AddLineCommand}" 
+                                    Style="{StaticResource SecondaryButton}" Height="36"
+                                    HorizontalAlignment="Left" Margin="0,0,0,12"
+                                    Visibility="{Binding IsViewMode, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Plus" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBlock Text="THÊM DÒNG SẢN PHẨM" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- ROW 3: PRODUCTS TABLE -->
+                            <materialDesign:Card Grid.Row="3" Style="{StaticResource AppCard}" Padding="0" Margin="0,0,0,24">
+                                <DataGrid ItemsSource="{Binding Lines}" 
+                                          AutoGenerateColumns="False" 
+                                          CanUserAddRows="False"
+                                          Background="Transparent"
+                                          BorderThickness="0"
+                                          GridLinesVisibility="None"
+                                          RowHeight="54"
+                                          IsReadOnly="{Binding IsViewMode}">
+                                    <DataGrid.Columns>
+                                        <DataGridTemplateColumn Width="120">
+                                            <DataGridTemplateColumn.Header>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="Barcode" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                                    <TextBlock Text="MÃ SP" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
+                                                </StackPanel>
+                                            </DataGridTemplateColumn.Header>
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding SelectedProduct.ProductCode}" VerticalAlignment="Center" Margin="8,0" Style="{StaticResource TypographyCaption}"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+
+                                        <DataGridTemplateColumn Width="*">
+                                            <DataGridTemplateColumn.Header>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="PackageVariant" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                                    <TextBlock Text="SẢN PHẨM" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
+                                                </StackPanel>
+                                            </DataGridTemplateColumn.Header>
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <ComboBox ItemsSource="{Binding DataContext.AvailableProducts, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                              SelectedItem="{Binding SelectedProduct}"
+                                                              DisplayMemberPath="DisplayName"
+                                                              Style="{StaticResource AppComboBoxStyle}" Margin="8,4" BorderThickness="0" Height="36"
+                                                              materialDesign:TextFieldAssist.HasClearButton="True"
+                                                              IsEnabled="{Binding DataContext.IsViewMode, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource InverseBooleanConverter}}"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+
+                                        <DataGridTemplateColumn Width="100">
+                                            <DataGridTemplateColumn.Header>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="Numeric" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                                    <TextBlock Text="SỐ LƯỢNG" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
+                                                </StackPanel>
+                                            </DataGridTemplateColumn.Header>
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBox Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" HorizontalContentAlignment="Center"
+                                                             Style="{StaticResource AppTextBoxStyle}" Margin="8,4" Height="36" BorderThickness="0"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+
+                                        <DataGridTemplateColumn Width="140">
+                                            <DataGridTemplateColumn.Header>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="CurrencyUsd" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                                    <TextBlock Text="ĐƠN GIÁ" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
+                                                </StackPanel>
+                                            </DataGridTemplateColumn.Header>
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBox Text="{Binding UnitPrice, StringFormat='N0', UpdateSourceTrigger=PropertyChanged}" HorizontalContentAlignment="Right"
+                                                             Style="{StaticResource AppTextBoxStyle}" Margin="8,4" Height="36" BorderThickness="0"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+
+                                        <DataGridTemplateColumn Width="100">
+                                            <DataGridTemplateColumn.Header>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="Percent" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                                    <TextBlock Text="THUẾ" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
+                                                </StackPanel>
+                                            </DataGridTemplateColumn.Header>
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBox Text="{Binding TaxRate, StringFormat='P0', UpdateSourceTrigger=PropertyChanged}" HorizontalContentAlignment="Center"
+                                                             Style="{StaticResource AppTextBoxStyle}" Margin="8,4" Height="36" BorderThickness="0"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+
+                                        <DataGridTemplateColumn Width="140" IsReadOnly="True">
+                                            <DataGridTemplateColumn.Header>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="Calculator" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                                    <TextBlock Text="THÀNH TIỀN" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
+                                                </StackPanel>
+                                            </DataGridTemplateColumn.Header>
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding TotalPrice, StringFormat='N0'}" HorizontalAlignment="Right" VerticalAlignment="Center" 
+                                                               Margin="8,0" FontWeight="SemiBold"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+
+                                        <DataGridTemplateColumn Width="60">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Button Style="{StaticResource ProMaxIconButtonStyle}"
+                                                            Command="{Binding DataContext.RemoveLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}" VerticalAlignment="Center"
+                                                            Visibility="{Binding DataContext.IsViewMode, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                                                        <materialDesign:PackIcon Kind="TrashCanOutline" Width="18" Height="18" Foreground="{StaticResource AppErrorBrush}"/>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </materialDesign:Card>
+
+                            <!-- ROW 4: SUMMARY & ACTIONS -->
+                            <Grid Grid.Row="4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="460"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Left: Info tips -->
+                                <StackPanel Grid.Column="0" VerticalAlignment="Bottom" Margin="0,0,24,0">
+                                    <Border Background="{StaticResource SurfaceMutedBrush}" Padding="20" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource AppBorderBrush}">
+                                        <StackPanel>
+                                            <TextBlock Text="THÔNG TIN BỔ SUNG" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppTertiaryBrush}" Margin="0,0,0,12"/>
+                                            <TextBlock Text="• Hoá đơn này sẽ được lưu vào hệ thống và cập nhật công nợ khách hàng." FontSize="12" Foreground="{StaticResource AppSecondaryBrush}" Margin="0,0,0,4"/>
+                                            <TextBlock Text="• Vui lòng kiểm tra kỹ số lượng và đơn giá trước khi xác nhận." FontSize="12" Foreground="{StaticResource AppSecondaryBrush}"/>
+                                        </StackPanel>
+                                    </Border>
                                 </StackPanel>
 
-                                <!-- ROW 3: PRODUCTS TABLE -->
-                                <Grid Grid.Row="3">
+                                <!-- Right: Summary Card -->
+                                <materialDesign:Card Grid.Column="1" Padding="24" Background="{StaticResource SurfaceMutedBrush}" UniformCornerRadius="12" materialDesign:ShadowAssist.ShadowDepth="Depth1">
                                     <StackPanel>
-                                        <TextBlock Text="CHI TIẾT SẢN PHẨM" Margin="0,0,0,16" Foreground="{StaticResource AppTertiaryBrush}"/>
-                                        <DataGrid ItemsSource="{Binding Lines}" 
-                                                  AutoGenerateColumns="False" 
-                                                  CanUserAddRows="False"
-                                                  Background="Transparent"
-                                                  BorderThickness="0"
-                                                  GridLinesVisibility="None"
-                                                  IsReadOnly="{Binding IsViewMode}">
-                                            <DataGrid.Columns>
-                                                <DataGridTextColumn Header="MÃ SẢN PHẨM" Binding="{Binding SelectedProduct.ProductCode}" Width="140" IsReadOnly="True" ElementStyle="{DynamicResource AppDataGridTextCenter}"/>
-                                                <DataGridTemplateColumn Header="SẢN PHẨM" Width="*">
-                                                    <DataGridTemplateColumn.CellTemplate>
-                                                        <DataTemplate>
-                                                            <ComboBox ItemsSource="{Binding DataContext.AvailableProducts, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                                      SelectedItem="{Binding SelectedProduct}"
-                                                                      DisplayMemberPath="DisplayName"
-                                                                      VerticalAlignment="Center"
-                                                                      materialDesign:TextFieldAssist.HasClearButton="True"
-                                                                      IsEnabled="{Binding DataContext.IsViewMode, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource InverseBooleanConverter}}"/>
-                                                        </DataTemplate>
-                                                    </DataGridTemplateColumn.CellTemplate>
-                                                </DataGridTemplateColumn>
-                                                <DataGridTextColumn Header="SỐ LƯỢNG" Binding="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" Width="100" ElementStyle="{DynamicResource AppDataGridTextCenter}"/>
-                                                <DataGridTextColumn Header="ĐƠN GIÁ" Binding="{Binding UnitPrice, StringFormat='N0', UpdateSourceTrigger=PropertyChanged}" Width="140" ElementStyle="{DynamicResource AppDataGridTextRightBold}"/>
-                                                <DataGridTextColumn Header="THUẾ (%)" Binding="{Binding TaxRate, StringFormat='P0', UpdateSourceTrigger=PropertyChanged}" Width="100" ElementStyle="{DynamicResource AppDataGridTextCenter}"/>
-                                                <DataGridTextColumn Header="THÀNH TIỀN" Binding="{Binding TotalPrice, StringFormat='N0'}" Width="140" IsReadOnly="True" ElementStyle="{DynamicResource AppDataGridTextRightBold}"/>
-                                                
-                                                <DataGridTemplateColumn Width="Auto">
-                                                    <DataGridTemplateColumn.CellTemplate>
-                                                        <DataTemplate>
-                                                            <Button Style="{StaticResource ProMaxIconButtonStyle}"
-                                                                    Command="{Binding DataContext.RemoveLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                                    CommandParameter="{Binding}"
-                                                                    VerticalAlignment="Center"
-                                                                    ToolTip="Xoá dòng"
-                                                                    Visibility="{Binding DataContext.IsViewMode, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
-                                                                <materialDesign:PackIcon Kind="Close" Width="18" Height="18" Foreground="{StaticResource AppErrorBrush}"/>
-                                                            </Button>
-                                                        </DataTemplate>
-                                                    </DataGridTemplateColumn.CellTemplate>
-                                                </DataGridTemplateColumn>
-                                            </DataGrid.Columns>
-                                        </DataGrid>
+                                        <Grid Margin="0,0,0,12">
+                                            <TextBlock Text="Tổng tiền chưa thuế" FontSize="13" Foreground="{StaticResource AppSecondaryBrush}"/>
+                                            <TextBlock Text="{Binding FormSubTotal, StringFormat='N0'}" HorizontalAlignment="Right" FontSize="15"/>
+                                        </Grid>
+                                        <Grid Margin="0,0,0,12">
+                                            <TextBlock Text="Thuế giá trị gia tăng (VAT)" FontSize="13" Foreground="{StaticResource AppSecondaryBrush}"/>
+                                            <TextBlock Text="{Binding FormTaxAmount, StringFormat='N0'}" HorizontalAlignment="Right" FontSize="15"/>
+                                        </Grid>
+                                        
+                                        <Separator Margin="0,4,0,16" Background="{StaticResource AppBorderBrush}"/>
+                                        
+                                        <Grid Margin="0,0,0,20">
+                                            <TextBlock Text="TỔNG CỘNG THANH TOÁN" FontSize="14" Foreground="{StaticResource AppPrimaryBrush}" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{Binding FormTotalAmount, StringFormat='N0'}" HorizontalAlignment="Right" FontSize="24" Foreground="{StaticResource AppPrimaryBrush}" FontWeight="Bold"/>
+                                        </Grid>
 
-                                        <Button Command="{Binding AddLineCommand}" 
-                                                Style="{StaticResource SecondaryButton}"
-                                                HorizontalAlignment="Left" Margin="0,12,0,0"
-                                                Visibility="{Binding IsViewMode, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
-                                            <StackPanel Orientation="Horizontal">
-                                                <materialDesign:PackIcon Kind="Plus" VerticalAlignment="Center" Width="18" Height="18" Margin="0,0,6,0"/>
-                                                <TextBlock Text="THÊM DÒNG SẢN PHẨM" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
-                                            </StackPanel>
-                                        </Button>
-                                    </StackPanel>
-                                </Grid>
-
-                                <!-- ROW 4: SUMMARY & ACTIONS -->
-                                <Grid Grid.Row="4" Margin="0,40,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="500"/>
-                                    </Grid.ColumnDefinitions>
-
-                                    <!-- Left: Info or Empty -->
-                                    <StackPanel Grid.Column="0" VerticalAlignment="Bottom" Margin="0,0,40,0">
-                                        <Border Background="#F8F9FA" Padding="20" CornerRadius="8" BorderThickness="1" BorderBrush="{StaticResource AppBorderBrush}">
-                                            <StackPanel>
-                                                <TextBlock Text="THÔNG TIN BỔ SUNG" Style="{StaticResource LabelText}" Foreground="{StaticResource AppTertiaryBrush}" Margin="0,0,0,12"/>
-                                                <TextBlock Text="• Hoá đơn này sẽ được lưu vào hệ thống và cập nhật công nợ khách hàng." FontSize="12" Foreground="{StaticResource AppSecondaryBrush}" Margin="0,0,0,4"/>
-                                                <TextBlock Text="• Vui lòng kiểm tra kỹ số lượng và đơn giá trước khi xác nhận." FontSize="12" Foreground="{StaticResource AppSecondaryBrush}"/>
-                                            </StackPanel>
+                                        <Border Background="White" CornerRadius="8" Padding="12" BorderThickness="1" BorderBrush="{StaticResource AppBorderBrush}" Margin="0,0,0,12">
+                                            <Grid>
+                                                <TextBlock Text="KHÁCH ĐÃ THANH TOÁN" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource AppSecondaryBrush}"/>
+                                                <TextBox Text="{Binding PaidAmount, UpdateSourceTrigger=PropertyChanged, StringFormat='N0'}"
+                                                         HorizontalAlignment="Right" Width="180" HorizontalContentAlignment="Right"
+                                                         Style="{StaticResource StatNumberInputStyle}" BorderThickness="0"
+                                                         materialDesign:TextFieldAssist.DecorationVisibility="Hidden"
+                                                         materialDesign:TextFieldAssist.HasClearButton="False"
+                                                         IsEnabled="{Binding IsViewMode, Converter={StaticResource InverseBooleanConverter}}"/>
+                                            </Grid>
                                         </Border>
+
+                                        <Grid Margin="12,0">
+                                            <TextBlock Text="CÒN LẠI (CÔNG NỢ)" FontSize="13" VerticalAlignment="Center" Foreground="#D32F2F" FontWeight="Medium"/>
+                                            <TextBlock Text="{Binding FormRemainingAmount, StringFormat='N0'}" HorizontalAlignment="Right" FontSize="20" Foreground="#D32F2F" FontWeight="SemiBold"/>
+                                        </Grid>
                                     </StackPanel>
-
-                                    <!-- Right: Summary Card (Increased Size) -->
-                                    <StackPanel Grid.Column="1">
-                                        <materialDesign:Card Padding="32" Background="#FAFAFA" UniformCornerRadius="12" materialDesign:ShadowAssist.ShadowDepth="Depth1" Margin="0,0,0,24">
-                                            <StackPanel>
-                                                <!-- Calculation Rows -->
-                                                <Grid Margin="0,0,0,16">
-                                                    <TextBlock Text="Tổng tiền chưa thuế" Style="{StaticResource TypographyCaption}"/>
-                                                    <TextBlock Text="{Binding FormSubTotal, StringFormat='N0'}" HorizontalAlignment="Right" Style="{StaticResource BodyText}"/>
-                                                </Grid>
-                                                <Grid Margin="0,0,0,16">
-                                                    <TextBlock Text="Thuế giá trị gia tăng (VAT)" Style="{StaticResource TypographyCaption}"/>
-                                                    <TextBlock Text="{Binding FormTaxAmount, StringFormat='N0'}" HorizontalAlignment="Right" Style="{StaticResource BodyText}"/>
-                                                </Grid>
-                                                
-                                                <Separator Margin="0,8,0,20" Background="{StaticResource AppBorderBrush}"/>
-                                                
-                                                <Grid Margin="0,0,0,24">
-                                                    <TextBlock Text="TỔNG CỘNG THANH TOÁN" Style="{StaticResource LabelText}" Foreground="{StaticResource AppPrimaryBrush}" VerticalAlignment="Center"/>
-                                                    <TextBlock Text="{Binding FormTotalAmount, StringFormat='N0'}" HorizontalAlignment="Right" Style="{StaticResource TypographyStatNumber}" Foreground="{StaticResource AppPrimaryBrush}"/>
-                                                </Grid>
-
-                                                <!-- Payment Input (More prominent) -->
-                                                <Border Background="White" CornerRadius="8" Padding="16" BorderThickness="1" BorderBrush="{StaticResource AppBorderBrush}" Margin="0,0,0,16">
-                                                    <Grid>
-                                                        <TextBlock Text="KHÁCH ĐÃ THANH TOÁN" VerticalAlignment="Center" Style="{StaticResource LabelText}" Foreground="{StaticResource AppSecondaryBrush}"/>
-                                                        <TextBox Text="{Binding PaidAmount, UpdateSourceTrigger=PropertyChanged, StringFormat='N0'}"
-                                                                 HorizontalAlignment="Right" Width="200" HorizontalContentAlignment="Right"
-                                                                 Style="{StaticResource StatNumberInputStyle}" BorderThickness="0"
-                                                                 materialDesign:TextFieldAssist.DecorationVisibility="Hidden"
-                                                                 materialDesign:TextFieldAssist.HasClearButton="False"
-                                                                 IsEnabled="{Binding IsViewMode, Converter={StaticResource InverseBooleanConverter}}"/>
-                                                    </Grid>
-                                                </Border>
-
-                                                <!-- Balance -->
-                                                <Grid Margin="16,0">
-                                                    <TextBlock Text="CÒN LẠI (CÔNG NỢ)" Style="{StaticResource LabelText}" VerticalAlignment="Center" Foreground="#D32F2F"/>
-                                                    <TextBlock Text="{Binding FormRemainingAmount, StringFormat='N0'}" HorizontalAlignment="Right" Style="{StaticResource TypographyStatNumber}" Foreground="#D32F2F"/>
-                                                </Grid>
-                                            </StackPanel>
-                                        </materialDesign:Card>
-
-                                        <!-- Action Buttons -->
-                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                            <Button Content="HỦY BỎ" 
-                                                    Click="BackToList_Click"
-                                                    Style="{StaticResource SecondaryButton}" 
-                                                    Margin="0,0,12,0"/>
-                                            
-                                            <Button Command="{Binding SaveInvoiceCommand}"
-                                                    Visibility="{Binding IsViewMode, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
-                                                <Button.Style>
-                                                    <Style TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
-                                                        <Setter Property="Content" Value="LƯU HOÁ ĐƠN"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsEditMode}" Value="True">
-                                                                  <Setter Property="Content" Value="CẬP NHẬT"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Button.Style>
-                                            </Button>
-                                        </StackPanel>
-                                    </StackPanel>
-                                </Grid>
+                                </materialDesign:Card>
                             </Grid>
-                        </materialDesign:Card>
+                        </Grid>
                     </Grid>
                 </ScrollViewer>
             </TabItem>

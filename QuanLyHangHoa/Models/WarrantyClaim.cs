@@ -31,6 +31,14 @@ public partial class WarrantyClaim
 
     public string? ResolutionType { get; set; }
 
+    public DateTime? ExpectedReturnDate { get; set; }
+
+    public string? ManufacturerName { get; set; }
+
+    public string? ManufacturerTrackingCode { get; set; }
+
+    public DateTime? ManufacturerExpectedReturnDate { get; set; }
+
     public string Status { get; set; } = null!;
 
     public int? ApprovedBy { get; set; }
@@ -50,4 +58,6 @@ public partial class WarrantyClaim
     public virtual StockOut? ReplacementStockOut { get; set; }
 
     public virtual WarrantyCoverage WarrantyCoverage { get; set; } = null!;
+
+    public string CustomerName => WarrantyCoverage?.Customer?.DisplayName ?? string.Empty;
 }

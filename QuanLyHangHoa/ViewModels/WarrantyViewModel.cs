@@ -14,24 +14,18 @@ namespace QuanLyHangHoa.ViewModels
 {
     public partial class WarrantyViewModel : ObservableObject, IRefreshable
     {
-        private readonly Func<string, string, string, int, int> _createClaim;
-        private readonly Action<int, string, int> _completeRepair;
-        private readonly Action<int, string, int> _sendToManufacturer;
-        private readonly Action<int, string, int> _rejectClaim;
-        private readonly Action<int, string, string, int> _replaceSerial;
+        private readonly WarrantyClaimService _warrantyService;
         private readonly Action<string, string> _showMessage;
         private readonly AppUser _currentUser;
+        private readonly Func<AppDbContext> _contextFactory;
 
+        // Create Claim fields
         [ObservableProperty] private string _claimCode = string.Empty;
         [ObservableProperty] private string _serialNumber = string.Empty;
         [ObservableProperty] private string _problemDescription = string.Empty;
-        [ObservableProperty] private string _claimIdText = string.Empty;
-        [ObservableProperty] private string _technicalConclusion = string.Empty;
-        [ObservableProperty] private string _manufacturerNote = string.Empty;
-        [ObservableProperty] private string _rejectionReason = string.Empty;
-        [ObservableProperty] private string _replacementSerialNumber = string.Empty;
         [ObservableProperty] private string _statusMessage = string.Empty;
-        
+
+        // List & Filter fields
         [ObservableProperty] private ObservableCollection<WarrantyClaim> _warranties = new();
         [ObservableProperty] private WarrantyClaim? _selectedWarranty;
         [ObservableProperty] private string _searchText = string.Empty;
@@ -41,17 +35,31 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private bool _isAdvancedFilterOpen;
         [ObservableProperty] private List<string> _statusList = new() { "Tất cả", "Open", "Ready", "ManufacturerWait", "Closed", "Rejected" };
 
-        private readonly Func<AppDbContext> _contextFactory;
+        // Resolution fields
+        [ObservableProperty] private string _technicalConclusion = string.Empty;
+        [ObservableProperty] private string _manufacturerNote = string.Empty;
+        [ObservableProperty] private string _rejectionReason = string.Empty;
+        [ObservableProperty] private string _replacementSerialNumber = string.Empty;
+
+        // Manufacturer tracking fields
+        [ObservableProperty] private string _manufacturerName = string.Empty;
+        [ObservableProperty] private string _manufacturerTrackingCode = string.Empty;
+        [ObservableProperty] private DateTime? _manufacturerExpectedReturnDate;
+        [ObservableProperty] private string _newManufacturerSerial = string.Empty;
+
+        // Summary stats
+        [ObservableProperty] private int _totalWarrantyCount;
+        [ObservableProperty] private int _repairingCount;
+        [ObservableProperty] private int _completedCount;
+        [ObservableProperty] private int _overdueCount;
+
+        // Detail panel visibility
+        [ObservableProperty] private bool _isDetailPanelOpen;
 
         public WarrantyViewModel(AppUser currentUser, Func<AppDbContext> contextFactory)
             : this(
                 currentUser,
                 contextFactory,
-                new WarrantyClaimService(contextFactory).CreateClaim,
-                new WarrantyClaimService(contextFactory).CompleteRepair,
-                new WarrantyClaimService(contextFactory).SendToManufacturer,
-                new WarrantyClaimService(contextFactory).RejectClaim,
-                new WarrantyClaimService(contextFactory).ReplaceSerial,
                 (message, title) => MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information))
         {
         }
@@ -59,37 +67,25 @@ namespace QuanLyHangHoa.ViewModels
         public WarrantyViewModel(
             AppUser currentUser,
             Func<AppDbContext> contextFactory,
-            Func<string, string, string, int, int> createClaim,
-            Action<string, string> showMessage)
-            : this(
-                currentUser,
-                contextFactory,
-                createClaim,
-                (_, _, _) => { },
-                (_, _, _) => { },
-                (_, _, _) => { },
-                (_, _, _, _) => { },
-                showMessage)
-        {
-        }
-
-        public WarrantyViewModel(
-            AppUser currentUser,
-            Func<AppDbContext> contextFactory,
-            Func<string, string, string, int, int> createClaim,
-            Action<int, string, int> completeRepair,
-            Action<int, string, int> sendToManufacturer,
-            Action<int, string, int> rejectClaim,
-            Action<int, string, string, int> replaceSerial,
             Action<string, string> showMessage)
         {
             _currentUser = currentUser;
             _contextFactory = contextFactory;
-            _createClaim = createClaim;
-            _completeRepair = completeRepair;
-            _sendToManufacturer = sendToManufacturer;
-            _rejectClaim = rejectClaim;
-            _replaceSerial = replaceSerial;
+            _warrantyService = new WarrantyClaimService(contextFactory);
+            _showMessage = showMessage;
+            ClaimCode = CreateDefaultClaimCode();
+        }
+
+        // Keep backward-compatible constructor for tests
+        public WarrantyViewModel(
+            AppUser currentUser,
+            Func<AppDbContext> contextFactory,
+            Func<string, string, string, int, int> createClaim,
+            Action<string, string> showMessage)
+        {
+            _currentUser = currentUser;
+            _contextFactory = contextFactory;
+            _warrantyService = new WarrantyClaimService(contextFactory);
             _showMessage = showMessage;
             ClaimCode = CreateDefaultClaimCode();
         }
@@ -112,14 +108,16 @@ namespace QuanLyHangHoa.ViewModels
         {
             using var db = _contextFactory();
             var query = db.WarrantyClaims
-                .Include("ProductSerial")
-                .Include("ProductSerial.Product")
+                .Include(c => c.ProductSerial)
+                .ThenInclude(s => s.Product)
+                .Include(c => c.WarrantyCoverage)
+                .ThenInclude(wc => wc.Customer)
                 .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(SearchText))
             {
                 var term = SearchText.ToLower();
-                query = query.Where(c => 
+                query = query.Where(c =>
                     (c.ClaimCode != null && c.ClaimCode.ToLower().Contains(term)) ||
                     (c.ProductSerial != null && c.ProductSerial.SerialNumber != null && c.ProductSerial.SerialNumber.ToLower().Contains(term)) ||
                     (c.ProductSerial != null && c.ProductSerial.Product != null && c.ProductSerial.Product.DisplayName != null && c.ProductSerial.Product.DisplayName.ToLower().Contains(term))
@@ -141,7 +139,47 @@ namespace QuanLyHangHoa.ViewModels
                 query = query.Where(c => c.ReceivedDate <= SearchToDate.Value);
             }
 
-            Warranties = new ObservableCollection<WarrantyClaim>(query.ToList());
+            var allClaims = query.OrderByDescending(c => c.ReceivedDate).ToList();
+            Warranties = new ObservableCollection<WarrantyClaim>(allClaims);
+
+            // Update summary stats
+            TotalWarrantyCount = allClaims.Count;
+            RepairingCount = allClaims.Count(c => c.Status == "Open" || c.Status == "ManufacturerWait");
+            CompletedCount = allClaims.Count(c => c.Status == "Ready");
+            OverdueCount = allClaims.Count(c => c.ExpectedReturnDate.HasValue && c.ExpectedReturnDate.Value.Date < DateTime.Today && c.Status != "Closed" && c.Status != "Rejected");
+        }
+
+        [RelayCommand]
+        private void CreateWarranty()
+        {
+            SelectedWarranty = null;
+            ResetForm();
+            IsDetailPanelOpen = true;
+        }
+
+        [RelayCommand]
+        private void CreateWarrantyClaim()
+        {
+            if (!Validate()) return;
+
+            try
+            {
+                var claimId = _warrantyService.CreateClaim(
+                    ClaimCode.Trim(),
+                    SerialNumber.Trim(),
+                    ProblemDescription.Trim(),
+                    _currentUser.Id);
+
+                StatusMessage = $"Đã tạo phiếu bảo hành #{claimId}.";
+                _showMessage(StatusMessage, "Thông báo");
+                ResetForm();
+                LoadData();
+            }
+            catch (InvalidOperationException ex)
+            {
+                StatusMessage = ex.Message;
+                _showMessage(ex.Message, "Lỗi bảo hành");
+            }
         }
 
         [RelayCommand]
@@ -150,9 +188,7 @@ namespace QuanLyHangHoa.ViewModels
             if (SelectedWarranty == null) return;
             try
             {
-                using var db = _contextFactory();
-                db.WarrantyClaims.Update(SelectedWarranty);
-                db.SaveChanges();
+                _warrantyService.UpdateClaim(SelectedWarranty);
                 _showMessage("Cập nhật phiếu bảo hành thành công!", "Thông báo");
                 LoadData();
             }
@@ -170,9 +206,7 @@ namespace QuanLyHangHoa.ViewModels
             {
                 try
                 {
-                    using var db = _contextFactory();
-                    db.WarrantyClaims.Remove(SelectedWarranty);
-                    db.SaveChanges();
+                    _warrantyService.DeleteClaim(SelectedWarranty.Id);
                     _showMessage("Đã xóa phiếu bảo hành.", "Thông báo");
                     LoadData();
                 }
@@ -184,89 +218,140 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
-        private void CreateWarranty() => ResetForm();
-
-        [RelayCommand]
-        private void CreateWarrantyClaim()
+        private void CompleteRepair()
         {
-            if (!Validate())
-            {
-                return;
-            }
-
-            try
-            {
-                var claimId = _createClaim(
-                    ClaimCode.Trim(),
-                    SerialNumber.Trim(),
-                    ProblemDescription.Trim(),
-                    _currentUser.Id);
-
-                StatusMessage = $"Đã tạo phiếu bảo hành #{claimId}.";
-                _showMessage(StatusMessage, "Thông báo");
-                ResetForm();
-            }
-            catch (InvalidOperationException ex)
-            {
-                StatusMessage = ex.Message;
-                _showMessage(ex.Message, "Lỗi bảo hành");
-            }
+            if (SelectedWarranty == null) return;
+            RunWarrantyAction(
+                () => _warrantyService.CompleteRepair(SelectedWarranty.Id, TechnicalConclusion.Trim(), _currentUser.Id),
+                "Đã hoàn tất sửa bảo hành.");
         }
 
         [RelayCommand]
         private void SendManufacturer()
         {
-            if (!TryGetClaimId(out var claimId))
-            {
-                return;
-            }
-
+            if (SelectedWarranty == null) return;
             RunWarrantyAction(
-                () => _sendToManufacturer(claimId, ManufacturerNote.Trim(), _currentUser.Id),
-                "Đã gửi claim sang hãng.");
+                () => _warrantyService.SendToManufacturer(
+                    SelectedWarranty.Id,
+                    ManufacturerName.Trim(),
+                    ManufacturerTrackingCode.Trim(),
+                    ManufacturerExpectedReturnDate,
+                    ManufacturerNote.Trim(),
+                    _currentUser.Id),
+                "Đã gửi hãng bảo hành.");
         }
 
         [RelayCommand]
-        private void CompleteRepair()
+        private void ReceiveManufacturerRepaired()
         {
-            if (!TryGetClaimId(out var claimId))
+            if (SelectedWarranty == null) return;
+            RunWarrantyAction(
+                () => _warrantyService.ReceiveFromManufacturerRepaired(
+                    SelectedWarranty.Id, TechnicalConclusion.Trim(), _currentUser.Id),
+                "Hãng đã sửa xong, serial cũ trả lại khách.");
+        }
+
+        [RelayCommand]
+        private void ReceiveManufacturerReplaced()
+        {
+            if (SelectedWarranty == null) return;
+            if (string.IsNullOrWhiteSpace(NewManufacturerSerial))
             {
+                _showMessage("Vui lòng nhập Serial mới từ hãng.", "Cảnh báo");
                 return;
             }
-
             RunWarrantyAction(
-                () => _completeRepair(claimId, TechnicalConclusion.Trim(), _currentUser.Id),
-                "Đã hoàn tất sửa bảo hành.");
+                () => _warrantyService.ReceiveFromManufacturerReplaced(
+                    SelectedWarranty.Id,
+                    NewManufacturerSerial.Trim(),
+                    TechnicalConclusion.Trim(),
+                    _currentUser.Id),
+                "Hãng đã đổi mới, đã tạo phiếu nhập/xuất kho tự động.");
         }
 
         [RelayCommand]
         private void RejectWarranty()
         {
-            if (!TryGetClaimId(out var claimId))
-            {
-                return;
-            }
-
+            if (SelectedWarranty == null) return;
             RunWarrantyAction(
-                () => _rejectClaim(claimId, RejectionReason.Trim(), _currentUser.Id),
+                () => _warrantyService.RejectClaim(SelectedWarranty.Id, RejectionReason.Trim(), _currentUser.Id),
                 "Đã từ chối và trả máy cho khách.");
         }
 
         [RelayCommand]
         private void ReplaceWarrantySerial()
         {
-            if (!TryGetClaimId(out var claimId))
+            if (SelectedWarranty == null) return;
+            if (string.IsNullOrWhiteSpace(ReplacementSerialNumber))
             {
+                _showMessage("Vui lòng nhập Serial thay thế.", "Cảnh báo");
                 return;
             }
-
             RunWarrantyAction(
-                () => _replaceSerial(
-                    claimId,
+                () => _warrantyService.ReplaceSerial(
+                    SelectedWarranty.Id,
                     ReplacementSerialNumber.Trim(),
                     TechnicalConclusion.Trim(),
                     _currentUser.Id),
-                "Đã đổi serial bảo hành.");
+                "Đã đổi serial bảo hành từ kho.");
+        }
+
+        [RelayCommand]
+        private void PrintWarranty()
+        {
+            if (SelectedWarranty == null)
+            {
+                _showMessage("Vui lòng chọn phiếu bảo hành để in.", "Cảnh báo");
+                return;
+            }
+
+            try
+            {
+                using var db = _contextFactory();
+                var claim = db.WarrantyClaims
+                    .Include(c => c.ProductSerial)
+                        .ThenInclude(s => s.Product)
+                    .Include(c => c.WarrantyCoverage)
+                        .ThenInclude(wc => wc.Customer)
+                    .Include(c => c.Processor)
+                    .FirstOrDefault(c => c.Id == SelectedWarranty.Id);
+
+                if (claim == null)
+                {
+                    _showMessage("Không tìm thấy phiếu bảo hành.", "Lỗi");
+                    return;
+                }
+
+                var printWindow = new Views.WarrantyPrintWindow(claim);
+                printWindow.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                _showMessage(ex.Message, "Lỗi");
+            }
+        }
+
+        [RelayCommand]
+        private void ViewDetail()
+        {
+            if (SelectedWarranty == null) return;
+
+            // Populate fields from selected warranty for editing
+            TechnicalConclusion = SelectedWarranty.TechnicalConclusion ?? string.Empty;
+            ManufacturerNote = SelectedWarranty.ManufacturerResult ?? string.Empty;
+            ManufacturerName = SelectedWarranty.ManufacturerName ?? string.Empty;
+            ManufacturerTrackingCode = SelectedWarranty.ManufacturerTrackingCode ?? string.Empty;
+            ManufacturerExpectedReturnDate = SelectedWarranty.ManufacturerExpectedReturnDate;
+            RejectionReason = SelectedWarranty.RejectionReason ?? string.Empty;
+            NewManufacturerSerial = string.Empty;
+            ReplacementSerialNumber = string.Empty;
+            IsDetailPanelOpen = true;
+        }
+
+        [RelayCommand]
+        private void CloseDetail()
+        {
+            IsDetailPanelOpen = false;
         }
 
         private bool Validate()
@@ -302,18 +387,6 @@ namespace QuanLyHangHoa.ViewModels
             ProblemDescription = string.Empty;
         }
 
-        private bool TryGetClaimId(out int claimId)
-        {
-            if (!int.TryParse(ClaimIdText, out claimId) || claimId <= 0)
-            {
-                StatusMessage = "ClaimId không hợp lệ.";
-                _showMessage(StatusMessage, "Cảnh báo");
-                return false;
-            }
-
-            return true;
-        }
-
         private void RunWarrantyAction(Action action, string successMessage)
         {
             try
@@ -321,8 +394,10 @@ namespace QuanLyHangHoa.ViewModels
                 action();
                 StatusMessage = successMessage;
                 _showMessage(StatusMessage, "Thông báo");
+                LoadData();
+                IsDetailPanelOpen = false;
             }
-            catch (InvalidOperationException ex)
+            catch (Exception ex)
             {
                 StatusMessage = ex.Message;
                 _showMessage(ex.Message, "Lỗi bảo hành");

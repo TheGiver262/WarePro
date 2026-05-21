@@ -4,10 +4,21 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:vm="clr-namespace:QuanLyHangHoa.ViewModels"
              mc:Ignorable="d" 
+             d:DataContext="{d:DesignInstance vm:WarrantyViewModel}"
              d:DesignHeight="800" d:DesignWidth="1200">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/QuanLyHangHoa;component/Themes/Converters.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
     
     <Grid Background="{StaticResource AppBackgroundBrush}">
+        <!-- Main Content (List, Search & Stats) -->
         <Grid Margin="{StaticResource PagePadding}" MaxWidth="1600" HorizontalAlignment="Stretch">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -32,7 +43,7 @@
                 </StackPanel>
                 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Command="{Binding CreateWarrantyCommand}" Style="{StaticResource PrimaryButton}" Height="32">
+                    <Button Command="{Binding CreateWarrantyCommand}" Style="{StaticResource PrimaryButton}" Height="40">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Plus" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
                             <TextBlock Text="TẠO PHIẾU BẢO HÀNH" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
@@ -193,77 +204,90 @@
                                AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                                BorderThickness="0" RowHeight="56" Background="Transparent">
                         <DataGrid.Columns>
-                            <DataGridTemplateColumn Header="MÃ PHIẾU" Width="120">
+                            <DataGridTemplateColumn Width="150">
+                                <DataGridTemplateColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Qrcode" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="MÃ PHIẾU" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
+                                    </StackPanel>
+                                </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <TextBlock Text="{Binding Id}" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.md}"/>
+                                        <TextBlock Text="{Binding ClaimCode}" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.md}" FontWeight="SemiBold"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTemplateColumn Header="SẢN PHẨM / SERIAL" Width="2*">
+                            <DataGridTemplateColumn Width="2*">
+                                <DataGridTemplateColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="PackageVariant" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="SẢN PHẨM / SERIAL" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
+                                    </StackPanel>
+                                </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding ProductSerial.Product.DisplayName}"/>
-                                            <TextBlock Text="{Binding ProductSerial.SerialNumber}" Style="{StaticResource TypographyCaption}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                            <TextBlock Text="{Binding ProductSerial.Product.DisplayName}" FontWeight="Medium"/>
+                                            <TextBlock Text="{Binding ProductSerial.SerialNumber}" Style="{StaticResource TypographyDataMono}" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0"/>
                                         </StackPanel>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTextColumn Header="KHÁCH HÀNG" Binding="{Binding CustomerName}" Width="*"/>
+                            <DataGridTextColumn Width="*" Binding="{Binding CustomerName}">
+                                <DataGridTextColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="AccountOutline" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="KHÁCH HÀNG" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
+                                    </StackPanel>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
                             
-                            <DataGridTemplateColumn Header="TRẠNG THÁI" Width="140">
+                            <DataGridTemplateColumn Width="140">
+                                <DataGridTemplateColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="ListStatus" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="TRẠNG THÁI" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
+                                    </StackPanel>
+                                </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Border CornerRadius="12" Padding="12,4" HorizontalAlignment="Left" VerticalAlignment="Center">
-                                            <Border.Style>
-                                                <Style TargetType="Border">
-                                                    <Setter Property="Background" Value="#1A000000"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding Status}" Value="Tiếp nhận">
-                                                            <Setter Property="Background" Value="#1A2196F3"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Status}" Value="Đang sửa">
-                                                            <Setter Property="Background" Value="#1AFFC107"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Status}" Value="Hoàn thành">
-                                                            <Setter Property="Background" Value="#1A4CAF50"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Status}" Value="Đã trả">
-                                                            <Setter Property="Background" Value="#1A9E9E9E"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Border.Style>
-                                            <TextBlock Text="{Binding Status}" FontSize="11">
-                                                <TextBlock.Style>
-                                                    <Style TargetType="TextBlock">
-                                                        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding Status}" Value="Tiếp nhận">
-                                                                <Setter Property="Foreground" Value="#2196F3"/>
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding Status}" Value="Đang sửa">
-                                                                <Setter Property="Foreground" Value="{StaticResource AppWarningBrush}"/>
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding Status}" Value="Hoàn thành">
-                                                                <Setter Property="Foreground" Value="{StaticResource AppSuccessBrush}"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </TextBlock.Style>
-                                            </TextBlock>
+                                        <Border CornerRadius="12" Padding="12,4" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                                Background="{Binding Status, Converter={StaticResource StatusToBgBrushConverter}}">
+                                            <TextBlock Text="{Binding Status, Converter={StaticResource StatusToTextConverter}}" 
+                                                       Foreground="{Binding Status, Converter={StaticResource StatusToFgBrushConverter}}"
+                                                       FontSize="11" FontWeight="SemiBold"/>
                                         </Border>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTextColumn Header="NGÀY NHẬN" Binding="{Binding ReceiveDate, StringFormat=dd/MM/yyyy}" Width="120"/>
-                            <DataGridTextColumn Header="HẸN TRẢ" Binding="{Binding ReturnDate, StringFormat=dd/MM/yyyy}" Width="120"/>
+                            <DataGridTextColumn Width="120" Binding="{Binding ReceivedDate, StringFormat=dd/MM/yyyy}">
+                                <DataGridTextColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Calendar" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="NGÀY NHẬN" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
+                                    </StackPanel>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
 
-                            <DataGridTemplateColumn Header="THAO TÁC" Width="120">
+                            <DataGridTextColumn Width="120" Binding="{Binding ExpectedReturnDate, StringFormat=dd/MM/yyyy}">
+                                <DataGridTextColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="CalendarClock" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="HẸN TRẢ" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
+                                    </StackPanel>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+
+                            <DataGridTemplateColumn Width="140">
+                                <DataGridTemplateColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="CogOutline" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="THAO TÁC" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
+                                    </StackPanel>
+                                </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal">
@@ -271,19 +295,19 @@
                                                     ToolTip="Xem chi tiết" 
                                                     Command="{Binding DataContext.ViewDetailCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
                                                     CommandParameter="{Binding}">
-                                                <materialDesign:PackIcon Kind="EyeOutline" Width="18" Height="18"/>
+                                                <materialDesign:PackIcon Kind="EyeOutline" Width="18" Height="18" Foreground="{StaticResource AppPrimaryBrush}"/>
                                             </Button>
                                             <Button Style="{StaticResource ProMaxIconButtonStyle}"
                                                     ToolTip="Chỉnh sửa" 
-                                                    Command="{Binding DataContext.EditWarrantyCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
+                                                    Command="{Binding DataContext.ViewDetailCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
                                                     CommandParameter="{Binding}">
-                                                <materialDesign:PackIcon Kind="PencilOutline" Width="18" Height="18"/>
+                                                <materialDesign:PackIcon Kind="PencilOutline" Width="18" Height="18" Foreground="{StaticResource AppSecondaryBrush}"/>
                                             </Button>
                                             <Button Style="{StaticResource ProMaxIconButtonStyle}"
                                                     ToolTip="In phiếu" 
                                                     Command="{Binding DataContext.PrintWarrantyCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
                                                     CommandParameter="{Binding}">
-                                                <materialDesign:PackIcon Kind="PrinterOutline" Width="18" Height="18"/>
+                                                <materialDesign:PackIcon Kind="PrinterOutline" Width="18" Height="18" Foreground="{StaticResource AppTertiaryBrush}"/>
                                             </Button>
                                             <Button Style="{StaticResource ProMaxIconButtonStyle}"
                                                     ToolTip="Xóa"
@@ -299,6 +323,321 @@
                     </DataGrid>
                 </Grid>
             </materialDesign:Card>
+        </Grid>
+
+        <!-- ========================================== -->
+        <!-- SLIDING OVERLAY PANEL (DRAWER)             -->
+        <!-- ========================================== -->
+        <Grid Visibility="{Binding IsDetailPanelOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <!-- Semi-transparent Backdrop with Click-to-Close -->
+            <Border Background="#40000000">
+                <Border.InputBindings>
+                    <MouseBinding MouseAction="LeftClick" Command="{Binding CloseDetailCommand}"/>
+                </Border.InputBindings>
+            </Border>
+
+            <!-- Drawer Container -->
+            <Border HorizontalAlignment="Right" Width="480" Margin="0"
+                    Background="{StaticResource AppSurfaceBrush}" 
+                    BorderBrush="{StaticResource AppBorderBrush}" 
+                    BorderThickness="1,0,0,0">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="20" Color="#20000000" ShadowDepth="0" Direction="0" Opacity="0.3"/>
+                </Border.Effect>
+
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/> <!-- Header -->
+                        <RowDefinition Height="*"/>    <!-- Content (Scrollable) -->
+                    </Grid.RowDefinitions>
+
+                    <!-- Drawer Header -->
+                    <Border Grid.Row="0" Padding="20,16" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1" Background="{StaticResource SurfaceMutedBrush}">
+                        <Grid>
+                            <!-- Creation Mode Title -->
+                            <StackPanel Orientation="Horizontal" Visibility="{Binding SelectedWarranty, Converter={StaticResource NullToVisibilityConverter}}">
+                                <materialDesign:PackIcon Kind="Plus" Width="20" Height="20" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
+                                <TextBlock Text="TẠO MỚI PHIẾU BẢO HÀNH" Style="{StaticResource TypographyH3}" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                            </StackPanel>
+                            <!-- Resolution Mode Title -->
+                            <StackPanel Orientation="Horizontal" Visibility="{Binding SelectedWarranty, Converter={StaticResource NullToVisibilityConverter}, ConverterParameter=Invert}">
+                                <materialDesign:PackIcon Kind="Wrench" Width="20" Height="20" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
+                                <TextBlock Text="XỬ LÝ PHIẾU BẢO HÀNH" Style="{StaticResource TypographyH3}" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                            </StackPanel>
+
+                            <!-- Close Button -->
+                            <Button HorizontalAlignment="Right" Style="{StaticResource ProMaxIconButtonStyle}" Command="{Binding CloseDetailCommand}">
+                                <materialDesign:PackIcon Kind="Close" Width="20" Height="20" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            </Button>
+                        </Grid>
+                    </Border>
+
+                    <!-- Scrollable Form Content -->
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="20">
+                        <StackPanel>
+                            
+                            <!-- ═══════════════════════════════════════════ -->
+                            <!-- CREATION MODE UI                            -->
+                            <!-- ═══════════════════════════════════════════ -->
+                            <StackPanel Visibility="{Binding SelectedWarranty, Converter={StaticResource NullToVisibilityConverter}}">
+                                <!-- Claim Code -->
+                                <StackPanel Margin="0,0,0,16">
+                                    <TextBlock Text="MÃ PHIẾU BẢO HÀNH" Style="{StaticResource DetailFormLabel}"/>
+                                    <TextBox Style="{StaticResource AppTextBoxStyle}" Height="38" Text="{Binding ClaimCode, UpdateSourceTrigger=PropertyChanged}"/>
+                                </StackPanel>
+
+                                <!-- Serial Number -->
+                                <StackPanel Margin="0,0,0,16">
+                                    <TextBlock Text="SỐ SERIAL/IMEI" Style="{StaticResource DetailFormLabel}"/>
+                                    <TextBox Style="{StaticResource AppTextBoxStyle}" Height="38" Text="{Binding SerialNumber, UpdateSourceTrigger=PropertyChanged}"
+                                             materialDesign:HintAssist.Hint="Nhập số Serial sản phẩm..."/>
+                                </StackPanel>
+
+                                <!-- Problem Description -->
+                                <StackPanel Margin="0,0,0,20">
+                                    <TextBlock Text="MÔ TẢ LỖI / YÊU CẦU" Style="{StaticResource DetailFormLabel}"/>
+                                    <TextBox Style="{StaticResource AppTextBoxStyle}" Height="80" TextWrapping="Wrap" AcceptsReturn="True" 
+                                             VerticalScrollBarVisibility="Auto" Text="{Binding ProblemDescription, UpdateSourceTrigger=PropertyChanged}"
+                                             materialDesign:HintAssist.Hint="Nhập mô tả chi tiết lỗi của sản phẩm..."/>
+                                </StackPanel>
+
+                                <Button Command="{Binding CreateWarrantyClaimCommand}" Style="{StaticResource PrimaryButton}" Height="38">
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="PlusBold" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <TextBlock Text="TẠO PHIẾU TIẾP NHẬN" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+
+                            <!-- ═══════════════════════════════════════════ -->
+                            <!-- RESOLUTION MODE UI                          -->
+                            <!-- ═══════════════════════════════════════════ -->
+                            <StackPanel Visibility="{Binding SelectedWarranty, Converter={StaticResource NullToVisibilityConverter}, ConverterParameter=Invert}">
+                                
+                                <!-- Read-Only Ticket Summary Details -->
+                                <Border CornerRadius="{StaticResource Radius.md}" BorderThickness="1" BorderBrush="{StaticResource AppBorderBrush}" 
+                                        Background="{StaticResource SurfaceMutedBrush}" Padding="16" Margin="0,0,0,20">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="130"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Claim Code -->
+                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Mã phiếu bảo hành:" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
+                                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SelectedWarranty.ClaimCode}" Style="{StaticResource TypographyBodyBold}" Margin="0,0,0,8"/>
+
+                                        <!-- Product Display Name -->
+                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Sản phẩm tiếp nhận:" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
+                                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SelectedWarranty.ProductSerial.Product.DisplayName}" Style="{StaticResource TypographyBody}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+
+                                        <!-- Product Serial -->
+                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Số Serial/IMEI gốc:" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
+                                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding SelectedWarranty.ProductSerial.SerialNumber}" Style="{StaticResource TypographyDataMono}" Margin="0,0,0,8"/>
+
+                                        <!-- Customer Name -->
+                                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Tên khách hàng:" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
+                                        <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding SelectedWarranty.CustomerName}" Style="{StaticResource TypographyBody}" Margin="0,0,0,8"/>
+
+                                        <!-- Receive Date -->
+                                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Ngày tiếp nhận:" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
+                                        <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding SelectedWarranty.ReceivedDate, StringFormat='dd/MM/yyyy'}" Style="{StaticResource TypographyBody}" Margin="0,0,0,8"/>
+
+                                        <!-- Current Status -->
+                                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Trạng thái hiện tại:" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8" VerticalAlignment="Center"/>
+                                        <Border Grid.Row="5" Grid.Column="1" CornerRadius="12" Padding="10,3" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0,0,0,8"
+                                                Background="{Binding SelectedWarranty.Status, Converter={StaticResource StatusToBgBrushConverter}}">
+                                            <TextBlock Text="{Binding SelectedWarranty.Status, Converter={StaticResource StatusToTextConverter}}" 
+                                                       Foreground="{Binding SelectedWarranty.Status, Converter={StaticResource StatusToFgBrushConverter}}"
+                                                       FontSize="11" FontWeight="SemiBold"/>
+                                        </Border>
+
+                                        <!-- Problem Description -->
+                                        <TextBlock Grid.Row="6" Grid.Column="0" Text="Chi tiết mô tả lỗi:" Style="{StaticResource TypographyLabel}"/>
+                                        <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding SelectedWarranty.ProblemDescription}" Style="{StaticResource TypographyBody}" TextWrapping="Wrap"/>
+                                    </Grid>
+                                </Border>
+
+                                <!-- Technical Conclusion Input -->
+                                <StackPanel Margin="0,0,0,20">
+                                    <TextBlock Text="KẾT LUẬN KỸ THUẬT" Style="{StaticResource DetailFormLabel}"/>
+                                    <TextBox Style="{StaticResource AppTextBoxStyle}" Height="80" TextWrapping="Wrap" AcceptsReturn="True" 
+                                             VerticalScrollBarVisibility="Auto" Text="{Binding TechnicalConclusion, UpdateSourceTrigger=PropertyChanged}"
+                                             materialDesign:HintAssist.Hint="Mô tả tình trạng lỗi kiểm tra thực tế và phương án giải quyết..."/>
+                                </StackPanel>
+
+                                <Separator Margin="0,0,0,20" Background="{StaticResource AppBorderBrush}"/>
+
+                                <TextBlock Text="CÁC PHƯƠNG ÁN XỬ LÝ PHÙ HỢP" Style="{StaticResource TypographyLabelBold}" Margin="0,0,0,12" Foreground="{StaticResource AppPrimaryBrush}"/>
+
+                                <!-- Option 1: Hoàn thành sửa chữa tại cửa hàng -->
+                                <Border BorderThickness="1" BorderBrush="{StaticResource AppBorderBrush}" CornerRadius="{StaticResource Radius.md}" Padding="12" Margin="0,0,0,12" Background="{StaticResource AppSurfaceBrush}">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                            <materialDesign:PackIcon Kind="Tools" Foreground="#4CAF50" Width="18" Height="18" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Xử lý / Sửa chữa tại cửa hàng" Style="{StaticResource TypographyLabelBold}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                        </StackPanel>
+                                        <TextBlock Text="Sửa chữa/khắc phục lỗi thành công tại chỗ. Máy chuyển trạng thái Chờ trả khách hàng." Style="{StaticResource TypographyCaption}" Margin="0,0,0,12" TextWrapping="Wrap"/>
+                                        <Button Command="{Binding CompleteRepairCommand}" Height="38" Background="#4CAF50" BorderBrush="#4CAF50">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="CheckBold" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                <TextBlock Text="HOÀN THÀNH SỬA CHỮA" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Option 2: Gửi hãng bảo hành -->
+                                <Border BorderThickness="1" BorderBrush="{StaticResource AppBorderBrush}" CornerRadius="{StaticResource Radius.md}" Padding="12" Margin="0,0,0,12" Background="{StaticResource AppSurfaceBrush}">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                            <materialDesign:PackIcon Kind="Send" Foreground="#FF9800" Width="18" Height="18" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Gửi bảo hành lên Hãng sản xuất" Style="{StaticResource TypographyLabelBold}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                        </StackPanel>
+                                        
+                                        <!-- Manufacturer details fields -->
+                                        <Grid Margin="0,0,0,12">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- Manufacturer Name -->
+                                            <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,6,8">
+                                                <TextBlock Text="Tên Hãng Sản Xuất" Style="{StaticResource TypographySmall}" Margin="0,0,0,4"/>
+                                                <TextBox Style="{StaticResource AppTextBoxStyle}" Height="36" Text="{Binding ManufacturerName, UpdateSourceTrigger=PropertyChanged}"/>
+                                            </StackPanel>
+                                            
+                                            <!-- Tracking Code -->
+                                            <StackPanel Grid.Row="0" Grid.Column="1" Margin="6,0,0,8">
+                                                <TextBlock Text="Mã Vận Đơn Gửi" Style="{StaticResource TypographySmall}" Margin="0,0,0,4"/>
+                                                <TextBox Style="{StaticResource AppTextBoxStyle}" Height="36" Text="{Binding ManufacturerTrackingCode, UpdateSourceTrigger=PropertyChanged}"/>
+                                            </StackPanel>
+
+                                            <!-- Expected Return Date -->
+                                            <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
+                                                <TextBlock Text="Hẹn Hãng Trả Máy Ngày" Style="{StaticResource TypographySmall}" Margin="0,0,0,4"/>
+                                                <DatePicker Style="{StaticResource AppDatePickerStyle}" Height="36" SelectedDate="{Binding ManufacturerExpectedReturnDate}"/>
+                                            </StackPanel>
+
+                                            <!-- Manufacturer Note -->
+                                            <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
+                                                <TextBlock Text="Ghi chú gửi kèm / Kết quả hãng" Style="{StaticResource TypographySmall}" Margin="0,0,0,4"/>
+                                                <TextBox Style="{StaticResource AppTextBoxStyle}" Height="36" Text="{Binding ManufacturerNote, UpdateSourceTrigger=PropertyChanged}"/>
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <Button Command="{Binding SendManufacturerCommand}" Height="38" Background="#FF9800" BorderBrush="#FF9800">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="Send" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                <TextBlock Text="XÁC NHẬN GỬI HÃNG" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Option 3: Nhận máy trả từ hãng -->
+                                <Border BorderThickness="1" BorderBrush="{StaticResource AppBorderBrush}" CornerRadius="{StaticResource Radius.md}" Padding="12" Margin="0,0,0,12" Background="{StaticResource AppSurfaceBrush}">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                            <materialDesign:PackIcon Kind="CallReceived" Foreground="#2196F3" Width="18" Height="18" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Nhận sản phẩm từ Hãng trả về" Style="{StaticResource TypographyLabelBold}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                        </StackPanel>
+                                        <TextBlock Text="Khi hãng bảo hành xong và gửi trả lại máy về cho cửa hàng tiếp nhận." Style="{StaticResource TypographyCaption}" Margin="0,0,0,12" TextWrapping="Wrap"/>
+                                        
+                                        <!-- Case 3A: Hãng sửa xong, trả máy cũ -->
+                                        <Button Command="{Binding ReceiveManufacturerRepairedCommand}" Height="38" Background="#2196F3" BorderBrush="#2196F3" Margin="0,0,0,12">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="CheckBold" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                <TextBlock Text="NHẬN MÁY ĐÃ SỬA XONG" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
+                                            </StackPanel>
+                                        </Button>
+                                        
+                                        <Separator Margin="0,0,0,12" Background="{StaticResource AppBorderBrush}"/>
+
+                                        <!-- Case 3B: Hãng đổi mới thiết bị -->
+                                        <StackPanel Margin="0,0,0,8">
+                                            <TextBlock Text="Số Serial Thiết Bị Mới từ Hãng" Style="{StaticResource TypographySmall}" Margin="0,0,0,4"/>
+                                            <TextBox Style="{StaticResource AppTextBoxStyle}" Height="36" Text="{Binding NewManufacturerSerial, UpdateSourceTrigger=PropertyChanged}"
+                                                     materialDesign:HintAssist.Hint="Nhập số serial thiết bị mới được đổi..."/>
+                                        </StackPanel>
+                                        
+                                        <Button Command="{Binding ReceiveManufacturerReplacedCommand}" Height="38" Style="{StaticResource SecondaryButton}" BorderBrush="#2196F3" Foreground="#2196F3">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="Cached" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                <TextBlock Text="NHẬN ĐỔI MỚI TỪ HÃNG" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Option 4: Đổi thiết bị mới từ kho của cửa hàng -->
+                                <Border BorderThickness="1" BorderBrush="{StaticResource AppBorderBrush}" CornerRadius="{StaticResource Radius.md}" Padding="12" Margin="0,0,0,12" Background="{StaticResource AppSurfaceBrush}">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                            <materialDesign:PackIcon Kind="SwapHorizontal" Foreground="{StaticResource PrimaryPurpleBrush}" Width="18" Height="18" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Đổi thiết bị mới từ Kho cửa hàng" Style="{StaticResource TypographyLabelBold}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                        </StackPanel>
+                                        <TextBlock Text="Xuất ngay 1 sản phẩm mới có serial sẵn trong kho để đổi mới cho khách hàng." Style="{StaticResource TypographyCaption}" Margin="0,0,0,12" TextWrapping="Wrap"/>
+                                        
+                                        <StackPanel Margin="0,0,0,8">
+                                            <TextBlock Text="Mã Serial thay thế trong Kho" Style="{StaticResource TypographySmall}" Margin="0,0,0,4"/>
+                                            <TextBox Style="{StaticResource AppTextBoxStyle}" Height="36" Text="{Binding ReplacementSerialNumber, UpdateSourceTrigger=PropertyChanged}"
+                                                     materialDesign:HintAssist.Hint="Nhập serial thiết bị thay thế sẵn trong kho..."/>
+                                        </StackPanel>
+                                        
+                                        <Button Command="{Binding ReplaceWarrantySerialCommand}" Height="38" Style="{StaticResource PrimaryButton}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="Cached" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                <TextBlock Text="XÁC NHẬN ĐỔI MỚI TỪ KHO" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Option 5: Từ chối bảo hành -->
+                                <Border BorderThickness="1" BorderBrush="{StaticResource AppBorderBrush}" CornerRadius="{StaticResource Radius.md}" Padding="12" Margin="0,0,0,12" Background="{StaticResource AppSurfaceBrush}">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                            <materialDesign:PackIcon Kind="CloseCircle" Foreground="{StaticResource AppErrorBrush}" Width="18" Height="18" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Từ chối yêu cầu bảo hành" Style="{StaticResource TypographyLabelBold}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                        </StackPanel>
+                                        <TextBlock Text="Sản phẩm không đủ điều kiện bảo hành (rơi vỡ, ngập nước...). Trả lại máy cho khách hàng." Style="{StaticResource TypographyCaption}" Margin="0,0,0,12" TextWrapping="Wrap"/>
+                                        
+                                        <StackPanel Margin="0,0,0,8">
+                                            <TextBlock Text="Lý do từ chối bảo hành" Style="{StaticResource TypographySmall}" Margin="0,0,0,4"/>
+                                            <TextBox Style="{StaticResource AppTextBoxStyle}" Height="36" Text="{Binding RejectionReason, UpdateSourceTrigger=PropertyChanged}"
+                                                     materialDesign:HintAssist.Hint="Nhập lý do chi tiết từ chối bảo hành..."/>
+                                        </StackPanel>
+                                        
+                                        <Button Command="{Binding RejectWarrantyCommand}" Height="38" Style="{StaticResource DangerButton}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="Cancel" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                <TextBlock Text="XÁC NHẬN TỪ CHỐI BẢO HÀNH" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
         </Grid>
     </Grid>
 </UserControl>

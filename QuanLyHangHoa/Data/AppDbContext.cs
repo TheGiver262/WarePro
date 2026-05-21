@@ -851,9 +851,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.ClaimCode, "UX_WarrantyClaim_ClaimCode").IsUnique();
 
-            entity.HasIndex(e => e.ProductSerialId, "UX_WarrantyClaim_OpenClaim_PerSerial")
-                .IsUnique()
-                .HasFilter("Status != 'Closed'");
+            entity.HasIndex(e => e.ProductSerialId, "UX_WarrantyClaim_OpenClaim_PerSerial");
 
             entity.Property(e => e.ClaimCode).HasMaxLength(50);
             entity.Property(e => e.ClosedDate).HasPrecision(0);
@@ -865,6 +863,10 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.ResolutionType).HasMaxLength(50);
             entity.Property(e => e.Status).HasMaxLength(50);
             entity.Property(e => e.TechnicalConclusion).HasMaxLength(1000);
+            entity.Property(e => e.ExpectedReturnDate).HasPrecision(0);
+            entity.Property(e => e.ManufacturerName).HasMaxLength(200);
+            entity.Property(e => e.ManufacturerTrackingCode).HasMaxLength(100);
+            entity.Property(e => e.ManufacturerExpectedReturnDate).HasPrecision(0);
 
             entity.HasOne(d => d.Approver).WithMany(p => p.WarrantyClaimApprovers)
                 .HasForeignKey(d => d.ApprovedBy)
@@ -875,8 +877,8 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_WarrantyClaim_ProcessedBy");
 
-            entity.HasOne(d => d.ProductSerial).WithOne(p => p.WarrantyClaimProductSerial)
-                .HasForeignKey<WarrantyClaim>(d => d.ProductSerialId)
+            entity.HasOne(d => d.ProductSerial).WithMany(p => p.WarrantyClaims)
+                .HasForeignKey(d => d.ProductSerialId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_WarrantyClaim_ProductSerial");
 

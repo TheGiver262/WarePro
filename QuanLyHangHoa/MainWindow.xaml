@@ -77,6 +77,7 @@
                         <RadioButton Content="Xuất kho" Tag="ArrowUpBold" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockOutViewCommand}"/>
                         <RadioButton Content="Chuyển kho" Tag="SwapHorizontal" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockTransferViewCommand}"/>
                         <RadioButton Content="Tồn kho" Tag="ChartBar" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenInventoryViewCommand}"/>
+                        <RadioButton Content="Nhập tồn đầu kỳ" Tag="DatabaseImport" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenOpeningBalanceImportViewCommand}"/>
                         <RadioButton Content="Điều chỉnh kho" Tag="Tune" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockAdjustmentViewCommand}"/>
                         <RadioButton Content="Kiểm kê" Tag="ClipboardCheckOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockCountViewCommand}"/>
 

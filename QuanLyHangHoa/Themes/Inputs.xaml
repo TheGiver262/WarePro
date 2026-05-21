@@ -123,4 +123,41 @@
         <Setter Property="materialDesign:HintAssist.IsFloating" Value="True"/>
     </Style>
 
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- Detail Form Styles — Unified inputs for Create/Edit views  -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+
+    <!-- Detail Form TextBox: Height=38, consistent with AppTextBoxStyle but sized for detail cards -->
+    <Style x:Key="DetailFormTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource AppTextBoxStyle}">
+        <Setter Property="Height" Value="38"/>
+        <Setter Property="MinHeight" Value="38"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Margin" Value="0"/>
+    </Style>
+
+    <!-- Detail Form ComboBox: Height=38, consistent borders -->
+    <Style x:Key="DetailFormComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource AppComboBoxStyle}">
+        <Setter Property="Height" Value="38"/>
+        <Setter Property="MinHeight" Value="38"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Margin" Value="0"/>
+    </Style>
+
+    <!-- Detail Form DatePicker: Height=38 -->
+    <Style x:Key="DetailFormDatePickerStyle" TargetType="DatePicker" BasedOn="{StaticResource AppDatePickerStyle}">
+        <Setter Property="Height" Value="38"/>
+        <Setter Property="MinHeight" Value="38"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Margin" Value="0"/>
+    </Style>
+
+    <!-- Detail Form Notes TextBox: Multi-line, taller -->
+    <Style x:Key="DetailFormNotesStyle" TargetType="TextBox" BasedOn="{StaticResource AppTextBoxStyle}">
+        <Setter Property="Height" Value="56"/>
+        <Setter Property="AcceptsReturn" Value="True"/>
+        <Setter Property="VerticalContentAlignment" Value="Top"/>
+        <Setter Property="Margin" Value="0"/>
+        <Setter Property="materialDesign:TextFieldAssist.HasClearButton" Value="False"/>
+    </Style>
+
 </ResourceDictionary>

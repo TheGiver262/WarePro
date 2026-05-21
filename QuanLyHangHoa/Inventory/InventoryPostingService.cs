@@ -99,9 +99,9 @@ public sealed class InventoryPostingService
 
     public void PostStockOut(PostStockOutCommand command)
     {
-        if (command.Kind != StockOutKind.Sale)
+        if (command.Kind != StockOutKind.Sale && command.Kind != StockOutKind.WarrantyReplacement)
         {
-            throw new InventoryDomainException("Only sale stock-out can be posted by this service.");
+            throw new InventoryDomainException("Only sale or warranty-replacement stock-out can be posted by this service.");
         }
 
         if (command.Status != StockDocumentStatus.Approved && command.Status != StockDocumentStatus.Posted)

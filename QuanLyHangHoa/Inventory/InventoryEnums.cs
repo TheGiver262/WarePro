@@ -13,7 +13,8 @@ public enum StockDocumentStatus
 public enum StockInKind
 {
     Purchase,
-    OpeningBalance
+    OpeningBalance,
+    WarrantyReceive
 }
 
 public enum StockOutKind

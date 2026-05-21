@@ -127,4 +127,10 @@
     <!-- Input Aliases -->
     <Style x:Key="InputText" BasedOn="{StaticResource TypographyControlBody}" TargetType="Control"/>
 
+    <!-- Detail Form Label — For field labels in detail/create forms (unified spacing) -->
+    <Style x:Key="DetailFormLabel" TargetType="TextBlock" BasedOn="{StaticResource TypographyLabel}">
+        <Setter Property="Margin" Value="0,0,0,6"/>
+        <Setter Property="FontWeight" Value="Medium"/>
+    </Style>
+
 </ResourceDictionary>

@@ -1,7 +1,11 @@
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.ViewModels;
+using QuanLyHangHoa.Data;
+using QuanLyHangHoa.Inventory;
+using QuanLyHangHoa.Tests.Helpers;
 using Xunit;
 using System;
+using System.Linq;
 
 namespace QuanLyHangHoa.Tests.ViewModels
 {
@@ -10,34 +14,65 @@ namespace QuanLyHangHoa.Tests.ViewModels
         [Fact]
         public void CreateWarrantyClaimPassesFormValuesToService()
         {
-            string? claimCode = null;
-            string? serialNumber = null;
-            string? problemDescription = null;
-            int? receivedBy = null;
+            using var connection = new Microsoft.Data.Sqlite.SqliteConnection("Data Source=:memory:");
+            connection.Open();
+            
+            using (var seedContext = DatabaseHelper.CreateContext(connection))
+            {
+                DatabaseHelper.SeedBasicData(seedContext);
+                seedContext.Products.Add(new Product 
+                { 
+                    Id = 1000, 
+                    ProductCode = "P1000",
+                    DisplayName = "Warranty product",
+                    CategoryId = 1,
+                    BrandId = 1,
+                    DefaultUnitId = 1,
+                    DefaultPrice = 10m,
+                    IsSerialTracked = true
+                });
+                var serial = new ProductSerial 
+                { 
+                    Id = 500,
+                    SerialNumber = "SERIAL-001",
+                    ProductId = 1000,
+                    CurrentStatus = SerialStatus.Sold.ToString()
+                };
+                seedContext.ProductSerials.Add(serial);
+                seedContext.SaveChanges();
+                
+                seedContext.WarrantyCoverages.Add(new WarrantyCoverage
+                {
+                    ProductSerialId = serial.Id,
+                    CustomerId = 1,
+                    WarrantyStartDate = new DateTime(2026, 1, 1),
+                    WarrantyEndDate = new DateTime(2027, 1, 1),
+                    CoverageStatus = "Active"
+                });
+                seedContext.SaveChanges();
+            }
 
             var viewModel = new WarrantyViewModel(
                 new AppUser { Id = 42, FullName = "Nhan vien" },
-                () => null!,
-                (code, serial, problem, userId) =>
-                {
-                    claimCode = code;
-                    serialNumber = serial;
-                    problemDescription = problem;
-                    receivedBy = userId;
-                    return 123;
-                },
-                (_, _) => { });
+                () => DatabaseHelper.CreateContext(connection),
+                (msg, title) => { });
+
             viewModel.ClaimCode = "WC-001";
             viewModel.SerialNumber = "SERIAL-001";
             viewModel.ProblemDescription = "Loi man hinh";
 
             viewModel.CreateWarrantyClaimCommand.Execute(null);
 
-            Assert.Equal("WC-001", claimCode);
-            Assert.Equal("SERIAL-001", serialNumber);
-            Assert.Equal("Loi man hinh", problemDescription);
-            Assert.Equal(42, receivedBy);
-            Assert.Equal("Đã tạo phiếu bảo hành #123.", viewModel.StatusMessage);
+            using (var assertContext = DatabaseHelper.CreateContext(connection))
+            {
+                var claim = Assert.Single(assertContext.WarrantyClaims);
+                Assert.Equal("WC-001", claim.ClaimCode);
+                Assert.Equal("Loi man hinh", claim.ProblemDescription);
+                Assert.Equal(42, claim.ProcessedBy);
+                Assert.Equal("InWarrantyProcess", assertContext.ProductSerials.First(s => s.Id == 500).CurrentStatus);
+            }
+
+            Assert.StartsWith("Đã tạo phiếu bảo hành", viewModel.StatusMessage);
             Assert.Equal(string.Empty, viewModel.SerialNumber);
             Assert.Equal(string.Empty, viewModel.ProblemDescription);
         }
@@ -45,32 +80,89 @@ namespace QuanLyHangHoa.Tests.ViewModels
         [Fact]
         public void CompleteRepairPassesClaimIdConclusionAndCurrentUserToService()
         {
-            int? claimId = null;
-            string? conclusion = null;
-            int? processedBy = null;
+            using var connection = new Microsoft.Data.Sqlite.SqliteConnection("Data Source=:memory:");
+            connection.Open();
+
+            int claimId;
+            using (var seedContext = DatabaseHelper.CreateContext(connection))
+            {
+                DatabaseHelper.SeedBasicData(seedContext);
+                
+                seedContext.Products.Add(new Product 
+                { 
+                    Id = 2000, 
+                    ProductCode = "P2000",
+                    DisplayName = "Warranty product",
+                    CategoryId = 1,
+                    BrandId = 1,
+                    DefaultUnitId = 1,
+                    DefaultPrice = 10m,
+                    IsSerialTracked = true
+                });
+                var serial = new ProductSerial 
+                { 
+                    Id = 600,
+                    SerialNumber = "SERIAL-002",
+                    ProductId = 2000,
+                    CurrentStatus = "InWarrantyProcess"
+                };
+                seedContext.ProductSerials.Add(serial);
+                seedContext.SaveChanges();
+                
+                var coverage = new WarrantyCoverage
+                {
+                    Id = 100,
+                    ProductSerialId = serial.Id,
+                    CustomerId = 1,
+                    WarrantyStartDate = new DateTime(2026, 1, 1),
+                    WarrantyEndDate = new DateTime(2027, 1, 1),
+                    CoverageStatus = "Active"
+                };
+                seedContext.WarrantyCoverages.Add(coverage);
+                seedContext.SaveChanges();
+
+                var claim = new WarrantyClaim
+                {
+                    Id = 9,
+                    ClaimCode = "WC-002",
+                    WarrantyCoverageId = coverage.Id,
+                    ProductSerialId = serial.Id,
+                    ReceivedDate = new DateTime(2026, 4, 28),
+                    Status = "Open",
+                    ProblemDescription = "Faulty motherboard"
+                };
+                seedContext.WarrantyClaims.Add(claim);
+                seedContext.SaveChanges();
+                claimId = claim.Id;
+            }
 
             var viewModel = new WarrantyViewModel(
                 new AppUser { Id = 42 },
-                () => null!,
-                (_, _, _, _) => 1,
-                (id, inputConclusion, userId) =>
-                {
-                    claimId = id;
-                    conclusion = inputConclusion;
-                    processedBy = userId;
-                },
-                (_, _, _) => { },
-                (_, _, _) => { },
-                (_, _, _, _) => { },
-                (_, _) => { });
-            viewModel.ClaimIdText = "9";
-            viewModel.TechnicalConclusion = "Fixed screen";
+                () => DatabaseHelper.CreateContext(connection),
+                (msg, title) => { });
 
+            using (var context = DatabaseHelper.CreateContext(connection))
+            {
+                var claim = context.WarrantyClaims.Find(claimId);
+                viewModel.SelectedWarranty = claim;
+            }
+
+            viewModel.TechnicalConclusion = "Fixed screen";
             viewModel.CompleteRepairCommand.Execute(null);
 
-            Assert.Equal(9, claimId);
-            Assert.Equal("Fixed screen", conclusion);
-            Assert.Equal(42, processedBy);
+            using (var assertContext = DatabaseHelper.CreateContext(connection))
+            {
+                var claim = assertContext.WarrantyClaims.Find(claimId);
+                Assert.NotNull(claim);
+                Assert.Equal("Ready", claim.Status);
+                Assert.Equal("Fixed screen", claim.TechnicalConclusion);
+                Assert.Equal(42, claim.ApprovedBy);
+                
+                var serial = assertContext.ProductSerials.Find(claim.ProductSerialId);
+                Assert.NotNull(serial);
+                Assert.Equal("Sold", serial.CurrentStatus);
+            }
+
             Assert.Equal("Đã hoàn tất sửa bảo hành.", viewModel.StatusMessage);
         }
     }

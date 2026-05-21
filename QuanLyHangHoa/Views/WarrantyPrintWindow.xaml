@@ -1,0 +1,220 @@
+<Window x:Class="QuanLyHangHoa.Views.WarrantyPrintWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Phiếu Bảo Hành" Height="1123" Width="794"
+        WindowStartupLocation="CenterScreen" Background="White">
+    
+    <Grid x:Name="PrintArea" Margin="60,40">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>  <!-- Header -->
+            <RowDefinition Height="Auto"/>  <!-- Separator -->
+            <RowDefinition Height="Auto"/>  <!-- Title -->
+            <RowDefinition Height="Auto"/>  <!-- Customer Info -->
+            <RowDefinition Height="Auto"/>  <!-- Product Info -->
+            <RowDefinition Height="Auto"/>  <!-- Problem -->
+            <RowDefinition Height="Auto"/>  <!-- Resolution -->
+            <RowDefinition Height="Auto"/>  <!-- Terms -->
+            <RowDefinition Height="*"/>     <!-- Spacer -->
+            <RowDefinition Height="Auto"/>  <!-- Signatures -->
+            <RowDefinition Height="Auto"/>  <!-- Print Button -->
+        </Grid.RowDefinitions>
+
+        <!-- Row 0: Company Header -->
+        <Grid Grid.Row="0" Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0">
+                <TextBlock x:Name="CompanyNameText" Text="CÔNG TY TNHH THƯƠNG MẠI DỊCH VỤ" 
+                           FontSize="16" FontWeight="Bold" Foreground="#1A237E"/>
+                <TextBlock x:Name="CompanyBrandText" Text="WarePro Management" 
+                           FontSize="12" Foreground="#5C6BC0"/>
+                <TextBlock x:Name="CompanyAddressText" Text="Địa chỉ: ..." 
+                           FontSize="10" Foreground="#666"/>
+                <TextBlock x:Name="CompanyPhoneText" Text="Điện thoại: ... | Email: ..." 
+                           FontSize="10" Foreground="#666"/>
+            </StackPanel>
+            <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Top">
+                <TextBlock Text="Số phiếu:" FontSize="10" Foreground="#666" HorizontalAlignment="Right"/>
+                <TextBlock x:Name="ClaimCodeText" FontSize="14" FontWeight="Bold" Foreground="#1A237E" HorizontalAlignment="Right"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Row 1: Separator -->
+        <Border Grid.Row="1" BorderBrush="#1A237E" BorderThickness="0,0,0,2" Margin="0,4,0,12"/>
+
+        <!-- Row 2: Title -->
+        <TextBlock Grid.Row="2" Text="PHIẾU TIẾP NHẬN BẢO HÀNH" 
+                   FontSize="22" FontWeight="Bold" HorizontalAlignment="Center" 
+                   Foreground="#1A237E" Margin="0,0,0,16"/>
+
+        <!-- Row 3: Customer Info -->
+        <Border Grid.Row="3" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" Padding="16" Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.ColumnSpan="2" Text="THÔNG TIN KHÁCH HÀNG" 
+                           FontSize="11" FontWeight="Bold" Foreground="#1A237E" Margin="0,0,0,8"/>
+
+                <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,0,6">
+                    <TextBlock FontSize="10" Foreground="#666">
+                        <Run Text="Khách hàng: "/><Run x:Name="CustomerNameRun" FontWeight="SemiBold" Foreground="#333"/>
+                    </TextBlock>
+                </StackPanel>
+                <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,0,6">
+                    <TextBlock FontSize="10" Foreground="#666">
+                        <Run Text="Điện thoại: "/><Run x:Name="CustomerPhoneRun" FontWeight="SemiBold" Foreground="#333"/>
+                    </TextBlock>
+                </StackPanel>
+                <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,0,0,6">
+                    <TextBlock FontSize="10" Foreground="#666">
+                        <Run Text="Ngày nhận: "/><Run x:Name="ReceivedDateRun" FontWeight="SemiBold" Foreground="#333"/>
+                    </TextBlock>
+                </StackPanel>
+                <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,0,0,6">
+                    <TextBlock FontSize="10" Foreground="#666">
+                        <Run Text="Hẹn trả: "/><Run x:Name="ExpectedReturnDateRun" FontWeight="SemiBold" Foreground="#333"/>
+                    </TextBlock>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Row 4: Product Info -->
+        <Border Grid.Row="4" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" Padding="16" Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.ColumnSpan="2" Text="THÔNG TIN SẢN PHẨM" 
+                           FontSize="11" FontWeight="Bold" Foreground="#1A237E" Margin="0,0,0,8"/>
+
+                <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,0,6">
+                    <TextBlock FontSize="10" Foreground="#666">
+                        <Run Text="Sản phẩm: "/><Run x:Name="ProductNameRun" FontWeight="SemiBold" Foreground="#333"/>
+                    </TextBlock>
+                </StackPanel>
+                <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,0,6">
+                    <TextBlock FontSize="10" Foreground="#666">
+                        <Run Text="Serial/IMEI: "/><Run x:Name="SerialNumberRun" FontWeight="SemiBold" Foreground="#333"/>
+                    </TextBlock>
+                </StackPanel>
+                <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,0,0,6">
+                    <TextBlock FontSize="10" Foreground="#666">
+                        <Run Text="Bảo hành đến: "/><Run x:Name="WarrantyEndDateRun" FontWeight="SemiBold" Foreground="#333"/>
+                    </TextBlock>
+                </StackPanel>
+                <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,0,0,6">
+                    <TextBlock FontSize="10" Foreground="#666">
+                        <Run Text="Trạng thái: "/><Run x:Name="StatusRun" FontWeight="SemiBold" Foreground="#333"/>
+                    </TextBlock>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Row 5: Problem Description -->
+        <Border Grid.Row="5" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" Padding="16" Margin="0,0,0,12">
+            <StackPanel>
+                <TextBlock Text="MÔ TẢ TÌNH TRẠNG / HIỆN TƯỢNG LỖI" 
+                           FontSize="11" FontWeight="Bold" Foreground="#1A237E" Margin="0,0,0,8"/>
+                <TextBlock x:Name="ProblemText" TextWrapping="Wrap" FontSize="10" Foreground="#333"
+                           MinHeight="40"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Row 6: Resolution -->
+        <Border Grid.Row="6" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" Padding="16" Margin="0,0,0,12"
+                x:Name="ResolutionSection">
+            <StackPanel>
+                <TextBlock Text="KẾT LUẬN KỸ THUẬT / PHƯƠNG ÁN XỬ LÝ" 
+                           FontSize="11" FontWeight="Bold" Foreground="#1A237E" Margin="0,0,0,8"/>
+                <TextBlock x:Name="ConclusionText" TextWrapping="Wrap" FontSize="10" Foreground="#333"
+                           MinHeight="30"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Row 7: Terms & Conditions -->
+        <Border Grid.Row="7" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" Padding="16" Margin="0,0,0,12" Background="#FAFAFA">
+            <StackPanel>
+                <TextBlock Text="ĐIỀU KHOẢN BẢO HÀNH" 
+                           FontSize="11" FontWeight="Bold" Foreground="#1A237E" Margin="0,0,0,8"/>
+                <TextBlock TextWrapping="Wrap" FontSize="9" Foreground="#555" LineHeight="16">
+                    <Run Text="1. Thời gian bảo hành được tính từ ngày mua hàng ghi trên hóa đơn."/><LineBreak/>
+                    <Run Text="2. Sản phẩm được bảo hành miễn phí khi bị lỗi kỹ thuật do nhà sản xuất."/><LineBreak/>
+                    <Run Text="3. KHÔNG bảo hành các trường hợp: hư hỏng do va đập, rơi vỡ, vào nước; tự ý tháo lắp, sửa chữa bởi bên thứ ba; sử dụng sai hướng dẫn; hết thời hạn bảo hành."/><LineBreak/>
+                    <Run Text="4. Thời gian xử lý bảo hành tối đa 15 ngày làm việc kể từ ngày tiếp nhận. Trường hợp phải gửi hãng sản xuất, thời gian có thể kéo dài và sẽ thông báo cho khách hàng."/><LineBreak/>
+                    <Run Text="5. Khách hàng vui lòng mang theo phiếu bảo hành này khi đến nhận sản phẩm."/><LineBreak/>
+                    <Run Text="6. Cửa hàng không chịu trách nhiệm về dữ liệu cá nhân trên thiết bị bảo hành. Khách hàng vui lòng sao lưu dữ liệu trước khi gửi bảo hành."/><LineBreak/>
+                    <Run Text="7. Nếu sản phẩm không thể sửa chữa, cửa hàng sẽ trao đổi với khách hàng về phương án đổi mới hoặc hoàn tiền theo chính sách hiện hành."/><LineBreak/>
+                    <Run Text="8. Phiếu bảo hành này chỉ có giá trị khi có chữ ký của kỹ thuật viên và khách hàng."/>
+                </TextBlock>
+            </StackPanel>
+        </Border>
+
+        <!-- Row 9: Signature Section -->
+        <Grid Grid.Row="9" Margin="0,8,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="60"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Technician Signature -->
+            <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+                <TextBlock Text="KỸ THUẬT VIÊN" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" Foreground="#333"/>
+                <TextBlock Text="(Ký và ghi rõ họ tên)" FontSize="9" Foreground="#999" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                <Border Height="60" Margin="0,8,0,0"/>
+                <TextBlock x:Name="TechnicianNameText" FontSize="10" HorizontalAlignment="Center" Foreground="#333"/>
+            </StackPanel>
+
+            <!-- Customer Signature -->
+            <StackPanel Grid.Column="2" HorizontalAlignment="Center">
+                <TextBlock Text="KHÁCH HÀNG" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" Foreground="#333"/>
+                <TextBlock Text="(Ký và ghi rõ họ tên)" FontSize="9" Foreground="#999" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                <Border Height="60" Margin="0,8,0,0"/>
+                <TextBlock x:Name="CustomerSignNameText" FontSize="10" HorizontalAlignment="Center" Foreground="#333"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Row 10: Print Button (hidden when printing) -->
+        <StackPanel Grid.Row="10" x:Name="ButtonPanel" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
+            <Button Content="🖨 IN PHIẾU" Click="PrintButton_Click" 
+                    Padding="24,10" FontSize="13" FontWeight="Bold"
+                    Background="#1A237E" Foreground="White" BorderThickness="0" Cursor="Hand">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+            <Button Content="ĐÓNG" Click="CloseButton_Click" Margin="12,0,0,0"
+                    Padding="24,10" FontSize="13" 
+                    Background="#E0E0E0" Foreground="#333" BorderThickness="0" Cursor="Hand">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+        </StackPanel>
+    </Grid>
+</Window>

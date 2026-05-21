@@ -216,6 +216,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/> <!-- Header -->
                 <RowDefinition Height="Auto"/> <!-- Info -->
+                <RowDefinition Height="Auto"/> <!-- Add Line Button -->
                 <RowDefinition Height="*"/>    <!-- Lines -->
             </Grid.RowDefinitions>
 
@@ -258,7 +259,7 @@
             </Grid>
 
             <!-- Row 1: Document Info Fields -->
-            <materialDesign:Card Grid.Row="1" Style="{StaticResource AppCard}" Background="{StaticResource SurfaceMutedBrush}" Margin="{StaticResource SectionBottomMargin}" Padding="16" IsEnabled="{Binding CanEdit}">
+            <materialDesign:Card Grid.Row="1" Style="{StaticResource AppCard}" Background="{StaticResource SurfaceMutedBrush}" Margin="{StaticResource SectionBottomMargin}" Padding="20" IsEnabled="{Binding CanEdit}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
@@ -266,50 +267,53 @@
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Grid.Column="0" Margin="0,0,24,0">
                         <TextBlock Text="MÃ PHIẾU" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
-                        <TextBox Style="{StaticResource AppTextBoxStyle}" IsReadOnly="True" Width="130" Height="42"
+                        <TextBox Style="{StaticResource AppTextBoxStyle}" IsReadOnly="True" Width="130" Height="38"
                                  Text="{Binding DocumentCode}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" Margin="0,0,24,0">
                         <TextBlock Text="KHO HÀNG" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
-                        <ComboBox Width="160" Height="42" Style="{StaticResource AppComboBoxStyle}" 
+                        <ComboBox Width="160" Height="38" Style="{StaticResource AppComboBoxStyle}" 
                                   ItemsSource="{Binding AvailableWarehouses}" DisplayMemberPath="DisplayName"
                                   SelectedItem="{Binding SelectedWarehouse}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="2" Margin="0,0,24,0">
                         <TextBlock Text="NHÀ CUNG CẤP" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
-                        <ComboBox Width="200" Height="42" Style="{StaticResource AppComboBoxStyle}" 
+                        <ComboBox Width="200" Height="38" Style="{StaticResource AppComboBoxStyle}" 
                                   ItemsSource="{Binding AvailableSuppliers}" DisplayMemberPath="DisplayName" SelectedItem="{Binding SelectedSupplier}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="3" Margin="0,0,24,0">
                         <TextBlock Text="NGÀY NHẬP" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
-                        <DatePicker Width="140" Height="42" Style="{StaticResource AppDatePickerStyle}" SelectedDate="{Binding ImportDate}"/>
+                        <DatePicker Width="140" Height="38" Style="{StaticResource AppDatePickerStyle}" SelectedDate="{Binding ImportDate}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="4" Margin="0,0,24,0">
                         <TextBlock Text="GHI CHÚ" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
-                        <TextBox Height="42" Style="{StaticResource AppTextBoxStyle}" materialDesign:HintAssist.Hint="Ghi chú nhập kho..."
+                        <TextBox Height="38" Style="{StaticResource AppTextBoxStyle}" materialDesign:HintAssist.Hint="Ghi chú nhập kho..."
                                  Text="{Binding Notes}"/>
                     </StackPanel>
 
-                    <Button Grid.Column="5" Command="{Binding AddLineCommand}" Style="{StaticResource PrimaryButton}" Height="42" VerticalAlignment="Bottom" Padding="16,0">
-                        <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="Plus" Width="20" Height="20" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <TextBlock Text="THÊM DÒNG" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
-                        </StackPanel>
-                    </Button>
                 </Grid>
             </materialDesign:Card>
 
-            <!-- Row 2: Items List -->
-            <materialDesign:Card Grid.Row="2" Style="{StaticResource AppCard}" Padding="0">
+            <!-- Add Line Button -->
+            <Button Grid.Row="2" Command="{Binding AddLineCommand}" Style="{StaticResource SecondaryButton}" Height="36"
+                    HorizontalAlignment="Left" Margin="0,12,0,0"
+                    Visibility="{Binding CanEdit, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="Plus" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <TextBlock Text="THÊM DÒNG SẢN PHẨM" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
+                </StackPanel>
+            </Button>
+
+            <!-- Row 3: Items List -->
+            <materialDesign:Card Grid.Row="3" Style="{StaticResource AppCard}" Padding="0">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*"/>

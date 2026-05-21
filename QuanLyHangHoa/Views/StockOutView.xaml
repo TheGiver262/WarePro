@@ -216,6 +216,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/> <!-- Header -->
                 <RowDefinition Height="Auto"/> <!-- Document Info -->
+                <RowDefinition Height="Auto"/> <!-- Add Line Button -->
                 <RowDefinition Height="*"/>    <!-- Items List -->
             </Grid.RowDefinitions>
 
@@ -258,49 +259,51 @@
             </Grid>
 
             <!-- Row 1: Info Card -->
-            <materialDesign:Card Grid.Row="1" Style="{StaticResource AppCard}" Background="{StaticResource SurfaceMutedBrush}" Margin="{StaticResource SectionBottomMargin}" Padding="16" IsEnabled="{Binding CanEdit}">
+            <materialDesign:Card Grid.Row="1" Style="{StaticResource AppCard}" Background="{StaticResource SurfaceMutedBrush}" Margin="{StaticResource SectionBottomMargin}" Padding="20" IsEnabled="{Binding CanEdit}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Grid.Column="0" Margin="0,0,24,0">
                         <TextBlock Text="MÃ PHIẾU" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
-                        <TextBox Style="{StaticResource AppTextBoxStyle}" IsReadOnly="True" Width="140" Height="42" Text="{Binding DocumentCode}"/>
+                        <TextBox Style="{StaticResource AppTextBoxStyle}" IsReadOnly="True" Width="140" Height="38" Text="{Binding DocumentCode}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" Margin="0,0,24,0">
                         <TextBlock Text="KHÁCH HÀNG" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
-                        <ComboBox Width="250" Height="42" Style="{StaticResource AppComboBoxStyle}" 
+                        <ComboBox Width="250" Height="38" Style="{StaticResource AppComboBoxStyle}" 
                                   ItemsSource="{Binding AvailableCustomers}" DisplayMemberPath="DisplayName" SelectedItem="{Binding SelectedCustomer}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="2" Margin="0,0,24,0">
                         <TextBlock Text="NGÀY XUẤT" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
-                        <DatePicker Width="140" Height="42" Style="{StaticResource AppDatePickerStyle}" SelectedDate="{Binding ExportDate}"/>
+                        <DatePicker Width="140" Height="38" Style="{StaticResource AppDatePickerStyle}" SelectedDate="{Binding ExportDate}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="3" Margin="0,0,24,0">
                         <TextBlock Text="GHI CHÚ" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
-                        <TextBox Height="42" Style="{StaticResource AppTextBoxStyle}" Text="{Binding Notes}"/>
+                        <TextBox Height="38" Style="{StaticResource AppTextBoxStyle}" Text="{Binding Notes}"/>
                     </StackPanel>
 
-                    <Button Grid.Column="4" Command="{Binding AddLineCommand}" Style="{StaticResource PrimaryButton}" Height="42" VerticalAlignment="Bottom" Padding="16,0"
-                            Visibility="{Binding CanEdit, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="Plus" Width="20" Height="20" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <TextBlock Text="THÊM MẶT HÀNG" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Button>
                 </Grid>
             </materialDesign:Card>
 
-            <!-- Row 2: Items List -->
-            <materialDesign:Card Grid.Row="2" Style="{StaticResource AppCard}" Padding="0">
+            <!-- Add Line Button -->
+            <Button Grid.Row="2" Command="{Binding AddLineCommand}" Style="{StaticResource SecondaryButton}" Height="36"
+                    HorizontalAlignment="Left" Margin="0,12,0,0"
+                    Visibility="{Binding CanEdit, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="Plus" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <TextBlock Text="THÊM DÒNG SẢN PHẨM" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
+                </StackPanel>
+            </Button>
+
+            <!-- Row 3: Items List -->
+            <materialDesign:Card Grid.Row="3" Style="{StaticResource AppCard}" Padding="0">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*"/>
@@ -312,7 +315,13 @@
                                BorderThickness="0" Background="Transparent" RowHeight="54"
                                IsEnabled="{Binding CanEdit}">
                         <DataGrid.Columns>
-                            <DataGridTemplateColumn Header="SẢN PHẨM" Width="*">
+                            <DataGridTemplateColumn Width="*">
+                                <DataGridTemplateColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="PackageVariant" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="SẢN PHẨM" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
+                                    </StackPanel>
+                                </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <ComboBox ItemsSource="{Binding DataContext.AvailableProducts, RelativeSource={RelativeSource AncestorType=UserControl}}" 
@@ -323,7 +332,13 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTemplateColumn Header="ĐƠN VỊ" Width="120">
+                            <DataGridTemplateColumn Width="120">
+                                <DataGridTemplateColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Scale" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="ĐƠN VỊ" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
+                                    </StackPanel>
+                                </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <ComboBox ItemsSource="{Binding AvailableUnits}" 
@@ -334,7 +349,13 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTemplateColumn Header="ĐƠN GIÁ" Width="150">
+                            <DataGridTemplateColumn Width="150">
+                                <DataGridTemplateColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="CurrencyUsd" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="ĐƠN GIÁ" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
+                                    </StackPanel>
+                                </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBox Text="{Binding Price, UpdateSourceTrigger=PropertyChanged, StringFormat='N0'}" IsReadOnly="True" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="8,4"
@@ -343,7 +364,13 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTemplateColumn Header="SỐ LƯỢNG" Width="100">
+                            <DataGridTemplateColumn Width="100">
+                                <DataGridTemplateColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Numeric" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="SỐ LƯỢNG" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
+                                    </StackPanel>
+                                </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBox Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource AppPrimaryBrush}"
@@ -352,7 +379,13 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTemplateColumn Header="SERIAL" Width="180">
+                            <DataGridTemplateColumn Width="180">
+                                <DataGridTemplateColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="BarcodeScanner" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="SERIAL" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
+                                    </StackPanel>
+                                </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Grid Margin="8,4">
@@ -392,7 +425,13 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTemplateColumn Header="THAO TÁC" Width="100">
+                            <DataGridTemplateColumn Width="100">
+                                <DataGridTemplateColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="DotsHorizontal" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="THAO TÁC" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
+                                    </StackPanel>
+                                </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Button Style="{StaticResource ProMaxIconButtonStyle}" HorizontalAlignment="Center"

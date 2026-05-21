@@ -16,7 +16,7 @@ namespace QuanLyHangHoa.Services
             _contextFactory = contextFactory;
         }
 
-         public void SaveSalesInvoice(SalesInvoice invoice)
+        public void SaveSalesInvoice(SalesInvoice invoice)
         {
             CalculateSalesInvoice(invoice);
             using var db = _contextFactory();
@@ -56,6 +56,46 @@ namespace QuanLyHangHoa.Services
                 }
             }
             db.SaveChanges();
+
+            // Automate warranty coverage creation
+            if (invoice.StockOutId.HasValue)
+            {
+                var stockOut = db.StockOuts
+                    .Include(s => s.Lines)
+                    .ThenInclude(l => l.ProductSerials)
+                    .Include(s => s.Lines)
+                    .ThenInclude(l => l.Product)
+                    .FirstOrDefault(s => s.Id == invoice.StockOutId.Value);
+
+                if (stockOut != null)
+                {
+                    foreach (var line in stockOut.Lines)
+                    {
+                        var months = line.Product.WarrantyPeriodMonths;
+                        if (months <= 0) months = 12;
+
+                        foreach (var serial in line.ProductSerials)
+                        {
+                            var existingCoverage = db.WarrantyCoverages
+                                .FirstOrDefault(c => c.ProductSerialId == serial.Id && c.SalesInvoiceId == invoice.Id);
+                            if (existingCoverage == null)
+                            {
+                                var coverage = new WarrantyCoverage
+                                {
+                                    ProductSerialId = serial.Id,
+                                    CustomerId = invoice.CustomerId,
+                                    SalesInvoiceId = invoice.Id,
+                                    WarrantyStartDate = invoice.InvoiceDate,
+                                    WarrantyEndDate = invoice.InvoiceDate.AddMonths(months),
+                                    CoverageStatus = "Active"
+                                };
+                                db.WarrantyCoverages.Add(coverage);
+                            }
+                        }
+                    }
+                    db.SaveChanges();
+                }
+            }
         }
 
         public void SavePurchaseInvoice(PurchaseInvoice invoice)
