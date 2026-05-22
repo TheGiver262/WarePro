@@ -234,7 +234,7 @@
                     <StackPanel Grid.Column="2">
                         <TextBlock Text="GHI CHÚ / CHI TIẾT" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
                         <TextBox Style="{StaticResource AppTextBoxStyle}" Height="42" materialDesign:HintAssist.Hint="Nhập ghi chú thêm..."
-                                 Text="{Binding Notes}" IsEnabled="{Binding IsEditMode}"/>
+                                 Text="{Binding Notes}" IsReadOnly="{Binding IsEditMode, Converter={StaticResource InverseBooleanConverter}}"/>
                     </StackPanel>
                 </Grid>
             </materialDesign:Card>
@@ -255,7 +255,8 @@
                                 <materialDesign:PackIcon Kind="FormatListBulleted" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
                                 <TextBlock Text="DANH SÁCH HÀNG HÓA" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}" Margin="12,0,0,0"/>
                             </StackPanel>
-                            <Button HorizontalAlignment="Right" Command="{Binding AddLineCommand}" IsEnabled="{Binding IsEditMode}"
+                            <Button HorizontalAlignment="Right" Command="{Binding AddLineCommand}"
+                                    Visibility="{Binding IsEditMode, Converter={StaticResource BooleanToVisibilityConverter}}"
                                     Style="{StaticResource ProMaxIconButtonStyle}" Width="32" Height="32">
                                 <materialDesign:PackIcon Kind="PlusCircle" Width="24" Height="24" Foreground="{StaticResource AppSuccessBrush}"/>
                             </Button>
@@ -318,7 +319,7 @@
                                                  Style="{StaticResource AppTextBoxStyle}" Height="40" Margin="4"
                                                  materialDesign:TextFieldAssist.DecorationVisibility="Collapsed" BorderThickness="0"
                                                  HorizontalContentAlignment="Center"
-                                                 IsEnabled="{Binding DataContext.IsEditMode, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                 IsReadOnly="{Binding DataContext.IsEditMode, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource InverseBooleanConverter}}"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -345,7 +346,7 @@
                                         <Button Style="{StaticResource ProMaxIconButtonStyle}" ToolTip="Xoá dòng"
                                                 Command="{Binding DataContext.RemoveLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"
-                                                IsEnabled="{Binding DataContext.IsEditMode, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                                                Visibility="{Binding DataContext.IsEditMode, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}">
                                             <materialDesign:PackIcon Kind="TrashCanOutline" Width="20" Height="20" Foreground="{StaticResource AppErrorBrush}"/>
                                         </Button>
                                     </DataTemplate>

@@ -58,6 +58,10 @@ namespace QuanLyHangHoa
                         
                         "IF COL_LENGTH('StockOut', 'ExportDate') IS NULL ALTER TABLE StockOut ADD ExportDate DATETIME",
                         "IF COL_LENGTH('StockOut', 'Notes') IS NULL ALTER TABLE StockOut ADD Notes NVARCHAR(MAX)",
+                        "IF COL_LENGTH('StockOut', 'UpdatedAt') IS NULL ALTER TABLE StockOut ADD UpdatedAt DATETIME",
+                        "IF COL_LENGTH('StockOut', 'UpdatedBy') IS NULL ALTER TABLE StockOut ADD UpdatedBy INT",
+                        "IF COL_LENGTH('StockOutLine', 'DraftSerials') IS NULL ALTER TABLE StockOutLine ADD DraftSerials NVARCHAR(MAX)",
+                        "IF COL_LENGTH('StockInLine', 'DraftSerials') IS NULL ALTER TABLE StockInLine ADD DraftSerials NVARCHAR(MAX)",
                         
                         "IF COL_LENGTH('StockAdjustment', 'Notes') IS NULL ALTER TABLE StockAdjustment ADD Notes NVARCHAR(MAX)",
                         "IF COL_LENGTH('StockCountSession', 'Notes') IS NULL ALTER TABLE StockCountSession ADD Notes NVARCHAR(MAX)",

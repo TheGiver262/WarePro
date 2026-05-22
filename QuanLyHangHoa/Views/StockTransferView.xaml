@@ -192,7 +192,7 @@
             </Grid>
 
             <!-- Row 1: Info Card -->
-            <materialDesign:Card Grid.Row="1" Style="{StaticResource AppCard}" Background="{StaticResource SurfaceMutedBrush}" Margin="{StaticResource SectionBottomMargin}" Padding="16" IsEnabled="{Binding CanEdit}">
+            <materialDesign:Card Grid.Row="1" Style="{StaticResource AppCard}" Background="{StaticResource SurfaceMutedBrush}" Margin="{StaticResource SectionBottomMargin}" Padding="16">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
@@ -205,29 +205,31 @@
 
                     <StackPanel Grid.Column="0" Margin="0,0,24,0">
                         <TextBlock Text="MÃ PHIẾU" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
-                        <TextBox Style="{StaticResource AppTextBoxStyle}" IsReadOnly="True" Width="140" Height="42" Text="{Binding DocumentCode}"/>
+                        <TextBox Style="{StaticResource AppTextBoxStyle}" IsReadOnly="True" Width="140" Height="42"
+                                 materialDesign:TextFieldAssist.HasClearButton="False"
+                                 Text="{Binding DocumentCode}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" Margin="0,0,24,0">
                         <TextBlock Text="KHO ĐI" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
-                        <ComboBox Width="180" Height="42" Style="{StaticResource AppComboBoxStyle}" 
+                        <ComboBox Width="180" Height="42" Style="{StaticResource AppComboBoxStyle}" IsEnabled="{Binding CanEdit}"
                                   ItemsSource="{Binding AvailableWarehouses}" DisplayMemberPath="DisplayName" SelectedItem="{Binding SelectedFromWarehouse}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="2" Margin="0,0,24,0">
                         <TextBlock Text="KHO ĐẾN" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
-                        <ComboBox Width="180" Height="42" Style="{StaticResource AppComboBoxStyle}" 
+                        <ComboBox Width="180" Height="42" Style="{StaticResource AppComboBoxStyle}" IsEnabled="{Binding CanEdit}"
                                   ItemsSource="{Binding AvailableWarehouses}" DisplayMemberPath="DisplayName" SelectedItem="{Binding SelectedToWarehouse}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="3" Margin="0,0,24,0">
                         <TextBlock Text="NGÀY CHUYỂN" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
-                        <DatePicker Width="140" Height="42" Style="{StaticResource AppDatePickerStyle}" SelectedDate="{Binding TransferDate}"/>
+                        <DatePicker Width="140" Height="42" Style="{StaticResource AppDatePickerStyle}" IsEnabled="{Binding CanEdit}" SelectedDate="{Binding TransferDate}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="4" Margin="0,0,24,0">
                         <TextBlock Text="GHI CHÚ" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
-                        <TextBox Height="42" Style="{StaticResource AppTextBoxStyle}" Text="{Binding Notes}"/>
+                        <TextBox Height="42" Style="{StaticResource AppTextBoxStyle}" Text="{Binding Notes}" IsReadOnly="{Binding CanEdit, Converter={StaticResource InverseBooleanConverter}}"/>
                     </StackPanel>
 
                     <Button Grid.Column="5" Command="{Binding AddLineCommand}" Style="{StaticResource PrimaryButton}" Height="42" VerticalAlignment="Bottom" Padding="16,0"
@@ -251,13 +253,13 @@
                     <DataGrid Grid.Row="0" ItemsSource="{Binding Lines}" 
                                 AutoGenerateColumns="False" CanUserAddRows="False" 
                                 BorderThickness="0" Background="Transparent" RowHeight="54"
-                                IsEnabled="{Binding CanEdit}">
+                                IsReadOnly="True">
                         <DataGrid.Columns>
                             <DataGridTemplateColumn Header="SẢN PHẨM" Width="*">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <ComboBox ItemsSource="{Binding DataContext.AvailableProducts, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                                                  SelectedItem="{Binding SelectedProduct, UpdateSourceTrigger=PropertyChanged}"
+                                                  SelectedItem="{Binding SelectedProduct, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                   DisplayMemberPath="DisplayName" Style="{StaticResource AppComboBoxStyle}" Margin="8,4" BorderThickness="0" Height="36"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -267,7 +269,7 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <ComboBox ItemsSource="{Binding AvailableUnits}" 
-                                                  SelectedItem="{Binding SelectedUnit, UpdateSourceTrigger=PropertyChanged}"
+                                                  SelectedItem="{Binding SelectedUnit, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                   DisplayMemberPath="DisplayName" Style="{StaticResource AppComboBoxStyle}" Margin="8,4" BorderThickness="0" Height="36"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -277,7 +279,8 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBox Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource AppPrimaryBrush}"
-                                                 Style="{StaticResource InputText}" Height="36" BorderThickness="0" Background="{StaticResource SurfaceMutedBrush}"/>
+                                                 Style="{StaticResource InputText}" Height="36" BorderThickness="0" Background="{StaticResource SurfaceMutedBrush}"
+                                                 IsReadOnly="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource InverseBooleanConverter}}"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -314,7 +317,8 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Button Style="{StaticResource ProMaxIconButtonStyle}" HorizontalAlignment="Center"
-                                                Command="{Binding DataContext.RemoveLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                                Command="{Binding DataContext.RemoveLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                                                Visibility="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}">
                                             <materialDesign:PackIcon Kind="TrashCanOutline" Width="20" Height="20" Foreground="{StaticResource AppErrorBrush}"/>
                                         </Button>
                                     </DataTemplate>

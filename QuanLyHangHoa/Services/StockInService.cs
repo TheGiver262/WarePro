@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Inventory;
@@ -59,9 +60,27 @@ namespace QuanLyHangHoa.Services
                     .FirstOrDefault(s => s.Id == stockIn.Id);
             }
 
+            // Extract serial numbers to DraftSerials string
+            foreach (var line in lines)
+            {
+                var serials = line.ProductSerials?.Select(ps => ps.SerialNumber.Trim()).Where(s => !string.IsNullOrEmpty(s)).ToList() ?? new List<string>();
+                if (serials.Any())
+                {
+                    line.DraftSerials = string.Join(",", serials);
+                }
+                else
+                {
+                    line.DraftSerials = null;
+                }
+                line.ProductSerials = new List<ProductSerial>(); // Prevent EF from modifying ProductSerials
+            }
+
             if (existing != null)
             {
-                if (existing.Status == DocumentStatus.Posted) throw new Exception("Không thể cập nhật phiếu đã ghi sổ.");
+                if (existing.Status == DocumentStatus.Posted || existing.Status == "đã ghi sổ")
+                    throw new Exception("Không thể cập nhật phiếu đã ghi sổ.");
+
+                var beforeJson = Serialize(existing);
 
                 // Update properties
                 existing.WarehouseId = stockIn.WarehouseId;
@@ -72,7 +91,6 @@ namespace QuanLyHangHoa.Services
                 existing.UpdatedBy = userId;
 
                 // Simple strategy: Remove old lines and add new ones
-                // Or update matching lines. For simplicity in a draft, we can replace.
                 var oldSerials = existing.Lines.SelectMany(l => l.ProductSerials).ToList();
                 if (oldSerials.Any())
                 {
@@ -85,6 +103,9 @@ namespace QuanLyHangHoa.Services
                 db.SaveChanges();
                 stockIn.Id = existing.Id;
                 stockIn.Status = existing.Status;
+
+                var afterJson = Serialize(existing);
+                AddAudit(db, "UPDATE", existing.Id, beforeJson, afterJson, userId);
             }
             else
             {
@@ -105,6 +126,9 @@ namespace QuanLyHangHoa.Services
 
                 db.StockIns.Add(stockIn);
                 db.SaveChanges();
+
+                var afterJson = Serialize(stockIn);
+                AddAudit(db, "CREATE", stockIn.Id, null, afterJson, userId);
             }
         }
 
@@ -119,19 +143,60 @@ namespace QuanLyHangHoa.Services
                 .FirstOrDefault(s => s.Id == stockInId);
 
             if (stockIn == null) throw new Exception("Không tìm thấy phiếu nhập kho.");
-            if (stockIn.Status == DocumentStatus.Posted) throw new Exception("Phiếu này đã được ghi sổ.");
+            if (stockIn.Status == DocumentStatus.Posted || stockIn.Status == "đã ghi sổ") 
+                throw new Exception("Phiếu này đã được ghi sổ.");
 
-            // Validate serials before posting
+            var beforeJson = Serialize(stockIn);
+
+            // Load serials for validation and posting
+            var lineSerialsMap = new Dictionary<int, List<string>>();
+            var allDocumentSerials = new List<string>();
+
             foreach (var line in stockIn.Lines)
             {
+                var serials = new List<string>();
+                if (!string.IsNullOrWhiteSpace(line.DraftSerials))
+                {
+                    serials = line.DraftSerials.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToList();
+                }
+                else
+                {
+                    // Legacy fallback
+                    serials = line.ProductSerials.Select(ps => ps.SerialNumber).ToList();
+                }
+                lineSerialsMap[line.Id] = serials;
+                allDocumentSerials.AddRange(serials);
+
                 var product = db.Products.Find(line.ProductId);
                 if (product != null && product.IsSerialTracked)
                 {
-                    if (line.ProductSerials.Count != (int)line.Quantity)
+                    if (serials.Count != (int)line.Quantity)
                     {
-                        throw new Exception($"Sản phẩm {product.DisplayName} yêu cầu { (int)line.Quantity } serial, nhưng hiện có {line.ProductSerials.Count}.");
+                        throw new Exception($"Sản phẩm {product.DisplayName} yêu cầu {(int)line.Quantity} serial, nhưng hiện có {serials.Count}.");
+                    }
+
+                    // Check if any of these serials already exist in db.ProductSerials
+                    var existingDbSerials = db.ProductSerials
+                        .Where(ps => serials.Contains(ps.SerialNumber))
+                        .Select(ps => ps.SerialNumber)
+                        .ToList();
+
+                    if (existingDbSerials.Any())
+                    {
+                        throw new Exception($"Số serial [{string.Join(", ", existingDbSerials)}] đã tồn tại trong hệ thống. Vui lòng kiểm tra và chỉnh sửa lại phiếu nháp trước khi duyệt.");
                     }
                 }
+            }
+
+            // Check duplicate serial numbers within the current document (Question 1 check)
+            var duplicateDocumentSerials = allDocumentSerials
+                .GroupBy(s => s, StringComparer.OrdinalIgnoreCase)
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key)
+                .ToList();
+            if (duplicateDocumentSerials.Any())
+            {
+                throw new Exception($"Các số serial sau bị trùng lặp trong phiếu: [{string.Join(", ", duplicateDocumentSerials)}]. Vui lòng kiểm tra lại trước khi duyệt.");
             }
 
             stockIn.Status = DocumentStatus.Posted;
@@ -147,7 +212,7 @@ namespace QuanLyHangHoa.Services
             // Locking strategy: Order by ProductId to avoid deadlocks
             foreach (var line in stockIn.Lines.OrderBy(l => l.ProductId))
             {
-                var serials = line.ProductSerials.Select(s => s.SerialNumber).ToArray();
+                var serials = lineSerialsMap.TryGetValue(line.Id, out var sns) ? sns.ToArray() : Array.Empty<string>();
 
                 postingService.PostStockIn(new PostStockInCommand(
                     stockIn.Id,
@@ -159,6 +224,24 @@ namespace QuanLyHangHoa.Services
                     serials,
                     userId));
             }
+
+            // Bind posted serials with LastStockInLineId in database
+            foreach (var line in stockIn.Lines)
+            {
+                var serials = lineSerialsMap.TryGetValue(line.Id, out var sns) ? sns : new List<string>();
+                if (serials.Any())
+                {
+                    var dbSerials = db.ProductSerials.Where(ps => serials.Contains(ps.SerialNumber)).ToList();
+                    foreach (var s in dbSerials)
+                    {
+                        s.LastStockInLineId = line.Id;
+                    }
+                }
+            }
+            db.SaveChanges();
+
+            var afterJson = Serialize(stockIn);
+            AddAudit(db, "UPDATE", stockIn.Id, beforeJson, afterJson, userId);
 
             transaction.Commit();
         }
@@ -216,6 +299,70 @@ namespace QuanLyHangHoa.Services
         private sealed class SystemClock : IClock
         {
             public DateTime Now => DateTime.Now;
+        }
+
+        public virtual void Delete(int id, int userId)
+        {
+            using var db = _contextFactory();
+            var stockIn = db.StockIns
+                .Include(s => s.Lines)
+                .FirstOrDefault(s => s.Id == id);
+
+            if (stockIn == null) throw new Exception("Không tìm thấy phiếu nhập kho.");
+            if (stockIn.Status == DocumentStatus.Posted || stockIn.Status == "đã ghi sổ")
+                throw new Exception("Không thể xóa phiếu đã ghi sổ.");
+
+            var beforeJson = JsonSerializer.Serialize(new { stockIn.Id, stockIn.DocumentCode });
+
+            db.StockInLines.RemoveRange(stockIn.Lines);
+            db.StockIns.Remove(stockIn);
+            db.SaveChanges();
+
+            AddAudit(db, "DELETE", id, beforeJson, null, userId);
+        }
+
+        private string Serialize(StockIn s)
+        {
+            return JsonSerializer.Serialize(new
+            {
+                s.Id,
+                s.DocumentCode,
+                s.WarehouseId,
+                s.SupplierId,
+                s.ImportDate,
+                s.Notes,
+                s.Status,
+                s.CreatedAt,
+                s.CreatedBy,
+                s.UpdatedAt,
+                s.UpdatedBy,
+                s.PostedAt,
+                s.PostedBy,
+                Lines = s.Lines?.Select(l => new
+                {
+                    l.Id,
+                    l.ProductId,
+                    l.Quantity,
+                    l.UnitPrice,
+                    DraftSerials = string.IsNullOrEmpty(l.DraftSerials) ? null :
+                                   (l.DraftSerials.Length > 150 ? l.DraftSerials.Substring(0, 150) + "... (truncated)" : l.DraftSerials)
+                }).ToList()
+            });
+        }
+
+        private void AddAudit(AppDbContext db, string action, int entityId, string? before, string? after, int performedBy)
+        {
+            db.AuditLogs.Add(new AuditLog
+            {
+                EntityName = "StockIn",
+                EntityId = entityId,
+                ActionCode = action,
+                BeforeJson = before,
+                AfterJson = after,
+                PerformedBy = performedBy,
+                PerformedAt = DateTime.Now
+            });
+            db.SaveChanges();
         }
     }
 }

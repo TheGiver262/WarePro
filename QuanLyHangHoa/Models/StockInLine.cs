@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace QuanLyHangHoa.Models;
@@ -20,6 +20,8 @@ public partial class StockInLine
     public decimal UnitPrice { get; set; }
 
     public virtual Product Product { get; set; } = null!;
+
+    public string? DraftSerials { get; set; }
 
     public virtual ICollection<ProductSerial> ProductSerials { get; set; } = new List<ProductSerial>();
 

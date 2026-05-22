@@ -14,3 +14,4 @@ This file acts as a gatekeeper (Option B) for any new design preferences or codi
 - `[x]` Reset filter logic must keep the filter panel open (Approved)
 - `[x]` Excel reports must only export currently visible rows (Approved)
 - `[x]` Keep MaxWidth="1600" for wide screen scaling (Approved)
+- [x] Bôi đen copy ở chế độ chỉ xem (Read-Only) của 6 màn hình chứng từ: Chỉ cần phím tắt Ctrl+C (không cần ContextMenu), không có trường TextBox nhạy cảm cần loại trừ, giữ nguyên định dạng hiển thị mặc định của số/tiền tệ (Approved)

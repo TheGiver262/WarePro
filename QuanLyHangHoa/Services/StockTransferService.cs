@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Inventory;
@@ -63,6 +64,8 @@ namespace QuanLyHangHoa.Services
             {
                 if (existing.Status == "Posted") throw new Exception("Không thể cập nhật phiếu đã ghi sổ.");
 
+                var beforeJson = Serialize(existing);
+
                 // Update properties
                 existing.FromWarehouseId = stockTransfer.FromWarehouseId;
                 existing.ToWarehouseId = stockTransfer.ToWarehouseId;
@@ -78,6 +81,9 @@ namespace QuanLyHangHoa.Services
                 db.SaveChanges();
                 stockTransfer.Id = existing.Id;
                 stockTransfer.Status = existing.Status;
+
+                var afterJson = Serialize(existing);
+                AddAudit(db, "UPDATE", existing.Id, beforeJson, afterJson, userId);
             }
             else
             {
@@ -93,6 +99,9 @@ namespace QuanLyHangHoa.Services
 
                 db.StockTransfers.Add(stockTransfer);
                 db.SaveChanges();
+
+                var afterJson = Serialize(stockTransfer);
+                AddAudit(db, "CREATE", stockTransfer.Id, null, afterJson, userId);
             }
         }
 
@@ -109,6 +118,8 @@ namespace QuanLyHangHoa.Services
             if (stockTransfer == null) throw new Exception("Không tìm thấy phiếu chuyển kho.");
             if (stockTransfer.Status == "Posted") throw new Exception("Phiếu này đã được ghi sổ.");
             if (stockTransfer.FromWarehouseId == stockTransfer.ToWarehouseId) throw new Exception("Kho đi và kho đến phải khác nhau.");
+
+            var beforeJson = Serialize(stockTransfer);
 
             // Validate serials before posting
             foreach (var line in stockTransfer.Lines)
@@ -149,6 +160,9 @@ namespace QuanLyHangHoa.Services
                     userId));
             }
 
+            var afterJson = Serialize(stockTransfer);
+            AddAudit(db, "UPDATE", stockTransfer.Id, beforeJson, afterJson, userId);
+
             transaction.Commit();
         }
 
@@ -175,6 +189,71 @@ namespace QuanLyHangHoa.Services
         private sealed class SystemClock : IClock
         {
             public DateTime Now => DateTime.Now;
+        }
+
+        public virtual void Delete(int id, int userId)
+        {
+            using var db = _contextFactory();
+            var stockTransfer = db.StockTransfers
+                .Include(s => s.Lines)
+                .FirstOrDefault(s => s.Id == id);
+
+            if (stockTransfer == null) throw new Exception("Không tìm thấy phiếu chuyển kho.");
+            if (stockTransfer.Status == "Posted")
+                throw new Exception("Không thể xóa phiếu đã ghi sổ.");
+
+            var beforeJson = JsonSerializer.Serialize(new { stockTransfer.Id, stockTransfer.DocumentCode });
+
+            db.StockTransferLines.RemoveRange(stockTransfer.Lines);
+            db.StockTransfers.Remove(stockTransfer);
+            db.SaveChanges();
+
+            AddAudit(db, "DELETE", id, beforeJson, null, userId);
+        }
+
+        private string Serialize(StockTransfer s)
+        {
+            return JsonSerializer.Serialize(new
+            {
+                s.Id,
+                s.DocumentCode,
+                s.FromWarehouseId,
+                s.ToWarehouseId,
+                s.TransferDate,
+                s.Notes,
+                s.Status,
+                s.CreatedAt,
+                s.CreatedBy,
+                s.UpdatedAt,
+                s.UpdatedBy,
+                s.PostedAt,
+                s.PostedBy,
+                Lines = s.Lines?.Select(l => new
+                {
+                    l.Id,
+                    l.ProductId,
+                    l.Quantity,
+                    l.UnitId,
+                    Serials = l.ProductSerials == null ? null :
+                              (l.ProductSerials.Count > 10 ? l.ProductSerials.Take(10).Select(ps => ps.SerialNumber).Concat(new[] { $"... and {l.ProductSerials.Count - 10} more" }).ToList()
+                                                           : l.ProductSerials.Select(ps => ps.SerialNumber).ToList())
+                }).ToList()
+            });
+        }
+
+        private void AddAudit(AppDbContext db, string action, int entityId, string? before, string? after, int performedBy)
+        {
+            db.AuditLogs.Add(new AuditLog
+            {
+                EntityName = "StockTransfer",
+                EntityId = entityId,
+                ActionCode = action,
+                BeforeJson = before,
+                AfterJson = after,
+                PerformedBy = performedBy,
+                PerformedAt = DateTime.Now
+            });
+            db.SaveChanges();
         }
     }
 }

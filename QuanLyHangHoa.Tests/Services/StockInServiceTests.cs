@@ -64,6 +64,105 @@ public class StockInServiceTests
         Assert.Equal(3, ledger.Quantity);
     }
 
+    [Fact]
+    public void SaveDraft_allows_same_serials_but_post_validates_and_throws_correct_errors()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        using (var seedContext = CreateContext(connection))
+        {
+            DatabaseHelper.SeedBasicData(seedContext);
+            seedContext.Products.Add(new Product 
+            { 
+                Id = 201, 
+                ProductCode = "P201",
+                DisplayName = "Serial Product",
+                CategoryId = 1, 
+                BrandId = 1, 
+                DefaultUnitId = 1, 
+                DefaultPrice = 20m, 
+                IsSerialTracked = true 
+            });
+            seedContext.SaveChanges();
+        }
+
+        var service = new StockInService(() => CreateContext(connection));
+
+        // Draft A
+        var stockInA = new StockIn { DocumentCode = "SI-A", SupplierId = 1, WarehouseId = 1, PurposeCode = "Purchase" };
+        var linesA = new List<StockInLine>
+        {
+            new StockInLine
+            {
+                ProductId = 201,
+                UnitId = 1,
+                Quantity = 1,
+                UnitPrice = 20m,
+                ProductSerials = new List<ProductSerial> { new ProductSerial { SerialNumber = "SN-001" } }
+            }
+        };
+
+        // Draft B
+        var stockInB = new StockIn { DocumentCode = "SI-B", SupplierId = 1, WarehouseId = 1, PurposeCode = "Purchase" };
+        var linesB = new List<StockInLine>
+        {
+            new StockInLine
+            {
+                ProductId = 201,
+                UnitId = 1,
+                Quantity = 1,
+                UnitPrice = 20m,
+                ProductSerials = new List<ProductSerial> { new ProductSerial { SerialNumber = "SN-001" } }
+            }
+        };
+
+        // 1. Both drafts should be saved successfully with the same serials
+        service.SaveDraft(stockInA, linesA, 1);
+        service.SaveDraft(stockInB, linesB, 1);
+
+        using (var db = CreateContext(connection))
+        {
+            Assert.Contains(db.StockInLines, l => l.DraftSerials == "SN-001");
+            Assert.Equal(2, db.StockInLines.Count(l => l.DraftSerials == "SN-001"));
+        }
+
+        // 2. Post Draft A -> should succeed and insert the serial "SN-001"
+        service.Post(stockInA.Id, 1);
+
+        using (var db = CreateContext(connection))
+        {
+            var postedA = db.StockIns.Find(stockInA.Id);
+            Assert.Equal(DocumentStatus.Posted, postedA.Status);
+            Assert.True(db.ProductSerials.Any(ps => ps.SerialNumber == "SN-001"));
+        }
+
+        // 3. Post Draft B -> should fail because "SN-001" already exists in DB
+        var ex = Assert.Throws<Exception>(() => service.Post(stockInB.Id, 1));
+        Assert.Equal("Số serial [SN-001] đã tồn tại trong hệ thống. Vui lòng kiểm tra và chỉnh sửa lại phiếu nháp trước khi duyệt.", ex.Message);
+
+        // 4. Test document-level duplicate serials: Draft C with duplicate serials in the same document
+        var stockInC = new StockIn { DocumentCode = "SI-C", SupplierId = 1, WarehouseId = 1, PurposeCode = "Purchase" };
+        var linesC = new List<StockInLine>
+        {
+            new StockInLine
+            {
+                ProductId = 201,
+                UnitId = 1,
+                Quantity = 2,
+                UnitPrice = 20m,
+                ProductSerials = new List<ProductSerial> 
+                { 
+                    new ProductSerial { SerialNumber = "SN-002" },
+                    new ProductSerial { SerialNumber = "SN-002" }
+                }
+            }
+        };
+        service.SaveDraft(stockInC, linesC, 1);
+
+        var exDup = Assert.Throws<Exception>(() => service.Post(stockInC.Id, 1));
+        Assert.Equal("Các số serial sau bị trùng lặp trong phiếu: [SN-002]. Vui lòng kiểm tra lại trước khi duyệt.", exDup.Message);
+    }
+
     private static AppDbContext CreateContext(SqliteConnection connection)
     {
         return DatabaseHelper.CreateContext(connection);

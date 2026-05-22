@@ -20,12 +20,28 @@ namespace QuanLyHangHoa.Views
             set => SetValue(SerialInputProperty, value);
         }
 
+        public static readonly DependencyProperty IsReadOnlyProperty =
+            DependencyProperty.Register(nameof(IsReadOnly), typeof(bool), typeof(SerialInputWindow),
+                new PropertyMetadata(false));
+
+        public bool IsReadOnly
+        {
+            get => (bool)GetValue(IsReadOnlyProperty);
+            set => SetValue(IsReadOnlyProperty, value);
+        }
+
         public List<string> AvailableSerials { get; } = new();
         public bool HasAvailableSerials => AvailableSerials.Count > 0;
 
+        public bool ShowAvailableSerials => HasAvailableSerials && !IsReadOnly;
+        public string CancelButtonText => IsReadOnly ? "ĐÓNG" : "HỦY BỎ";
+        public bool ShowConfirmButton => !IsReadOnly;
+        public HorizontalAlignment CancelButtonAlignment => IsReadOnly ? HorizontalAlignment.Right : HorizontalAlignment.Left;
+
         // ── Converters via code ────────────────────────────────────────────────
-        public SerialInputWindow(string existingInput = "", IEnumerable<ProductSerial>? available = null)
+        public SerialInputWindow(string existingInput = "", IEnumerable<ProductSerial>? available = null, bool isReadOnly = false)
         {
+            IsReadOnly = isReadOnly;
             InitializeComponent();
             SerialInput = existingInput;
             if (available != null)
@@ -44,9 +60,18 @@ namespace QuanLyHangHoa.Views
         {
             if (PreviewLabel == null) return;
             var parsed = StockInService.ParseSerialRange(SerialInput);
-            PreviewLabel.Text = parsed.Count > 0
-                ? $"→ Sẽ tạo {parsed.Count} serial number."
-                : "Nhập serial để xem trước.";
+            if (IsReadOnly)
+            {
+                PreviewLabel.Text = parsed.Count > 0
+                    ? $"→ Có {parsed.Count} serial number."
+                    : "Không có serial number.";
+            }
+            else
+            {
+                PreviewLabel.Text = parsed.Count > 0
+                    ? $"→ Sẽ tạo {parsed.Count} serial number."
+                    : "Nhập serial để xem trước.";
+            }
         }
 
         private void AvailableListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)

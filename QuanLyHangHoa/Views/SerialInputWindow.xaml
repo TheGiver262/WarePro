@@ -46,7 +46,8 @@
 
                 <!-- Instructions -->
                 <Border Grid.Row="0" Background="{StaticResource AppBackgroundBrush}" CornerRadius="{StaticResource Radius.md}" 
-                        Padding="{StaticResource Spacing.md}" Margin="{StaticResource Margin.Bottom.md}">
+                        Padding="{StaticResource Spacing.md}" Margin="{StaticResource Margin.Bottom.md}"
+                        Visibility="{Binding ShowConfirmButton, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <StackPanel>
                         <TextBlock TextWrapping="Wrap" Style="{StaticResource TypographyCaption}" Foreground="{StaticResource TextSecondaryBrush}" LineHeight="18">
                             • Nhập từng serial riêng lẻ (mỗi dòng một mã).<LineBreak/>
@@ -74,12 +75,13 @@
                                  FontFamily="Consolas"
                                  FontSize="14"
                                  materialDesign:HintAssist.Hint="Dán hoặc nhập danh sách serial tại đây..."
+                                 IsReadOnly="{Binding IsReadOnly, RelativeSource={RelativeSource AncestorType=Window}}"
                                  Text="{Binding SerialInput, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}"/>
                     </materialDesign:Card>
 
                     <!-- Available Serials Hint -->
                     <materialDesign:Card Grid.Row="1" Margin="{StaticResource Margin.Top.md}" Style="{StaticResource AppCard}"
-                                         Visibility="{Binding HasAvailableSerials, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                         Visibility="{Binding ShowAvailableSerials, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <Expander Header="Serial hiện có trong kho" FontSize="12" Background="{StaticResource AppBackgroundBrush}" BorderThickness="0">
                             <ListBox x:Name="AvailableListBox" MaxHeight="120" BorderThickness="0"
                                      ItemsSource="{Binding AvailableSerials, RelativeSource={RelativeSource AncestorType=Window}}"
@@ -109,10 +111,11 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <Button Content="HỦY BỎ" Style="{StaticResource SecondaryButton}" 
-                            Click="Cancel_Click" HorizontalAlignment="Left"/>
+                    <Button Content="{Binding CancelButtonText, RelativeSource={RelativeSource AncestorType=Window}}" Style="{StaticResource SecondaryButton}" 
+                            Click="Cancel_Click" HorizontalAlignment="{Binding CancelButtonAlignment, RelativeSource={RelativeSource AncestorType=Window}}"/>
 
                     <Button Grid.Column="1" Content="XÁC NHẬN" Style="{StaticResource PrimaryButton}" 
+                            Visibility="{Binding ShowConfirmButton, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}"
                             Click="Confirm_Click" Width="140" Height="40"/>
                 </Grid>
             </Border>

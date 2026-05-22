@@ -31,6 +31,10 @@ public partial class StockOut
 
     public DateTime? PostedAt { get; set; }
 
+    public DateTime? UpdatedAt { get; set; }
+
+    public int? UpdatedBy { get; set; }
+
     public virtual AppUser? Approver { get; set; }
 
     public virtual AppUser Creator { get; set; } = null!;

@@ -19,12 +19,12 @@ THIẾT KẾ PHẦN MỀM QUẢN LÝ HÀNG HÓA VÀ BẢO HÀNH
 		- Giữ AppUser.RoleCode làm vai trò chuẩn.
 		- Không đưa thêm bảng Role/Permission vào ERD phase này.
 		- Quyền chi tiết được chuẩn hóa bằng ma trận màn hình/hành động trong tài liệu.
-	2.5 Mô hình kho được chốt là future-ready một kho mặc định:
+	2.5 Mô hình kho được chốt là future-ready một kho mặc định nhưng mở rộng thêm tính năng điều chuyển:
 		- Dùng bảng Warehouse để chuẩn bị mở rộng nhiều kho về sau.
-		- Phase này chỉ có một kho mặc định đang hoạt động và bị ẩn trên giao diện người dùng.
+		- Phase này sử dụng kho mặc định ẩn cho các giao dịch thông thường, nhưng giao diện hỗ trợ nghiệp vụ điều chuyển hàng hóa giữa các kho nội bộ qua chứng từ StockTransfer.
 		- Không dùng bảng WarehouseLocation ở phase này.
 		- StockBalance được quản lý theo Product + Warehouse.
-		- StockLedger lưu lịch sử biến động theo Product hoặc ProductSerial trong ngữ cảnh Warehouse.
+		- StockLedger lưu lịch sử biến động tồn theo Product hoặc ProductSerial trong ngữ cảnh Warehouse.
 	2.6 StockBalance là nguồn chuẩn cho tồn hiện tại theo sản phẩm và kho.
 	2.7 StockLedger là nguồn chuẩn cho lịch sử biến động tồn theo kho và phục vụ audit mức nghiệp vụ kho.
 	2.8 Product.Quantity không còn được coi là nguồn chuẩn cho tồn vật lý; nếu tồn tại ở code thì chỉ là giá trị cache hoặc trường hỗ trợ hiển thị.
@@ -37,6 +37,7 @@ THIẾT KẾ PHẦN MỀM QUẢN LÝ HÀNG HÓA VÀ BẢO HÀNH
 	2.11 Nghiệp vụ nhập tồn đầu kỳ từ Excel/CSV được ánh xạ vào chứng từ `StockIn` loại `OpeningBalance`.
 		- Phase này không bổ sung các bảng ImportBatch, ImportRowError hay lưu file import gốc.
 		- Import chỉ là workflow ở tầng ứng dụng để sinh dữ liệu chuẩn vào các bảng lõi hiện có.
+		- Bổ sung cơ chế Import động qua Wizard 4 bước trực quan, tự động phân loại cấu trúc file và ánh xạ các cột động. Hỗ trợ import Sản phẩm, Nhóm sản phẩm, số Serial, Phiếu nhập, Phiếu xuất, Hóa đơn mua, Hóa đơn bán.
 
 3. Thuật ngữ và quy ước dùng thống nhất
 	3.1 Chứng từ kho: chứng từ nghiệp vụ làm phát sinh hoặc điều chỉnh tồn, gồm nhập, xuất, điều chỉnh.
@@ -110,7 +111,7 @@ THIẾT KẾ PHẦN MỀM QUẢN LÝ HÀNG HÓA VÀ BẢO HÀNH
 		- Draft có thể bị Cancelled bởi người lập trước khi gửi duyệt.
 		- PendingApproval có thể quay về Draft nếu bị từ chối và yêu cầu chỉnh sửa.
 		- Chỉ trạng thái Posted mới được phép làm thay đổi tồn chính thức.
-		- Sau khi Posted không được sửa trực tiếp chi tiết chứng từ; nếu sai phải dùng chứng từ điều chỉnh hoặc chứng từ đảo nghiệp vụ.
+		- Sau khi Posted không được sửa trực tiếp chi tiết chứng từ; nếu sai phải dùng chứng từ điều chỉnh hoặc chứng từ đảo nghiệp vụ. Ngoại trừ một trường hợp đặc biệt: Quản trị viên (Admin) được phép chỉnh sửa trực tiếp số Serial trên các dòng hàng của chứng từ nhập kho (`StockIn`), xuất kho (`StockOut`), và chuyển kho (`StockTransfer`) đã ghi sổ. Việc chỉnh sửa phải tuân thủ nghiêm ngặt các ràng buộc về số lượng (số serial khớp với `Quantity`) và tính toàn vẹn tồn kho (không trùng lặp, phải có trạng thái và kho hiện tại hợp lệ).
 		- Locked là trạng thái đóng kỳ hoặc chốt chứng từ; không cho phép thay đổi tiếp.
 		- Người lập và người duyệt không bắt buộc phải là hai người khác nhau.
 		- Nếu bật kiểm soát nội bộ, người duyệt và người ghi sổ không được là cùng một người (ngoại trừ vai trò Quản trị viên và Quản lý có quyền override).
@@ -152,8 +153,10 @@ THIẾT KẾ PHẦN MỀM QUẢN LÝ HÀNG HÓA VÀ BẢO HÀNH
 	5.6 Quy tắc bảo hành
 		- WarrantyCoverage lưu quyền bảo hành của serial đã bán.
 		- Khi ghi sổ phiếu xuất loại `Sale` cho sản phẩm quản lý serial và có `WarrantyPeriodMonths > 0`, hệ thống phải tạo `WarrantyCoverage` ở trạng thái Active cho từng serial đã bán; `WarrantyStartDate = PostedAt`, `WarrantyEndDate = PostedAt + WarrantyPeriodMonths`, gắn `CustomerId` và `SalesInvoiceId` nếu đã có hóa đơn bán tại thời điểm đó.
-		- WarrantyClaim lưu từng hồ sơ bảo hành thực tế và chỉ được tạo sau khi serial qua kiểm tra điều kiện bảo hành, xác định được WarrantyCoverage hợp lệ và không có claim đang mở khác.
-		- Một serial có thể có nhiều WarrantyClaim theo thời gian, nhưng không được có hơn một WarrantyClaim đang mở tại cùng một thời điểm.
+		- WarrantyClaim lưu từng hồ sơ bảo hành thực tế và chỉ được tạo sau khi serial qua kiểm tra điều kiện bảo hành, xác định được WarrantyCoverage hợp lệ.
+		- Một serial có thể có nhiều WarrantyClaim mở đồng thời tại cùng một thời điểm (đáp ứng việc tiếp nhận bảo hành bình thường cho nhiều lỗi phát sinh).
+		- Trạng thái của Serial (`ProductSerial.CurrentStatus`) chỉ quay về `Sold` sau khi toàn bộ các phiếu bảo hành đang mở của Serial đó được đóng hoặc từ chối.
+		- Chặn xóa phiếu bảo hành khi đã phát sinh các chứng từ nhập kho hoặc xuất kho liên quan.
 		- Khi tạo WarrantyClaim ở trạng thái Checking, serial nhận bảo hành phải chuyển sang InWarrantyProcess.
 		- Khi kết luận lỗi hợp lệ và tiếp tục xử lý kỹ thuật hoặc gửi hãng, serial có thể chuyển sang WarrantyDefective theo policy hiển thị vận hành của doanh nghiệp; tối thiểu không được giữ nguyên Sold trong suốt thời gian claim đang mở.
 		- Nếu sửa nội bộ được thì trả khách trực tiếp, không qua nhân viên kho.
@@ -236,6 +239,7 @@ THIẾT KẾ PHẦN MỀM QUẢN LÝ HÀNG HÓA VÀ BẢO HÀNH
 		- StockOut / StockOutLine: xuất kho; `StockOut` phải có `WarehouseId` và `PurposeCode` để phân biệt ít nhất các loại `Sale` và `WarrantyReplacement`.
 		- StockCountSession / StockCountLine: phiên kiểm kê và số liệu chênh lệch, gồm `WarehouseId`, CreatedBy, ApprovedBy, PostedBy, CountDate, ApprovedAt, PostedAt.
 		- StockAdjustment / StockAdjustmentLine: chứng từ điều chỉnh tồn hoặc đảo nghiệp vụ sau ghi sổ, gồm `WarehouseId`, CreatedBy, ApprovedBy, PostedBy, ApprovedAt, PostedAt.
+		- StockTransfer / StockTransferLine: chứng từ điều chuyển kho nội bộ, lưu mã chứng từ, kho chuyển (`FromWarehouseId`), kho nhận (`ToWarehouseId`), ngày chuyển, trạng thái chứng từ và các dòng hàng chi tiết kèm theo số Serial.
 	6.5 Hóa đơn
 		- PurchaseInvoice: hóa đơn mua, liên kết phiếu nhập nếu có, lưu SubTotal, TaxAmount, GrandTotal, PaidAmount, PaymentStatus (default 'Unpaid'), DueDate.
 		- PurchaseInvoiceLine: dòng chi tiết hóa đơn mua, có thể tham chiếu StockInLine khi cần đối soát, lưu SubTotal, TaxRate, TaxAmount, GrandTotal.
@@ -246,6 +250,9 @@ THIẾT KẾ PHẦN MỀM QUẢN LÝ HÀNG HÓA VÀ BẢO HÀNH
 		- WarrantyClaim: hồ sơ bảo hành phát sinh, có thể tham chiếu serial thay thế và phiếu xuất thay thế; phải lưu tối thiểu ProblemDescription, TechnicalConclusion, ManufacturerResult, RejectionReason và ProcessingNote.
 	6.7 Audit
 		- AuditLog: nhật ký thay đổi thực thể nghiệp vụ, trước/sau thay đổi, người thao tác, thời điểm thao tác.
+		- Quy tắc lưu log Audit cho chứng từ kho (`StockIn`, `StockOut`, `StockTransfer`):
+			+ Hành động `CREATE` và `UPDATE` ghi nhận toàn bộ thông tin Header và các dòng chi tiết (Lines) dưới dạng JSON. Nhằm tối ưu dung lượng DB, chuỗi `DraftSerials` dài hơn 150 ký tự hoặc danh sách `Serials` lớn hơn 10 phần tử sẽ được cắt ngắn gọn trước khi lưu log.
+			+ Hành động `DELETE` (xóa phiếu nháp) chỉ ghi nhận thông tin định danh cơ bản gồm `Id` và `DocumentCode` (Mã phiếu nháp), không ghi log toàn bộ dòng chi tiết sản phẩm.
 	6.8 Quy ước nullability cần khóa rõ trước khi map sang entity/database
 		- `StockIn.SupplierId`: nullable khi `PurposeCode = OpeningBalance`.
 		- `ProductSerial.CurrentWarehouseId`: nullable khi serial đã bán, đang bảo hành ngoài kho hoặc đã gửi hãng.
@@ -261,7 +268,7 @@ THIẾT KẾ PHẦN MỀM QUẢN LÝ HÀNG HÓA VÀ BẢO HÀNH
 		- StockBalance phải unique theo cặp (ProductId, WarehouseId) để phản ánh đúng mô hình nhiều kho mở rộng.
 		- ProductUnit phải unique theo cặp (ProductId, UnitId).
 		- Mỗi Product chỉ có một ProductUnit với IsBaseUnit = true tại một thời điểm.
-		- WarrantyClaim phải chặn hơn một claim đang mở cho cùng ProductSerialId tại cùng một thời điểm bằng filtered unique index hoặc cơ chế tương đương.
+		- WarrantyClaim hỗ trợ cho phép nhiều claim mở đồng thời cho cùng một ProductSerialId tại một thời điểm để phục vụ tiếp nhận đồng thời nhiều lỗi phát sinh khác nhau trên cùng một thiết bị.
 		- WarrantyCoverage nên chặn hơn một coverage active cho cùng ProductSerialId tại cùng một thời điểm bằng filtered unique index hoặc cơ chế tương đương.
 
 7. Trạng thái chính cần triển khai
@@ -376,9 +383,12 @@ THIẾT KẾ PHẦN MỀM QUẢN LÝ HÀNG HÓA VÀ BẢO HÀNH
 10. Kiến trúc phần mềm
 	10.1 View
 		- XAML chỉ chịu trách nhiệm hiển thị và binding.
+		- UI sử dụng thuộc tính `IsReadOnly` động kết hợp với trạng thái chỉnh sửa (thay vì khóa cứng container bằng `IsEnabled`) để người dùng có thể bôi đen và sao chép (Ctrl+C) các thông tin mã chứng từ, serial, ghi chú ngay cả ở chế độ chỉ xem (Read-Only). Các điều khiển ComboBox, DatePicker vẫn được khóa bằng `IsEnabled` động, và các nút Thêm/Xóa dòng sẽ được ẩn đi.
+		- TextBox hiển thị Mã phiếu (`DocumentCode`) tự sinh phải được thiết lập thuộc tính `materialDesign:TextFieldAssist.HasClearButton="False"` để khóa nút xóa nhanh ("x"), tránh người dùng vô tình làm trống mã chứng từ.
 	10.2 ViewModel
 		- Điều phối dữ liệu màn hình, command, validation mức giao diện.
 		- Không được là nguồn chuẩn duy nhất cho validation nghiệp vụ hoặc policy chuyển trạng thái.
+		- Triển khai cơ chế View Caching ở `MainViewModel` và interface `IRefreshable` ở các ViewModel màn hình để tái sử dụng giao diện khi chuyển đổi Tab, tăng tốc độ phản hồi và nạp dữ liệu động mà không phải khởi tạo lại View.
 	10.3 Application Service
 		- AuthService.
 		- AuthorizationService.

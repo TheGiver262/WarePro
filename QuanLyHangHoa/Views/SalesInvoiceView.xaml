@@ -321,7 +321,7 @@
                                     <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,16,16">
                                         <TextBlock Text="SỐ HOÁ ĐƠN" Style="{StaticResource DetailFormLabel}"/>
                                         <TextBox Text="{Binding InvoiceCode}" Style="{StaticResource DetailFormTextBoxStyle}"
-                                                 IsEnabled="{Binding IsViewMode, Converter={StaticResource InverseBooleanConverter}}"/>
+                                                 IsReadOnly="{Binding IsViewMode}"/>
                                     </StackPanel>
 
                                     <StackPanel Grid.Row="0" Grid.Column="1" Margin="8,0,8,16">
@@ -363,7 +363,7 @@
                                         <TextBlock Text="GHI CHÚ" Style="{StaticResource DetailFormLabel}"/>
                                         <TextBox Text="{Binding Notes}" Style="{StaticResource DetailFormNotesStyle}"
                                                  materialDesign:HintAssist.Hint="Nhập nội dung ghi chú hoá đơn..."
-                                                 IsEnabled="{Binding IsViewMode, Converter={StaticResource InverseBooleanConverter}}"/>
+                                                 IsReadOnly="{Binding IsViewMode}"/>
                                     </StackPanel>
                                 </Grid>
                             </materialDesign:Card>
@@ -433,7 +433,8 @@
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
                                                     <TextBox Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" HorizontalContentAlignment="Center"
-                                                             Style="{StaticResource AppTextBoxStyle}" Margin="8,4" Height="36" BorderThickness="0"/>
+                                                             Style="{StaticResource AppTextBoxStyle}" Margin="8,4" Height="36" BorderThickness="0"
+                                                             IsReadOnly="{Binding DataContext.IsViewMode, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
@@ -448,7 +449,8 @@
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
                                                     <TextBox Text="{Binding UnitPrice, StringFormat='N0', UpdateSourceTrigger=PropertyChanged}" HorizontalContentAlignment="Right"
-                                                             Style="{StaticResource AppTextBoxStyle}" Margin="8,4" Height="36" BorderThickness="0"/>
+                                                             Style="{StaticResource AppTextBoxStyle}" Margin="8,4" Height="36" BorderThickness="0"
+                                                             IsReadOnly="{Binding DataContext.IsViewMode, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
@@ -463,7 +465,8 @@
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
                                                     <TextBox Text="{Binding TaxRate, StringFormat='P0', UpdateSourceTrigger=PropertyChanged}" HorizontalContentAlignment="Center"
-                                                             Style="{StaticResource AppTextBoxStyle}" Margin="8,4" Height="36" BorderThickness="0"/>
+                                                             Style="{StaticResource AppTextBoxStyle}" Margin="8,4" Height="36" BorderThickness="0"
+                                                             IsReadOnly="{Binding DataContext.IsViewMode, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
@@ -544,7 +547,7 @@
                                                          Style="{StaticResource StatNumberInputStyle}" BorderThickness="0"
                                                          materialDesign:TextFieldAssist.DecorationVisibility="Hidden"
                                                          materialDesign:TextFieldAssist.HasClearButton="False"
-                                                         IsEnabled="{Binding IsViewMode, Converter={StaticResource InverseBooleanConverter}}"/>
+                                                         IsReadOnly="{Binding IsViewMode}"/>
                                             </Grid>
                                         </Border>
 

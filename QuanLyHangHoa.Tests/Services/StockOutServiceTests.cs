@@ -64,4 +64,116 @@ public class StockOutServiceTests
         Assert.Equal("Out", ledger.MovementType);
         Assert.Equal(2, ledger.Quantity);
     }
+
+    [Fact]
+    public void SaveDraft_allows_same_serials_but_post_validates_and_throws_correct_errors()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        using (var seedContext = DatabaseHelper.CreateContext(connection))
+        {
+            DatabaseHelper.SeedBasicData(seedContext);
+            seedContext.Products.Add(new Product 
+            { 
+                Id = 301, 
+                ProductCode = "P301",
+                DisplayName = "Serial Product",
+                CategoryId = 1, 
+                BrandId = 1, 
+                DefaultUnitId = 1, 
+                DefaultPrice = 20m, 
+                IsSerialTracked = true 
+            });
+            seedContext.StockBalances.Add(new StockBalance 
+            { 
+                ProductId = 301, 
+                WarehouseId = 1, 
+                OnHandQuantity = 5, 
+                AvailableQuantity = 5 
+            });
+            seedContext.ProductSerials.AddRange(
+                new ProductSerial { SerialNumber = "SN-101", ProductId = 301, CurrentWarehouseId = 1, CurrentStatus = "InStock" },
+                new ProductSerial { SerialNumber = "SN-102", ProductId = 301, CurrentWarehouseId = 1, CurrentStatus = "InStock" }
+            );
+            seedContext.SaveChanges();
+        }
+
+        var service = new StockOutService(() => DatabaseHelper.CreateContext(connection));
+
+        // Draft A
+        var stockOutA = new StockOut { DocumentCode = "SO-A", CustomerId = 1, WarehouseId = 1, PurposeCode = "Sale" };
+        var linesA = new List<StockOutLine>
+        {
+            new StockOutLine
+            {
+                ProductId = 301,
+                UnitId = 1,
+                Quantity = 1,
+                UnitPrice = 20m,
+                ProductSerials = new List<ProductSerial> { new ProductSerial { SerialNumber = "SN-101" } }
+            }
+        };
+
+        // Draft B
+        var stockOutB = new StockOut { DocumentCode = "SO-B", CustomerId = 1, WarehouseId = 1, PurposeCode = "Sale" };
+        var linesB = new List<StockOutLine>
+        {
+            new StockOutLine
+            {
+                ProductId = 301,
+                UnitId = 1,
+                Quantity = 1,
+                UnitPrice = 20m,
+                ProductSerials = new List<ProductSerial> { new ProductSerial { SerialNumber = "SN-101" } }
+            }
+        };
+
+        // 1. Both drafts should be saved successfully with the same serials
+        service.SaveDraft(stockOutA, linesA, 1);
+        service.SaveDraft(stockOutB, linesB, 1);
+
+        using (var db = DatabaseHelper.CreateContext(connection))
+        {
+            Assert.Contains(db.StockOutLines, l => l.DraftSerials == "SN-101");
+            Assert.Equal(2, db.StockOutLines.Count(l => l.DraftSerials == "SN-101"));
+        }
+
+        // 2. Post Draft A -> should succeed and set SN-101 to Sold (not in warehouse)
+        service.Post(stockOutA.Id, 1);
+
+        using (var db = DatabaseHelper.CreateContext(connection))
+        {
+            var postedA = db.StockOuts.Find(stockOutA.Id);
+            Assert.Equal(DocumentStatus.Posted, postedA.Status);
+            var serial = db.ProductSerials.Single(ps => ps.SerialNumber == "SN-101");
+            Assert.Equal("Sold", serial.CurrentStatus);
+            Assert.Null(serial.CurrentWarehouseId);
+        }
+
+        // 3. Post Draft B -> should fail because "SN-101" is no longer InStock / in this warehouse
+        var ex = Assert.Throws<Exception>(() => service.Post(stockOutB.Id, 1));
+        Assert.Equal("Các số serial sau đã được xuất kho ở phiếu khác hoặc không còn tồn kho trong kho này: [SN-101]. Vui lòng sửa lại phiếu nháp trước khi duyệt.", ex.Message);
+
+        // 4. Test document-level duplicate serials: Draft C with duplicate serials in the same document
+        var stockOutC = new StockOut { DocumentCode = "SO-C", CustomerId = 1, WarehouseId = 1, PurposeCode = "Sale" };
+        var linesC = new List<StockOutLine>
+        {
+            new StockOutLine
+            {
+                ProductId = 301,
+                UnitId = 1,
+                Quantity = 2,
+                UnitPrice = 20m,
+                ProductSerials = new List<ProductSerial> 
+                { 
+                    new ProductSerial { SerialNumber = "SN-102" },
+                    new ProductSerial { SerialNumber = "SN-102" }
+                }
+            }
+        };
+        service.SaveDraft(stockOutC, linesC, 1);
+
+        var exDup = Assert.Throws<Exception>(() => service.Post(stockOutC.Id, 1));
+        Assert.Equal("Các số serial sau bị trùng lặp trong phiếu: [SN-102]. Vui lòng kiểm tra lại trước khi duyệt.", exDup.Message);
+    }
 }

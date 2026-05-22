@@ -606,6 +606,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.BaseQuantity).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.Quantity).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.UnitPrice).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.DraftSerials).IsRequired(false);
 
             entity.HasOne(d => d.Product).WithMany(p => p.StockInLines)
                 .HasForeignKey(d => d.ProductId)
@@ -682,6 +683,8 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Status).HasMaxLength(50);
             entity.Property(e => e.ExportDate).HasPrecision(0);
             entity.Property(e => e.Notes).HasMaxLength(500);
+            entity.Property(e => e.UpdatedAt).HasPrecision(0);
+            entity.Property(e => e.UpdatedBy).IsRequired(false);
 
             entity.HasOne(d => d.Approver).WithMany(p => p.StockOutApprovers)
                 .HasForeignKey(d => d.ApprovedBy)
@@ -716,6 +719,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.BaseQuantity).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.Quantity).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.UnitPrice).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.DraftSerials).IsRequired(false);
 
             entity.HasOne(d => d.Product).WithMany(p => p.StockOutLines)
                 .HasForeignKey(d => d.ProductId)

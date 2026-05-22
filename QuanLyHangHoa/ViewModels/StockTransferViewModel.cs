@@ -10,6 +10,8 @@ using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
 using ClosedXML.Excel;
 using Microsoft.Win32;
+using Microsoft.EntityFrameworkCore;
+using QuanLyHangHoa.Inventory;
 
 namespace QuanLyHangHoa.ViewModels
 {
@@ -17,6 +19,7 @@ namespace QuanLyHangHoa.ViewModels
     {
         private readonly ProductUnitService _productUnitService;
 
+        [ObservableProperty] private int _id;
         [ObservableProperty] private Product? _selectedProduct;
         [ObservableProperty] [NotifyPropertyChangedFor(nameof(IsSerialComplete))] private decimal _quantity = 1;
         [ObservableProperty] private Unit? _selectedUnit;
@@ -94,6 +97,7 @@ namespace QuanLyHangHoa.ViewModels
         private readonly StockTransferService _stockTransferService;
         private readonly ProductUnitService _productUnitService;
         private readonly AppUser _currentUser;
+        private readonly Func<AppDbContext> _contextFactory;
 
         [ObservableProperty] private ObservableCollection<Product> _availableProducts = new();
         [ObservableProperty] private ObservableCollection<Warehouse> _availableWarehouses = new();
@@ -126,6 +130,7 @@ namespace QuanLyHangHoa.ViewModels
         {
             _currentUser = currentUser ?? new AppUser { Id = 1 };
             var factory = contextFactory ?? (() => new QuanLyHangHoa.Data.AppDbContext());
+            _contextFactory = factory;
             _productService = new ProductService(factory);
             _stockTransferService = new StockTransferService(factory);
             _productUnitService = new ProductUnitService(factory);
@@ -227,6 +232,7 @@ namespace QuanLyHangHoa.ViewModels
             {
                 var editor = new StockTransferLineEditor(_productUnitService)
                 {
+                    Id = line.Id,
                     SelectedProduct = line.Product,
                     Quantity = line.Quantity,
                     SelectedUnit = line.Unit
@@ -263,22 +269,171 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void OpenSerialInput(StockTransferLineEditor line)
         {
-            if (!CanEdit) return;
             if (line == null || line.SelectedProduct == null) return;
             
+            var isAdmin = AuthorizationService.CanPerform(_currentUser, PermissionAction.ManageUsers);
             var existing = string.Join("\n", line.SerialNumbers);
-            var dialog = new Views.SerialInputWindow(existing);
+            var isReadOnly = !CanEdit && !isAdmin;
+
+            List<ProductSerial> available = null;
+            if (line.SelectedProduct != null && SelectedFromWarehouse != null)
+            {
+                using (var db = _contextFactory())
+                {
+                    var query = db.ProductSerials
+                        .Where(s => s.ProductId == line.SelectedProduct.Id && s.CurrentWarehouseId == SelectedFromWarehouse.Id && s.CurrentStatus == "InStock");
+                    
+                    if (!CanEdit && isAdmin)
+                    {
+                        var lineSerialsQuery = db.ProductSerials
+                            .Where(s => s.ProductId == line.SelectedProduct.Id && s.StockTransferLineId == line.Id);
+                        
+                        var inStockList = query.ToList();
+                        var lineList = lineSerialsQuery.ToList();
+                        
+                        var existIds = new HashSet<int>(inStockList.Select(a => a.Id));
+                        foreach (var ls in lineList)
+                        {
+                            if (!existIds.Contains(ls.Id))
+                            {
+                                inStockList.Add(ls);
+                            }
+                        }
+                        available = inStockList;
+                    }
+                    else
+                    {
+                        available = query.ToList();
+                    }
+                }
+            }
+
+            var dialog = new Views.SerialInputWindow(existing, available, isReadOnly);
             dialog.Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(x => x.IsActive) ?? Application.Current.MainWindow;
             
-            if (dialog.ShowDialog() == true)
+            if (CanEdit)
             {
-                var serials = StockInService.ParseSerialRange(dialog.SerialInput);
-                line.SerialNumbers.Clear();
-                foreach (var sn in serials)
+                if (dialog.ShowDialog() == true)
                 {
-                    line.SerialNumbers.Add(sn);
+                    var serials = StockInService.ParseSerialRange(dialog.SerialInput);
+                    line.SerialNumbers.Clear();
+                    foreach (var sn in serials)
+                    {
+                        line.SerialNumbers.Add(sn);
+                    }
+                    line.NotifySerialChanges();
                 }
-                line.NotifySerialChanges();
+            }
+            else if (isAdmin)
+            {
+                if (dialog.ShowDialog() == true)
+                {
+                    var newSerials = StockInService.ParseSerialRange(dialog.SerialInput);
+                    if (newSerials.Count != (int)line.Quantity)
+                    {
+                        MessageBox.Show($"Số lượng serial mới ({newSerials.Count}) phải khớp chính xác với số lượng của dòng hàng ({line.Quantity})!", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    try
+                    {
+                        using (var db = _contextFactory())
+                        {
+                            var dbLine = db.StockTransferLines
+                                .Include(x => x.StockTransfer)
+                                .FirstOrDefault(x => x.Id == line.Id);
+
+                            if (dbLine == null)
+                            {
+                                MessageBox.Show("Không tìm thấy dòng phiếu chuyển kho trong cơ sở dữ liệu.", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                                return;
+                            }
+
+                            var fromWarehouseId = dbLine.StockTransfer.FromWarehouseId;
+                            var toWarehouseId = dbLine.StockTransfer.ToWarehouseId;
+
+                            var currentSerials = db.ProductSerials
+                                .Where(x => x.StockTransferLineId == dbLine.Id)
+                                .ToList();
+
+                            var currentSnList = currentSerials.Select(s => s.SerialNumber).ToList();
+
+                            var removedSnList = currentSnList.Except(newSerials, StringComparer.OrdinalIgnoreCase).ToList();
+                            var addedSnList = newSerials.Except(currentSnList, StringComparer.OrdinalIgnoreCase).ToList();
+
+                            // Validate các serial bị loại bỏ
+                            foreach (var sn in removedSnList)
+                            {
+                                var ps = currentSerials.FirstOrDefault(x => x.SerialNumber.Equals(sn, StringComparison.OrdinalIgnoreCase));
+                                if (ps != null)
+                                {
+                                    if (ps.CurrentStatus != SerialStatus.InStock.ToString() || ps.CurrentWarehouseId != toWarehouseId)
+                                    {
+                                        MessageBox.Show($"Không thể thu hồi serial {sn} vì nó đã được xuất hoặc bán khỏi kho đến.", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                                        return;
+                                    }
+                                }
+                            }
+
+                            // Validate các serial mới được thêm
+                            foreach (var sn in addedSnList)
+                            {
+                                var ps = db.ProductSerials.FirstOrDefault(x => x.SerialNumber == sn && x.ProductId == dbLine.ProductId);
+                                if (ps == null)
+                                {
+                                    MessageBox.Show($"Không tìm thấy số serial {sn} của sản phẩm này trong hệ thống.", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    return;
+                                }
+                                if (ps.CurrentStatus != SerialStatus.InStock.ToString() || ps.CurrentWarehouseId != fromWarehouseId)
+                                {
+                                    MessageBox.Show($"Số serial {sn} không có sẵn (InStock) tại kho đi của phiếu.", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    return;
+                                }
+                            }
+
+                            // Thực hiện cập nhật
+                            foreach (var sn in removedSnList)
+                            {
+                                var ps = currentSerials.FirstOrDefault(x => x.SerialNumber.Equals(sn, StringComparison.OrdinalIgnoreCase));
+                                if (ps != null)
+                                {
+                                    ps.CurrentWarehouseId = fromWarehouseId;
+                                    ps.StockTransferLineId = null;
+                                }
+                            }
+
+                            foreach (var sn in addedSnList)
+                            {
+                                var ps = db.ProductSerials.FirstOrDefault(x => x.SerialNumber == sn && x.ProductId == dbLine.ProductId);
+                                if (ps != null)
+                                {
+                                    ps.CurrentWarehouseId = toWarehouseId;
+                                    ps.StockTransferLineId = dbLine.Id;
+                                }
+                            }
+
+                            db.SaveChanges();
+                        }
+
+                        // Đồng bộ UI
+                        line.SerialNumbers.Clear();
+                        foreach (var sn in newSerials)
+                        {
+                            line.SerialNumbers.Add(sn);
+                        }
+                        line.NotifySerialChanges();
+
+                        MessageBox.Show("Cập nhật số serial thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Đã xảy ra lỗi khi lưu số serial: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+            }
+            else
+            {
+                dialog.ShowDialog();
             }
         }
 

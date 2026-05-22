@@ -153,7 +153,7 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     
-                    <DataGrid Grid.Row="0" ItemsSource="{Binding StockInList}" AutoGenerateColumns="False" CanUserAddRows="False" RowHeight="56">
+                    <DataGrid Grid.Row="0" ItemsSource="{Binding StockInList}" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" RowHeight="56">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="MÃ PHIẾU" Binding="{Binding DocumentCode}" Width="150" ElementStyle="{DynamicResource AppDataGridTextBold}"/>
                             <DataGridTextColumn Header="NGÀY NHẬP" Binding="{Binding ImportDate, StringFormat='dd/MM/yyyy'}" Width="120" ElementStyle="{DynamicResource AppDataGridTextCenter}"/>
@@ -163,7 +163,7 @@
                             
                             <DataGridTemplateColumn Header="TRẠNG THÁI" Width="140" CellTemplate="{StaticResource InventoryStatusBadgeTemplate}"/>
 
-                            <DataGridTemplateColumn Header="THAO TÁC" Width="140">
+                            <DataGridTemplateColumn Header="THAO TÁC" Width="170">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
@@ -175,6 +175,31 @@
                                                     Command="{Binding DataContext.EditDetailCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
                                                     Visibility="{Binding Status, Converter={StaticResource StatusToEditVisibilityConverter}}">
                                                 <materialDesign:PackIcon Kind="PencilOutline" Width="20" Height="20" Foreground="{StaticResource AppSecondaryBrush}"/>
+                                            </Button>
+                                            <Button ToolTip="Duyệt phiếu"
+                                                    Command="{Binding DataContext.ApproveDocumentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource ProMaxIconButtonStyle}">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <MultiDataTrigger>
+                                                                <MultiDataTrigger.Conditions>
+                                                                    <Condition Binding="{Binding Status}" Value="Draft"/>
+                                                                    <Condition Binding="{Binding DataContext.IsAdminOrManager, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True"/>
+                                                                </MultiDataTrigger.Conditions>
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </MultiDataTrigger>
+                                                            <MultiDataTrigger>
+                                                                <MultiDataTrigger.Conditions>
+                                                                    <Condition Binding="{Binding Status}" Value="nháp"/>
+                                                                    <Condition Binding="{Binding DataContext.IsAdminOrManager, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True"/>
+                                                                </MultiDataTrigger.Conditions>
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </MultiDataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                                <materialDesign:PackIcon Kind="CheckDecagramOutline" Width="20" Height="20" Foreground="{StaticResource SuccessTextBrush}"/>
                                             </Button>
                                             <Button Style="{StaticResource ProMaxIconButtonStyle}" ToolTip="In phiếu"
                                                     Command="{Binding DataContext.PrintCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
@@ -259,7 +284,7 @@
             </Grid>
 
             <!-- Row 1: Document Info Fields -->
-            <materialDesign:Card Grid.Row="1" Style="{StaticResource AppCard}" Background="{StaticResource SurfaceMutedBrush}" Margin="{StaticResource SectionBottomMargin}" Padding="20" IsEnabled="{Binding CanEdit}">
+            <materialDesign:Card Grid.Row="1" Style="{StaticResource AppCard}" Background="{StaticResource SurfaceMutedBrush}" Margin="{StaticResource SectionBottomMargin}" Padding="20">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
@@ -272,6 +297,7 @@
                     <StackPanel Grid.Column="0" Margin="0,0,24,0">
                         <TextBlock Text="MÃ PHIẾU" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
                         <TextBox Style="{StaticResource AppTextBoxStyle}" IsReadOnly="True" Width="130" Height="38"
+                                 materialDesign:TextFieldAssist.HasClearButton="False"
                                  Text="{Binding DocumentCode}"/>
                     </StackPanel>
 
@@ -279,24 +305,28 @@
                         <TextBlock Text="KHO HÀNG" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
                         <ComboBox Width="160" Height="38" Style="{StaticResource AppComboBoxStyle}" 
                                   ItemsSource="{Binding AvailableWarehouses}" DisplayMemberPath="DisplayName"
-                                  SelectedItem="{Binding SelectedWarehouse}"/>
+                                  SelectedItem="{Binding SelectedWarehouse}"
+                                  IsEnabled="{Binding CanEdit}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="2" Margin="0,0,24,0">
                         <TextBlock Text="NHÀ CUNG CẤP" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
                         <ComboBox Width="200" Height="38" Style="{StaticResource AppComboBoxStyle}" 
-                                  ItemsSource="{Binding AvailableSuppliers}" DisplayMemberPath="DisplayName" SelectedItem="{Binding SelectedSupplier}"/>
+                                  ItemsSource="{Binding AvailableSuppliers}" DisplayMemberPath="DisplayName" SelectedItem="{Binding SelectedSupplier}"
+                                  IsEnabled="{Binding CanEdit}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="3" Margin="0,0,24,0">
                         <TextBlock Text="NGÀY NHẬP" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
-                        <DatePicker Width="140" Height="38" Style="{StaticResource AppDatePickerStyle}" SelectedDate="{Binding ImportDate}"/>
+                        <DatePicker Width="140" Height="38" Style="{StaticResource AppDatePickerStyle}" SelectedDate="{Binding ImportDate}"
+                                    IsEnabled="{Binding CanEdit}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="4" Margin="0,0,24,0">
                         <TextBlock Text="GHI CHÚ" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
                         <TextBox Height="38" Style="{StaticResource AppTextBoxStyle}" materialDesign:HintAssist.Hint="Ghi chú nhập kho..."
-                                 Text="{Binding Notes}"/>
+                                 Text="{Binding Notes}"
+                                 IsReadOnly="{Binding CanEdit, Converter={StaticResource InverseBooleanConverter}}"/>
                     </StackPanel>
 
                 </Grid>
@@ -323,8 +353,7 @@
                     <DataGrid Grid.Row="0" ItemsSource="{Binding Lines}" 
                                EnableRowVirtualization="False"
                                AutoGenerateColumns="False" CanUserAddRows="False" 
-                               RowHeight="64"
-                               IsEnabled="{Binding CanEdit}">
+                               RowHeight="64" IsReadOnly="True">
                         <DataGrid.Columns>
                             <DataGridTemplateColumn Width="*">
                                 <DataGridTemplateColumn.Header>
@@ -338,7 +367,8 @@
                                         <ComboBox ItemsSource="{Binding DataContext.AvailableProducts, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                                   SelectedItem="{Binding SelectedProduct, UpdateSourceTrigger=PropertyChanged}"
                                                   IsEditable="True" LostFocus="ProductComboBox_LostFocus"
-                                                  DisplayMemberPath="DisplayName" Style="{StaticResource AppComboBoxStyle}" Margin="8,4" BorderThickness="0" Height="36"/>
+                                                  DisplayMemberPath="DisplayName" Style="{StaticResource AppComboBoxStyle}" Margin="8,4" BorderThickness="0" Height="36"
+                                                  IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -355,7 +385,8 @@
                                         <ComboBox ItemsSource="{Binding AvailableUnits}" 
                                                   SelectedItem="{Binding SelectedUnit, UpdateSourceTrigger=PropertyChanged}"
                                                   IsEditable="True" LostFocus="UnitComboBox_LostFocus"
-                                                  DisplayMemberPath="DisplayName" Style="{StaticResource AppComboBoxStyle}" Margin="8,4" BorderThickness="0" Height="36"/>
+                                                  DisplayMemberPath="DisplayName" Style="{StaticResource AppComboBoxStyle}" Margin="8,4" BorderThickness="0" Height="36"
+                                                  IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -370,7 +401,8 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBox Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" HorizontalContentAlignment="Right" 
-                                                  Style="{StaticResource AppTextBoxStyle}" Margin="8,4" Height="36"/>
+                                                  Style="{StaticResource AppTextBoxStyle}" Margin="8,4" Height="36"
+                                                  IsReadOnly="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource InverseBooleanConverter}}"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -441,8 +473,9 @@
                             <DataGridTemplateColumn Header="THAO TÁC" Width="80">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Button Style="{StaticResource ProMaxIconButtonStyle}" Margin="4"
-                                                Command="{Binding DataContext.RemoveLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                         <Button Style="{StaticResource ProMaxIconButtonStyle}" Margin="4"
+                                                 Command="{Binding DataContext.RemoveLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                                                 Visibility="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}">
                                             <materialDesign:PackIcon Kind="TrashCanOutline" Width="20" Height="20" Foreground="{StaticResource AppErrorBrush}"/>
                                         </Button>
                                     </DataTemplate>
