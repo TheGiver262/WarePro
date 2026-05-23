@@ -122,8 +122,7 @@ namespace QuanLyHangHoa.Views
                     : "Nhập serial để xem trước.";
             }
         }
-
-        private void CheckBox_Checked(object sender, RoutedEventArgs e)
+        private void CheckBox_Click(object sender, RoutedEventArgs e)
         {
             if (_isUpdating) return;
             if (sender is CheckBox cb && cb.DataContext is AvailableSerialItem item)
@@ -131,25 +130,7 @@ namespace QuanLyHangHoa.Views
                 _isUpdating = true;
                 try
                 {
-                    item.IsSelected = true;
-                    UpdateTextBoxFromCheckboxes();
-                }
-                finally
-                {
-                    _isUpdating = false;
-                }
-            }
-        }
-
-        private void CheckBox_Unchecked(object sender, RoutedEventArgs e)
-        {
-            if (_isUpdating) return;
-            if (sender is CheckBox cb && cb.DataContext is AvailableSerialItem item)
-            {
-                _isUpdating = true;
-                try
-                {
-                    item.IsSelected = false;
+                    item.IsSelected = cb.IsChecked ?? false;
                     UpdateTextBoxFromCheckboxes();
                 }
                 finally

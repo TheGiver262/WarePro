@@ -114,8 +114,7 @@
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
                                             <CheckBox IsChecked="{Binding IsSelected, Mode=OneWay}"
-                                                      Checked="CheckBox_Checked"
-                                                      Unchecked="CheckBox_Unchecked"
+                                                      Click="CheckBox_Click"
                                                       Padding="12,8"
                                                       Margin="0"
                                                       HorizontalAlignment="Stretch"

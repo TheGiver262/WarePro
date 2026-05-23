@@ -51,6 +51,23 @@ namespace QuanLyHangHoa.Services
         {
             using var db = _contextFactory();
             
+            // Map transient ProductSerial objects to database-tracked ones to avoid UNIQUE KEY constraint errors
+            foreach (var line in lines)
+            {
+                var serials = line.ProductSerials.Select(ps => ps.SerialNumber).ToList();
+                if (serials.Any())
+                {
+                    var dbSerials = db.ProductSerials
+                        .Where(ps => ps.ProductId == line.ProductId && serials.Contains(ps.SerialNumber))
+                        .ToList();
+                    line.ProductSerials = dbSerials;
+                }
+                else
+                {
+                    line.ProductSerials = new List<ProductSerial>();
+                }
+            }
+
             StockTransfer? existing = null;
             if (stockTransfer.Id > 0)
             {
