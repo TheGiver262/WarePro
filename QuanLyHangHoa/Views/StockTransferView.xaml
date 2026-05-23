@@ -1,4 +1,5 @@
 <UserControl x:Class="QuanLyHangHoa.Views.StockTransferView"
+             x:Name="RootStockTransferView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -285,30 +286,59 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTemplateColumn Header="SERIAL" Width="150">
+                            <DataGridTemplateColumn Header="SERIAL" Width="180">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Button Visibility="{Binding IsSerialRequired, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                                Command="{Binding DataContext.OpenSerialInputCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                CommandParameter="{Binding}"
-                                                HorizontalAlignment="Center">
-                                            <StackPanel Orientation="Horizontal">
-                                                <materialDesign:PackIcon Kind="Barcode" Width="20" Height="20" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                                                <TextBlock Text="{Binding SerialSummary}" VerticalAlignment="Center" FontSize="11"/>
+                                        <Grid Margin="8,4" Visibility="{Binding IsSerialRequired, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            
+                                            <!-- Serial detail list (wrapped) -->
+                                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                <TextBlock TextWrapping="Wrap" MaxHeight="60" TextTrimming="CharacterEllipsis">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock" BasedOn="{StaticResource TypographyCaption}">
+                                                            <Setter Property="Text" Value="{Binding SerialDetail}"/>
+                                                            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding SerialNumbers.Count}" Value="0">
+                                                                    <Setter Property="Text" Value="Chưa có Serial"/>
+                                                                    <Setter Property="FontStyle" Value="Italic"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding IsSerialComplete}" Value="False">
+                                                                    <Setter Property="Foreground" Value="{StaticResource AppErrorBrush}"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                                
+                                                <!-- Serial summary count if complete -->
+                                                <TextBlock Text="{Binding SerialSummary}" Style="{StaticResource TypographyCaption}" Opacity="0.6" Margin="0,2,0,0"
+                                                           Visibility="{Binding IsSerialComplete, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                             </StackPanel>
-                                            <Button.Style>
-                                                <Style TargetType="Button" BasedOn="{StaticResource ProMaxIconButtonStyle}">
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsSerialComplete}" Value="False">
-                                                            <Setter Property="Foreground" Value="{StaticResource AppErrorBrush}"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding IsSerialComplete}" Value="True">
-                                                            <Setter Property="Foreground" Value="{StaticResource AppSuccessBrush}"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Button.Style>
-                                        </Button>
+
+                                            <!-- Edit button -->
+                                            <Button Grid.Column="1" Style="{StaticResource ProMaxIconButtonStyle}"
+                                                    Command="{Binding DataContext.OpenSerialInputCommand, ElementName=RootStockTransferView}"
+                                                    CommandParameter="{Binding}"
+                                                    VerticalAlignment="Center" Margin="8,0,0,0" Width="32" Height="32" Padding="0">
+                                                <materialDesign:PackIcon Kind="BarcodeScan" Width="18" Height="18">
+                                                    <materialDesign:PackIcon.Style>
+                                                        <Style TargetType="materialDesign:PackIcon">
+                                                            <Setter Property="Foreground" Value="{StaticResource AppPrimaryBrush}"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsSerialComplete}" Value="False">
+                                                                    <Setter Property="Foreground" Value="{StaticResource AppErrorBrush}"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </materialDesign:PackIcon.Style>
+                                                </materialDesign:PackIcon>
+                                            </Button>
+                                        </Grid>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>

@@ -28,6 +28,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private decimal _baseQuantity;
 
         public string SerialSummary => SerialNumbers.Count > 0 ? $"{SerialNumbers.Count} Serial" : "Chưa có Serial";
+        public string SerialDetail => SerialNumbers.Count > 0 ? string.Join(", ", SerialNumbers) : "";
         public bool IsSerialComplete => !IsSerialRequired || SerialNumbers.Count == (int)Quantity;
 
         public StockInLineEditor(ProductUnitService productUnitService)
@@ -39,6 +40,7 @@ namespace QuanLyHangHoa.ViewModels
         public void NotifySerialChanges()
         {
             OnPropertyChanged(nameof(SerialSummary));
+            OnPropertyChanged(nameof(SerialDetail));
             OnPropertyChanged(nameof(IsSerialComplete));
         }
 

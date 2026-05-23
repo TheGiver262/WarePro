@@ -51,6 +51,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private int _inStockCount;
         [ObservableProperty] private int _soldCount;
         [ObservableProperty] private int _scrappedCount;
+        [ObservableProperty] private int _totalCount;
         public ProductSerialViewModel(Func<AppDbContext> contextFactory, AppUser currentUser)
             : this(contextFactory, new ProductSerialService(contextFactory).SearchSerials, new ProductSerialImportService(contextFactory), currentUser)
         {
@@ -78,6 +79,7 @@ namespace QuanLyHangHoa.ViewModels
                 "Dừng" 
             };
 
+            LoadCounts();
             LoadSerials();
             
             // Tự động nạp dữ liệu nếu bảng trống
@@ -112,6 +114,7 @@ namespace QuanLyHangHoa.ViewModels
             SearchFromDate = null;
             SearchToDate = null;
             SearchNote = string.Empty;
+            LoadCounts();
             LoadSerials();
         }
 
@@ -243,6 +246,7 @@ namespace QuanLyHangHoa.ViewModels
                 StatusMessage = result.Message;
                 if (result.SuccessCount > 0)
                 {
+                    LoadCounts();
                     LoadSerials();
                 }
             }
@@ -278,11 +282,26 @@ namespace QuanLyHangHoa.ViewModels
             if (editWindow.ShowDialog() == true)
             {
                 StatusMessage = $"Đã cập nhật serial {serial.SerialNumber}";
+                LoadCounts();
                 LoadSerials();
             }
         }
 
 
+
+        public void LoadCounts()
+        {
+            // Update stats from database (unfiltered)
+            var db = _contextFactory?.Invoke();
+            if (db == null) return;
+            using (db)
+            {
+                TotalCount = db.ProductSerials.Count();
+                InStockCount = db.ProductSerials.Count(s => s.CurrentStatus == "InStock");
+                SoldCount = db.ProductSerials.Count(s => s.CurrentStatus == "Sold");
+                ScrappedCount = db.ProductSerials.Count(s => s.CurrentStatus == "Scrapped");
+            }
+        }
 
         private void LoadSerials()
         {
@@ -303,11 +322,6 @@ namespace QuanLyHangHoa.ViewModels
 
             var data = _serialLoader(SearchSerial, SearchProduct, SearchBrand, dbStatus, SearchFromDate, SearchToDate, SearchNote);
             Serials = new ObservableCollection<ProductSerial>(data);
-
-            // Update stats
-            InStockCount = data.Count(s => s.CurrentStatus == "InStock");
-            SoldCount = data.Count(s => s.CurrentStatus == "Sold");
-            ScrappedCount = data.Count(s => s.CurrentStatus == "Scrapped");
             
             if (string.IsNullOrEmpty(StatusMessage) || StatusMessage.Contains("Tìm thấy"))
                 StatusMessage = $"Tìm thấy {Serials.Count} serial.";

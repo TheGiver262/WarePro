@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -18,6 +19,7 @@ namespace QuanLyHangHoa.ViewModels
         private readonly ProductService _service;
         private readonly ReferenceDataService _refDataService;
         private readonly AppUser _currentUser;
+        private List<Product> _allProducts = new();
 
         [ObservableProperty] private bool _canManage;
         [ObservableProperty] private ObservableCollection<Product> _products = new();
@@ -41,15 +43,15 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void ToggleAdvancedFilter() => IsAdvancedFilterOpen = !IsAdvancedFilterOpen;
 
-        partial void OnSearchCodeChanged(string value) => LoadData();
-        partial void OnSearchNameChanged(string value) => LoadData();
-        partial void OnSearchStatusChanged(string value) => LoadData();
-        partial void OnSearchSerialChanged(string value) => LoadData();
-        partial void OnSearchWarrantyChanged(string value) => LoadData();
-        partial void OnSelectedCategoryFilterChanged(Category? value) => LoadData();
-        partial void OnSelectedBrandFilterChanged(Brand? value) => LoadData();
-        partial void OnSearchPriceMinChanged(string value) => LoadData();
-        partial void OnSearchPriceMaxChanged(string value) => LoadData();
+        partial void OnSearchCodeChanged(string value) => ApplyFilters();
+        partial void OnSearchNameChanged(string value) => ApplyFilters();
+        partial void OnSearchStatusChanged(string value) => ApplyFilters();
+        partial void OnSearchSerialChanged(string value) => ApplyFilters();
+        partial void OnSearchWarrantyChanged(string value) => ApplyFilters();
+        partial void OnSelectedCategoryFilterChanged(Category? value) => ApplyFilters();
+        partial void OnSelectedBrandFilterChanged(Brand? value) => ApplyFilters();
+        partial void OnSearchPriceMinChanged(string value) => ApplyFilters();
+        partial void OnSearchPriceMaxChanged(string value) => ApplyFilters();
 
         public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Hoạt động", "Dừng"];
         public ObservableCollection<string> SerialOptions { get; } = ["Tất cả", "Có serial", "Không serial"];
@@ -59,6 +61,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private int _outOfStockActiveCount;
         [ObservableProperty] private int _activeCount;
         [ObservableProperty] private int _inactiveCount;
+        [ObservableProperty] private int _totalCount;
 
         public ProductViewModel(Func<AppDbContext> contextFactory, AppUser currentUser)
         {
@@ -85,72 +88,85 @@ namespace QuanLyHangHoa.ViewModels
             LoadData();
         }
 
+        public void LoadCounts()
+        {
+            TotalCount = _allProducts.Count;
+            ActiveCount = _allProducts.Count(p => p.IsActive);
+            InactiveCount = _allProducts.Count(p => !p.IsActive);
+        }
+
         private void LoadData()
         {
-            var results = _service.GetAllProducts(onlyActive: false);
+            _allProducts = _service.GetAllProducts(onlyActive: false);
+            LoadCounts();
+            ApplyFilters();
+        }
+
+        private void ApplyFilters()
+        {
+            var results = _allProducts.AsQueryable();
 
             // Apply Filters
             if (!string.IsNullOrWhiteSpace(SearchCode))
             {
-                var term = SearchCode.ToLower();
-                results = results.Where(p => p.ProductCode.ToLower().Contains(term)).ToList();
+                var term = SearchCode.ToLower().Trim();
+                results = results.Where(p => p.ProductCode.ToLower().Contains(term));
             }
 
             if (!string.IsNullOrWhiteSpace(SearchName))
             {
-                var term = SearchName.ToLower();
-                results = results.Where(p => p.DisplayName.ToLower().Contains(term)).ToList();
+                var term = SearchName.ToLower().Trim();
+                results = results.Where(p => p.DisplayName.ToLower().Contains(term));
             }
 
             if (SearchStatus != "Tất cả")
             {
                 bool active = SearchStatus == "Hoạt động";
-                results = results.Where(p => p.IsActive == active).ToList();
+                results = results.Where(p => p.IsActive == active);
             }
 
             if (SelectedCategoryFilter != null && SelectedCategoryFilter.Id > 0)
             {
-                results = results.Where(p => p.CategoryId == SelectedCategoryFilter.Id).ToList();
+                results = results.Where(p => p.CategoryId == SelectedCategoryFilter.Id);
             }
 
             if (SelectedBrandFilter != null && SelectedBrandFilter.Id > 0)
             {
-                results = results.Where(p => p.BrandId == SelectedBrandFilter.Id).ToList();
+                results = results.Where(p => p.BrandId == SelectedBrandFilter.Id);
             }
 
             if (decimal.TryParse(SearchPriceMin, out decimal min))
             {
-                results = results.Where(p => p.DefaultPrice >= min).ToList();
+                results = results.Where(p => p.DefaultPrice >= min);
             }
 
             if (decimal.TryParse(SearchPriceMax, out decimal max))
             {
-                results = results.Where(p => p.DefaultPrice <= max).ToList();
+                results = results.Where(p => p.DefaultPrice <= max);
             }
 
             if (SearchSerial != "Tất cả")
             {
                 bool tracked = SearchSerial == "Có serial";
-                results = results.Where(p => p.IsSerialTracked == tracked).ToList();
+                results = results.Where(p => p.IsSerialTracked == tracked);
             }
 
             if (int.TryParse(SearchWarranty, out int warranty))
             {
-                results = results.Where(p => p.WarrantyPeriodMonths == warranty).ToList();
+                results = results.Where(p => p.WarrantyPeriodMonths == warranty);
             }
 
-            Products = new ObservableCollection<Product>(results);
+            var list = results.ToList();
+            Products = new ObservableCollection<Product>(list);
 
             // Update Stats
-            LowStockCount = results.Count(p => p.StockBalances.Sum(sb => sb.OnHandQuantity) > 0 && p.StockBalances.Sum(sb => sb.OnHandQuantity) <= 5);
-            OutOfStockCount = results.Count(p => p.StockBalances.Sum(sb => sb.OnHandQuantity) <= 0);
-            OutOfStockActiveCount = results.Count(p => p.IsActive && p.StockBalances.Sum(sb => sb.OnHandQuantity) <= 0);
-            ActiveCount = results.Count(p => p.IsActive);
-            InactiveCount = results.Count(p => !p.IsActive);
+            LowStockCount = list.Count(p => p.StockBalances.Sum(sb => sb.OnHandQuantity) > 0 && p.StockBalances.Sum(sb => sb.OnHandQuantity) <= 5);
+            OutOfStockCount = list.Count(p => p.StockBalances.Sum(sb => sb.OnHandQuantity) <= 0);
+            OutOfStockActiveCount = list.Count(p => p.IsActive && p.StockBalances.Sum(sb => sb.OnHandQuantity) <= 0);
         }
 
         [RelayCommand]
-        private void Search() => LoadData();
+        private void Search() => ApplyFilters();
 
         [RelayCommand]
         private void Refresh()
@@ -174,6 +190,7 @@ namespace QuanLyHangHoa.ViewModels
             var window = new ProductEditWindow { DataContext = vm };
             if (window.ShowDialog() == true)
             {
+                LoadCounts();
                 LoadData();
             }
         }
@@ -186,6 +203,7 @@ namespace QuanLyHangHoa.ViewModels
             var window = new ProductEditWindow { DataContext = vm };
             if (window.ShowDialog() == true)
             {
+                LoadCounts();
                 LoadData();
             }
         }
@@ -212,6 +230,7 @@ namespace QuanLyHangHoa.ViewModels
                 try 
                 {
                     _service.DeleteProduct(product.Id, _currentUser.Id);
+                    LoadCounts();
                     LoadData();
                 }
                 catch (Exception ex)

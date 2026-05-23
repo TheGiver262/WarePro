@@ -33,10 +33,13 @@
         <Border>
             <Border.Style>
                 <Style TargetType="Border" BasedOn="{StaticResource ProMaxBadgeBorderStyle}">
-                    <Setter Property="Background" Value="{StaticResource DangerBgBrush}"/>
+                    <Setter Property="Background" Value="{StaticResource NeutralBgBrush}"/>
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding IsActive}" Value="True">
                             <Setter Property="Background" Value="{StaticResource SuccessBgBrush}"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding IsActive}" Value="False">
+                            <Setter Property="Background" Value="{StaticResource DangerBgBrush}"/>
                         </DataTrigger>
                     </Style.Triggers>
                 </Style>
@@ -44,12 +47,15 @@
             <TextBlock>
                 <TextBlock.Style>
                     <Style TargetType="TextBlock" BasedOn="{StaticResource ProMaxBadgeTextBlockStyle}">
-                        <Setter Property="Text" Value="DỪNG"/>
-                        <Setter Property="Foreground" Value="{StaticResource DangerTextBrush}"/>
+                        <Setter Property="Text" Value=""/>
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding IsActive}" Value="True">
                                 <Setter Property="Text" Value="HOẠT ĐỘNG"/>
                                 <Setter Property="Foreground" Value="{StaticResource SuccessTextBrush}"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsActive}" Value="False">
+                                <Setter Property="Text" Value="DỪNG"/>
+                                <Setter Property="Foreground" Value="{StaticResource DangerTextBrush}"/>
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Windows;
@@ -19,18 +20,24 @@ namespace QuanLyHangHoa.ViewModels
         private readonly Func<AppDbContext> _contextFactory;
         private readonly BrandService _service;
         private readonly AppUser _currentUser;
+        private List<Brand> _allBrands = new();
 
 
         [ObservableProperty] private bool _canManage;
         [ObservableProperty] private ObservableCollection<Brand> _brands = new();
         [ObservableProperty] private Brand? _selectedBrand;
+
+        // Footer counts
+        [ObservableProperty] private int _totalCount;
+        [ObservableProperty] private int _activeCount;
+        [ObservableProperty] private int _inactiveCount;
         
         // Search Filters
         [ObservableProperty] private string _searchCode = string.Empty;
         [ObservableProperty] private string _searchName = string.Empty;
         [ObservableProperty] private string? _searchOrigin = "Tất cả";
         [ObservableProperty] private string? _searchStatus = "Tất cả";
-        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Ho\u1EA1t \u0111\u1ED9ng", "D\u1EEBng"];
+        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Hoạt động", "Dừng"];
         public ObservableCollection<string> OriginOptions { get; } = new();
 
         // Edit Properties
@@ -54,20 +61,32 @@ namespace QuanLyHangHoa.ViewModels
         public void LoadBrands()
         {
             using var db = _contextFactory();
-            var query = db.Brands.AsNoTracking().AsQueryable();
+            _allBrands = db.Brands.AsNoTracking().ToList();
+
+            // Calculate counts in memory (instant)
+            TotalCount = _allBrands.Count;
+            ActiveCount = _allBrands.Count(b => b.IsActive);
+            InactiveCount = _allBrands.Count(b => !b.IsActive);
+
+            ApplyFilters();
+        }
+
+        private void ApplyFilters()
+        {
+            var query = _allBrands.AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(SearchCode))
-                query = query.Where(b => b.BrandCode.Contains(SearchCode));
+                query = query.Where(b => b.BrandCode.Contains(SearchCode, StringComparison.OrdinalIgnoreCase));
 
             if (!string.IsNullOrWhiteSpace(SearchName))
-                query = query.Where(b => b.DisplayName.Contains(SearchName));
+                query = query.Where(b => b.DisplayName.Contains(SearchName, StringComparison.OrdinalIgnoreCase));
 
             if (!string.IsNullOrWhiteSpace(SearchOrigin) && SearchOrigin != "Tất cả")
                 query = query.Where(b => b.OriginCountry == SearchOrigin);
 
-            if (SearchStatus == "Ho\u1EA1t \u0111\u1ED9ng")
+            if (SearchStatus == "Hoạt động")
                 query = query.Where(b => b.IsActive);
-            else if (SearchStatus == "D\u1EEBng")
+            else if (SearchStatus == "Dừng")
                 query = query.Where(b => !b.IsActive);
 
             var list = query.OrderBy(b => b.BrandCode).ToList();
@@ -103,10 +122,10 @@ namespace QuanLyHangHoa.ViewModels
             LoadBrands();
         }
 
-        partial void OnSearchCodeChanged(string value) => LoadBrands();
-        partial void OnSearchNameChanged(string value) => LoadBrands();
-        partial void OnSearchOriginChanged(string? value) => LoadBrands();
-        partial void OnSearchStatusChanged(string? value) => LoadBrands();
+        partial void OnSearchCodeChanged(string value) => ApplyFilters();
+        partial void OnSearchNameChanged(string value) => ApplyFilters();
+        partial void OnSearchOriginChanged(string? value) => ApplyFilters();
+        partial void OnSearchStatusChanged(string? value) => ApplyFilters();
 
         [RelayCommand(CanExecute = nameof(CanManage))]
         private void AddNew()

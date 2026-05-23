@@ -349,7 +349,7 @@
                         <TextBlock VerticalAlignment="Center" Style="{StaticResource TypographyCaption}">
                             <TextBlock.Text>
                                 <MultiBinding StringFormat="{}Hiện có {0} sản phẩm trong hệ thống · {1} Hoạt động · {2} Dừng">
-                                    <Binding Path="Products.Count"/>
+                                    <Binding Path="TotalCount"/>
                                     <Binding Path="ActiveCount"/>
                                     <Binding Path="InactiveCount"/>
                                 </MultiBinding>

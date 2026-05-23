@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Collections.Generic;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -25,6 +26,11 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private ObservableCollection<Unit> _units = new();
         [ObservableProperty] private Unit? _selectedUnit;
 
+        // Footer counts
+        [ObservableProperty] private int _totalCount;
+        [ObservableProperty] private int _activeCount;
+        [ObservableProperty] private int _inactiveCount;
+
         // Search Filters
         [ObservableProperty] private string _searchCode = string.Empty;
         [ObservableProperty] private string _searchName = string.Empty;
@@ -40,17 +46,31 @@ namespace QuanLyHangHoa.ViewModels
             LoadData();
         }
 
+        private List<Unit> _allUnits = new();
+
         [RelayCommand]
         public void LoadData()
         {
             using var db = _contextFactory();
-            var query = db.Units.AsNoTracking().AsQueryable();
+            _allUnits = db.Units.AsNoTracking().ToList();
+
+            // Calculate counts in memory (instant)
+            TotalCount = _allUnits.Count;
+            ActiveCount = _allUnits.Count(u => u.IsActive);
+            InactiveCount = _allUnits.Count(u => !u.IsActive);
+
+            ApplyFilters();
+        }
+
+        private void ApplyFilters()
+        {
+            var query = _allUnits.AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(SearchCode))
-                query = query.Where(u => u.UnitCode.Contains(SearchCode));
+                query = query.Where(u => u.UnitCode.Contains(SearchCode, StringComparison.OrdinalIgnoreCase));
 
             if (!string.IsNullOrWhiteSpace(SearchName))
-                query = query.Where(u => u.DisplayName.Contains(SearchName));
+                query = query.Where(u => u.DisplayName.Contains(SearchName, StringComparison.OrdinalIgnoreCase));
 
             if (SearchStatus == "Hoạt động")
                 query = query.Where(u => u.IsActive);
@@ -70,9 +90,9 @@ namespace QuanLyHangHoa.ViewModels
             LoadData();
         }
 
-        partial void OnSearchCodeChanged(string value) => LoadData();
-        partial void OnSearchNameChanged(string value) => LoadData();
-        partial void OnSearchStatusChanged(string? value) => LoadData();
+        partial void OnSearchCodeChanged(string value) => ApplyFilters();
+        partial void OnSearchNameChanged(string value) => ApplyFilters();
+        partial void OnSearchStatusChanged(string? value) => ApplyFilters();
 
         [RelayCommand(CanExecute = nameof(CanManage))]
         private void OpenAddUnitDialog()

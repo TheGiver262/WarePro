@@ -257,7 +257,7 @@
                         <TextBlock VerticalAlignment="Center" Style="{StaticResource TypographyCaption}">
                             <TextBlock.Text>
                                 <MultiBinding StringFormat="{}Hiện có {0} số Serial trong hệ thống · {1} trong kho · {2} đã bán · {3} thanh lý">
-                                    <Binding Path="Serials.Count"/>
+                                    <Binding Path="TotalCount"/>
                                     <Binding Path="InStockCount"/>
                                     <Binding Path="SoldCount"/>
                                     <Binding Path="ScrappedCount"/>

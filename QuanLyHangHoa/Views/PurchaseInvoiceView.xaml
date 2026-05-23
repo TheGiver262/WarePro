@@ -1,4 +1,5 @@
 <UserControl x:Class="QuanLyHangHoa.Views.PurchaseInvoiceView"
+             x:Name="RootPurchaseInvoiceView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -73,7 +74,7 @@
                                     <TextBlock Text="SỐ HOÁ ĐƠN" Style="{StaticResource TypographyLabel}" Margin="0,0,0,6"/>
                                     <TextBox Text="{Binding SearchInvoiceCode, UpdateSourceTrigger=PropertyChanged}"
                                              materialDesign:HintAssist.Hint="Mã hoá đơn..."
-                                             materialDesign:TextFieldAssist.HasClearButton="True"
+                                             materialDesign:TextFieldAssist.HasClearButton="False"
                                              Height="32" VerticalContentAlignment="Center"/>
                                 </StackPanel>
 
@@ -81,7 +82,7 @@
                                     <TextBlock Text="NHÀ CUNG CẤP" Style="{StaticResource TypographyLabel}" Margin="0,0,0,6"/>
                                     <TextBox Text="{Binding SearchSupplierName, UpdateSourceTrigger=PropertyChanged}"
                                              materialDesign:HintAssist.Hint="Tìm nhà cung cấp..."
-                                             materialDesign:TextFieldAssist.HasClearButton="True"
+                                             materialDesign:TextFieldAssist.HasClearButton="False"
                                              Height="32" VerticalContentAlignment="Center"/>
                                 </StackPanel>
 
@@ -192,15 +193,15 @@
                                             <DataTemplate>
                                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                                     <Button Style="{StaticResource ProMaxIconButtonStyle}" Content="{materialDesign:PackIcon Kind=EyeOutline}" 
-                                                            Command="{Binding DataContext.ViewInvoiceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            Command="{Binding DataContext.ViewInvoiceCommand, ElementName=RootPurchaseInvoiceView}"
                                                             CommandParameter="{Binding}"
                                                             ToolTip="Xem chi tiết"/>
                                                     <Button Style="{StaticResource ProMaxIconButtonStyle}" Content="{materialDesign:PackIcon Kind=PencilOutline}" 
-                                                            Command="{Binding DataContext.EditInvoiceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            Command="{Binding DataContext.EditInvoiceCommand, ElementName=RootPurchaseInvoiceView}"
                                                             CommandParameter="{Binding}"
                                                             Margin="4,0,0,0" ToolTip="Chỉnh sửa"/>
                                                     <Button Style="{StaticResource ProMaxIconButtonStyle}" Content="{materialDesign:PackIcon Kind=PrinterOutline}" 
-                                                            Command="{Binding DataContext.PrintInvoiceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            Command="{Binding DataContext.PrintInvoiceCommand, ElementName=RootPurchaseInvoiceView}"
                                                             CommandParameter="{Binding}"
                                                             Margin="4,0,0,0" ToolTip="In hóa đơn"/>
                                                 </StackPanel>
@@ -407,12 +408,12 @@
                                             </DataGridTemplateColumn.Header>
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
-                                                    <ComboBox ItemsSource="{Binding DataContext.AvailableProducts, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    <ComboBox ItemsSource="{Binding DataContext.AvailableProducts, ElementName=RootPurchaseInvoiceView}"
                                                               SelectedItem="{Binding SelectedProduct}"
                                                               DisplayMemberPath="DisplayName"
                                                               Style="{StaticResource AppComboBoxStyle}" Margin="8,4" BorderThickness="0" Height="36"
-                                                              materialDesign:TextFieldAssist.HasClearButton="True"
-                                                              IsEnabled="{Binding DataContext.IsViewMode, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource InverseBooleanConverter}}"/>
+                                                              materialDesign:TextFieldAssist.HasClearButton="False"
+                                                              IsEnabled="{Binding DataContext.IsViewMode, ElementName=RootPurchaseInvoiceView, Converter={StaticResource InverseBooleanConverter}}"/>
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
@@ -428,7 +429,7 @@
                                                 <DataTemplate>
                                                     <TextBox Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" HorizontalContentAlignment="Center"
                                                              Style="{StaticResource AppTextBoxStyle}" Margin="8,4" Height="36" BorderThickness="0"
-                                                             IsReadOnly="{Binding DataContext.IsViewMode, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                             IsReadOnly="{Binding DataContext.IsViewMode, ElementName=RootPurchaseInvoiceView}"/>
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
@@ -444,7 +445,7 @@
                                                 <DataTemplate>
                                                     <TextBox Text="{Binding UnitPrice, StringFormat='N0', UpdateSourceTrigger=PropertyChanged}" HorizontalContentAlignment="Right"
                                                              Style="{StaticResource AppTextBoxStyle}" Margin="8,4" Height="36" BorderThickness="0"
-                                                             IsReadOnly="{Binding DataContext.IsViewMode, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                             IsReadOnly="{Binding DataContext.IsViewMode, ElementName=RootPurchaseInvoiceView}"/>
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
@@ -460,7 +461,7 @@
                                                 <DataTemplate>
                                                     <TextBox Text="{Binding TaxRate, StringFormat='P0', UpdateSourceTrigger=PropertyChanged}" HorizontalContentAlignment="Center"
                                                              Style="{StaticResource AppTextBoxStyle}" Margin="8,4" Height="36" BorderThickness="0"
-                                                             IsReadOnly="{Binding DataContext.IsViewMode, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                             IsReadOnly="{Binding DataContext.IsViewMode, ElementName=RootPurchaseInvoiceView}"/>
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
@@ -484,9 +485,9 @@
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
                                                     <Button Style="{StaticResource ProMaxIconButtonStyle}"
-                                                            Command="{Binding DataContext.RemoveLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            Command="{Binding DataContext.RemoveLineCommand, ElementName=RootPurchaseInvoiceView}"
                                                             CommandParameter="{Binding}" VerticalAlignment="Center"
-                                                            Visibility="{Binding DataContext.IsViewMode, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                                                            Visibility="{Binding DataContext.IsViewMode, ElementName=RootPurchaseInvoiceView, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                                                         <materialDesign:PackIcon Kind="TrashCanOutline" Width="18" Height="18" Foreground="{StaticResource AppErrorBrush}"/>
                                                     </Button>
                                                 </DataTemplate>

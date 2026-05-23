@@ -104,7 +104,7 @@
                     </Grid.RowDefinitions>
 
                     <!-- Table Header -->
-                    <DataGrid Grid.Row="0" ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory, Mode=TwoWay}"
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory, Mode=TwoWay}"
                                AlternationCount="10000" EnableRowVirtualization="False"
                                AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                                BorderThickness="0" RowHeight="56" Background="Transparent">
@@ -176,10 +176,12 @@
 
                     <!-- Footer -->
                     <Border Grid.Row="2" Padding="20,12" Background="{StaticResource AppFooterBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
-                        <TextBlock FontSize="13" Foreground="{StaticResource AppSecondaryBrush}">
+                        <TextBlock FontSize="13" Foreground="{StaticResource AppSecondaryBrush}" Style="{StaticResource TypographyCaption}">
                             <TextBlock.Text>
-                                <MultiBinding StringFormat="{}Hiện có {0} danh mục trong hệ thống">
-                                    <Binding Path="Categories.Count"/>
+                                <MultiBinding StringFormat="{}Hiện có {0} danh mục trong hệ thống · {1} Hoạt động · {2} Dừng">
+                                    <Binding Path="TotalCount"/>
+                                    <Binding Path="ActiveCount"/>
+                                    <Binding Path="InactiveCount"/>
                                 </MultiBinding>
                             </TextBlock.Text>
                         </TextBlock>

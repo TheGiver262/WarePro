@@ -1,18 +1,39 @@
+using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using CommunityToolkit.Mvvm.ComponentModel;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
 
 namespace QuanLyHangHoa.Views
 {
+    public class AvailableSerialItem : ObservableObject
+    {
+        private string _serialNumber = string.Empty;
+        public string SerialNumber
+        {
+            get => _serialNumber;
+            set => SetProperty(ref _serialNumber, value);
+        }
+
+        private bool _isSelected;
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set => SetProperty(ref _isSelected, value);
+        }
+    }
+
     public partial class SerialInputWindow : Window
     {
         // ── Dependency properties ──────────────────────────────────────────────
         public static readonly DependencyProperty SerialInputProperty =
             DependencyProperty.Register(nameof(SerialInput), typeof(string), typeof(SerialInputWindow),
-                new PropertyMetadata(string.Empty, (d, e) => ((SerialInputWindow)d).UpdatePreview()));
+                new PropertyMetadata(string.Empty));
 
         public string SerialInput
         {
@@ -30,23 +51,51 @@ namespace QuanLyHangHoa.Views
             set => SetValue(IsReadOnlyProperty, value);
         }
 
-        public List<string> AvailableSerials { get; } = new();
-        public bool HasAvailableSerials => AvailableSerials.Count > 0;
+        public ObservableCollection<AvailableSerialItem> AvailableSerials { get; } = new();
+        private bool _isUpdating;
 
+        public bool HasAvailableSerials => AvailableSerials.Count > 0;
         public bool ShowAvailableSerials => HasAvailableSerials && !IsReadOnly;
         public string CancelButtonText => IsReadOnly ? "ĐÓNG" : "HỦY BỎ";
         public bool ShowConfirmButton => !IsReadOnly;
         public HorizontalAlignment CancelButtonAlignment => IsReadOnly ? HorizontalAlignment.Right : HorizontalAlignment.Left;
 
-        // ── Converters via code ────────────────────────────────────────────────
         public SerialInputWindow(string existingInput = "", IEnumerable<ProductSerial>? available = null, bool isReadOnly = false)
         {
             IsReadOnly = isReadOnly;
             InitializeComponent();
-            SerialInput = existingInput;
-            if (available != null)
-                AvailableSerials.AddRange(available.Select(s => s.SerialNumber));
-            DataContext = this;
+
+            _isUpdating = true;
+            try
+            {
+                if (available != null)
+                {
+                    var existingSerials = new HashSet<string>(
+                        StockInService.ParseSerialRange(existingInput), 
+                        StringComparer.OrdinalIgnoreCase
+                    );
+
+                    foreach (var s in available)
+                    {
+                        var item = new AvailableSerialItem
+                        {
+                            SerialNumber = s.SerialNumber,
+                            IsSelected = existingSerials.Contains(s.SerialNumber)
+                        };
+                        AvailableSerials.Add(item);
+                    }
+                }
+
+                SerialInput = existingInput;
+                DataContext = this;
+                
+                // Set the TextBox text directly to trigger the TextChanged handler once initially
+                SerialTextBox.Text = existingInput;
+            }
+            finally
+            {
+                _isUpdating = false;
+            }
             UpdatePreview();
         }
 
@@ -59,7 +108,7 @@ namespace QuanLyHangHoa.Views
         private void UpdatePreview()
         {
             if (PreviewLabel == null) return;
-            var parsed = StockInService.ParseSerialRange(SerialInput);
+            var parsed = StockInService.ParseSerialRange(SerialTextBox.Text);
             if (IsReadOnly)
             {
                 PreviewLabel.Text = parsed.Count > 0
@@ -69,23 +118,79 @@ namespace QuanLyHangHoa.Views
             else
             {
                 PreviewLabel.Text = parsed.Count > 0
-                    ? $"→ Sẽ tạo {parsed.Count} serial number."
+                    ? $"→ Sẽ chọn {parsed.Count} serial number."
                     : "Nhập serial để xem trước.";
             }
         }
 
-        private void AvailableListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void CheckBox_Checked(object sender, RoutedEventArgs e)
         {
-            if (AvailableListBox.SelectedItem is string serial)
+            if (_isUpdating) return;
+            if (sender is CheckBox cb && cb.DataContext is AvailableSerialItem item)
             {
-                // Append to text box
-                var lines = SerialInput.Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0).ToList();
-                if (!lines.Contains(serial))
+                _isUpdating = true;
+                try
                 {
-                    lines.Add(serial);
-                    SerialInput = string.Join("\n", lines);
+                    item.IsSelected = true;
+                    UpdateTextBoxFromCheckboxes();
                 }
-                AvailableListBox.SelectedItem = null;
+                finally
+                {
+                    _isUpdating = false;
+                }
+            }
+        }
+
+        private void CheckBox_Unchecked(object sender, RoutedEventArgs e)
+        {
+            if (_isUpdating) return;
+            if (sender is CheckBox cb && cb.DataContext is AvailableSerialItem item)
+            {
+                _isUpdating = true;
+                try
+                {
+                    item.IsSelected = false;
+                    UpdateTextBoxFromCheckboxes();
+                }
+                finally
+                {
+                    _isUpdating = false;
+                }
+            }
+        }
+
+        private void UpdateTextBoxFromCheckboxes()
+        {
+            var selected = AvailableSerials
+                .Where(x => x.IsSelected)
+                .Select(x => x.SerialNumber)
+                .ToList();
+            SerialTextBox.Text = string.Join(Environment.NewLine, selected);
+            SerialInput = SerialTextBox.Text;
+        }
+
+        private void SerialTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            UpdatePreview();
+
+            if (_isUpdating) return;
+
+            _isUpdating = true;
+            try
+            {
+                var parsed = new HashSet<string>(
+                    StockInService.ParseSerialRange(SerialTextBox.Text),
+                    StringComparer.OrdinalIgnoreCase
+                );
+                foreach (var item in AvailableSerials)
+                {
+                    item.IsSelected = parsed.Contains(item.SerialNumber);
+                }
+                SerialInput = SerialTextBox.Text;
+            }
+            finally
+            {
+                _isUpdating = false;
             }
         }
 

@@ -6,7 +6,7 @@
 
     <!-- Standard Form TextBox (for dialogs/forms) -->
     <Style x:Key="AppTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource MaterialDesignTextBox}">
-        <Setter Property="materialDesign:TextFieldAssist.HasClearButton" Value="True"/>
+        <Setter Property="materialDesign:TextFieldAssist.HasClearButton" Value="False"/>
         <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
         <Setter Property="Padding" Value="0,4"/>
         <Setter Property="Height" Value="Auto"/>
@@ -65,7 +65,7 @@
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
-        <Setter Property="materialDesign:TextFieldAssist.HasClearButton" Value="True"/>
+        <Setter Property="materialDesign:TextFieldAssist.HasClearButton" Value="False"/>
         <Setter Property="materialDesign:TextFieldAssist.DecorationVisibility" Value="Visible"/>
     </Style>
 
@@ -77,7 +77,7 @@
         <Setter Property="Padding" Value="0,4"/>
         <Setter Property="FontSize" Value="13"/>
         <Setter Property="FontWeight" Value="Regular"/>
-        <Setter Property="materialDesign:TextFieldAssist.HasClearButton" Value="True"/>
+        <Setter Property="materialDesign:TextFieldAssist.HasClearButton" Value="False"/>
         <Setter Property="BorderThickness" Value="0,0,0,1"/>
         <Setter Property="BorderBrush" Value="{StaticResource AppBorderBrush}"/>
         <Setter Property="materialDesign:TextFieldAssist.UnderlineBrush" Value="{StaticResource PrimaryPurpleBrush}"/>

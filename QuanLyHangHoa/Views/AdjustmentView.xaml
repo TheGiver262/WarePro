@@ -55,7 +55,7 @@
                         <ComboBox ItemsSource="{Binding Products}" SelectedItem="{Binding SelectedProduct}" DisplayMemberPath="DisplayName"
                                   Style="{StaticResource MaterialDesignFloatingHintComboBox}" 
                                   materialDesign:HintAssist.Hint="Chọn sản phẩm điều chỉnh" FontSize="14"
-                                  materialDesign:TextFieldAssist.HasClearButton="True"/>
+                                  materialDesign:TextFieldAssist.HasClearButton="False"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" Margin="0,0,16,0">

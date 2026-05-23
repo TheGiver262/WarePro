@@ -94,10 +94,10 @@
                     </Grid.RowDefinitions>
                     
                     <!-- Table Header Border -->                
-                    <DataGrid Grid.Row="0" ItemsSource="{Binding Units}" SelectedItem="{Binding SelectedUnit, Mode=TwoWay}"
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding Units}" SelectedItem="{Binding SelectedUnit, Mode=TwoWay}"
                                AlternationCount="10000" EnableRowVirtualization="False"
                                AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                               RowHeight="52">
+                               RowHeight="52" BorderThickness="0" Background="Transparent">
                         <DataGrid.Columns>
                             
                             <!-- Unit Code Column with Filter Icon -->
@@ -166,10 +166,12 @@
 
                     <!-- Footer -->
                     <Border Grid.Row="2" VerticalAlignment="Bottom" Padding="20,12" Background="{StaticResource AppFooterBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
-                        <TextBlock FontSize="13" Foreground="{StaticResource AppSecondaryBrush}">
+                        <TextBlock FontSize="13" Foreground="{StaticResource AppSecondaryBrush}" Style="{StaticResource TypographyCaption}">
                             <TextBlock.Text>
-                                <MultiBinding StringFormat="{}Hiện có {0} đơn vị tính trong hệ thống">
-                                    <Binding Path="Units.Count"/>
+                                <MultiBinding StringFormat="{}Hiện có {0} đơn vị tính trong hệ thống · {1} Hoạt động · {2} Dừng">
+                                    <Binding Path="TotalCount"/>
+                                    <Binding Path="ActiveCount"/>
+                                    <Binding Path="InactiveCount"/>
                                 </MultiBinding>
                             </TextBlock.Text>
                         </TextBlock>

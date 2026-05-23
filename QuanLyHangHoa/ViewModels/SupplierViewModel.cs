@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Collections.Generic;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -25,6 +26,11 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private ObservableCollection<Supplier> _suppliers = new();
         [ObservableProperty] private Supplier? _selectedSupplier;
 
+        // Footer counts
+        [ObservableProperty] private int _totalCount;
+        [ObservableProperty] private int _activeCount;
+        [ObservableProperty] private int _inactiveCount;
+
         // Search Filters
         [ObservableProperty] private string _searchCode = string.Empty;
         [ObservableProperty] private string _searchName = string.Empty;
@@ -42,23 +48,37 @@ namespace QuanLyHangHoa.ViewModels
             LoadData();
         }
 
+        private List<Supplier> _allSuppliers = new();
+
         [RelayCommand]
         public void LoadData()
         {
             using var db = _contextFactory();
-            var query = db.Suppliers.AsNoTracking().AsQueryable();
+            _allSuppliers = db.Suppliers.AsNoTracking().ToList();
+
+            // Calculate counts in memory (instant)
+            TotalCount = _allSuppliers.Count;
+            ActiveCount = _allSuppliers.Count(s => s.IsActive);
+            InactiveCount = _allSuppliers.Count(s => !s.IsActive);
+
+            ApplyFilters();
+        }
+
+        private void ApplyFilters()
+        {
+            var query = _allSuppliers.AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(SearchCode))
-                query = query.Where(s => s.SupplierCode.Contains(SearchCode));
+                query = query.Where(s => s.SupplierCode.Contains(SearchCode, StringComparison.OrdinalIgnoreCase));
 
             if (!string.IsNullOrWhiteSpace(SearchName))
-                query = query.Where(s => s.DisplayName.Contains(SearchName));
+                query = query.Where(s => s.DisplayName.Contains(SearchName, StringComparison.OrdinalIgnoreCase));
 
             if (!string.IsNullOrWhiteSpace(SearchEmail))
-                query = query.Where(s => s.Email != null && s.Email.Contains(SearchEmail));
+                query = query.Where(s => s.Email != null && s.Email.Contains(SearchEmail, StringComparison.OrdinalIgnoreCase));
 
             if (!string.IsNullOrWhiteSpace(SearchPhone))
-                query = query.Where(s => s.Phone != null && s.Phone.Contains(SearchPhone));
+                query = query.Where(s => s.Phone != null && s.Phone.Contains(SearchPhone, StringComparison.OrdinalIgnoreCase));
 
             if (SearchStatus == "Hoạt động")
                 query = query.Where(s => s.IsActive);
@@ -80,11 +100,11 @@ namespace QuanLyHangHoa.ViewModels
             LoadData();
         }
 
-        partial void OnSearchCodeChanged(string value) => LoadData();
-        partial void OnSearchNameChanged(string value) => LoadData();
-        partial void OnSearchEmailChanged(string value) => LoadData();
-        partial void OnSearchPhoneChanged(string value) => LoadData();
-        partial void OnSearchStatusChanged(string? value) => LoadData();
+        partial void OnSearchCodeChanged(string value) => ApplyFilters();
+        partial void OnSearchNameChanged(string value) => ApplyFilters();
+        partial void OnSearchEmailChanged(string value) => ApplyFilters();
+        partial void OnSearchPhoneChanged(string value) => ApplyFilters();
+        partial void OnSearchStatusChanged(string? value) => ApplyFilters();
 
         [RelayCommand(CanExecute = nameof(CanManage))]
         private void OpenAddSupplierDialog()

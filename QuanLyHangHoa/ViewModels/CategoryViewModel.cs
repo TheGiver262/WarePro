@@ -6,6 +6,7 @@ using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Views;
 using System;
 using System.Collections.ObjectModel;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Windows;
@@ -27,11 +28,16 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private ObservableCollection<Category> _categories = new();
         [ObservableProperty] private Category? _selectedCategory;
 
+        // Footer counts
+        [ObservableProperty] private int _totalCount;
+        [ObservableProperty] private int _activeCount;
+        [ObservableProperty] private int _inactiveCount;
+
         // Search Filters
         [ObservableProperty] private string _searchCode = string.Empty;
         [ObservableProperty] private string _searchName = string.Empty;
         [ObservableProperty] private string? _searchStatus = "Tất cả";
-        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Ho\u1EA1t \u0111\u1ED9ng", "D\u1EEBng"];
+        public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Hoạt động", "Dừng"];
 
         public CategoryViewModel(Func<AppDbContext> contextFactory, AppUser currentUser)
         {
@@ -42,21 +48,35 @@ namespace QuanLyHangHoa.ViewModels
             LoadCategories();
         }
 
+        private List<Category> _allCategories = new();
+
         [RelayCommand]
         public void LoadCategories()
         {
             using var db = _contextFactory();
-            var query = db.Categories.AsNoTracking().AsQueryable();
+            _allCategories = db.Categories.AsNoTracking().ToList();
+
+            // Calculate counts in memory (instant)
+            TotalCount = _allCategories.Count;
+            ActiveCount = _allCategories.Count(c => c.IsActive);
+            InactiveCount = _allCategories.Count(c => !c.IsActive);
+
+            ApplyFilters();
+        }
+
+        private void ApplyFilters()
+        {
+            var query = _allCategories.AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(SearchCode))
-                query = query.Where(c => c.CategoryCode.Contains(SearchCode));
+                query = query.Where(c => c.CategoryCode.Contains(SearchCode, StringComparison.OrdinalIgnoreCase));
 
             if (!string.IsNullOrWhiteSpace(SearchName))
-                query = query.Where(c => c.DisplayName.Contains(SearchName));
+                query = query.Where(c => c.DisplayName.Contains(SearchName, StringComparison.OrdinalIgnoreCase));
 
-            if (SearchStatus == "Ho\u1EA1t \u0111\u1ED9ng")
+            if (SearchStatus == "Hoạt động")
                 query = query.Where(c => c.IsActive);
-            else if (SearchStatus == "D\u1EEBng")
+            else if (SearchStatus == "Dừng")
                 query = query.Where(c => !c.IsActive);
 
             var list = query.OrderBy(c => c.CategoryCode).ToList();
@@ -72,9 +92,9 @@ namespace QuanLyHangHoa.ViewModels
             LoadCategories();
         }
 
-        partial void OnSearchCodeChanged(string value) => LoadCategories();
-        partial void OnSearchNameChanged(string value) => LoadCategories();
-        partial void OnSearchStatusChanged(string? value) => LoadCategories();
+        partial void OnSearchCodeChanged(string value) => ApplyFilters();
+        partial void OnSearchNameChanged(string value) => ApplyFilters();
+        partial void OnSearchStatusChanged(string? value) => ApplyFilters();
 
         [RelayCommand(CanExecute = nameof(CanManage))]
         private void OpenAddCategoryDialog()

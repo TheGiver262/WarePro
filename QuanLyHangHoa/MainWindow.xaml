@@ -75,10 +75,10 @@
                         <TextBlock Text="KHO" Style="{StaticResource SidebarSectionHeader}"/>
                         <RadioButton Content="Nhập kho" Tag="ArrowDownBold" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockInViewCommand}"/>
                         <RadioButton Content="Xuất kho" Tag="ArrowUpBold" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockOutViewCommand}"/>
-                        <RadioButton Content="Chuyển kho" Tag="SwapHorizontal" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockTransferViewCommand}"/>
+                        <!-- <RadioButton Content="Chuyển kho" Tag="SwapHorizontal" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockTransferViewCommand}"/> -->
                         <RadioButton Content="Tồn kho" Tag="ChartBar" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenInventoryViewCommand}"/>
                         <RadioButton Content="Nhập tồn đầu kỳ" Tag="DatabaseImport" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenOpeningBalanceImportViewCommand}"/>
-                        <RadioButton Content="Điều chỉnh kho" Tag="Tune" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockAdjustmentViewCommand}"/>
+                        <!-- <RadioButton Content="Điều chỉnh kho" Tag="Tune" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockAdjustmentViewCommand}"/> -->
                         <RadioButton Content="Kiểm kê" Tag="ClipboardCheckOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockCountViewCommand}"/>
 
                         <TextBlock Text="HÓA ĐƠN" Style="{StaticResource SidebarSectionHeader}"/>
@@ -176,9 +176,7 @@
             </Border>
 
             <!-- Content §2 -->
-            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Disabled">
-                <ContentControl Content="{Binding CurrentView}"/>
-            </ScrollViewer>
+            <ContentControl Grid.Row="1" Content="{Binding CurrentView}"/>
         </Grid>
 
     </Grid>
