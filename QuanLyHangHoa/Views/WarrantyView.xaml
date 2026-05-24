@@ -189,18 +189,10 @@
             <materialDesign:Card Grid.Row="3" Style="{StaticResource AppCard}" Padding="0">
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
-                    
-                    <Border Padding="{StaticResource Spacing.md}" Background="{StaticResource AppSurfaceBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1">
-                        <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="ListBox" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
-                            <TextBlock Text="DANH SÁCH PHIẾU BẢO HÀNH" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.md}"/>
-                        </StackPanel>
-                    </Border>
 
-                    <DataGrid Grid.Row="1" ItemsSource="{Binding Warranties}" SelectedItem="{Binding SelectedWarranty}"
+                    <DataGrid Grid.Row="0" ItemsSource="{Binding Warranties}" SelectedItem="{Binding SelectedWarranty}"
                                AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                                BorderThickness="0" RowHeight="56" Background="Transparent">
                         <DataGrid.Columns>

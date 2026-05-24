@@ -371,6 +371,7 @@ namespace QuanLyHangHoa.Services.DataImport
                             unit = new Unit
                             {
                                 DisplayName = unitName,
+                                UnitCode = $"UNT-{Guid.NewGuid().ToString().Substring(0, 8).ToUpperInvariant()}",
                                 IsActive = true
                             };
                             db.Units.Add(unit);

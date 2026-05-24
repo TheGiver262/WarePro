@@ -9,6 +9,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services.DataImport;
+using System.Text.Json;
 
 namespace QuanLyHangHoa.ViewModels
 {
@@ -268,6 +269,43 @@ namespace QuanLyHangHoa.ViewModels
                 Errors = new ObservableCollection<RowError>(result.Errors);
                 
                 StatusMessage = $"Import thành công {SuccessCount} dòng. Thất bại {Errors.Count} dòng.";
+
+                // Ghi audit log cho nhập tồn đầu kỳ
+                if (SuccessCount > 0)
+                {
+                    try
+                    {
+                        using var db = _contextFactory();
+                        var importTypeName = SelectedImportTypeItem?.DisplayName ?? "Sản phẩm";
+                        var fileName = System.IO.Path.GetFileName(FilePath);
+                        var detailLog = new
+                        {
+                            ImportType = importType.ToString(),
+                            ImportTypeDisplayName = importTypeName,
+                            FileName = fileName,
+                            SuccessCount = SuccessCount,
+                            ErrorCount = Errors.Count,
+                            AutoCreateReferences = AutoCreateReferences
+                        };
+                        
+                        db.AuditLogs.Add(new AuditLog
+                        {
+                            EntityName = "OpeningBalanceImport",
+                            EntityId = 0,
+                            ActionCode = "IMPORT",
+                            PerformedBy = _postedByUserId,
+                            PerformedAt = DateTime.Now,
+                            BeforeJson = null,
+                            AfterJson = JsonSerializer.Serialize(detailLog)
+                        });
+                        db.SaveChanges();
+                    }
+                    catch (Exception auditEx)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Failed to write audit log: {auditEx.Message}");
+                    }
+                }
+
                 ActiveStep = 4;
             }
             catch (Exception ex)
@@ -275,6 +313,13 @@ namespace QuanLyHangHoa.ViewModels
                 StatusMessage = $"Lỗi import: {ex.Message}";
                 _showMessage(StatusMessage, "Lỗi");
             }
+        }
+
+        [RelayCommand]
+        private void ShowInstruction()
+        {
+            var window = new Views.ImportInstructionWindow();
+            window.ShowDialog();
         }
 
         [RelayCommand]

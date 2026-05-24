@@ -102,4 +102,91 @@ public class StockCountServiceTests
         var line = Assert.Single(adjustment.Lines);
         Assert.Equal(600, line.ProductId);
     }
+
+    [Fact]
+    public void CreateSession_creates_audit_log()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        using (var setupContext = DatabaseHelper.CreateContext(connection))
+        {
+            DatabaseHelper.SeedBasicData(setupContext);
+        }
+
+        var service = new StockCountService(() => DatabaseHelper.CreateContext(connection));
+        var session = new StockCountSession
+        {
+            SessionCode = "CNT-AUD-001",
+            WarehouseId = 1,
+            CountDate = DateTime.UtcNow,
+            CreatedBy = 1,
+            Status = "đã kiểm kê"
+        };
+
+        service.CreateSession(session);
+
+        using var assertContext = DatabaseHelper.CreateContext(connection);
+        var logs = assertContext.AuditLogs.ToList();
+        var audit = Assert.Single(logs);
+        Assert.Equal("StockCountSession", audit.EntityName);
+        Assert.Equal("CREATE", audit.ActionCode);
+        Assert.Equal(session.Id, audit.EntityId);
+        Assert.Contains("CNT-AUD-001", audit.AfterJson ?? "");
+    }
+
+    [Fact]
+    public void ProcessResults_creates_audit_log()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        int sessionId;
+        using (var seedContext = DatabaseHelper.CreateContext(connection))
+        {
+            DatabaseHelper.SeedBasicData(seedContext);
+            seedContext.Products.Add(new Product { 
+                Id = 700, 
+                ProductCode = "P700", 
+                DisplayName = "Audit count product", 
+                CategoryId = 1, 
+                BrandId = 1, 
+                DefaultUnitId = 1, 
+                DefaultPrice = 15m,
+                IsActive = true
+            });
+            
+            var session = new StockCountSession
+            {
+                SessionCode = "CNT-AUD-002",
+                WarehouseId = 1,
+                Status = "đã kiểm kê",
+                CountDate = DateTime.UtcNow,
+                CreatedBy = 1,
+                Lines = new List<StockCountLine>
+                {
+                    new StockCountLine
+                    {
+                        ProductId = 700,
+                        SystemQuantity = 10,
+                        CountedQuantity = 8,
+                        VarianceQuantity = -2
+                    }
+                }
+            };
+            seedContext.StockCountSessions.Add(session);
+            seedContext.SaveChanges();
+            sessionId = session.Id;
+        }
+
+        var service = new StockCountService(() => DatabaseHelper.CreateContext(connection));
+        service.ProcessResults(sessionId, 1);
+
+        using var assertContext = DatabaseHelper.CreateContext(connection);
+        var logs = assertContext.AuditLogs.Where(l => l.EntityName == "StockCountSession" && l.ActionCode == "POST").ToList();
+        var audit = Assert.Single(logs);
+        Assert.Equal("StockCountSession", audit.EntityName);
+        Assert.Equal("POST", audit.ActionCode);
+        Assert.Equal(sessionId, audit.EntityId);
+        Assert.Contains("hoàn thành", audit.AfterJson ?? "");
+        Assert.Contains("đã kiểm kê", audit.BeforeJson ?? "");
+    }
 }

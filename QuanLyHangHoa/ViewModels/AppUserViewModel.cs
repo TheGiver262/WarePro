@@ -32,7 +32,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private DateTime? _searchDate;
         [ObservableProperty] private bool _isEditPanelOpen;
 
-        public ObservableCollection<string> Roles { get; } = ["Tất cả", "Quản trị viên", "Quản lý", "Manager", "Staff", "Nhân viên bảo hành", "Nhân viên bán hàng", "Nhân viên kho", "Admin"];
+        public ObservableCollection<string> Roles { get; } = ["Tất cả", "Quản trị viên", "Quản lý", "Nhân viên bảo hành", "Nhân viên bán hàng", "Nhân viên kho"];
         public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Hoạt động", "Dừng"];
 
         private readonly Func<AppDbContext> _contextFactory;

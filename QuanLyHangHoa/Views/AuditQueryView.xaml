@@ -81,19 +81,10 @@
                 <materialDesign:Card Grid.Column="0" Margin="{StaticResource Margin.Right.lg}" Style="{StaticResource AppCard}" Padding="0">
                     <Grid>
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
 
-                        <!-- Standard Table Header Border -->
-                        <Border Grid.Row="0" Padding="{StaticResource Spacing.md}" Background="{StaticResource AppSurfaceBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1">
-                            <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="ListBox" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}" Width="20" Height="20"/>
-                                <TextBlock Text="DANH SÁCH NHẬT KÝ TRUY VẤN" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.md}"/>
-                            </StackPanel>
-                        </Border>
-
-                        <DataGrid Grid.Row="1" ItemsSource="{Binding Entries}" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                        <DataGrid Grid.Row="0" ItemsSource="{Binding Entries}" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                                   RowHeight="54" BorderThickness="0" Background="Transparent"
                                   HeadersVisibility="Column" GridLinesVisibility="Horizontal"
                                   HorizontalGridLinesBrush="{StaticResource AppBorderBrush}">

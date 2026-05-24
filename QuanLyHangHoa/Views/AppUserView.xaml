@@ -92,7 +92,7 @@
                     </StackPanel>
 
                     <!-- Actions -->
-                    <StackPanel Grid.Column="5" Orientation="Horizontal" VerticalAlignment="Bottom">
+                    <StackPanel Grid.Column="5" Orientation="Horizontal" VerticalAlignment="Center">
                         <Button Style="{StaticResource AppRefreshButton}" 
                                 Command="{Binding ResetFilterCommand}"
                                 ToolTip="Làm mới bộ lọc"
@@ -114,22 +114,13 @@
             <materialDesign:Card Grid.Row="2" Style="{StaticResource AppCard}" Padding="0">
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/> <!-- Table Header -->
                         <RowDefinition Height="*"/>    <!-- DataGrid -->
                         <RowDefinition Height="Auto"/> <!-- Footer -->
                     </Grid.RowDefinitions>
 
-                    <!-- Table Header -->
-                    <Border Grid.Row="0" Padding="{StaticResource Spacing.md}" Background="{StaticResource AppSurfaceBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1">
-                        <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="ListBox" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}" Width="20" Height="20"/>
-                            <TextBlock Text="DANH SÁCH TÀI KHOẢN NGƯỜI DÙNG" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.md}"/>
-                        </StackPanel>
-                    </Border>
-                    
-                    <DataGrid Grid.Row="1" ItemsSource="{Binding Users}" SelectedItem="{Binding SelectedUser, Mode=TwoWay}"
+                    <DataGrid Grid.Row="0" ItemsSource="{Binding Users}" SelectedItem="{Binding SelectedUser, Mode=TwoWay}"
                                AlternationCount="10000" EnableRowVirtualization="False"
-                               AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                               AutoGenerateColumns="False" CanUserAddRows="False" CanUserReorderColumns="False" IsReadOnly="True"
                                BorderThickness="0" RowHeight="56" Background="Transparent">
                         <DataGrid.ColumnHeaderStyle>
                             <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource MaterialDesignDataGridColumnHeader}">
@@ -249,7 +240,7 @@
                     </DataGrid>
 
                     <!-- Footer -->
-                    <Border Grid.Row="2" Padding="20,12" Background="{StaticResource AppFooterBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
+                    <Border Grid.Row="1" Padding="20,12" Background="{StaticResource AppFooterBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
                         <TextBlock FontSize="13" Foreground="{StaticResource AppSecondaryBrush}">
                             <TextBlock.Text>
                                 <MultiBinding StringFormat="{}Hiện có {0} người dùng trong hệ thống">
@@ -283,7 +274,7 @@
                     <StackPanel Grid.Row="1" Margin="24">
                         <StackPanel Margin="0,0,0,16">
                             <TextBlock Text="Họ và tên" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8" FontWeight="SemiBold"/>
-                            <TextBox Style="{StaticResource AppTextBoxStyle}" Height="50" VerticalContentAlignment="Center"
+                            <TextBox Style="{StaticResource DetailFormTextBoxStyle}"
                                      materialDesign:HintAssist.IsFloating="False"
                                      materialDesign:HintAssist.Hint="Nhập họ và tên"
                                      Text="{Binding CurrentInputUser.FullName, UpdateSourceTrigger=PropertyChanged}"/>
@@ -291,7 +282,7 @@
 
                         <StackPanel Margin="0,0,0,16">
                             <TextBlock Text="Tên tài khoản" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8" FontWeight="SemiBold"/>
-                            <TextBox Style="{StaticResource AppTextBoxStyle}" Height="50" VerticalContentAlignment="Center"
+                            <TextBox Style="{StaticResource DetailFormTextBoxStyle}"
                                      IsEnabled="False" Background="#F3F4F6"
                                      materialDesign:HintAssist.IsFloating="False"
                                      Text="{Binding CurrentInputUser.Username}"/>
@@ -299,7 +290,7 @@
 
                         <StackPanel Margin="0,0,0,16">
                             <TextBlock Text="Vai trò" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8" FontWeight="SemiBold"/>
-                            <ComboBox Style="{StaticResource AppComboBoxStyle}" Height="50" VerticalContentAlignment="Center"                                     
+                            <ComboBox Style="{StaticResource DetailFormComboBoxStyle}"                                    
                                       materialDesign:HintAssist.IsFloating="False"
                                       ItemsSource="{Binding Roles}"
                                       SelectedItem="{Binding CurrentInputUser.RoleCode}"/>

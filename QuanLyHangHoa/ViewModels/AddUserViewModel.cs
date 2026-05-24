@@ -18,7 +18,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _roleCode = "Nhân viên bán hàng";
         [ObservableProperty] private bool _isActive = true;
         
-        public ObservableCollection<string> Roles { get; } = ["Quản trị viên", "Quản lý", "Manager", "Staff", "Nhân viên bảo hành", "Nhân viên bán hàng", "Nhân viên kho", "Admin"];
+        public ObservableCollection<string> Roles { get; } = ["Quản trị viên", "Quản lý", "Nhân viên bảo hành", "Nhân viên bán hàng", "Nhân viên kho"];
 
         public AddUserViewModel(int currentUserId, AppUserService userService)
         {

@@ -94,7 +94,7 @@
                     </StackPanel>
 
                     <!-- Action Buttons -->
-                    <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Bottom">
+                    <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
                         <Button Style="{StaticResource AppRefreshButton}" 
                                 Command="{Binding ResetFiltersCommand}"
                                 ToolTip="Làm mới bộ lọc"

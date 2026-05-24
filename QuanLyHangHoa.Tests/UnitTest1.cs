@@ -1,4 +1,4 @@
-﻿namespace QuanLyHangHoa.Tests;
+namespace QuanLyHangHoa.Tests;
 
 public class UnitTest1
 {

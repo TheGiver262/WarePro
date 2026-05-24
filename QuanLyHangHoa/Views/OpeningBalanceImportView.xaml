@@ -11,31 +11,38 @@
     <Grid Background="{StaticResource AppBackgroundBrush}">
         <Grid Margin="{StaticResource PagePadding}">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/> <!-- Header & Step Progress -->
-                <RowDefinition Height="*"/>    <!-- Active Step Content -->
+                <RowDefinition Height="Auto"/> <!-- Row 0: Header Section -->
+                <RowDefinition Height="Auto"/> <!-- Row 1: Step Progress Indicator -->
+                <RowDefinition Height="*"/>    <!-- Row 2: Active Step Content -->
             </Grid.RowDefinitions>
 
-            <!-- Row 0: Header Section & Progress Steps -->
-            <Grid Grid.Row="0" Margin="0,0,0,24">
+            <!-- Row 0: Header Section -->
+            <Grid Grid.Row="0" Margin="0,0,0,16">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <StackPanel Grid.Column="0">
-                    <StackPanel Orientation="Horizontal">
-                        <materialDesign:PackIcon Kind="DatabaseImport" Width="32" Height="32" 
-                                               Foreground="{StaticResource AppPrimaryBrush}" VerticalAlignment="Center"/>
-                        <TextBlock Text="NHẬP DỮ LIỆU THÔNG MINH" Style="{StaticResource TypographyH1}" 
-                                  Margin="16,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
-                    </StackPanel>
-                    <TextBlock Text="Nhập tồn kho, sản phẩm, đối tác từ file Excel/CSV bằng cách ánh xạ các cột tự động" 
-                              Style="{StaticResource TypographyCaption}" Margin="48,4,0,0" 
-                              Opacity="0.7"/>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <materialDesign:PackIcon Kind="DatabaseImport" Width="32" Height="32" 
+                                            Foreground="{StaticResource AppPrimaryBrush}" VerticalAlignment="Center"/>
+                    <TextBlock Text="NHẬP TỒN ĐẦU KỲ" Style="{StaticResource TypographyH1}" 
+                              Margin="16,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
                 </StackPanel>
 
-                <!-- Wizard Step Progress Indicator -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,24,0">
+                <Button Grid.Column="1" Style="{StaticResource PrimaryButton}" 
+                        Command="{Binding ShowInstructionCommand}" 
+                        Height="34" Width="150" VerticalAlignment="Center" Margin="0,0,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="HelpCircleOutline" Width="18" Height="18" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="HƯỚNG DẪN" Style="{StaticResource TypographyButtonText}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </Grid>
+
+            <!-- Row 1: Wizard Step Progress Indicator -->
+            <Border Grid.Row="1" Background="{StaticResource SurfaceMutedBrush}" CornerRadius="{StaticResource Radius.md}" Padding="20,12" Margin="0,0,0,24">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                     <!-- Step 1 Indicator -->
                     <StackPanel Orientation="Horizontal">
                         <Border Width="26" Height="26" CornerRadius="13" VerticalAlignment="Center">
@@ -77,20 +84,20 @@
                             </Border.Style>
                             <TextBlock Text="2" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold" FontSize="12">
                                 <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Foreground" Value="{StaticResource AppSecondaryBrush}"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ActiveStep}" Value="2">
-                                                <Setter Property="Foreground" Value="White"/>
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding ActiveStep}" Value="3">
-                                                <Setter Property="Foreground" Value="White"/>
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding ActiveStep}" Value="4">
-                                                <Setter Property="Foreground" Value="White"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
+                                     <Style TargetType="TextBlock">
+                                         <Setter Property="Foreground" Value="{StaticResource AppSecondaryBrush}"/>
+                                         <Style.Triggers>
+                                             <DataTrigger Binding="{Binding ActiveStep}" Value="2">
+                                                 <Setter Property="Foreground" Value="White"/>
+                                             </DataTrigger>
+                                             <DataTrigger Binding="{Binding ActiveStep}" Value="3">
+                                                 <Setter Property="Foreground" Value="White"/>
+                                             </DataTrigger>
+                                             <DataTrigger Binding="{Binding ActiveStep}" Value="4">
+                                                 <Setter Property="Foreground" Value="White"/>
+                                             </DataTrigger>
+                                         </Style.Triggers>
+                                     </Style>
                                 </TextBlock.Style>
                             </TextBlock>
                         </Border>
@@ -134,17 +141,17 @@
                             </Border.Style>
                             <TextBlock Text="3" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold" FontSize="12">
                                 <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Foreground" Value="{StaticResource AppSecondaryBrush}"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ActiveStep}" Value="3">
-                                                <Setter Property="Foreground" Value="White"/>
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding ActiveStep}" Value="4">
-                                                <Setter Property="Foreground" Value="White"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
+                                     <Style TargetType="TextBlock">
+                                         <Setter Property="Foreground" Value="{StaticResource AppSecondaryBrush}"/>
+                                         <Style.Triggers>
+                                             <DataTrigger Binding="{Binding ActiveStep}" Value="3">
+                                                 <Setter Property="Foreground" Value="White"/>
+                                             </DataTrigger>
+                                             <DataTrigger Binding="{Binding ActiveStep}" Value="4">
+                                                 <Setter Property="Foreground" Value="White"/>
+                                             </DataTrigger>
+                                         </Style.Triggers>
+                                     </Style>
                                 </TextBlock.Style>
                             </TextBlock>
                         </Border>
@@ -182,14 +189,14 @@
                             </Border.Style>
                             <TextBlock Text="4" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold" FontSize="12">
                                 <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Foreground" Value="{StaticResource AppSecondaryBrush}"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ActiveStep}" Value="4">
-                                                <Setter Property="Foreground" Value="White"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
+                                     <Style TargetType="TextBlock">
+                                         <Setter Property="Foreground" Value="{StaticResource AppSecondaryBrush}"/>
+                                         <Style.Triggers>
+                                             <DataTrigger Binding="{Binding ActiveStep}" Value="4">
+                                                 <Setter Property="Foreground" Value="White"/>
+                                             </DataTrigger>
+                                         </Style.Triggers>
+                                     </Style>
                                 </TextBlock.Style>
                             </TextBlock>
                         </Border>
@@ -207,10 +214,10 @@
                         </TextBlock>
                     </StackPanel>
                 </StackPanel>
-            </Grid>
+            </Border>
 
-            <!-- Row 1: Active Step Content Switcher -->
-            <Grid Grid.Row="1">
+            <!-- Row 2: Active Step Content Switcher -->
+            <Grid Grid.Row="2">
                 
                 <!-- STEP 1: FILE SELECTION -->
                 <Grid>

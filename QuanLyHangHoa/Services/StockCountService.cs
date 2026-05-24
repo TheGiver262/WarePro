@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
@@ -21,6 +22,7 @@ namespace QuanLyHangHoa.Services
             using var db = _contextFactory();
             db.StockCountSessions.Add(session);
             db.SaveChanges();
+            AddAudit(db, "CREATE", session.Id, null, Serialize(session), session.CreatedBy);
         }
 
         public void ProcessResults(int sessionId, int userId)
@@ -31,6 +33,8 @@ namespace QuanLyHangHoa.Services
                 .FirstOrDefault(s => s.Id == sessionId);
 
             if (session == null || session.Status != "đã kiểm kê") return;
+
+            var beforeJson = Serialize(session);
 
             // 1. Create adjustment for variances
             var adjustment = new StockAdjustment
@@ -80,6 +84,44 @@ namespace QuanLyHangHoa.Services
             }
 
             session.Status = "hoàn thành";
+            session.PostedBy = userId;
+            session.PostedAt = DateTime.Now;
+            db.SaveChanges();
+
+            var afterJson = Serialize(session);
+            AddAudit(db, "POST", session.Id, beforeJson, afterJson, userId);
+        }
+
+        private string Serialize(StockCountSession s)
+        {
+            return JsonSerializer.Serialize(new
+            {
+                s.Id,
+                s.SessionCode,
+                s.WarehouseId,
+                s.Status,
+                s.CountDate,
+                s.CreatedBy,
+                s.PostedBy,
+                s.PostedAt
+            }, new JsonSerializerOptions
+            {
+                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.Create(System.Text.Unicode.UnicodeRanges.All)
+            });
+        }
+
+        private void AddAudit(AppDbContext db, string action, int entityId, string? before, string? after, int performedBy)
+        {
+            db.AuditLogs.Add(new AuditLog
+            {
+                EntityName = "StockCountSession",
+                EntityId = entityId,
+                ActionCode = action,
+                BeforeJson = before,
+                AfterJson = after,
+                PerformedBy = performedBy,
+                PerformedAt = DateTime.Now
+            });
             db.SaveChanges();
         }
     }

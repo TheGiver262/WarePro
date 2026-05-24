@@ -269,6 +269,8 @@ namespace QuanLyHangHoa.ViewModels
                     "ACTIVATE" => "đã cho phép hoạt động",
                     "LOGIN" => "đã đăng nhập",
                     "LOGOUT" => "đã đăng xuất",
+                    "IMPORT" => "đã nhập",
+                    "POST" => "đã chốt sổ",
                     _ => $"đã thực hiện thao tác {actionCode} trên"
                 };
 
@@ -285,12 +287,14 @@ namespace QuanLyHangHoa.ViewModels
                     "PurchaseInvoice" => "đơn nhập hàng",
                     "SalesInvoice" => "đơn bán hàng",
                     "StockAdjustment" => "phiếu kiểm kho",
+                    "OpeningBalanceImport" => "tồn đầu kỳ từ file",
+                    "StockCountSession" => "phiên kiểm kê kho",
                     _ => log.EntityName ?? "đối tượng"
                 };
 
                 // Try to find a descriptive name for the target entity
                 string targetName = "không xác định";
-                if (actionCode == "CREATE" || actionCode == "UPDATE" || actionCode == "ACTIVATE" || actionCode == "DEACTIVATE")
+                if (actionCode == "CREATE" || actionCode == "UPDATE" || actionCode == "ACTIVATE" || actionCode == "DEACTIVATE" || actionCode == "IMPORT")
                 {
                     targetName = ExtractNameFromJson(log.AfterJson);
                     if (targetName == "không xác định") targetName = ExtractNameFromJson(log.BeforeJson);
@@ -321,7 +325,7 @@ namespace QuanLyHangHoa.ViewModels
             {
                 using var doc = JsonDocument.Parse(json);
                 // List of common name properties in order of preference
-                string[] possibleKeys = { "Username", "DisplayName", "FullName", "CategoryName", "CustomerName", "SupplierName", "BrandName", "WarehouseName", "ProductCode", "Code" };
+                string[] possibleKeys = { "Username", "DisplayName", "FullName", "CategoryName", "CustomerName", "SupplierName", "BrandName", "WarehouseName", "ProductCode", "Code", "FileName", "SessionCode" };
                 
                 foreach (var key in possibleKeys)
                 {

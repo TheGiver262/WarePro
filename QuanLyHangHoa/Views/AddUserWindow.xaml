@@ -26,33 +26,29 @@
             <!-- Form -->
             <StackPanel Grid.Row="1">
                 <TextBlock Text="Họ và tên" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8"/>
-                <TextBox Style="{StaticResource AppTextBoxStyle}" 
-                         materialDesign:HintAssist.Hint="Nhập họ và tên đầy đủ"
-                         materialDesign:HintAssist.IsFloating="False"
-                         Text="{Binding FullName, UpdateSourceTrigger=PropertyChanged}"
-                         Height="50" Margin="0,0,0,20"/>
+                <TextBox Style="{StaticResource DetailFormTextBoxStyle}" 
+                          materialDesign:HintAssist.Hint="Nhập họ và tên đầy đủ"
+                          materialDesign:HintAssist.IsFloating="False"
+                          Text="{Binding FullName, UpdateSourceTrigger=PropertyChanged}"
+                          Margin="0,0,0,20"/>
 
                 <TextBlock Text="Tên tài khoản" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8"/>
-                <TextBox Style="{StaticResource AppTextBoxStyle}" 
-                         materialDesign:HintAssist.Hint="Nhập username đăng nhập"
-                         materialDesign:HintAssist.IsFloating="False"
-                         Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"
-                         Height="50" Margin="0,0,0,20"/>
+                <TextBox Style="{StaticResource DetailFormTextBoxStyle}" 
+                          materialDesign:HintAssist.Hint="Nhập username đăng nhập"
+                          materialDesign:HintAssist.IsFloating="False"
+                          Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"
+                          Margin="0,0,0,20"/>
 
                 <TextBlock Text="Vai trò" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8"/>
-                <ComboBox Style="{StaticResource AppComboBoxStyle}" 
+                <ComboBox Style="{StaticResource DetailFormComboBoxStyle}" 
                           materialDesign:HintAssist.Hint="Chọn vai trò"
                           materialDesign:HintAssist.IsFloating="False"
-                          Height="50" Margin="0,0,0,20"
+                          Margin="0,0,0,20"
                           ItemsSource="{Binding Roles}"
                           SelectedItem="{Binding RoleCode}"/>
-                
+
                 <TextBlock Text="* Mật khẩu mặc định sẽ giống tên tài khoản" 
                            Style="{StaticResource TypographyCaption}" Foreground="{StaticResource AppSecondaryBrush}" FontStyle="Italic" Margin="0,0,0,12"/>
-
-                <CheckBox Content="Hoạt động" IsChecked="{Binding IsActive}" 
-                          Style="{StaticResource MaterialDesignCheckBox}"
-                          FontWeight="SemiBold" FontSize="14" Foreground="{StaticResource AppPrimaryBrush}"/>
             </StackPanel>
 
             <!-- Actions -->

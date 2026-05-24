@@ -96,7 +96,7 @@
             <!-- Row 2: Data Table -->
             <materialDesign:Card Grid.Row="2" Style="{StaticResource AppCard}" Padding="0">
                 <DataGrid ItemsSource="{Binding StockTransferList}" 
-                          AutoGenerateColumns="False" CanUserAddRows="False" 
+                          AutoGenerateColumns="False" CanUserAddRows="False" CanUserReorderColumns="False"
                           IsReadOnly="True" BorderThickness="0">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="MÃ PHIẾU" Binding="{Binding DocumentCode}" Width="150" ElementStyle="{DynamicResource AppDataGridTextBold}"/>
@@ -206,31 +206,31 @@
 
                     <StackPanel Grid.Column="0" Margin="0,0,24,0">
                         <TextBlock Text="MÃ PHIẾU" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
-                        <TextBox Style="{StaticResource AppTextBoxStyle}" IsReadOnly="True" Width="140" Height="42"
+                        <TextBox Style="{StaticResource DetailFormTextBoxStyle}" IsReadOnly="True" Width="140"
                                  materialDesign:TextFieldAssist.HasClearButton="False"
                                  Text="{Binding DocumentCode}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" Margin="0,0,24,0">
                         <TextBlock Text="KHO ĐI" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
-                        <ComboBox Width="180" Height="42" Style="{StaticResource AppComboBoxStyle}" IsEnabled="{Binding CanEdit}"
+                        <ComboBox Width="180" Style="{StaticResource DetailFormComboBoxStyle}" IsEnabled="{Binding CanEdit}"
                                   ItemsSource="{Binding AvailableWarehouses}" DisplayMemberPath="DisplayName" SelectedItem="{Binding SelectedFromWarehouse}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="2" Margin="0,0,24,0">
                         <TextBlock Text="KHO ĐẾN" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
-                        <ComboBox Width="180" Height="42" Style="{StaticResource AppComboBoxStyle}" IsEnabled="{Binding CanEdit}"
+                        <ComboBox Width="180" Style="{StaticResource DetailFormComboBoxStyle}" IsEnabled="{Binding CanEdit}"
                                   ItemsSource="{Binding AvailableWarehouses}" DisplayMemberPath="DisplayName" SelectedItem="{Binding SelectedToWarehouse}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="3" Margin="0,0,24,0">
                         <TextBlock Text="NGÀY CHUYỂN" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
-                        <DatePicker Width="140" Height="42" Style="{StaticResource AppDatePickerStyle}" IsEnabled="{Binding CanEdit}" SelectedDate="{Binding TransferDate}"/>
+                        <DatePicker Width="140" Style="{StaticResource DetailFormDatePickerStyle}" IsEnabled="{Binding CanEdit}" SelectedDate="{Binding TransferDate}"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="4" Margin="0,0,24,0">
                         <TextBlock Text="GHI CHÚ" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
-                        <TextBox Height="42" Style="{StaticResource AppTextBoxStyle}" Text="{Binding Notes}" IsReadOnly="{Binding CanEdit, Converter={StaticResource InverseBooleanConverter}}"/>
+                        <TextBox Style="{StaticResource DetailFormTextBoxStyle}" Text="{Binding Notes}" IsReadOnly="{Binding CanEdit, Converter={StaticResource InverseBooleanConverter}}"/>
                     </StackPanel>
 
                     <Button Grid.Column="5" Command="{Binding AddLineCommand}" Style="{StaticResource PrimaryButton}" Height="42" VerticalAlignment="Bottom" Padding="16,0"
@@ -252,11 +252,14 @@
                     </Grid.RowDefinitions>
 
                     <DataGrid Grid.Row="0" ItemsSource="{Binding Lines}" 
-                                AutoGenerateColumns="False" CanUserAddRows="False" 
+                                AutoGenerateColumns="False" CanUserAddRows="False" CanUserReorderColumns="False"
                                 BorderThickness="0" Background="Transparent" RowHeight="54"
                                 IsReadOnly="True">
                         <DataGrid.Columns>
-                            <DataGridTemplateColumn Header="SẢN PHẨM" Width="*">
+                            <DataGridTemplateColumn Width="*">
+                                <DataGridTemplateColumn.Header>
+                                    <TextBlock Text="SẢN PHẨM" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
+                                </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <ComboBox ItemsSource="{Binding DataContext.AvailableProducts, RelativeSource={RelativeSource AncestorType=UserControl}}" 
@@ -266,7 +269,10 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTemplateColumn Header="ĐƠN VỊ" Width="120">
+                            <DataGridTemplateColumn Width="120">
+                                <DataGridTemplateColumn.Header>
+                                    <TextBlock Text="ĐƠN VỊ" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
+                                </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <ComboBox ItemsSource="{Binding AvailableUnits}" 
@@ -276,17 +282,23 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTemplateColumn Header="SL" Width="100">
+                            <DataGridTemplateColumn Width="120">
+                                <DataGridTemplateColumn.Header>
+                                    <TextBlock Text="SỐ LƯỢNG" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
+                                </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <TextBox Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource AppPrimaryBrush}"
-                                                 Style="{StaticResource InputText}" Height="36" BorderThickness="0" Background="{StaticResource SurfaceMutedBrush}"
-                                                 IsReadOnly="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource InverseBooleanConverter}}"/>
+                                        <TextBox Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" HorizontalContentAlignment="Right" 
+                                                  Style="{StaticResource AppTextBoxStyle}" Margin="8,4" Height="36"
+                                                  IsReadOnly="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource InverseBooleanConverter}}"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTemplateColumn Header="SERIAL" Width="180">
+                            <DataGridTemplateColumn Width="180">
+                                <DataGridTemplateColumn.Header>
+                                    <TextBlock Text="SERIAL" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
+                                </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Grid Margin="8,4" Visibility="{Binding IsSerialRequired, Converter={StaticResource BooleanToVisibilityConverter}}">
@@ -343,10 +355,13 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTemplateColumn Header="THAO TÁC" Width="100">
+                            <DataGridTemplateColumn Width="140">
+                                <DataGridTemplateColumn.Header>
+                                    <TextBlock Text="THAO TÁC" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
+                                </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Button Style="{StaticResource ProMaxIconButtonStyle}" HorizontalAlignment="Center"
+                                        <Button Style="{StaticResource ProMaxIconButtonStyle}" Margin="4" HorizontalAlignment="Center"
                                                 Command="{Binding DataContext.RemoveLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
                                                 Visibility="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}">
                                             <materialDesign:PackIcon Kind="TrashCanOutline" Width="20" Height="20" Foreground="{StaticResource AppErrorBrush}"/>

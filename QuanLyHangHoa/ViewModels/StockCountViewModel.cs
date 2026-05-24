@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
 
@@ -32,6 +33,10 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _searchText = string.Empty;
         [ObservableProperty] private string _status = "nháp";
 
+        [ObservableProperty] private ObservableCollection<StockCountSession> _pastSessions = new();
+        [ObservableProperty] private StockCountSession? _selectedSession;
+        [ObservableProperty] private ObservableCollection<StockCountLine> _selectedSessionLines = new();
+
         public StockCountViewModel(AppUser? currentUser = null, Func<AppDbContext>? contextFactory = null)
         {
             _currentUser = currentUser ?? new AppUser { Id = 1, Username = "System" };
@@ -40,6 +45,7 @@ namespace QuanLyHangHoa.ViewModels
             _stockCountService = new StockCountService(_contextFactory);
             LoadData();
             SessionCode = CreateDefaultSessionCode();
+            LoadPastSessions();
         }
 
         [RelayCommand]
@@ -89,6 +95,7 @@ namespace QuanLyHangHoa.ViewModels
 
             try
             {
+                using var db = _contextFactory();
                 var session = new StockCountSession
                 {
                     SessionCode = SessionCode,
@@ -98,13 +105,21 @@ namespace QuanLyHangHoa.ViewModels
                     CreatedBy = _currentUser.Id
                 };
 
-                session.Lines = Lines.Select(l => new StockCountLine
+                session.Lines = Lines.Select(l =>
                 {
-                    ProductId = l.SelectedProduct?.Id ?? 0,
-                    CountedQuantity = l.CountedQuantity,
-                    // Note: SystemQuantity would normally be pulled from current balance
-                    SystemQuantity = 0, 
-                    VarianceQuantity = l.CountedQuantity
+                    int prodId = l.SelectedProduct?.Id ?? 0;
+                    decimal systemQty = db.StockBalances
+                        .Where(sb => sb.WarehouseId == WarehouseId && sb.ProductId == prodId)
+                        .Select(sb => sb.OnHandQuantity)
+                        .FirstOrDefault();
+
+                    return new StockCountLine
+                    {
+                        ProductId = prodId,
+                        CountedQuantity = l.CountedQuantity,
+                        SystemQuantity = systemQty,
+                        VarianceQuantity = l.CountedQuantity - systemQty
+                    };
                 }).ToList();
 
                 _stockCountService.CreateSession(session);
@@ -112,6 +127,7 @@ namespace QuanLyHangHoa.ViewModels
                 
                 Lines.Clear();
                 SessionCode = CreateDefaultSessionCode();
+                LoadPastSessions();
             }
             catch (Exception ex)
             {
@@ -124,9 +140,87 @@ namespace QuanLyHangHoa.ViewModels
             return $"COUNT-{DateTime.Now:yyyyMMddHHmmss}";
         }
 
+        [RelayCommand]
+        public void LoadPastSessions()
+        {
+            try
+            {
+                using var db = _contextFactory();
+                var sessions = db.StockCountSessions
+                    .Include(s => s.Warehouse)
+                    .Include(s => s.Creator)
+                    .OrderByDescending(s => s.CountDate)
+                    .ToList();
+                PastSessions = new ObservableCollection<StockCountSession>(sessions);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi tải lịch sử kiểm kê: {ex.Message}", "Lỗi");
+            }
+        }
+
+        partial void OnSelectedSessionChanged(StockCountSession? value)
+        {
+            if (value == null)
+            {
+                SelectedSessionLines = new ObservableCollection<StockCountLine>();
+                return;
+            }
+
+            try
+            {
+                using var db = _contextFactory();
+                var lines = db.StockCountLines
+                    .Include(l => l.Product)
+                    .Where(l => l.SessionId == value.Id)
+                    .ToList();
+                SelectedSessionLines = new ObservableCollection<StockCountLine>(lines);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi tải chi tiết phiên kiểm kê: {ex.Message}", "Lỗi");
+            }
+        }
+
+        [RelayCommand]
+        private void ProcessSession(StockCountSession? session)
+        {
+            if (session == null) return;
+            if (session.Status != "đã kiểm kê")
+            {
+                MessageBox.Show("Chỉ có thể xử lý các phiên có trạng thái 'đã kiểm kê'.", "Cảnh báo");
+                return;
+            }
+
+            var confirm = MessageBox.Show($"Bạn có muốn thực hiện xử lý chênh lệch cho phiên kiểm kê {session.SessionCode} không?", 
+                "Xác nhận xử lý", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+            if (confirm != MessageBoxResult.Yes) return;
+
+            try
+            {
+                _stockCountService.ProcessResults(session.Id, _currentUser.Id);
+                MessageBox.Show("Xử lý chênh lệch thành công! Kho đã được điều chỉnh.", "Thông báo");
+                
+                LoadPastSessions();
+                
+                var currentId = SelectedSession?.Id;
+                SelectedSession = null;
+                if (currentId.HasValue)
+                {
+                    SelectedSession = PastSessions.FirstOrDefault(s => s.Id == currentId.Value);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi xử lý chênh lệch: {ex.Message}", "Lỗi");
+            }
+        }
+
         public void RefreshData()
         {
             LoadData();
+            LoadPastSessions();
         }
     }
 }

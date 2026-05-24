@@ -165,6 +165,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/> <!-- Header -->
                 <RowDefinition Height="Auto"/> <!-- Info Card -->
+                <RowDefinition Height="Auto"/> <!-- Add Line Button -->
                 <RowDefinition Height="*"/>    <!-- Lines Card -->
             </Grid.RowDefinitions>
 
@@ -238,34 +239,27 @@
                     </StackPanel>
                 </Grid>
             </materialDesign:Card>
+            <Button Grid.Row="2" Command="{Binding AddLineCommand}" Style="{StaticResource SecondaryButton}" Height="36"
+                    HorizontalAlignment="Left" Margin="0,12,0,12"
+                    Visibility="{Binding IsEditMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="Plus" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <TextBlock Text="THÊM DÒNG SẢN PHẨM" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
+                </StackPanel>
+            </Button>
 
             <!-- Lines Section -->
-            <materialDesign:Card Grid.Row="2" Style="{StaticResource AppCard}" Padding="0">
+            <materialDesign:Card Grid.Row="3" Style="{StaticResource AppCard}" Padding="0">
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Section Header -->
-                    <Border Padding="20,12" Background="{StaticResource SurfaceMutedBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1">
-                        <Grid>
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <materialDesign:PackIcon Kind="FormatListBulleted" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
-                                <TextBlock Text="DANH SÁCH HÀNG HÓA" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}" Margin="12,0,0,0"/>
-                            </StackPanel>
-                            <Button HorizontalAlignment="Right" Command="{Binding AddLineCommand}"
-                                    Visibility="{Binding IsEditMode, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                    Style="{StaticResource ProMaxIconButtonStyle}" Width="32" Height="32">
-                                <materialDesign:PackIcon Kind="PlusCircle" Width="24" Height="24" Foreground="{StaticResource AppSuccessBrush}"/>
-                            </Button>
-                        </Grid>
-                    </Border>
-
                     <!-- Lines DataGrid -->
-                    <DataGrid Grid.Row="1" ItemsSource="{Binding Lines}" AutoGenerateColumns="False" 
-                              CanUserAddRows="False" SelectionMode="Single" Style="{StaticResource AppDataGridStyle}"
+                    <DataGrid Grid.Row="0" ItemsSource="{Binding Lines}" AutoGenerateColumns="False" 
+                               CanUserAddRows="False" SelectionMode="Single" Style="{StaticResource AppDataGridStyle}"
+                               RowHeight="60">dRows="False" SelectionMode="Single" Style="{StaticResource AppDataGridStyle}"
                               RowHeight="60">
                         <DataGrid.Columns>
                             <!-- Product Selection -->
@@ -356,7 +350,7 @@
                     </DataGrid>
 
                     <!-- Summary Footer -->
-                    <Border Grid.Row="2" Padding="20,12" Background="{StaticResource AppFooterBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
+                    <Border Grid.Row="1" Padding="20,12" Background="{StaticResource AppFooterBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
                         <Grid>
                             <TextBlock Style="{StaticResource TypographyCaption}" Opacity="0.6" VerticalAlignment="Center">
                                 <Run Text="Tổng số mặt hàng: "/>

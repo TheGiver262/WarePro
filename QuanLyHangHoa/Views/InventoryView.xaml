@@ -110,26 +110,11 @@
             <materialDesign:Card Grid.Row="2" Style="{StaticResource AppCard}" Padding="0">
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     
-                    <!-- Table Action Bar -->
-                    <Border Grid.Row="0" Padding="{StaticResource Spacing.md}" Background="{StaticResource AppSurfaceBrush}" BorderThickness="0,0,0,1" BorderBrush="{StaticResource AppBorderBrush}">
-                        <Grid>
-                            <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="ListBox" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}" Width="20" Height="20"/>
-                                <TextBlock Text="DANH SÁCH TỒN KHO CHI TIẾT" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" Margin="{StaticResource Margin.Left.md}"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                <TextBlock Text="Tổng giá trị kho: " Style="{StaticResource TypographyCaption}" VerticalAlignment="Center" Opacity="0.7"/>
-                                <TextBlock Text="1.25 tỷ VNĐ" Style="{StaticResource TypographyCaption}" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}" Margin="4,0,0,0"/>
-                            </StackPanel>
-                        </Grid>
-                    </Border>
-
                     <!-- DataGrid -->
-                    <DataGrid Grid.Row="1"
+                    <DataGrid Grid.Row="0"
                                ItemsSource="{Binding InventoryItems}"
                                AutoGenerateColumns="False" CanUserAddRows="False"
                                BorderThickness="0" Background="Transparent"

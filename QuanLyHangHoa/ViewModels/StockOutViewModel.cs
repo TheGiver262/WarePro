@@ -148,16 +148,21 @@ namespace QuanLyHangHoa.ViewModels
         [NotifyPropertyChangedFor(nameof(CanEdit))]
         private bool _isPosted;
 
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(CanEdit))]
+        private bool _isViewMode;
+
         [ObservableProperty] private decimal _totalAmount;
         [ObservableProperty] private string _statusMessage = string.Empty;
 
-        public bool CanEdit => !IsPosted;
+        public bool CanEdit => !IsPosted && !IsViewMode;
         public bool IsAdminOrManager => AuthorizationService.CanPerform(_currentUser, PermissionAction.ApproveStock);
         public bool CanApprove => IsAdminOrManager && (Status == DocumentStatus.Draft || Status == "nháp");
+        public bool CanUserEdit => _currentUser != null && (_currentUser.RoleCode == "Quản trị viên" || _currentUser.RoleCode == "Quản lý" || _currentUser.RoleCode == "Nhân viên kho");
 
         public StockOutViewModel(AppUser? currentUser = null, Func<AppDbContext>? contextFactory = null)
         {
-            _currentUser = currentUser ?? new AppUser { Id = 1, Username = "System", RoleCode = "Admin" }; // Default Admin role for safety
+            _currentUser = currentUser ?? new AppUser { Id = 1, Username = "System", RoleCode = "Quản trị viên" }; // Default Admin role for safety
             _contextFactory = contextFactory ?? (() => new AppDbContext());
             _productService = new ProductService(_contextFactory);
             _stockOutService = new StockOutService(_contextFactory);
@@ -329,6 +334,7 @@ namespace QuanLyHangHoa.ViewModels
         private void ViewDetail(StockOut stockOut)
         {
             if (stockOut == null) return;
+            IsViewMode = true;
             LoadToForm(stockOut);
             IsListViewVisible = false;
             IsDetailViewVisible = true;
@@ -338,11 +344,17 @@ namespace QuanLyHangHoa.ViewModels
         private void EditDetail(StockOut stockOut)
         {
             if (stockOut == null) return;
+            if (!CanUserEdit)
+            {
+                MessageBox.Show("Bạn không có quyền chỉnh sửa phiếu này.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
             if (stockOut.Status == DocumentStatus.Posted || stockOut.Status == "đã ghi sổ")
             {
                 MessageBox.Show("Không thể sửa phiếu đã ghi sổ.", "Thông báo");
                 return;
             }
+            IsViewMode = false;
             LoadToForm(stockOut);
             IsListViewVisible = false;
             IsDetailViewVisible = true;
@@ -379,8 +391,8 @@ namespace QuanLyHangHoa.ViewModels
                         SelectedProduct = AvailableProducts.FirstOrDefault(p => p.Id == line.ProductId),
                         Quantity = line.Quantity,
                         Price = line.UnitPrice,
-                        SelectedUnit = db.Units.FirstOrDefault(u => u.Id == line.UnitId)
                     };
+                    editor.SelectedUnit = editor.AvailableUnits.FirstOrDefault(u => u.Id == line.UnitId) ?? db.Units.FirstOrDefault(u => u.Id == line.UnitId);
 
                     // Load serial numbers from DB
                     var serials = db.ProductSerials
@@ -795,6 +807,7 @@ namespace QuanLyHangHoa.ViewModels
             TotalAmount = 0;
             Status = DocumentStatus.Draft;
             IsPosted = false;
+            IsViewMode = false;
             OnPropertyChanged(nameof(CanEdit));
         }
 

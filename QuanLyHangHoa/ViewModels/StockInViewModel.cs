@@ -108,7 +108,13 @@ namespace QuanLyHangHoa.ViewModels
 
         [ObservableProperty] private int _stockInId;
         [ObservableProperty] private string _status = DocumentStatus.Draft;
-        [ObservableProperty] private bool _isPosted;
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(CanEdit))]
+        private bool _isPosted;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(CanEdit))]
+        private bool _isViewMode;
         [ObservableProperty] private string _documentCode = string.Empty;
         [ObservableProperty] private Warehouse? _selectedWarehouse;
         [ObservableProperty] private Supplier? _selectedSupplier;
@@ -143,13 +149,14 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private int _postedCount;
 
         public decimal TotalAmount => Lines.Sum(l => l.Quantity * l.Price);
-        public bool CanEdit => !IsPosted;
+        public bool CanEdit => !IsPosted && !IsViewMode;
         public bool CanApprove => AuthorizationService.CanPerform(_currentUser, PermissionAction.ApproveStock) && (Status == DocumentStatus.Draft || Status == "nháp");
         public bool IsAdminOrManager => AuthorizationService.CanPerform(_currentUser, PermissionAction.ApproveStock);
+        public bool CanUserEdit => _currentUser != null && (_currentUser.RoleCode == "Quản trị viên" || _currentUser.RoleCode == "Quản lý" || _currentUser.RoleCode == "Nhân viên kho");
 
         public StockInViewModel(AppUser? currentUser = null, Func<AppDbContext>? contextFactory = null)
         {
-            _currentUser = currentUser ?? new AppUser { Id = 1 };
+            _currentUser = currentUser ?? new AppUser { Id = 1, Username = "System", RoleCode = "Quản trị viên" };
             var factory = contextFactory ?? (() => new QuanLyHangHoa.Data.AppDbContext());
             _contextFactory = factory;
             _productService = new ProductService(factory);
@@ -322,6 +329,7 @@ namespace QuanLyHangHoa.ViewModels
         private void ViewDetail(StockIn si)
         {
             if (si == null) return;
+            IsViewMode = true;
             LoadFromModel(si);
             IsListViewVisible = false;
             IsDetailViewVisible = true;
@@ -331,11 +339,17 @@ namespace QuanLyHangHoa.ViewModels
         private void EditDetail(StockIn si)
         {
             if (si == null) return;
+            if (!CanUserEdit)
+            {
+                MessageBox.Show("Bạn không có quyền chỉnh sửa phiếu này.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
             if (si.Status == DocumentStatus.Posted || si.Status == "đã ghi sổ")
             {
                 MessageBox.Show("Không thể sửa phiếu đã ghi sổ.", "Thông báo");
                 return;
             }
+            IsViewMode = false;
             LoadFromModel(si);
             IsListViewVisible = false;
             IsDetailViewVisible = true;
@@ -376,8 +390,8 @@ namespace QuanLyHangHoa.ViewModels
                     SelectedProduct = AvailableProducts.FirstOrDefault(p => p.Id == line.ProductId) ?? line.Product,
                     Quantity = line.Quantity,
                     Price = line.UnitPrice,
-                    SelectedUnit = line.Unit
                 };
+                editor.SelectedUnit = editor.AvailableUnits.FirstOrDefault(u => u.Id == line.UnitId) ?? line.Unit;
                 
                 foreach (var sn in line.ProductSerials)
                 {
@@ -725,6 +739,7 @@ namespace QuanLyHangHoa.ViewModels
             StockInId = 0;
             Status = DocumentStatus.Draft;
             IsPosted = false;
+            IsViewMode = false;
             OnPropertyChanged(nameof(CanEdit));
             
             Lines.Clear();

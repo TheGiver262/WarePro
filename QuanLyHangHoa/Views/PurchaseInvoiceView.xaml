@@ -179,7 +179,8 @@
                                       IsReadOnly="True"
                                       GridLinesVisibility="None"
                                       SelectionMode="Single"
-                                      CanUserAddRows="False">
+                                      CanUserAddRows="False"
+                                      CanUserReorderColumns="False">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="SỐ HĐ" Binding="{Binding InvoiceCode}" Width="Auto" ElementStyle="{DynamicResource AppDataGridTextBold}"/>
                                     <DataGridTextColumn Header="NGÀY NHẬP" Binding="{Binding InvoiceDate, StringFormat='dd/MM/yyyy'}" Width="Auto" ElementStyle="{DynamicResource AppDataGridTextCenter}"/>
@@ -379,6 +380,7 @@
                                 <DataGrid ItemsSource="{Binding Lines}" 
                                           AutoGenerateColumns="False" 
                                           CanUserAddRows="False"
+                                          CanUserReorderColumns="False"
                                           Background="Transparent"
                                           BorderThickness="0"
                                           GridLinesVisibility="None"
@@ -387,10 +389,7 @@
                                     <DataGrid.Columns>
                                         <DataGridTemplateColumn Width="120">
                                             <DataGridTemplateColumn.Header>
-                                                <StackPanel Orientation="Horizontal">
-                                                    <materialDesign:PackIcon Kind="Barcode" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                                    <TextBlock Text="MÃ SP" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
-                                                </StackPanel>
+                                                <TextBlock Text="MÃ SP" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
                                             </DataGridTemplateColumn.Header>
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
@@ -401,10 +400,7 @@
 
                                         <DataGridTemplateColumn Width="*">
                                             <DataGridTemplateColumn.Header>
-                                                <StackPanel Orientation="Horizontal">
-                                                    <materialDesign:PackIcon Kind="PackageVariant" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                                    <TextBlock Text="SẢN PHẨM" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
-                                                </StackPanel>
+                                                <TextBlock Text="SẢN PHẨM" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
                                             </DataGridTemplateColumn.Header>
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
@@ -420,10 +416,7 @@
 
                                         <DataGridTemplateColumn Width="100">
                                             <DataGridTemplateColumn.Header>
-                                                <StackPanel Orientation="Horizontal">
-                                                    <materialDesign:PackIcon Kind="Numeric" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                                    <TextBlock Text="SỐ LƯỢNG" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
-                                                </StackPanel>
+                                                <TextBlock Text="SỐ LƯỢNG" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
                                             </DataGridTemplateColumn.Header>
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
@@ -436,10 +429,7 @@
 
                                         <DataGridTemplateColumn Width="140">
                                             <DataGridTemplateColumn.Header>
-                                                <StackPanel Orientation="Horizontal">
-                                                    <materialDesign:PackIcon Kind="CurrencyUsd" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                                    <TextBlock Text="ĐƠN GIÁ" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
-                                                </StackPanel>
+                                                <TextBlock Text="ĐƠN GIÁ" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
                                             </DataGridTemplateColumn.Header>
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
@@ -452,10 +442,7 @@
 
                                         <DataGridTemplateColumn Width="100">
                                             <DataGridTemplateColumn.Header>
-                                                <StackPanel Orientation="Horizontal">
-                                                    <materialDesign:PackIcon Kind="Percent" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                                    <TextBlock Text="THUẾ" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
-                                                </StackPanel>
+                                                <TextBlock Text="THUẾ" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
                                             </DataGridTemplateColumn.Header>
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
@@ -468,10 +455,7 @@
 
                                         <DataGridTemplateColumn Width="140" IsReadOnly="True">
                                             <DataGridTemplateColumn.Header>
-                                                <StackPanel Orientation="Horizontal">
-                                                    <materialDesign:PackIcon Kind="Calculator" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
-                                                    <TextBlock Text="THÀNH TIỀN" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
-                                                </StackPanel>
+                                                <TextBlock Text="THÀNH TIỀN" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
                                             </DataGridTemplateColumn.Header>
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
