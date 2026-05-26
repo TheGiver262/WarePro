@@ -59,7 +59,7 @@ namespace QuanLyHangHoa.Services
         public virtual List<Customer> GetAllCustomers(bool onlyActive = true)
         {
             using var db = _contextFactory();
-            var query = db.Customers.AsNoTracking().AsQueryable();
+            var query = db.Customers.AsNoTracking().Where(c => c.CustomerCode != "CUS-ADJ");
             if (onlyActive) query = query.Where(c => c.IsActive);
             return query.OrderBy(c => c.DisplayName).ToList();
         }

@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace QuanLyHangHoa.Models;
 
-public partial class StockCountLine
+public partial class StockCountLine : ObservableObject
 {
     public int Id { get; set; }
 
@@ -13,11 +14,55 @@ public partial class StockCountLine
 
     public decimal SystemQuantity { get; set; }
 
-    public decimal CountedQuantity { get; set; }
+    private decimal _countedQuantity;
+    public decimal CountedQuantity
+    {
+        get => _countedQuantity;
+        set
+        {
+            if (SetProperty(ref _countedQuantity, value))
+            {
+                VarianceQuantity = value - SystemQuantity;
+                OnPropertyChanged(nameof(VarianceQuantity));
+                OnPropertyChanged(nameof(ShowSerialButton));
+            }
+        }
+    }
 
-    public decimal VarianceQuantity { get; set; }
+    private decimal _varianceQuantity;
+    public decimal VarianceQuantity
+    {
+        get => _varianceQuantity;
+        set
+        {
+            if (SetProperty(ref _varianceQuantity, value))
+            {
+                OnPropertyChanged(nameof(ShowSerialButton));
+            }
+        }
+    }
 
-    public virtual Product Product { get; set; } = null!;
+    private string? _serialNumbers;
+    public string? SerialNumbers
+    {
+        get => _serialNumbers;
+        set => SetProperty(ref _serialNumbers, value);
+    }
+
+    public bool ShowSerialButton => Product != null && Product.IsSerialTracked && (CountedQuantity != SystemQuantity);
+
+    private Product _product = null!;
+    public virtual Product Product
+    {
+        get => _product;
+        set
+        {
+            if (SetProperty(ref _product, value))
+            {
+                OnPropertyChanged(nameof(ShowSerialButton));
+            }
+        }
+    }
 
     public virtual StockCountSession Session { get; set; } = null!;
 }

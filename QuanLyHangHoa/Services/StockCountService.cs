@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
+using QuanLyHangHoa.Inventory;
 using QuanLyHangHoa.Models;
 
 namespace QuanLyHangHoa.Services
@@ -36,51 +38,85 @@ namespace QuanLyHangHoa.Services
 
             var beforeJson = Serialize(session);
 
-            // 1. Create adjustment for variances
-            var adjustment = new StockAdjustment
+            var stockInService = new StockInService(_contextFactory);
+            var stockOutService = new StockOutService(_contextFactory);
+
+            // Lấy hoặc tự động tạo khách hàng đặc biệt cho phiếu xuất kho điều chỉnh
+            var defaultCustomer = db.Customers.FirstOrDefault(c => c.CustomerCode == "CUS-ADJ");
+            if (defaultCustomer == null)
             {
-                DocumentCode = "ADJ-CNT-" + sessionId,
-                WarehouseId = session.WarehouseId,
-                AdjustmentType = "StockCount",
-                ReasonCode = "SYSTEM-COUNT",
-                Status = "đã ghi sổ",
-                CreatedBy = userId,
-                PostedBy = userId,
-                PostedAt = DateTime.Now,
-                ReferenceDocumentType = "StockCountSession",
-                ReferenceDocumentId = sessionId
-            };
+                defaultCustomer = new Customer
+                {
+                    CustomerCode = "CUS-ADJ",
+                    DisplayName = "Khách hàng điều chỉnh (Hệ thống)",
+                    IsActive = true
+                };
+                db.Customers.Add(defaultCustomer);
+                db.SaveChanges();
+            }
+            int defaultCustomerId = defaultCustomer.Id;
 
-            db.StockAdjustments.Add(adjustment);
-            db.SaveChanges();
-
-            // 2. Create adjustment lines and ledger entries
+            // Tạo các phiếu nhập/xuất kho nháp tương ứng với chênh lệch kiểm kê
             foreach (var line in session.Lines!)
             {
                 if (line.VarianceQuantity == 0) continue;
 
-                var adjLine = new StockAdjustmentLine
-                {
-                    AdjustmentId = adjustment.Id,
-                    ProductId = line.ProductId,
-                    QuantityDelta = Math.Abs(line.VarianceQuantity),
-                    BaseQuantityDelta = Math.Abs(line.VarianceQuantity),
-                    Direction = line.VarianceQuantity > 0 ? "In" : "Out"
-                };
-                db.StockAdjustmentLines.Add(adjLine);
+                var product = db.Products.Find(line.ProductId);
+                if (product == null) continue;
 
-                var ledger = new StockLedger
+                if (line.VarianceQuantity > 0)
                 {
-                    WarehouseId = session.WarehouseId,
-                    ProductId = line.ProductId,
-                    SourceDocumentType = "StockAdjustment",
-                    SourceDocumentId = adjustment.Id,
-                    MovementType = line.VarianceQuantity > 0 ? "In" : "Out",
-                    Quantity = Math.Abs(line.VarianceQuantity),
-                    PostedBy = userId,
-                    PostedAt = DateTime.Now
-                };
-                db.StockLedgers.Add(ledger);
+                    var stockIn = new StockIn
+                    {
+                        DocumentCode = $"SI-ADJ-{session.SessionCode}-{line.Id}",
+                        WarehouseId = session.WarehouseId,
+                        ImportDate = DateTime.Now,
+                        Notes = $"Nhập để điều chỉnh tồn kho (Theo phiên kiểm kê {session.SessionCode})",
+                        PurposeCode = "Adjustment",
+                        Status = DocumentStatus.Draft,
+                        CreatedBy = userId,
+                        CreatedAt = DateTime.Now
+                    };
+
+                    var inLine = new StockInLine
+                    {
+                        ProductId = line.ProductId,
+                        UnitId = product.DefaultUnitId,
+                        Quantity = line.VarianceQuantity,
+                        BaseQuantity = line.VarianceQuantity,
+                        UnitPrice = product.CostPrice ?? product.DefaultPrice,
+                        DraftSerials = line.SerialNumbers
+                    };
+
+                    stockInService.SaveDraft(stockIn, new List<StockInLine> { inLine }, userId);
+                }
+                else
+                {
+                    var stockOut = new StockOut
+                    {
+                        DocumentCode = $"SO-ADJ-{session.SessionCode}-{line.Id}",
+                        CustomerId = defaultCustomerId,
+                        WarehouseId = session.WarehouseId,
+                        ExportDate = DateTime.Now,
+                        Notes = $"Xuất để điều chỉnh tồn kho (Theo phiên kiểm kê {session.SessionCode})",
+                        PurposeCode = "Adjustment",
+                        Status = DocumentStatus.Draft,
+                        CreatedBy = userId,
+                        CreatedAt = DateTime.Now
+                    };
+
+                    var outLine = new StockOutLine
+                    {
+                        ProductId = line.ProductId,
+                        UnitId = product.DefaultUnitId,
+                        Quantity = Math.Abs(line.VarianceQuantity),
+                        BaseQuantity = Math.Abs(line.VarianceQuantity),
+                        UnitPrice = product.CostPrice ?? product.DefaultPrice,
+                        DraftSerials = line.SerialNumbers
+                    };
+
+                    stockOutService.SaveDraft(stockOut, new List<StockOutLine> { outLine }, userId);
+                }
             }
 
             session.Status = "hoàn thành";

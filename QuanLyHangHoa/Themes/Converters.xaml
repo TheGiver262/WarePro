@@ -16,4 +16,5 @@
     <converters:StatusToTextConverter x:Key="StatusToTextConverter" />
     <converters:StatusToEditVisibilityConverter x:Key="StatusToEditVisibilityConverter" />
     <converters:StatusToBrushConverter x:Key="StatusToBrushConverter" />
+    <converters:CountedQuantityConverter x:Key="CountedQuantityConverter" />
 </ResourceDictionary>

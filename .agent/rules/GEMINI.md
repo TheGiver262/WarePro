@@ -102,6 +102,7 @@ When user's prompt is NOT in English:
 1. **Internally translate** for better comprehension
 2. **Respond in user's language** - match their communication
 3. **Code comments/variables** remain in English
+4. **Artifacts (implementation_plan.md, task.md, walkthrough.md)** MUST be written in Vietnamese (tiếng Việt) so that the user can read and review them quickly.
 
 ### 🧹 Clean Code (Global Mandatory)
 

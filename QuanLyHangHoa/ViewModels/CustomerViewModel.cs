@@ -54,7 +54,7 @@ namespace QuanLyHangHoa.ViewModels
         public void LoadData()
         {
             using var db = _contextFactory();
-            _allCustomers = db.Customers.AsNoTracking().ToList();
+            _allCustomers = db.Customers.AsNoTracking().Where(c => c.CustomerCode != "CUS-ADJ").ToList();
 
             // Calculate counts in memory (instant)
             TotalCount = _allCustomers.Count;

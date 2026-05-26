@@ -20,7 +20,7 @@ namespace QuanLyHangHoa.Services
         public List<Customer> GetAll()
         {
             using var db = _contextFactory();
-            return db.Customers.AsNoTracking().OrderBy(c => c.CustomerCode).ToList();
+            return db.Customers.AsNoTracking().Where(c => c.CustomerCode != "CUS-ADJ").OrderBy(c => c.CustomerCode).ToList();
         }
 
         public void Add(Customer customer, int performedBy)

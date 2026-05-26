@@ -91,16 +91,18 @@ public class StockCountServiceTests
         Assert.NotNull(sessionAfter);
         Assert.Equal("hoàn thành", sessionAfter.Status);
 
-        var adjustment = assertContext.StockAdjustments
-            .Include(a => a.Lines)
-            .Single(a => a.ReferenceDocumentId == sessionId && a.ReferenceDocumentType == "StockCountSession");
+        var stockIn = assertContext.StockIns
+            .Include(si => si.Lines)
+            .Single(si => si.DocumentCode.StartsWith("SI-ADJ-CNT-002"));
             
-        Assert.Equal("StockCount", adjustment.AdjustmentType);
-        Assert.Equal("đã ghi sổ", adjustment.Status);
+        Assert.Equal("Draft", stockIn.Status);
+        Assert.Equal("Adjustment", stockIn.PurposeCode);
+        Assert.Equal("Nhập để điều chỉnh tồn kho (Theo phiên kiểm kê CNT-002)", stockIn.Notes);
         
-        Assert.NotNull(adjustment.Lines);
-        var line = Assert.Single(adjustment.Lines);
+        Assert.NotNull(stockIn.Lines);
+        var line = Assert.Single(stockIn.Lines);
         Assert.Equal(600, line.ProductId);
+        Assert.Equal(2, line.Quantity);
     }
 
     [Fact]
@@ -188,5 +190,75 @@ public class StockCountServiceTests
         Assert.Equal(sessionId, audit.EntityId);
         Assert.Contains("hoàn thành", audit.AfterJson ?? "");
         Assert.Contains("đã kiểm kê", audit.BeforeJson ?? "");
+    }
+
+    [Fact]
+    public void ProcessResults_creates_draft_StockIn_and_does_not_update_StockBalances_directly()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        int sessionId;
+        using (var seedContext = DatabaseHelper.CreateContext(connection))
+        {
+            DatabaseHelper.SeedBasicData(seedContext);
+            seedContext.Products.Add(new Product { 
+                Id = 800, 
+                ProductCode = "P800", 
+                DisplayName = "Balance test product", 
+                CategoryId = 1, 
+                BrandId = 1, 
+                DefaultUnitId = 1, 
+                DefaultPrice = 20m,
+                IsActive = true
+            });
+
+            // Seed initial StockBalance with OnHandQuantity = 5
+            seedContext.StockBalances.Add(new StockBalance
+            {
+                ProductId = 800,
+                WarehouseId = 1,
+                OnHandQuantity = 5,
+                AvailableQuantity = 5,
+                ReservedQuantity = 0
+            });
+            
+            var session = new StockCountSession
+            {
+                SessionCode = "CNT-BAL-001",
+                WarehouseId = 1,
+                Status = "đã kiểm kê",
+                CountDate = DateTime.UtcNow,
+                CreatedBy = 1,
+                Lines = new List<StockCountLine>
+                {
+                    new StockCountLine
+                    {
+                        ProductId = 800,
+                        SystemQuantity = 5,
+                        CountedQuantity = 7,
+                        VarianceQuantity = 2
+                    }
+                }
+            };
+            seedContext.StockCountSessions.Add(session);
+            seedContext.SaveChanges();
+            sessionId = session.Id;
+        }
+
+        var service = new StockCountService(() => DatabaseHelper.CreateContext(connection));
+        service.ProcessResults(sessionId, 1);
+
+        using var assertContext = DatabaseHelper.CreateContext(connection);
+        // Tồn kho không trực tiếp thay đổi khi phiếu mới chỉ ở dạng Nháp
+        var balance = assertContext.StockBalances.Single(b => b.ProductId == 800 && b.WarehouseId == 1);
+        Assert.Equal(5, balance.OnHandQuantity);
+        Assert.Equal(5, balance.AvailableQuantity);
+
+        // Phiếu nháp StockIn được tạo ra
+        var stockIn = assertContext.StockIns
+            .Include(si => si.Lines)
+            .Single(si => si.DocumentCode.StartsWith("SI-ADJ-CNT-BAL-001"));
+        Assert.Equal("Draft", stockIn.Status);
+        Assert.Equal(2, stockIn.Lines.Single().Quantity);
     }
 }

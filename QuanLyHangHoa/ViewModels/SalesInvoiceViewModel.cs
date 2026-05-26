@@ -79,23 +79,14 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void Refresh()
         {
-            _searchInvoiceCode = string.Empty;
-            _searchCustomerName = string.Empty;
-            _filterStartDate = null;
-            _filterEndDate = null;
-            _selectedFilterPaymentStatus = "Tất cả";
-            _filterLinkDocCode = string.Empty;
-            _filterMinTotal = null;
-            _filterMaxTotal = null;
-
-            OnPropertyChanged(nameof(SearchInvoiceCode));
-            OnPropertyChanged(nameof(SearchCustomerName));
-            OnPropertyChanged(nameof(FilterStartDate));
-            OnPropertyChanged(nameof(FilterEndDate));
-            OnPropertyChanged(nameof(SelectedFilterPaymentStatus));
-            OnPropertyChanged(nameof(FilterLinkDocCode));
-            OnPropertyChanged(nameof(FilterMinTotal));
-            OnPropertyChanged(nameof(FilterMaxTotal));
+            SearchInvoiceCode = string.Empty;
+            SearchCustomerName = string.Empty;
+            FilterStartDate = null;
+            FilterEndDate = null;
+            SelectedFilterPaymentStatus = "Tất cả";
+            FilterLinkDocCode = string.Empty;
+            FilterMinTotal = null;
+            FilterMaxTotal = null;
 
             LoadData();
         }

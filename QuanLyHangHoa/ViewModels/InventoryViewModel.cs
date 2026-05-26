@@ -12,9 +12,20 @@ namespace QuanLyHangHoa.ViewModels
     public partial class InventoryViewModel : ObservableObject, IRefreshable
     {
         private readonly ProductService _productService;
+        private readonly ReferenceDataService _refDataService;
 
         [ObservableProperty] private ObservableCollection<Product> _inventoryItems = new();
-        [ObservableProperty] private string _searchText = string.Empty;
+        [ObservableProperty] private string _searchCode = string.Empty;
+        [ObservableProperty] private string _searchName = string.Empty;
+        [ObservableProperty] private int _lowStockCount;
+        [ObservableProperty] private decimal _totalInventoryValue;
+
+        [ObservableProperty] private ObservableCollection<Category> _categories = new();
+        [ObservableProperty] private Category? _selectedCategoryFilter;
+        [ObservableProperty] private string _searchStatus = "Tất cả";
+        [ObservableProperty] private bool _isAdvancedFilterOpen;
+
+        public ObservableCollection<string> StatusOptions { get; } = new() { "Tất cả", "Còn hàng", "Sắp hết", "Hết hàng" };
 
         private readonly Func<Data.AppDbContext> _contextFactory;
 
@@ -22,21 +33,63 @@ namespace QuanLyHangHoa.ViewModels
         {
             _contextFactory = contextFactory;
             _productService = new ProductService(contextFactory);
+            _refDataService = new ReferenceDataService(contextFactory);
+
+            var allCategories = _refDataService.GetAllCategories(false);
+            Categories = new ObservableCollection<Category>(allCategories);
+            Categories.Insert(0, new Category { Id = 0, DisplayName = "Tất cả danh mục" });
+            SelectedCategoryFilter = Categories.FirstOrDefault();
+
             LoadData();
         }
+
+        [RelayCommand]
+        private void ToggleAdvancedFilter() => IsAdvancedFilterOpen = !IsAdvancedFilterOpen;
+
+        partial void OnSearchCodeChanged(string value) => LoadData();
+        partial void OnSearchNameChanged(string value) => LoadData();
+        partial void OnSearchStatusChanged(string value) => LoadData();
+        partial void OnSelectedCategoryFilterChanged(Category? value) => LoadData();
 
         [RelayCommand]
         private void LoadData()
         {
             var results = _productService.GetAllProducts();
-            if (!string.IsNullOrWhiteSpace(SearchText))
+            if (!string.IsNullOrWhiteSpace(SearchCode))
             {
-                var term = SearchText.ToLower();
-                results = results.Where(p => 
-                    p.DisplayName.ToLower().Contains(term) || 
-                    p.ProductCode.ToLower().Contains(term)).ToList();
+                var term = SearchCode.ToLower().Trim();
+                results = results.Where(p => p.ProductCode.ToLower().Contains(term)).ToList();
             }
+            if (!string.IsNullOrWhiteSpace(SearchName))
+            {
+                var term = SearchName.ToLower().Trim();
+                results = results.Where(p => p.DisplayName.ToLower().Contains(term)).ToList();
+            }
+            if (SelectedCategoryFilter != null && SelectedCategoryFilter.Id > 0)
+            {
+                results = results.Where(p => p.CategoryId == SelectedCategoryFilter.Id).ToList();
+            }
+            if (SearchStatus != "Tất cả")
+            {
+                if (SearchStatus == "Còn hàng")
+                {
+                    results = results.Where(p => p.StockQuantity > 0).ToList();
+                }
+                else if (SearchStatus == "Sắp hết")
+                {
+                    results = results.Where(p => p.IsLowStock).ToList();
+                }
+                else if (SearchStatus == "Hết hàng")
+                {
+                    results = results.Where(p => p.StockQuantity <= 0).ToList();
+                }
+            }
+
             InventoryItems = new ObservableCollection<Product>(results);
+            
+            // Tính toán thống kê động
+            LowStockCount = results.Count(p => p.IsLowStock);
+            TotalInventoryValue = results.Sum(p => p.TotalValue);
         }
 
         [RelayCommand]
@@ -48,7 +101,10 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void Refresh()
         {
-            SearchText = string.Empty;
+            SearchCode = string.Empty;
+            SearchName = string.Empty;
+            SearchStatus = "Tất cả";
+            SelectedCategoryFilter = Categories.FirstOrDefault();
             LoadData();
         }
 
