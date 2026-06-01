@@ -1,0 +1,60 @@
+@startuml ERD_Module_05_User_Audit
+title User & Audit Module ERD
+
+entity AppUser {
+    * Id : int [PK]
+    --
+    * Username : nvarchar(100) [UQ]
+    * PasswordHash : nvarchar(max)
+    * FullName : nvarchar(255)
+    * RoleCode : nvarchar(50)
+    * MustChangePassword : bit
+    * FailedLoginCount : int
+    CreatedBy : int [FK, nullable]
+    * CreatedAt : datetime
+    LockoutUntil : datetime [nullable]
+    LastFailedLoginAt : datetime [nullable]
+    LastPasswordChangedAt : datetime [nullable]
+    LastLoginAt : datetime [nullable]
+    * IsActive : bit
+}
+
+entity AuditLog {
+    * Id : int [PK]
+    --
+    * EntityName : nvarchar(100)
+    * EntityId : int
+    * ActionCode : nvarchar(100)
+    BeforeJson : nvarchar(max)
+    AfterJson : nvarchar(max)
+    PerformedBy : int [FK]
+    * PerformedAt : datetime
+}
+
+entity StockIn {
+    * Id : int [PK]
+    --
+    * DocumentCode : nvarchar(100)
+    * CreatedBy : int [FK]
+    ApprovedBy : int [FK, nullable]
+    PostedBy : int [FK, nullable]
+}
+
+entity StockOut {
+    * Id : int [PK]
+    --
+    * DocumentCode : nvarchar(100)
+    * CreatedBy : int [FK]
+    ApprovedBy : int [FK, nullable]
+    PostedBy : int [FK, nullable]
+}
+
+AppUser |o--o{ AppUser : creator
+AppUser ||--o{ AuditLog : performer
+AppUser ||--o{ StockIn : creator
+AppUser |o--o{ StockIn : approver
+AppUser |o--o{ StockIn : poster
+AppUser ||--o{ StockOut : creator
+AppUser |o--o{ StockOut : approver
+AppUser |o--o{ StockOut : poster
+@enduml

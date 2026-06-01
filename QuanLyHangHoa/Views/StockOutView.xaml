@@ -170,11 +170,11 @@
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                             <Button Style="{StaticResource ProMaxIconButtonStyle}" ToolTip="Xem chi tiết"
-                                                    Command="{Binding DataContext.ViewDetailCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                                    Command="{Binding DataContext.ViewDetailCommand, ElementName=RootStockOutView}" CommandParameter="{Binding}">
                                                 <materialDesign:PackIcon Kind="EyeOutline" Width="20" Height="20" Foreground="{StaticResource AppPrimaryBrush}"/>
                                             </Button>
                                             <Button ToolTip="Chỉnh sửa"
-                                                     Command="{Binding DataContext.EditDetailCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                                     Command="{Binding DataContext.EditDetailCommand, ElementName=RootStockOutView}" CommandParameter="{Binding}">
                                                  <Button.Style>
                                                      <Style TargetType="Button" BasedOn="{StaticResource ProMaxIconButtonStyle}">
                                                          <Setter Property="Visibility" Value="Collapsed"/>
@@ -182,21 +182,21 @@
                                                              <MultiDataTrigger>
                                                                  <MultiDataTrigger.Conditions>
                                                                      <Condition Binding="{Binding Status}" Value="nháp"/>
-                                                                     <Condition Binding="{Binding DataContext.CanUserEdit, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True"/>
+                                                                     <Condition Binding="{Binding DataContext.CanUserEdit, ElementName=RootStockOutView}" Value="True"/>
                                                                  </MultiDataTrigger.Conditions>
                                                                  <Setter Property="Visibility" Value="Visible"/>
                                                              </MultiDataTrigger>
                                                              <MultiDataTrigger>
                                                                  <MultiDataTrigger.Conditions>
                                                                      <Condition Binding="{Binding Status}" Value="Draft"/>
-                                                                     <Condition Binding="{Binding DataContext.CanUserEdit, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True"/>
+                                                                     <Condition Binding="{Binding DataContext.CanUserEdit, ElementName=RootStockOutView}" Value="True"/>
                                                                  </MultiDataTrigger.Conditions>
                                                                  <Setter Property="Visibility" Value="Visible"/>
                                                              </MultiDataTrigger>
                                                              <MultiDataTrigger>
                                                                  <MultiDataTrigger.Conditions>
                                                                      <Condition Binding="{Binding Status}" Value="draft"/>
-                                                                     <Condition Binding="{Binding DataContext.CanUserEdit, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True"/>
+                                                                     <Condition Binding="{Binding DataContext.CanUserEdit, ElementName=RootStockOutView}" Value="True"/>
                                                                  </MultiDataTrigger.Conditions>
                                                                  <Setter Property="Visibility" Value="Visible"/>
                                                              </MultiDataTrigger>
@@ -206,7 +206,7 @@
                                                  <materialDesign:PackIcon Kind="PencilOutline" Width="20" Height="20" Foreground="{StaticResource AppSecondaryBrush}"/>
                                              </Button>
                                              <Button ToolTip="Duyệt phiếu"
-                                                     Command="{Binding DataContext.ApproveDocumentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                                     Command="{Binding DataContext.ApproveDocumentCommand, ElementName=RootStockOutView}" CommandParameter="{Binding}">
                                                  <Button.Style>
                                                      <Style TargetType="Button" BasedOn="{StaticResource ProMaxIconButtonStyle}">
                                                          <Setter Property="Visibility" Value="Collapsed"/>
@@ -214,14 +214,14 @@
                                                              <MultiDataTrigger>
                                                                  <MultiDataTrigger.Conditions>
                                                                      <Condition Binding="{Binding Status}" Value="Draft"/>
-                                                                     <Condition Binding="{Binding DataContext.IsAdminOrManager, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True"/>
+                                                                     <Condition Binding="{Binding DataContext.IsAdminOrManager, ElementName=RootStockOutView}" Value="True"/>
                                                                  </MultiDataTrigger.Conditions>
                                                                  <Setter Property="Visibility" Value="Visible"/>
                                                              </MultiDataTrigger>
                                                              <MultiDataTrigger>
                                                                  <MultiDataTrigger.Conditions>
                                                                      <Condition Binding="{Binding Status}" Value="nháp"/>
-                                                                     <Condition Binding="{Binding DataContext.IsAdminOrManager, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True"/>
+                                                                     <Condition Binding="{Binding DataContext.IsAdminOrManager, ElementName=RootStockOutView}" Value="True"/>
                                                                  </MultiDataTrigger.Conditions>
                                                                  <Setter Property="Visibility" Value="Visible"/>
                                                              </MultiDataTrigger>
@@ -231,7 +231,7 @@
                                                  <materialDesign:PackIcon Kind="CheckDecagramOutline" Width="20" Height="20" Foreground="{StaticResource SuccessTextBrush}"/>
                                              </Button>
                                              <Button ToolTip="In phiếu"
-                                                     Command="{Binding DataContext.PrintCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                                     Command="{Binding DataContext.PrintCommand, ElementName=RootStockOutView}" CommandParameter="{Binding}">
                                                  <Button.Style>
                                                      <Style TargetType="Button" BasedOn="{StaticResource ProMaxIconButtonStyle}">
                                                          <Setter Property="Visibility" Value="Collapsed"/>
@@ -268,20 +268,15 @@
 
                     <!-- Footer Stats -->
                     <Border Grid.Row="1" Padding="20,12" Background="{StaticResource AppFooterBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                            <StackPanel Orientation="Horizontal" Margin="0,0,24,0">
-                                <TextBlock Text="Tổng số phiếu:" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center" Opacity="0.7"/>
-                                <TextBlock Text="{Binding TotalCount}" Style="{StaticResource TypographyStatNumber}" Margin="8,0,0,0" FontSize="14"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,24,0">
-                                <TextBlock Text="Phiếu nháp:" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center" Opacity="0.7"/>
-                                <TextBlock Text="{Binding DraftCount}" Style="{StaticResource TypographyStatNumber}" Margin="8,0,0,0" FontSize="14" Foreground="#F59E0B"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Đã ghi sổ:" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center" Opacity="0.7"/>
-                                <TextBlock Text="{Binding PostedCount}" Style="{StaticResource TypographyStatNumber}" Margin="8,0,0,0" FontSize="14" Foreground="{StaticResource SuccessTextBrush}"/>
-                            </StackPanel>
-                        </StackPanel>
+                        <TextBlock FontSize="13" Foreground="{StaticResource AppSecondaryBrush}" Style="{StaticResource TypographyCaption}" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <Run Text="Hiện có "/>
+                            <Run Text="{Binding TotalCount, Mode=OneWay}" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <Run Text=" phiếu xuất trong hệ thống · "/>
+                            <Run Text="{Binding DraftCount, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource WarningTextBrush}"/>
+                            <Run Text=" Nháp · "/>
+                            <Run Text="{Binding PostedCount, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource SuccessTextBrush}"/>
+                            <Run Text=" Đã ghi sổ"/>
+                        </TextBlock>
                     </Border>
                 </Grid>
             </materialDesign:Card>
@@ -403,11 +398,11 @@
                                 </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <ComboBox ItemsSource="{Binding DataContext.AvailableProducts, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                        <ComboBox ItemsSource="{Binding DataContext.AvailableProducts, ElementName=RootStockOutView}" 
                                                   SelectedItem="{Binding SelectedProduct, UpdateSourceTrigger=PropertyChanged}"
                                                   IsEditable="True" LostFocus="ProductComboBox_LostFocus"
                                                   DisplayMemberPath="DisplayName" Style="{StaticResource AppComboBoxStyle}" Margin="8,4" BorderThickness="0" Height="36"
-                                                  IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                  IsEnabled="{Binding DataContext.CanEdit, ElementName=RootStockOutView}"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -422,7 +417,7 @@
                                                   SelectedItem="{Binding SelectedUnit, UpdateSourceTrigger=PropertyChanged}"
                                                   IsEditable="True" LostFocus="UnitComboBox_LostFocus"
                                                   DisplayMemberPath="DisplayName" Style="{StaticResource AppComboBoxStyle}" Margin="8,4" BorderThickness="0" Height="36"
-                                                  IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                                  IsEnabled="{Binding DataContext.CanEdit, ElementName=RootStockOutView}"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -447,7 +442,7 @@
                                     <DataTemplate>
                                         <TextBox Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" HorizontalContentAlignment="Right" 
                                                   Style="{StaticResource AppTextBoxStyle}" Margin="8,4" Height="36"
-                                                  IsReadOnly="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource InverseBooleanConverter}}"/>
+                                                  IsReadOnly="{Binding DataContext.CanEdit, ElementName=RootStockOutView, Converter={StaticResource InverseBooleanConverter}}"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -519,8 +514,8 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Button Style="{StaticResource ProMaxIconButtonStyle}" Margin="4" HorizontalAlignment="Center"
-                                                Command="{Binding DataContext.RemoveLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
-                                                Visibility="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                 Command="{Binding DataContext.RemoveLineCommand, ElementName=RootStockOutView}" CommandParameter="{Binding}"
+                                                 Visibility="{Binding DataContext.CanEdit, ElementName=RootStockOutView, Converter={StaticResource BooleanToVisibilityConverter}}">
                                             <materialDesign:PackIcon Kind="TrashCanOutline" Width="20" Height="20" Foreground="{StaticResource AppErrorBrush}"/>
                                         </Button>
                                     </DataTemplate>
@@ -532,12 +527,10 @@
                     <!-- Footer -->
                     <Border Grid.Row="1" Padding="20,12" Background="{StaticResource AppFooterBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
                         <Grid>
-                            <TextBlock FontSize="13" Foreground="{StaticResource AppSecondaryBrush}" VerticalAlignment="Center">
-                                <TextBlock.Text>
-                                    <MultiBinding StringFormat="{}Hiện có {0} mặt hàng trong phiếu">
-                                        <Binding Path="Lines.Count"/>
-                                    </MultiBinding>
-                                </TextBlock.Text>
+                            <TextBlock FontSize="13" Foreground="{StaticResource AppSecondaryBrush}" Style="{StaticResource TypographyCaption}" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                <Run Text="Hiện có "/>
+                                <Run Text="{Binding Lines.Count, Mode=OneWay}" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <Run Text=" mặt hàng trong phiếu"/>
                             </TextBlock>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                 <TextBlock Text="TỔNG GIÁ TRỊ" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}" Margin="0,0,16,0" Foreground="{StaticResource AppSecondaryBrush}"/>

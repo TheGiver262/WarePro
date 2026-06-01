@@ -1,10 +1,12 @@
 <UserControl x:Class="QuanLyHangHoa.Views.ProductSerialView"
+             x:Name="RootView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:vm="clr-namespace:QuanLyHangHoa.ViewModels"
+             xmlns:helpers="clr-namespace:QuanLyHangHoa.Helpers"
              mc:Ignorable="d" d:DesignHeight="800" d:DesignWidth="1100">
     
     <Grid Background="{StaticResource AppBackgroundBrush}">
@@ -47,8 +49,8 @@
                         <!-- Serial Search -->
                         <StackPanel Grid.Column="0" Margin="{StaticResource Margin.Right.md}">
                             <TextBlock Text="SỐ SERIES" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                            <TextBox materialDesign:HintAssist.Hint="Tìm số series..." 
-                                     Height="32" VerticalContentAlignment="Center"
+                            <TextBox Style="{StaticResource AppTextBoxStyle}" materialDesign:HintAssist.Hint="Tìm số series..." 
+                                     Height="32" Margin="0" VerticalContentAlignment="Center"
                                      Text="{Binding SearchSerial, UpdateSourceTrigger=PropertyChanged}">
                                 <TextBox.InputBindings>
                                     <KeyBinding Key="Enter" Command="{Binding SearchCommand}"/>
@@ -59,7 +61,7 @@
                         <!-- Product Search -->
                         <StackPanel Grid.Column="1" Margin="{StaticResource Margin.Right.md}">
                             <TextBlock Text="SẢN PHẨM" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                            <TextBox Height="32" VerticalContentAlignment="Center"
+                            <TextBox Style="{StaticResource AppTextBoxStyle}" Height="32" Margin="0" VerticalContentAlignment="Center"
                                      materialDesign:HintAssist.Hint="Mã hoặc tên sản phẩm..."
                                      Text="{Binding SearchProduct, UpdateSourceTrigger=PropertyChanged}">
                                 <TextBox.InputBindings>
@@ -71,7 +73,7 @@
                         <!-- Brand Search -->
                         <StackPanel Grid.Column="2" Margin="{StaticResource Margin.Right.md}">
                             <TextBlock Text="THƯƠNG HIỆU" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                            <TextBox Height="32" VerticalContentAlignment="Center"
+                            <TextBox Style="{StaticResource AppTextBoxStyle}" Height="32" Margin="0" VerticalContentAlignment="Center"
                                      materialDesign:HintAssist.Hint="Thương hiệu..."
                                      Text="{Binding SearchBrand, UpdateSourceTrigger=PropertyChanged}">
                                 <TextBox.InputBindings>
@@ -83,9 +85,9 @@
                         <!-- Status Filter -->
                         <StackPanel Grid.Column="3" Margin="{StaticResource Margin.Right.md}">
                             <TextBlock Text="TRẠNG THÁI" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                            <ComboBox ItemsSource="{Binding Statuses}" 
+                            <ComboBox Style="{StaticResource AppComboBoxStyle}" ItemsSource="{Binding Statuses}" 
                                       SelectedItem="{Binding SelectedStatus, UpdateSourceTrigger=PropertyChanged}"
-                                      Height="32" VerticalContentAlignment="Center"/>
+                                      Height="32" Margin="0" VerticalContentAlignment="Center"/>
                         </StackPanel>
 
                         <!-- Actions -->
@@ -129,7 +131,7 @@
                         <!-- From Date -->
                         <StackPanel Grid.Column="0" Margin="{StaticResource Margin.Right.md}">
                             <TextBlock Text="TỪ NGÀY" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                            <DatePicker Height="32" VerticalContentAlignment="Center"
+                            <DatePicker Style="{StaticResource AppDatePickerStyle}" Height="40" VerticalContentAlignment="Center"
                                        materialDesign:HintAssist.Hint="Từ ngày..."
                                        SelectedDate="{Binding SearchFromDate, UpdateSourceTrigger=PropertyChanged}"/>
                         </StackPanel>
@@ -137,7 +139,7 @@
                         <!-- To Date -->
                         <StackPanel Grid.Column="1" Margin="{StaticResource Margin.Right.md}">
                             <TextBlock Text="ĐẾN NGÀY" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                            <DatePicker Height="32" VerticalContentAlignment="Center"
+                            <DatePicker Style="{StaticResource AppDatePickerStyle}" Height="40" VerticalContentAlignment="Center"
                                        materialDesign:HintAssist.Hint="Đến ngày..."
                                        SelectedDate="{Binding SearchToDate, UpdateSourceTrigger=PropertyChanged}"/>
                         </StackPanel>
@@ -145,7 +147,7 @@
                         <!-- Note Search -->
                         <StackPanel Grid.Column="2">
                             <TextBlock Text="Ghi chú" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                            <TextBox Height="32" VerticalContentAlignment="Center"
+                            <TextBox Style="{StaticResource AppTextBoxStyle}" Height="40" VerticalContentAlignment="Center"
                                      materialDesign:HintAssist.Hint="Nội dung ghi chú..."
                                      Text="{Binding SearchNote, UpdateSourceTrigger=PropertyChanged}">
                                 <TextBox.InputBindings>
@@ -166,7 +168,8 @@
                     </Grid.RowDefinitions>
                     
                     <DataGrid Grid.Row="0" ItemsSource="{Binding Serials}" SelectedItem="{Binding SelectedSerial, Mode=TwoWay}"
-                              EnableRowVirtualization="False"
+                              EnableRowVirtualization="True"
+                              helpers:DataGridHelper.LoadMoreCommand="{Binding LoadMoreCommand}"
                               AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                               RowHeight="44"
                               SelectionMode="Single" SelectionUnit="FullRow">
@@ -235,16 +238,15 @@
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                         <Button Style="{StaticResource ProMaxIconButtonStyle}" ToolTip="Xem chi tiết" Margin="0,0,4,0"
-                                                Command="{Binding DataContext.ViewSerialDetailCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                Command="{Binding DataContext.ViewSerialDetailCommand, ElementName=RootView}"
                                                 CommandParameter="{Binding}">
                                             <materialDesign:PackIcon Kind="EyeOutline" Width="18" Height="18"/>
                                         </Button>
                                         <Button Style="{StaticResource ProMaxIconButtonStyle}" ToolTip="Sửa" Margin="0,0,4,0"
-                                                Command="{Binding DataContext.EditSerialCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                Command="{Binding DataContext.EditSerialCommand, ElementName=RootView}"
                                                 CommandParameter="{Binding}">
                                             <materialDesign:PackIcon Kind="PencilOutline" Width="18" Height="18"/>
                                         </Button>
-
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
@@ -254,15 +256,16 @@
                     
                     <!-- Row 1: Footer -->
                     <Border Grid.Row="1" Padding="20,12" Background="{StaticResource AppFooterBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
-                        <TextBlock VerticalAlignment="Center" Style="{StaticResource TypographyCaption}">
-                            <TextBlock.Text>
-                                <MultiBinding StringFormat="{}Hiện có {0} số Serial trong hệ thống · {1} trong kho · {2} đã bán · {3} thanh lý">
-                                    <Binding Path="TotalCount"/>
-                                    <Binding Path="InStockCount"/>
-                                    <Binding Path="SoldCount"/>
-                                    <Binding Path="ScrappedCount"/>
-                                </MultiBinding>
-                            </TextBlock.Text>
+                        <TextBlock VerticalAlignment="Center" Style="{StaticResource TypographyCaption}" HorizontalAlignment="Left">
+                            <Run Text="Hiện có "/>
+                            <Run Text="{Binding TotalCount, Mode=OneWay}" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <Run Text=" số Serial trong hệ thống · "/>
+                            <Run Text="{Binding InStockCount, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource SuccessTextBrush}"/>
+                            <Run Text=" trong kho · "/>
+                            <Run Text="{Binding SoldCount, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource InfoTextBrush}"/>
+                            <Run Text=" đã bán · "/>
+                            <Run Text="{Binding ScrappedCount, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource DangerTextBrush}"/>
+                            <Run Text=" thanh lý"/>
                         </TextBlock>
                     </Border>
                 </Grid>

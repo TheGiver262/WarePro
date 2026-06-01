@@ -1,9 +1,13 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.EntityFrameworkCore;
+using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
 
@@ -36,6 +40,10 @@ namespace QuanLyHangHoa.ViewModels
         private readonly InvoiceService _invoiceService;
         private readonly ProductService _productService;
         private readonly ReferenceDataService _refDataService;
+        private int _skip = 0;
+        private const int PageSize = 100;
+        private bool _isLoading = false;
+        private bool _isInitialized = false;
 
         [ObservableProperty] private ObservableCollection<SalesInvoice> _invoices = new();
         [ObservableProperty] private SalesInvoice? _selectedInvoice;
@@ -91,14 +99,14 @@ namespace QuanLyHangHoa.ViewModels
             LoadData();
         }
 
-        partial void OnSearchInvoiceCodeChanged(string value) => LoadData();
-        partial void OnSearchCustomerNameChanged(string value) => LoadData();
-        partial void OnFilterStartDateChanged(DateTime? value) => LoadData();
-        partial void OnFilterEndDateChanged(DateTime? value) => LoadData();
-        partial void OnSelectedFilterPaymentStatusChanged(string? value) => LoadData();
-        partial void OnFilterLinkDocCodeChanged(string? value) => LoadData();
-        partial void OnFilterMinTotalChanged(decimal? value) => LoadData();
-        partial void OnFilterMaxTotalChanged(decimal? value) => LoadData();
+        partial void OnSearchInvoiceCodeChanged(string value) { if (_isInitialized) LoadData(); }
+        partial void OnSearchCustomerNameChanged(string value) { if (_isInitialized) LoadData(); }
+        partial void OnFilterStartDateChanged(DateTime? value) { if (_isInitialized) LoadData(); }
+        partial void OnFilterEndDateChanged(DateTime? value) { if (_isInitialized) LoadData(); }
+        partial void OnSelectedFilterPaymentStatusChanged(string? value) { if (_isInitialized) LoadData(); }
+        partial void OnFilterLinkDocCodeChanged(string? value) { if (_isInitialized) LoadData(); }
+        partial void OnFilterMinTotalChanged(decimal? value) { if (_isInitialized) LoadData(); }
+        partial void OnFilterMaxTotalChanged(decimal? value) { if (_isInitialized) LoadData(); }
 
         [ObservableProperty] [NotifyPropertyChangedFor(nameof(FormRemainingAmount))] private decimal _formTotalAmount;
         [ObservableProperty] private decimal _formSubTotal;
@@ -136,6 +144,7 @@ namespace QuanLyHangHoa.ViewModels
             InitializeForm(); // Init form fields without switching tab
             SelectedFilterPaymentStatus = "Tất cả";
             SelectedTabIndex = 0; // Always start on list tab
+            _isInitialized = true;
         }
 
         private void OnLineItemPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -158,71 +167,141 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         public void LoadData()
         {
-            AvailableProducts = new ObservableCollection<Product>(_productService.GetAllProducts());
-            AvailableCustomers = new ObservableCollection<Customer>(_refDataService.GetAllCustomers());
-            
-            using (var context = _mainViewModel?.ContextFactory?.Invoke() ?? new QuanLyHangHoa.Data.AppDbContext())
-            {
-                AvailableStockOuts = new ObservableCollection<StockOut>(context.StockOuts.ToList());
-            }
-            var allInvoices = _invoiceService.GetAllSalesInvoices();
-
-            // Apply Filters
-            if (!string.IsNullOrWhiteSpace(SearchInvoiceCode))
-            {
-                allInvoices = allInvoices.Where(i => i.InvoiceCode != null && i.InvoiceCode.Contains(SearchInvoiceCode, StringComparison.OrdinalIgnoreCase)).ToList();
-            }
-
-            if (!string.IsNullOrWhiteSpace(SearchCustomerName))
-            {
-                allInvoices = allInvoices.Where(i => i.Customer != null && i.Customer.DisplayName != null && i.Customer.DisplayName.Contains(SearchCustomerName, StringComparison.OrdinalIgnoreCase)).ToList();
-            }
-
-            if (FilterStartDate.HasValue)
-            {
-                allInvoices = allInvoices.Where(i => i.InvoiceDate.Date >= FilterStartDate.Value.Date).ToList();
-            }
-
-            if (FilterEndDate.HasValue)
-            {
-                allInvoices = allInvoices.Where(i => i.InvoiceDate.Date <= FilterEndDate.Value.Date).ToList();
-            }
-
-            if (SelectedFilterPaymentStatus != "Tất cả" && !string.IsNullOrEmpty(SelectedFilterPaymentStatus))
-            {
-                var englishStatus = StatusToEnglish(SelectedFilterPaymentStatus);
-                allInvoices = allInvoices.Where(i => i.PaymentStatus == englishStatus).ToList();
-            }
-
-            if (!string.IsNullOrWhiteSpace(FilterLinkDocCode))
-            {
-                // Note: LinkDocCode logic can be extended if there's a field for it
-                // For now, we search in Notes as a placeholder if needed, or skip if not in model
-            }
-
-            if (FilterMinTotal.HasValue)
-            {
-                allInvoices = allInvoices.Where(i => i.GrandTotal >= FilterMinTotal.Value).ToList();
-            }
-
-            if (FilterMaxTotal.HasValue)
-            {
-                allInvoices = allInvoices.Where(i => i.GrandTotal <= FilterMaxTotal.Value).ToList();
-            }
-
-            Invoices = new ObservableCollection<SalesInvoice>(allInvoices.OrderByDescending(i => i.InvoiceDate));
-            UpdateSummaries(allInvoices);
+            _ = LoadDataAsync(true);
         }
 
-        private void UpdateSummaries(System.Collections.Generic.IEnumerable<SalesInvoice> allInvoices)
+        private async Task LoadDataAsync(bool reset)
         {
-            TotalSalesCount = allInvoices.Count();
-            TotalSalesAmount = allInvoices.Sum(i => i.GrandTotal);
+            if (_isLoading) return;
+            _isLoading = true;
+            try
+            {
+                if (reset)
+                {
+                    _skip = 0;
+                    Invoices.Clear();
+                }
 
-            PaidCount = allInvoices.Count(i => i.PaymentStatus == "Paid");
-            PartialCount = allInvoices.Count(i => i.PaymentStatus == "Partial");
-            UnpaidCount = allInvoices.Count(i => i.PaymentStatus == "Unpaid");
-            OverdueCount = allInvoices.Count(i => i.PaymentStatus == "Overdue");
+                if (reset)
+                {
+                    var products = await Task.Run(() => _productService.GetAllProducts());
+                    var customers = await Task.Run(() => _refDataService.GetAllCustomers());
+                    List<StockOut> stockOuts;
+                    using (var context = _mainViewModel?.ContextFactory?.Invoke() ?? new AppDbContext())
+                    {
+                        stockOuts = await Task.Run(() => context.StockOuts.ToList());
+                    }
+
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        AvailableProducts = new ObservableCollection<Product>(products);
+                        AvailableCustomers = new ObservableCollection<Customer>(customers);
+                        AvailableStockOuts = new ObservableCollection<StockOut>(stockOuts);
+                    });
+                }
+
+                var paymentStatus = SelectedFilterPaymentStatus != "Tất cả" && !string.IsNullOrEmpty(SelectedFilterPaymentStatus)
+                    ? StatusToEnglish(SelectedFilterPaymentStatus)
+                    : null;
+
+                var data = await Task.Run(() => _invoiceService.GetSalesInvoicesPaged(
+                    SearchInvoiceCode, SearchCustomerName, FilterStartDate, FilterEndDate, paymentStatus, FilterMinTotal, FilterMaxTotal, _skip, PageSize));
+
+                foreach (var inv in data)
+                {
+                    Invoices.Add(inv);
+                }
+                _skip += data.Count;
+
+                // Thống kê đếm bất đồng bộ từ database
+                await Task.Run(() =>
+                {
+                    var count = _invoiceService.GetSalesInvoicesCount(SearchInvoiceCode, SearchCustomerName, FilterStartDate, FilterEndDate, paymentStatus, FilterMinTotal, FilterMaxTotal);
+                    using var db = _mainViewModel?.ContextFactory?.Invoke() ?? new AppDbContext();
+                    var query = db.SalesInvoices.AsNoTracking().AsQueryable();
+                    query = ApplySalesInvoiceFiltersStatic(query, SearchInvoiceCode, SearchCustomerName, FilterStartDate, FilterEndDate, paymentStatus, FilterMinTotal, FilterMaxTotal);
+                    
+                    var totalAmount = query.Sum(i => i.GrandTotal);
+                    var paid = query.Count(i => i.PaymentStatus == "Paid");
+                    var partial = query.Count(i => i.PaymentStatus == "Partial");
+                    var unpaid = query.Count(i => i.PaymentStatus == "Unpaid");
+                    var overdue = query.Count(i => i.PaymentStatus == "Overdue");
+
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        TotalSalesCount = count;
+                        TotalSalesAmount = totalAmount;
+                        PaidCount = paid;
+                        PartialCount = partial;
+                        UnpaidCount = unpaid;
+                        OverdueCount = overdue;
+                    });
+                });
+            }
+            catch (Exception)
+            {
+            }
+            finally
+            {
+                _isLoading = false;
+            }
+        }
+
+        [RelayCommand]
+        private async Task LoadMore()
+        {
+            await LoadDataAsync(false);
+        }
+
+        private static IQueryable<SalesInvoice> ApplySalesInvoiceFiltersStatic(
+            IQueryable<SalesInvoice> query,
+            string code,
+            string customerName,
+            DateTime? startDate,
+            DateTime? endDate,
+            string? paymentStatus,
+            decimal? minTotal,
+            decimal? maxTotal)
+        {
+            if (!string.IsNullOrWhiteSpace(code))
+            {
+                var term = code.Trim().ToLower();
+                query = query.Where(i => i.InvoiceCode != null && i.InvoiceCode.ToLower().Contains(term));
+            }
+
+            if (!string.IsNullOrWhiteSpace(customerName))
+            {
+                var term = customerName.Trim().ToLower();
+                query = query.Where(i => i.Customer != null && i.Customer.DisplayName != null && i.Customer.DisplayName.ToLower().Contains(term));
+            }
+
+            if (startDate.HasValue)
+            {
+                query = query.Where(i => i.InvoiceDate >= startDate.Value.Date);
+            }
+
+            if (endDate.HasValue)
+            {
+                var endOfDay = endDate.Value.Date.AddDays(1).AddTicks(-1);
+                query = query.Where(i => i.InvoiceDate <= endOfDay);
+            }
+
+            if (!string.IsNullOrEmpty(paymentStatus) && paymentStatus != "Tất cả" && paymentStatus != "All")
+            {
+                query = query.Where(i => i.PaymentStatus == paymentStatus);
+            }
+
+            if (minTotal.HasValue)
+            {
+                query = query.Where(i => i.GrandTotal >= minTotal.Value);
+            }
+
+            if (maxTotal.HasValue)
+            {
+                query = query.Where(i => i.GrandTotal <= maxTotal.Value);
+            }
+
+            return query;
         }
 
         [RelayCommand]

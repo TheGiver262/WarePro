@@ -1,0 +1,92 @@
+@startuml ERD_Module_01_Core_Catalog
+title Core & Catalog Module ERD
+
+entity Category {
+    * Id : int [PK]
+    --
+    * CategoryCode : nvarchar(100) [UQ]
+    * DisplayName : nvarchar(255)
+    * IsActive : bit
+}
+
+entity Brand {
+    * Id : int [PK]
+    --
+    * BrandCode : nvarchar(100) [UQ]
+    * DisplayName : nvarchar(255)
+    OriginCountry : nvarchar(100)
+    * IsActive : bit
+}
+
+entity Unit {
+    * Id : int [PK]
+    --
+    * UnitCode : nvarchar(100) [UQ]
+    * DisplayName : nvarchar(255)
+    * IsActive : bit
+}
+
+entity Supplier {
+    * Id : int [PK]
+    --
+    * SupplierCode : nvarchar(100) [UQ]
+    * DisplayName : nvarchar(255)
+    Phone : nvarchar(50)
+    Email : nvarchar(100)
+    * IsActive : bit
+}
+
+entity Customer {
+    * Id : int [PK]
+    --
+    * CustomerCode : nvarchar(100) [UQ]
+    * DisplayName : nvarchar(255)
+    Phone : nvarchar(50)
+    Email : nvarchar(100)
+    * IsActive : bit
+}
+
+entity Warehouse {
+    * Id : int [PK]
+    --
+    * WarehouseCode : nvarchar(100) [UQ]
+    * DisplayName : nvarchar(255)
+    * IsDefault : bit
+    * IsActive : bit
+}
+
+entity Product {
+    * Id : int [PK]
+    --
+    * ProductCode : nvarchar(100) [UQ]
+    * DisplayName : nvarchar(255)
+    * CategoryId : int [FK]
+    * BrandId : int [FK]
+    * DefaultUnitId : int [FK]
+    * DefaultPrice : decimal(18,2)
+    CostPrice : decimal(18,2) [nullable]
+    OriginCountry : nvarchar(100)
+    * WarrantyPeriodMonths : int
+    * IsSerialTracked : bit
+    * IsActive : bit
+}
+
+entity ProductUnit {
+    * Id : int [PK]
+    --
+    * ProductId : int [FK]
+    * UnitId : int [FK]
+    * ConversionFactor : decimal(18,4)
+    * IsBaseUnit : bit
+    * IsPurchaseUnit : bit
+    * IsSalesUnit : bit
+    --
+    *UQ_ProductUnit* : UNIQUE(ProductId, UnitId)
+}
+
+Category ||--o{ Product
+Brand ||--o{ Product
+Unit ||--o{ Product
+Product ||--o{ ProductUnit
+Unit ||--o{ ProductUnit
+@enduml

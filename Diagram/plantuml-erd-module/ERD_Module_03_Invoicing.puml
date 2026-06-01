@@ -1,0 +1,150 @@
+@startuml ERD_Module_03_Invoicing
+title Invoicing Module ERD
+
+entity Supplier {
+    * Id : int [PK]
+    --
+    * SupplierCode : nvarchar(100)
+}
+
+entity Customer {
+    * Id : int [PK]
+    --
+    * CustomerCode : nvarchar(100)
+}
+
+entity Warehouse {
+    * Id : int [PK]
+    --
+    * WarehouseCode : nvarchar(100)
+}
+
+entity Product {
+    * Id : int [PK]
+    --
+    * ProductCode : nvarchar(100) [UQ]
+    * DisplayName : nvarchar(255)
+}
+
+entity Unit {
+    * Id : int [PK]
+    --
+    * UnitCode : nvarchar(100)
+}
+
+entity StockIn {
+    * Id : int [PK]
+    --
+    * DocumentCode : nvarchar(100) [UQ]
+}
+
+entity StockInLine {
+    * Id : int [PK]
+    --
+    * StockInId : int [FK]
+    * ProductId : int [FK]
+    * UnitId : int [FK]
+    * Quantity : decimal(18,2)
+}
+
+entity StockOut {
+    * Id : int [PK]
+    --
+    * DocumentCode : nvarchar(100) [UQ]
+}
+
+entity StockOutLine {
+    * Id : int [PK]
+    --
+    * StockOutId : int [FK]
+    * ProductId : int [FK]
+    * UnitId : int [FK]
+    * Quantity : decimal(18,2)
+}
+
+entity PurchaseInvoice {
+    * Id : int [PK]
+    --
+    * InvoiceCode : nvarchar(100) [UQ]
+    * SupplierId : int [FK]
+    StockInId : int [FK, nullable]
+    * InvoiceDate : datetime
+    * SubTotal : decimal(18,2)
+    * TaxAmount : decimal(18,2)
+    * GrandTotal : decimal(18,2)
+    * PaidAmount : decimal(18,2)
+    * PaymentStatus : nvarchar(50)
+    * DueDate : datetime
+}
+
+entity PurchaseInvoiceLine {
+    * Id : int [PK]
+    --
+    * PurchaseInvoiceId : int [FK]
+    * ProductId : int [FK]
+    * UnitId : int [FK]
+    StockInLineId : int [FK, nullable]
+    * Quantity : decimal(18,2)
+    * UnitPrice : decimal(18,2)
+    * SubTotal : decimal(18,2)
+    * TaxRate : decimal(18,4)
+    * TaxAmount : decimal(18,2)
+    * GrandTotal : decimal(18,2)
+}
+
+entity SalesInvoice {
+    * Id : int [PK]
+    --
+    * InvoiceCode : nvarchar(100) [UQ]
+    * CustomerId : int [FK]
+    StockOutId : int [FK, nullable]
+    * InvoiceDate : datetime
+    * SubTotal : decimal(18,2)
+    * TaxAmount : decimal(18,2)
+    * GrandTotal : decimal(18,2)
+    * PaidAmount : decimal(18,2)
+    * PaymentStatus : nvarchar(50)
+    * DueDate : datetime
+}
+
+entity SalesInvoiceLine {
+    * Id : int [PK]
+    --
+    * SalesInvoiceId : int [FK]
+    * ProductId : int [FK]
+    * UnitId : int [FK]
+    StockOutLineId : int [FK, nullable]
+    * Quantity : decimal(18,2)
+    * UnitPrice : decimal(18,2)
+    * SubTotal : decimal(18,2)
+    * TaxRate : decimal(18,4)
+    * TaxAmount : decimal(18,2)
+    * GrandTotal : decimal(18,2)
+}
+
+Supplier |o--o{ StockIn
+Warehouse ||--o{ StockIn
+StockIn ||--o{ StockInLine
+Product ||--o{ StockInLine
+Unit ||--o{ StockInLine
+
+Customer ||--o{ StockOut
+Warehouse ||--o{ StockOut
+StockOut ||--o{ StockOutLine
+Product ||--o{ StockOutLine
+Unit ||--o{ StockOutLine
+
+Supplier ||--o{ PurchaseInvoice
+StockIn |o--o| PurchaseInvoice
+PurchaseInvoice ||--o{ PurchaseInvoiceLine
+Product ||--o{ PurchaseInvoiceLine
+Unit ||--o{ PurchaseInvoiceLine
+StockInLine |o--o{ PurchaseInvoiceLine
+
+Customer ||--o{ SalesInvoice
+StockOut |o--o| SalesInvoice
+SalesInvoice ||--o{ SalesInvoiceLine
+Product ||--o{ SalesInvoiceLine
+Unit ||--o{ SalesInvoiceLine
+StockOutLine |o--o{ SalesInvoiceLine
+@enduml

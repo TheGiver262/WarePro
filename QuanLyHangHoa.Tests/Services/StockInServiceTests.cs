@@ -163,6 +163,71 @@ public class StockInServiceTests
         Assert.Equal("Các số serial sau bị trùng lặp trong phiếu: [SN-002]. Vui lòng kiểm tra lại trước khi duyệt.", exDup.Message);
     }
 
+    [Fact]
+    public void Post_updates_inventory_using_BaseQuantity_when_unit_conversion_is_applied()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        using (var seedContext = CreateContext(connection))
+        {
+            DatabaseHelper.SeedBasicData(seedContext);
+            seedContext.Units.Add(new Unit { Id = 2, UnitCode = "BOX", DisplayName = "Box", IsActive = true });
+            seedContext.Products.Add(new Product 
+            { 
+                Id = 300, 
+                ProductCode = "P300",
+                DisplayName = "Converted Unit Product",
+                CategoryId = 1, 
+                BrandId = 1, 
+                DefaultUnitId = 1, 
+                DefaultPrice = 10m, 
+                IsSerialTracked = false 
+            });
+            seedContext.ProductUnits.Add(new ProductUnit
+            {
+                ProductId = 300,
+                UnitId = 2,
+                ConversionFactor = 12m,
+                IsBaseUnit = false,
+                IsPurchaseUnit = true,
+                IsSalesUnit = true
+            });
+            seedContext.SaveChanges();
+        }
+
+        var service = new StockInService(() => CreateContext(connection));
+        var stockIn = new StockIn
+        {
+            DocumentCode = "SI-CONV",
+            SupplierId = 1,
+            WarehouseId = 1,
+            PurposeCode = "Purchase",
+            CreatedAt = DateTime.Now
+        };
+        var lines = new List<StockInLine>
+        {
+            new StockInLine
+            {
+                ProductId = 300,
+                UnitId = 2,
+                Quantity = 2,
+                UnitPrice = 100m
+            }
+        };
+
+        service.SaveDraft(stockIn, lines, 1);
+        service.Post(stockIn.Id, 1);
+
+        using var assertContext = CreateContext(connection);
+        var balance = assertContext.StockBalances.Single(b => b.ProductId == 300);
+        // Xác minh tồn kho tăng theo BaseQuantity (2 * 12 = 24) chứ không phải Quantity giao dịch (2)
+        Assert.Equal(24, balance.OnHandQuantity);
+
+        var ledger = assertContext.StockLedgers.Single(l => l.ProductId == 300);
+        Assert.Equal("In", ledger.MovementType);
+        Assert.Equal(24, ledger.Quantity);
+    }
+
     private static AppDbContext CreateContext(SqliteConnection connection)
     {
         return DatabaseHelper.CreateContext(connection);

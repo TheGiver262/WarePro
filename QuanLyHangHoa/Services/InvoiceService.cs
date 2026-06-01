@@ -244,6 +244,101 @@ namespace QuanLyHangHoa.Services
                 .ToList();
         }
 
+        public List<SalesInvoice> GetSalesInvoicesPaged(
+            string code,
+            string customerName,
+            DateTime? startDate,
+            DateTime? endDate,
+            string paymentStatus,
+            decimal? minTotal,
+            decimal? maxTotal,
+            int skip,
+            int take)
+        {
+            using var db = _contextFactory();
+            var query = db.SalesInvoices.AsNoTracking()
+                .Include(i => i.Customer)
+                .Include(i => i.Creator)
+                .Include(i => i.Lines!)
+                .ThenInclude(l => l.Product)
+                .AsQueryable();
+
+            query = ApplySalesInvoiceFilters(query, code, customerName, startDate, endDate, paymentStatus, minTotal, maxTotal);
+
+            return query
+                .OrderByDescending(i => i.InvoiceDate)
+                .Skip(skip)
+                .Take(take)
+                .ToList();
+        }
+
+        public int GetSalesInvoicesCount(
+            string code,
+            string customerName,
+            DateTime? startDate,
+            DateTime? endDate,
+            string paymentStatus,
+            decimal? minTotal,
+            decimal? maxTotal)
+        {
+            using var db = _contextFactory();
+            var query = db.SalesInvoices.AsNoTracking().AsQueryable();
+            query = ApplySalesInvoiceFilters(query, code, customerName, startDate, endDate, paymentStatus, minTotal, maxTotal);
+            return query.Count();
+        }
+
+        private IQueryable<SalesInvoice> ApplySalesInvoiceFilters(
+            IQueryable<SalesInvoice> query,
+            string code,
+            string customerName,
+            DateTime? startDate,
+            DateTime? endDate,
+            string paymentStatus,
+            decimal? minTotal,
+            decimal? maxTotal)
+        {
+            if (!string.IsNullOrWhiteSpace(code))
+            {
+                var term = code.Trim().ToLower();
+                query = query.Where(i => i.InvoiceCode != null && i.InvoiceCode.ToLower().Contains(term));
+            }
+
+            if (!string.IsNullOrWhiteSpace(customerName))
+            {
+                var term = customerName.Trim().ToLower();
+                query = query.Where(i => i.Customer != null && i.Customer.DisplayName != null && i.Customer.DisplayName.ToLower().Contains(term));
+            }
+
+            if (startDate.HasValue)
+            {
+                query = query.Where(i => i.InvoiceDate >= startDate.Value.Date);
+            }
+
+            if (endDate.HasValue)
+            {
+                // To include the whole end date
+                var endOfDay = endDate.Value.Date.AddDays(1).AddTicks(-1);
+                query = query.Where(i => i.InvoiceDate <= endOfDay);
+            }
+
+            if (!string.IsNullOrEmpty(paymentStatus) && paymentStatus != "Tất cả" && paymentStatus != "All")
+            {
+                query = query.Where(i => i.PaymentStatus == paymentStatus);
+            }
+
+            if (minTotal.HasValue)
+            {
+                query = query.Where(i => i.GrandTotal >= minTotal.Value);
+            }
+
+            if (maxTotal.HasValue)
+            {
+                query = query.Where(i => i.GrandTotal <= maxTotal.Value);
+            }
+
+            return query;
+        }
+
         public List<PurchaseInvoice> GetAllPurchaseInvoices()
         {
             using var db = _contextFactory();
@@ -254,6 +349,100 @@ namespace QuanLyHangHoa.Services
                 .ThenInclude(l => l.Product)
                 .OrderByDescending(i => i.InvoiceDate)
                 .ToList();
+        }
+
+        public List<PurchaseInvoice> GetPurchaseInvoicesPaged(
+            string code,
+            string supplierName,
+            DateTime? startDate,
+            DateTime? endDate,
+            string paymentStatus,
+            decimal? minTotal,
+            decimal? maxTotal,
+            int skip,
+            int take)
+        {
+            using var db = _contextFactory();
+            var query = db.PurchaseInvoices.AsNoTracking()
+                .Include(i => i.Supplier)
+                .Include(i => i.Creator)
+                .Include(i => i.Lines!)
+                .ThenInclude(l => l.Product)
+                .AsQueryable();
+
+            query = ApplyPurchaseInvoiceFilters(query, code, supplierName, startDate, endDate, paymentStatus, minTotal, maxTotal);
+
+            return query
+                .OrderByDescending(i => i.InvoiceDate)
+                .Skip(skip)
+                .Take(take)
+                .ToList();
+        }
+
+        public int GetPurchaseInvoicesCount(
+            string code,
+            string supplierName,
+            DateTime? startDate,
+            DateTime? endDate,
+            string paymentStatus,
+            decimal? minTotal,
+            decimal? maxTotal)
+        {
+            using var db = _contextFactory();
+            var query = db.PurchaseInvoices.AsNoTracking().AsQueryable();
+            query = ApplyPurchaseInvoiceFilters(query, code, supplierName, startDate, endDate, paymentStatus, minTotal, maxTotal);
+            return query.Count();
+        }
+
+        private IQueryable<PurchaseInvoice> ApplyPurchaseInvoiceFilters(
+            IQueryable<PurchaseInvoice> query,
+            string code,
+            string supplierName,
+            DateTime? startDate,
+            DateTime? endDate,
+            string paymentStatus,
+            decimal? minTotal,
+            decimal? maxTotal)
+        {
+            if (!string.IsNullOrWhiteSpace(code))
+            {
+                var term = code.Trim().ToLower();
+                query = query.Where(i => i.InvoiceCode != null && i.InvoiceCode.ToLower().Contains(term));
+            }
+
+            if (!string.IsNullOrWhiteSpace(supplierName))
+            {
+                var term = supplierName.Trim().ToLower();
+                query = query.Where(i => i.Supplier != null && i.Supplier.DisplayName != null && i.Supplier.DisplayName.ToLower().Contains(term));
+            }
+
+            if (startDate.HasValue)
+            {
+                query = query.Where(i => i.InvoiceDate >= startDate.Value.Date);
+            }
+
+            if (endDate.HasValue)
+            {
+                var endOfDay = endDate.Value.Date.AddDays(1).AddTicks(-1);
+                query = query.Where(i => i.InvoiceDate <= endOfDay);
+            }
+
+            if (!string.IsNullOrEmpty(paymentStatus) && paymentStatus != "Tất cả" && paymentStatus != "All")
+            {
+                query = query.Where(i => i.PaymentStatus == paymentStatus);
+            }
+
+            if (minTotal.HasValue)
+            {
+                query = query.Where(i => i.GrandTotal >= minTotal.Value);
+            }
+
+            if (maxTotal.HasValue)
+            {
+                query = query.Where(i => i.GrandTotal <= maxTotal.Value);
+            }
+
+            return query;
         }
 
     }

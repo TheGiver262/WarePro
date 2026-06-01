@@ -45,6 +45,34 @@ namespace QuanLyHangHoa.Services.DataImport
 
             try
             {
+                // Tự động kiểm tra và sửa dữ liệu mồ côi cho StockInLine -> StockIn trước khi seed
+                var orphanStockInIds = await _context.StockInLines
+                    .Select(l => l.StockInId)
+                    .Distinct()
+                    .Where(id => !_context.StockIns.Any(s => s.Id == id))
+                    .ToListAsync();
+
+                if (orphanStockInIds.Any())
+                {
+                    await _context.Database.OpenConnectionAsync();
+                    try
+                    {
+                        await _context.Database.ExecuteSqlRawAsync("SET IDENTITY_INSERT StockIn ON");
+                        foreach (var id in orphanStockInIds)
+                        {
+                            await _context.Database.ExecuteSqlRawAsync(
+                                "INSERT INTO StockIn (Id, DocumentCode, WarehouseId, PurposeCode, Status, CreatedBy, CreatedAt) " +
+                                $"VALUES ({id}, 'SI-ORPHAN-{id}', 1, 'OpeningBalance', 'Posted', 1, '2026-05-01 00:00:00')"
+                            );
+                        }
+                        await _context.Database.ExecuteSqlRawAsync("SET IDENTITY_INSERT StockIn OFF");
+                    }
+                    finally
+                    {
+                        await _context.Database.CloseConnectionAsync();
+                    }
+                }
+
                 using var stream = new FileStream(_excelPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
                 using var workbook = new XLWorkbook(stream);
                 var log = new System.Text.StringBuilder();

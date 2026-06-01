@@ -1,0 +1,38 @@
+@startuml UseCase_TongThe
+left to right direction
+skinparam packageStyle rect
+
+actor "Quản trị viên" as Admin
+actor "Quản lý" as Manager
+actor "Nhân viên kho" as Storekeeper
+actor "Nhân viên bán hàng" as Salesman
+actor "Nhân viên bảo hành" as Technician
+
+Admin --|> Manager
+Manager --|> Storekeeper
+Manager --|> Salesman
+Manager --|> Technician
+
+rectangle "Hệ thống quản lý hàng hóa và bảo hành" {
+    usecase "Quản lý Quản trị & Danh mục\n(Tài khoản, phân quyền, danh mục nền)" as UC_AdminCatalog
+    usecase "Quản lý Kho & Tồn kho\n(Nhập/xuất, kiểm kê, điều chỉnh)" as UC_Inventory
+    usecase "Quản lý Hóa đơn & Báo cáo\n(Hóa đơn mua/bán, báo cáo thống kê)" as UC_InvoicingReport
+    usecase "Quản lý Bảo hành\n(Tiếp nhận claim, duyệt đổi mới, trả khách)" as UC_Warranty
+}
+
+Admin --> UC_AdminCatalog
+Manager --> UC_AdminCatalog
+
+Storekeeper --> UC_Inventory
+Salesman --> UC_Inventory
+
+Storekeeper --> UC_InvoicingReport
+Salesman --> UC_InvoicingReport
+Manager --> UC_InvoicingReport
+
+Technician --> UC_Warranty
+Storekeeper --> UC_Warranty
+Salesman --> UC_Warranty
+Manager --> UC_Warranty
+
+@enduml

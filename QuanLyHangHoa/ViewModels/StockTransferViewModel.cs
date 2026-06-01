@@ -125,6 +125,7 @@ namespace QuanLyHangHoa.ViewModels
         // Footer stats
         [ObservableProperty] private int _totalCount;
         [ObservableProperty] private int _draftCount;
+        [ObservableProperty] private int _postedCount;
 
         public bool CanEdit => !IsPosted;
 
@@ -169,6 +170,7 @@ namespace QuanLyHangHoa.ViewModels
             StockTransferList = new ObservableCollection<StockTransfer>(all);
             TotalCount = all.Count;
             DraftCount = all.Count(s => s.Status == "Draft");
+            PostedCount = all.Count(s => s.Status == "Posted");
         }
 
         [RelayCommand]
@@ -273,9 +275,8 @@ namespace QuanLyHangHoa.ViewModels
         {
             if (line == null || line.SelectedProduct == null) return;
             
-            var isAdmin = AuthorizationService.CanPerform(_currentUser, PermissionAction.ManageUsers);
             var existing = string.Join("\n", line.SerialNumbers);
-            var isReadOnly = !CanEdit && !isAdmin;
+            var isReadOnly = !CanEdit;
 
             List<ProductSerial> available = null;
             if (line.SelectedProduct != null && SelectedFromWarehouse != null)
@@ -285,7 +286,7 @@ namespace QuanLyHangHoa.ViewModels
                     var query = db.ProductSerials
                         .Where(s => s.ProductId == line.SelectedProduct.Id && s.CurrentWarehouseId == SelectedFromWarehouse.Id && s.CurrentStatus == "InStock");
                     
-                    if (!CanEdit && isAdmin)
+                    if (!CanEdit)
                     {
                         var lineSerialsQuery = db.ProductSerials
                             .Where(s => s.ProductId == line.SelectedProduct.Id && s.StockTransferLineId == line.Id);
@@ -325,113 +326,6 @@ namespace QuanLyHangHoa.ViewModels
                     }
                     line.Quantity = serials.Count;
                     line.NotifySerialChanges();
-                }
-            }
-            else if (isAdmin)
-            {
-                if (dialog.ShowDialog() == true)
-                {
-                    var newSerials = StockInService.ParseSerialRange(dialog.SerialInput);
-                    if (newSerials.Count != (int)line.Quantity)
-                    {
-                        MessageBox.Show($"Số lượng serial mới ({newSerials.Count}) phải khớp chính xác với số lượng của dòng hàng ({line.Quantity})!", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
-                        return;
-                    }
-
-                    try
-                    {
-                        using (var db = _contextFactory())
-                        {
-                            var dbLine = db.StockTransferLines
-                                .Include(x => x.StockTransfer)
-                                .FirstOrDefault(x => x.Id == line.Id);
-
-                            if (dbLine == null)
-                            {
-                                MessageBox.Show("Không tìm thấy dòng phiếu chuyển kho trong cơ sở dữ liệu.", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
-                                return;
-                            }
-
-                            var fromWarehouseId = dbLine.StockTransfer.FromWarehouseId;
-                            var toWarehouseId = dbLine.StockTransfer.ToWarehouseId;
-
-                            var currentSerials = db.ProductSerials
-                                .Where(x => x.StockTransferLineId == dbLine.Id)
-                                .ToList();
-
-                            var currentSnList = currentSerials.Select(s => s.SerialNumber).ToList();
-
-                            var removedSnList = currentSnList.Except(newSerials, StringComparer.OrdinalIgnoreCase).ToList();
-                            var addedSnList = newSerials.Except(currentSnList, StringComparer.OrdinalIgnoreCase).ToList();
-
-                            // Validate các serial bị loại bỏ
-                            foreach (var sn in removedSnList)
-                            {
-                                var ps = currentSerials.FirstOrDefault(x => x.SerialNumber.Equals(sn, StringComparison.OrdinalIgnoreCase));
-                                if (ps != null)
-                                {
-                                    if (ps.CurrentStatus != SerialStatus.InStock.ToString() || ps.CurrentWarehouseId != toWarehouseId)
-                                    {
-                                        MessageBox.Show($"Không thể thu hồi serial {sn} vì nó đã được xuất hoặc bán khỏi kho đến.", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
-                                        return;
-                                    }
-                                }
-                            }
-
-                            // Validate các serial mới được thêm
-                            foreach (var sn in addedSnList)
-                            {
-                                var ps = db.ProductSerials.FirstOrDefault(x => x.SerialNumber == sn && x.ProductId == dbLine.ProductId);
-                                if (ps == null)
-                                {
-                                    MessageBox.Show($"Không tìm thấy số serial {sn} của sản phẩm này trong hệ thống.", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
-                                    return;
-                                }
-                                if (ps.CurrentStatus != SerialStatus.InStock.ToString() || ps.CurrentWarehouseId != fromWarehouseId)
-                                {
-                                    MessageBox.Show($"Số serial {sn} không có sẵn (InStock) tại kho đi của phiếu.", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
-                                    return;
-                                }
-                            }
-
-                            // Thực hiện cập nhật
-                            foreach (var sn in removedSnList)
-                            {
-                                var ps = currentSerials.FirstOrDefault(x => x.SerialNumber.Equals(sn, StringComparison.OrdinalIgnoreCase));
-                                if (ps != null)
-                                {
-                                    ps.CurrentWarehouseId = fromWarehouseId;
-                                    ps.StockTransferLineId = null;
-                                }
-                            }
-
-                            foreach (var sn in addedSnList)
-                            {
-                                var ps = db.ProductSerials.FirstOrDefault(x => x.SerialNumber == sn && x.ProductId == dbLine.ProductId);
-                                if (ps != null)
-                                {
-                                    ps.CurrentWarehouseId = toWarehouseId;
-                                    ps.StockTransferLineId = dbLine.Id;
-                                }
-                            }
-
-                            db.SaveChanges();
-                        }
-
-                        // Đồng bộ UI
-                        line.SerialNumbers.Clear();
-                        foreach (var sn in newSerials)
-                        {
-                            line.SerialNumbers.Add(sn);
-                        }
-                        line.NotifySerialChanges();
-
-                        MessageBox.Show("Cập nhật số serial thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show($"Đã xảy ra lỗi khi lưu số serial: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
-                    }
                 }
             }
             else

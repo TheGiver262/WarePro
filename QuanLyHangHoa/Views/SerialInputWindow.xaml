@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:converters="clr-namespace:QuanLyHangHoa.Converters"
         Title="Nhập Serial Number" Height="520"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
@@ -13,7 +14,7 @@
         <Style TargetType="Window">
             <Setter Property="Width" Value="480"/>
             <Style.Triggers>
-                <DataTrigger Binding="{Binding ShowAvailableSerials, RelativeSource={RelativeSource Self}}" Value="True">
+                <DataTrigger Binding="{Binding ShowAvailableColumn, RelativeSource={RelativeSource Self}}" Value="True">
                     <Setter Property="Width" Value="720"/>
                 </DataTrigger>
             </Style.Triggers>
@@ -22,6 +23,7 @@
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <converters:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
     </Window.Resources>
 
     <Border CornerRadius="{StaticResource Radius.lg}" Background="{StaticResource AppSurfaceBrush}" 
@@ -64,7 +66,7 @@
                             <Style TargetType="TextBlock" BasedOn="{StaticResource TypographyCaption}">
                                 <Setter Property="Text" Value="• Nhập từng serial riêng lẻ (mỗi dòng một mã).&#x0a;• Hoặc nhập dải số: EM901-EM930.&#x0a;• Cách nhau bằng dấu phẩy hoặc xuống dòng."/>
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding ShowAvailableSerials, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                    <DataTrigger Binding="{Binding ShowAvailableColumn, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
                                         <Setter Property="Text" Value="• Tích chọn các serial có sẵn ở cột bên trái.&#x0a;• Hoặc dán danh sách serial ở cột bên phải để tự động chọn nhanh."/>
                                     </DataTrigger>
                                 </Style.Triggers>
@@ -82,7 +84,7 @@
                                 <Style TargetType="ColumnDefinition">
                                     <Setter Property="Width" Value="*"/>
                                     <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ShowAvailableSerials, RelativeSource={RelativeSource AncestorType=Window}}" Value="False">
+                                        <DataTrigger Binding="{Binding ShowAvailableColumn, RelativeSource={RelativeSource AncestorType=Window}}" Value="False">
                                             <Setter Property="Width" Value="0"/>
                                         </DataTrigger>
                                     </Style.Triggers>
@@ -96,7 +98,7 @@
 
                     <!-- Left Column Panel: Available Serials -->
                     <Grid Grid.Column="0" Margin="0,0,12,0"
-                          Visibility="{Binding ShowAvailableSerials, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}">
+                          Visibility="{Binding ShowAvailableColumn, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
@@ -107,25 +109,87 @@
                                    
                         <materialDesign:Card Grid.Row="1" Style="{StaticResource AppCard}" Padding="0" 
                                              materialDesign:ElevationAssist.Elevation="Dp0" BorderThickness="1">
-                            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                <ItemsControl x:Name="AvailableItemsControl"
-                                              ItemsSource="{Binding AvailableSerials, RelativeSource={RelativeSource AncestorType=Window}}"
-                                              Margin="4">
-                                    <ItemsControl.ItemTemplate>
+                            <Grid>
+                                <!-- Thông báo hết hàng khi không có serial khả dụng -->
+                                <TextBlock Text="Không có serial nào khả dụng trong kho này (Hết hàng)" 
+                                           Style="{StaticResource TypographyCaption}" 
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           TextWrapping="Wrap" TextAlignment="Center" Margin="16"
+                                           Visibility="{Binding HasAvailableSerials, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+
+                                <!-- ListBox ảo hóa hiển thị serials -->
+                                <ListBox x:Name="AvailableListBox"
+                                         ItemsSource="{Binding AvailableSerials, RelativeSource={RelativeSource AncestorType=Window}}"
+                                         Background="Transparent"
+                                         BorderThickness="0"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                         VirtualizingStackPanel.IsVirtualizing="True"
+                                         VirtualizingStackPanel.VirtualizationMode="Recycling"
+                                         Visibility="{Binding HasAvailableSerials, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem">
+                                            <Setter Property="Padding" Value="0"/>
+                                            <Setter Property="Background" Value="Transparent"/>
+                                            <Setter Property="BorderThickness" Value="0"/>
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="ListBoxItem">
+                                                        <ContentPresenter />
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                    <ListBox.ItemTemplate>
                                         <DataTemplate>
-                                            <CheckBox IsChecked="{Binding IsSelected, Mode=OneWay}"
-                                                      Click="CheckBox_Click"
-                                                      Padding="12,8"
-                                                      Margin="0"
-                                                      HorizontalAlignment="Stretch"
-                                                      VerticalContentAlignment="Center"
-                                                      Style="{StaticResource MaterialDesignCheckBox}">
-                                                <TextBlock Text="{Binding SerialNumber}" Style="{StaticResource TypographyBody}"/>
-                                            </CheckBox>
+                                            <Grid>
+                                                <!-- Khi NOT IsReadOnly: Hiển thị CheckBox bình thường -->
+                                                <CheckBox IsChecked="{Binding IsSelected, Mode=OneWay}"
+                                                          Click="CheckBox_Click"
+                                                          Padding="12,8"
+                                                          Margin="0"
+                                                          HorizontalAlignment="Stretch"
+                                                          VerticalContentAlignment="Center"
+                                                          Style="{StaticResource MaterialDesignCheckBox}"
+                                                          Visibility="{Binding Path=IsReadOnly, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                                                    <TextBlock Text="{Binding SerialNumber}" Style="{StaticResource TypographyBody}"/>
+                                                </CheckBox>
+
+                                                <!-- Khi IsReadOnly: Hiển thị danh sách chỉ đọc, không CheckBox -->
+                                                <Border Padding="12,8" Background="Transparent"
+                                                        Visibility="{Binding Path=IsReadOnly, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <!-- Icon Check hiển thị khi được chọn -->
+                                                        <materialDesign:PackIcon Kind="Check" Foreground="{StaticResource AppPrimaryBrush}" Width="16" Height="16" 
+                                                                                 VerticalAlignment="Center" Margin="0,0,8,0"
+                                                                                 Visibility="{Binding IsSelected, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                        <!-- Spacer khi không được chọn để căn lề thẳng hàng -->
+                                                        <Border Width="24" Visibility="{Binding IsSelected, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+                                                        
+                                                        <!-- Serial Number Text -->
+                                                        <TextBlock Text="{Binding SerialNumber}" VerticalAlignment="Center">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock" BasedOn="{StaticResource TypographyBody}">
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsSelected}" Value="False">
+                                                                            <Setter Property="Opacity" Value="0.5"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                    </StackPanel>
+                                                </Border>
+                                            </Grid>
                                         </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </ScrollViewer>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Grid>
                         </materialDesign:Card>
                     </Grid>
 
@@ -138,7 +202,7 @@
                         
                         <TextBlock Text="SERIAL ĐÃ CHỌN / NHẬP" Style="{StaticResource TypographyLabel}" 
                                    Foreground="{StaticResource AppPrimaryBrush}" Margin="0,0,0,8"
-                                   Visibility="{Binding ShowAvailableSerials, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                   Visibility="{Binding ShowAvailableColumn, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                         
                         <materialDesign:Card Grid.Row="1" Style="{StaticResource AppCard}" Padding="0" 
                                              materialDesign:ElevationAssist.Elevation="Dp0" BorderThickness="1">

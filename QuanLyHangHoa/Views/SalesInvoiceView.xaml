@@ -7,6 +7,7 @@
              xmlns:local="clr-namespace:QuanLyHangHoa.Views"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:system="clr-namespace:System;assembly=mscorlib"
+             xmlns:helpers="clr-namespace:QuanLyHangHoa.Helpers"
              mc:Ignorable="d" 
              d:DesignHeight="900" d:DesignWidth="1200"
              Background="{StaticResource AppBackgroundBrush}">
@@ -72,18 +73,18 @@
 
                                 <StackPanel Grid.Column="0" Margin="0,0,12,0">
                                     <TextBlock Text="SỐ HOÁ ĐƠN" Style="{StaticResource TypographyLabel}" Margin="0,0,0,6"/>
-                                    <TextBox Text="{Binding SearchInvoiceCode, UpdateSourceTrigger=PropertyChanged}"
+                                    <TextBox Style="{StaticResource AppTextBoxStyle}" Text="{Binding SearchInvoiceCode, UpdateSourceTrigger=PropertyChanged}"
                                              materialDesign:HintAssist.Hint="Mã hoá đơn..."
                                              materialDesign:TextFieldAssist.HasClearButton="False"
-                                             Height="32" VerticalContentAlignment="Center"/>
+                                             Height="32" Margin="0" VerticalContentAlignment="Center"/>
                                 </StackPanel>
 
                                 <StackPanel Grid.Column="1" Margin="0,0,12,0">
                                     <TextBlock Text="KHÁCH HÀNG" Style="{StaticResource TypographyLabel}" Margin="0,0,0,6"/>
-                                    <TextBox Text="{Binding SearchCustomerName, UpdateSourceTrigger=PropertyChanged}"
+                                    <TextBox Style="{StaticResource AppTextBoxStyle}" Text="{Binding SearchCustomerName, UpdateSourceTrigger=PropertyChanged}"
                                              materialDesign:HintAssist.Hint="Tìm khách hàng..."
                                              materialDesign:TextFieldAssist.HasClearButton="False"
-                                             Height="32" VerticalContentAlignment="Center"/>
+                                             Height="32" Margin="0" VerticalContentAlignment="Center"/>
                                 </StackPanel>
 
                                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Bottom">
@@ -121,16 +122,16 @@
                                 <!-- Date Filter Group -->
                                 <StackPanel Grid.Column="0" Margin="0,0,12,0">
                                     <TextBlock Text="TỪ NGÀY" Style="{StaticResource TypographyLabel}" Margin="0,0,0,6"/>
-                                    <DatePicker SelectedDate="{Binding FilterStartDate}"
+                                    <DatePicker Style="{StaticResource AppDatePickerStyle}" SelectedDate="{Binding FilterStartDate}"
                                                  materialDesign:HintAssist.Hint="Từ ngày..."
-                                                 Height="32" VerticalContentAlignment="Center"/>
+                                                 Height="40" VerticalContentAlignment="Center"/>
                                 </StackPanel>
 
                                 <StackPanel Grid.Column="1" Margin="0,0,12,0">
                                     <TextBlock Text="ĐẾN NGÀY" Style="{StaticResource TypographyLabel}" Margin="0,0,0,6"/>
-                                    <DatePicker SelectedDate="{Binding FilterEndDate}"
+                                    <DatePicker Style="{StaticResource AppDatePickerStyle}" SelectedDate="{Binding FilterEndDate}"
                                                  materialDesign:HintAssist.Hint="Đến ngày..."
-                                                 Height="32" VerticalContentAlignment="Center"/>
+                                                 Height="40" VerticalContentAlignment="Center"/>
                                 </StackPanel>
 
                                 <!-- Price Range Filter -->
@@ -142,22 +143,22 @@
                                             <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBox Grid.Column="0" Text="{Binding FilterMinTotal, UpdateSourceTrigger=PropertyChanged}"
+                                        <TextBox Grid.Column="0" Style="{StaticResource AppTextBoxStyle}" Text="{Binding FilterMinTotal, UpdateSourceTrigger=PropertyChanged}"
                                                  materialDesign:HintAssist.Hint="Giá từ..."
-                                                 Height="32" VerticalContentAlignment="Center"/>
+                                                 Height="40" VerticalContentAlignment="Center"/>
                                         <TextBlock Grid.Column="1" Text="-" VerticalAlignment="Center" Margin="4,0"/>
-                                        <TextBox Grid.Column="2" Text="{Binding FilterMaxTotal, UpdateSourceTrigger=PropertyChanged}"
+                                        <TextBox Grid.Column="2" Style="{StaticResource AppTextBoxStyle}" Text="{Binding FilterMaxTotal, UpdateSourceTrigger=PropertyChanged}"
                                                  materialDesign:HintAssist.Hint="Giá đến..."
-                                                 Height="32" VerticalContentAlignment="Center"/>
+                                                 Height="40" VerticalContentAlignment="Center"/>
                                     </Grid>
                                 </StackPanel>
 
                                 <!-- Status Filter -->
                                 <StackPanel Grid.Column="3" Margin="0,0,0,0">
                                     <TextBlock Text="TRẠNG THÁI THANH TOÁN" Style="{StaticResource TypographyLabel}" Margin="0,0,0,6"/>
-                                    <ComboBox ItemsSource="{Binding AvailablePaymentStatuses}"
+                                    <ComboBox Style="{StaticResource AppComboBoxStyle}" ItemsSource="{Binding AvailablePaymentStatuses}"
                                               SelectedItem="{Binding SelectedFilterPaymentStatus}"
-                                              Height="32" VerticalContentAlignment="Center"
+                                              Height="40" VerticalContentAlignment="Center"
                                               Width="200" HorizontalAlignment="Left"/>
                                 </StackPanel>
                             </Grid>
@@ -175,6 +176,8 @@
                             <DataGrid Grid.Row="0"
                                       ItemsSource="{Binding Invoices}"
                                       SelectedItem="{Binding SelectedInvoice}"
+                                      EnableRowVirtualization="False"
+                                      helpers:DataGridHelper.LoadMoreCommand="{Binding LoadMoreCommand}"
                                       AutoGenerateColumns="False"
                                       IsReadOnly="True"
                                       GridLinesVisibility="None"
@@ -220,16 +223,18 @@
 
                             <!-- Row 1: Footer -->
                             <Border Grid.Row="1" Padding="20,12" Background="{StaticResource AppFooterBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
-                                <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="{StaticResource AppSecondaryBrush}">
-                                    <TextBlock.Text>
-                                        <MultiBinding StringFormat="{}Hiện có {0} hoá đơn · {1} Đã thanh toán · {2} TT 1 phần · {3} Chưa TT · {4} Quá hạn">
-                                            <Binding Path="Invoices.Count"/>
-                                            <Binding Path="PaidCount"/>
-                                            <Binding Path="PartialCount"/>
-                                            <Binding Path="UnpaidCount"/>
-                                            <Binding Path="OverdueCount"/>
-                                        </MultiBinding>
-                                    </TextBlock.Text>
+                                <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="{StaticResource AppSecondaryBrush}" Style="{StaticResource TypographyCaption}" HorizontalAlignment="Left">
+                                    <Run Text="Hiện có "/>
+                                    <Run Text="{Binding Invoices.Count, Mode=OneWay}" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                    <Run Text=" hoá đơn · "/>
+                                    <Run Text="{Binding PaidCount, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource SuccessTextBrush}"/>
+                                    <Run Text=" Đã thanh toán · "/>
+                                    <Run Text="{Binding PartialCount, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource WarningTextBrush}"/>
+                                    <Run Text=" TT 1 phần · "/>
+                                    <Run Text="{Binding UnpaidCount, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource DangerTextBrush}"/>
+                                    <Run Text=" Chưa TT · "/>
+                                    <Run Text="{Binding OverdueCount, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource DangerTextBrush}"/>
+                                    <Run Text=" Quá hạn"/>
                                 </TextBlock>
                             </Border>
                         </Grid>

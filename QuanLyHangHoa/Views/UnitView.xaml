@@ -1,11 +1,17 @@
 <UserControl x:Class="QuanLyHangHoa.Views.UnitView"
+             x:Name="RootView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:vm="clr-namespace:QuanLyHangHoa.ViewModels"
+             xmlns:helpers="clr-namespace:QuanLyHangHoa.Helpers"
              mc:Ignorable="d" d:DesignHeight="800" d:DesignWidth="1100">
+
+    <UserControl.Resources>
+        <helpers:BindingProxy x:Key="Proxy" Data="{Binding}"/>
+    </UserControl.Resources>
     <Grid Background="{StaticResource AppBackgroundBrush}">
         <Grid Margin="{StaticResource PagePadding}" MaxWidth="1600" HorizontalAlignment="Stretch">
             <Grid.RowDefinitions>
@@ -53,7 +59,7 @@
                     <StackPanel Grid.Column="0" Margin="{StaticResource Margin.Right.md}">
                         <TextBlock Text="MÃ ĐƠN VỊ" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
                         <TextBox Style="{StaticResource AppTextBoxStyle}" materialDesign:HintAssist.Hint="Tìm theo mã..." 
-                                 Height="32" VerticalContentAlignment="Center"
+                                 Height="32" Margin="0" VerticalContentAlignment="Center"
                                  Text="{Binding SearchCode, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
@@ -61,19 +67,19 @@
                     <StackPanel Grid.Column="1" Margin="{StaticResource Margin.Right.md}">
                         <TextBlock Text="TÊN ĐƠN VỊ" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
                         <TextBox Style="{StaticResource AppTextBoxStyle}" materialDesign:HintAssist.Hint="Tìm theo tên..." 
-                                 Height="32" VerticalContentAlignment="Center"
+                                 Height="32" Margin="0" VerticalContentAlignment="Center"
                                  Text="{Binding SearchName, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
                     <!-- Status Filter -->
                     <StackPanel Grid.Column="2" Margin="{StaticResource Margin.Right.md}">
                         <TextBlock Text="TRẠNG THÁI" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
-                        <ComboBox Style="{StaticResource AppComboBoxStyle}" Height="32" VerticalContentAlignment="Center"
+                        <ComboBox Style="{StaticResource AppComboBoxStyle}" Height="32" Margin="0" VerticalContentAlignment="Center"
                                   ItemsSource="{Binding StatusOptions}"
                                   SelectedItem="{Binding SearchStatus, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
-                    <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                    <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Bottom">
                         <Button Style="{StaticResource AppRefreshButton}" 
                                 Command="{Binding RefreshCommand}"
                                 ToolTip="Làm mới bộ lọc"
@@ -142,8 +148,8 @@
                                 </DataGridTemplateColumn.Header>
                             </DataGridTemplateColumn>
 
-                            <!-- Actions Column -->
-                            <DataGridTemplateColumn Header="THAO TÁC" Width="130" Visibility="{Binding DataContext.CanManage, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}">
+                             <!-- Actions Column -->
+                             <DataGridTemplateColumn Header="THAO TÁC" Width="130" Visibility="{Binding Data.CanManage, Source={StaticResource Proxy}, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
@@ -166,14 +172,14 @@
 
                     <!-- Footer -->
                     <Border Grid.Row="2" VerticalAlignment="Bottom" Padding="20,12" Background="{StaticResource AppFooterBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
-                        <TextBlock FontSize="13" Foreground="{StaticResource AppSecondaryBrush}" Style="{StaticResource TypographyCaption}">
-                            <TextBlock.Text>
-                                <MultiBinding StringFormat="{}Hiện có {0} đơn vị tính trong hệ thống · {1} Hoạt động · {2} Dừng">
-                                    <Binding Path="TotalCount"/>
-                                    <Binding Path="ActiveCount"/>
-                                    <Binding Path="InactiveCount"/>
-                                </MultiBinding>
-                            </TextBlock.Text>
+                        <TextBlock FontSize="13" Foreground="{StaticResource AppSecondaryBrush}" Style="{StaticResource TypographyCaption}" HorizontalAlignment="Left">
+                            <Run Text="Hiện có "/>
+                            <Run Text="{Binding TotalCount, Mode=OneWay}" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <Run Text=" đơn vị tính trong hệ thống · "/>
+                            <Run Text="{Binding ActiveCount, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource SuccessTextBrush}"/>
+                            <Run Text=" Hoạt động · "/>
+                            <Run Text="{Binding InactiveCount, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource DangerTextBrush}"/>
+                            <Run Text=" Dừng"/>
                         </TextBlock>
                     </Border>
                 </Grid>

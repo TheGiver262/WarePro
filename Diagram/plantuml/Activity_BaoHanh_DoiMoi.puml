@@ -1,0 +1,41 @@
+@startuml Activity_BaoHanh_DoiMoi
+title Sơ đồ hoạt động Xử lý bảo hành và Đổi mới sản phẩm (Rút gọn)
+
+start
+:Tiếp nhận thiết bị bảo hành từ khách hàng;
+:Nhập số Serial và kiểm tra hạn bảo hành;
+
+if (Hợp lệ bảo hành?) then (Không)
+  :Thông báo từ chối bảo hành & Trả thiết bị;
+  stop
+else (Có)
+  :Tạo hồ sơ bảo hành (WarrantyClaim);
+  :Kỹ thuật viên kiểm tra lỗi;
+  
+  if (Sửa chữa được?) then (Có)
+    :Tiến hành sửa chữa thiết bị;
+    :Trả lại thiết bị đã sửa cho khách;
+  else (Không - Cần đổi mới)
+    :Trình phương án Đổi mới sản phẩm;
+    if (Được phê duyệt?) then (Không)
+      :Trả máy cũ hoặc xử lý khác;
+    else (Có)
+      partition "Quy trình Đổi mới hàng" {
+        :Kiểm tra tồn kho sản phẩm thay thế;
+        if (Đủ tồn kho?) then (Không)
+          :Giữ hồ sơ mở để chờ bổ sung kho;
+          stop
+        else (Có)
+          :Thu hồi serial cũ (ReturnedToManufacturer);
+          :Xuất kho thiết bị thay thế (WarrantyReplacement);
+          :Tạo WarrantyCoverage mới (kế thừa hạn bảo hành);
+          :Giao thiết bị thay thế cho khách hàng;
+        endif
+      }
+    endif
+  endif
+  
+  :Cập nhật hồ sơ bảo hành sang 'Đã đóng' (Closed);
+  stop
+endif
+@enduml

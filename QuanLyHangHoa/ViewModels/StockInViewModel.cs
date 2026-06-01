@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using QuanLyHangHoa.Data;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -100,6 +101,10 @@ namespace QuanLyHangHoa.ViewModels
         private readonly ProductUnitService _productUnitService;
         private readonly AppUser _currentUser;
         private readonly Func<AppDbContext> _contextFactory;
+        private int _skip = 0;
+        private const int PageSize = 100;
+        private bool _isLoading = false;
+        private bool _isInitialized = false;
 
         [ObservableProperty] private ObservableCollection<Product> _availableProducts = new();
         [ObservableProperty] private ObservableCollection<Supplier> _availableSuppliers = new();
@@ -136,12 +141,12 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _selectedStatusFilter = "Tất cả";
         public ObservableCollection<string> StatusOptions { get; } = new() { "Tất cả", "Phiếu nháp", "Đã ghi sổ" };
 
-        partial void OnSearchDocumentCodeChanged(string value) => LoadData();
-        partial void OnSearchSupplierNameChanged(string value) => LoadData();
-        partial void OnFilterFromDateChanged(DateTime? value) => LoadData();
-        partial void OnFilterToDateChanged(DateTime? value) => LoadData();
-        partial void OnSelectedWarehouseFilterChanged(Warehouse? value) => LoadData();
-        partial void OnSelectedStatusFilterChanged(string value) => LoadData();
+        partial void OnSearchDocumentCodeChanged(string value) { if (_isInitialized) LoadData(); }
+        partial void OnSearchSupplierNameChanged(string value) { if (_isInitialized) LoadData(); }
+        partial void OnFilterFromDateChanged(DateTime? value) { if (_isInitialized) LoadData(); }
+        partial void OnFilterToDateChanged(DateTime? value) { if (_isInitialized) LoadData(); }
+        partial void OnSelectedWarehouseFilterChanged(Warehouse? value) { if (_isInitialized) LoadData(); }
+        partial void OnSelectedStatusFilterChanged(string value) { if (_isInitialized) LoadData(); }
 
         // Footer stats
         [ObservableProperty] private int _totalCount;
@@ -191,6 +196,7 @@ namespace QuanLyHangHoa.ViewModels
             };
             
             LoadData();
+            _isInitialized = true;
         }
 
         private void Line_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -204,44 +210,110 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void LoadData()
         {
-            var all = _stockInService.GetAll();
-            
-            // Apply filters
-            if (!string.IsNullOrWhiteSpace(SearchDocumentCode))
+            _ = LoadDataAsync(true);
+        }
+
+        private async Task LoadDataAsync(bool reset)
+        {
+            if (_isLoading) return;
+            _isLoading = true;
+            try
             {
-                all = all.Where(s => s.DocumentCode.Contains(SearchDocumentCode, StringComparison.OrdinalIgnoreCase)).ToList();
+                if (reset)
+                {
+                    _skip = 0;
+                    StockInList.Clear();
+                }
+
+                int? warehouseIdFilter = SelectedWarehouseFilter?.Id > 0 ? SelectedWarehouseFilter.Id : null;
+
+                var data = await Task.Run(() => _stockInService.GetStockInPaged(
+                    SearchDocumentCode, SearchSupplierName, FilterFromDate, FilterToDate, warehouseIdFilter, SelectedStatusFilter, _skip, PageSize));
+
+                foreach (var item in data)
+                {
+                    StockInList.Add(item);
+                }
+                _skip += data.Count;
+
+                // Thống kê đếm bất đồng bộ từ database
+                await Task.Run(() =>
+                {
+                    var count = _stockInService.GetStockInCount(SearchDocumentCode, SearchSupplierName, FilterFromDate, FilterToDate, warehouseIdFilter, SelectedStatusFilter);
+                    using var db = _contextFactory();
+                    var query = db.StockIns.AsNoTracking().AsQueryable();
+                    query = ApplyStockInFiltersStatic(query, SearchDocumentCode, SearchSupplierName, FilterFromDate, FilterToDate, warehouseIdFilter, SelectedStatusFilter);
+
+                    var draft = query.Count(s => s.Status == DocumentStatus.Draft || s.Status == "nháp");
+                    var posted = query.Count(s => s.Status == DocumentStatus.Posted || s.Status == "đã ghi sổ");
+
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        TotalCount = count;
+                        DraftCount = draft;
+                        PostedCount = posted;
+                    });
+                });
             }
-            
-            if (!string.IsNullOrWhiteSpace(SearchSupplierName))
+            catch (Exception)
             {
-                all = all.Where(s => s.Supplier?.DisplayName.Contains(SearchSupplierName, StringComparison.OrdinalIgnoreCase) ?? false).ToList();
+            }
+            finally
+            {
+                _isLoading = false;
+            }
+        }
+
+        [RelayCommand]
+        private async Task LoadMore()
+        {
+            await LoadDataAsync(false);
+        }
+
+        private static IQueryable<StockIn> ApplyStockInFiltersStatic(
+            IQueryable<StockIn> query,
+            string code,
+            string supplierName,
+            DateTime? startDate,
+            DateTime? endDate,
+            int? warehouseId,
+            string status)
+        {
+            if (!string.IsNullOrWhiteSpace(code))
+            {
+                var term = code.Trim().ToLower();
+                query = query.Where(s => s.DocumentCode.ToLower().Contains(term));
             }
 
-            if (FilterFromDate.HasValue)
+            if (!string.IsNullOrWhiteSpace(supplierName))
             {
-                all = all.Where(s => s.ImportDate >= FilterFromDate.Value.Date).ToList();
+                var term = supplierName.Trim().ToLower();
+                query = query.Where(s => s.Supplier != null && s.Supplier.DisplayName.ToLower().Contains(term));
             }
 
-            if (FilterToDate.HasValue)
+            if (startDate.HasValue)
             {
-                all = all.Where(s => s.ImportDate <= FilterToDate.Value.Date).ToList();
+                query = query.Where(s => s.ImportDate >= startDate.Value.Date);
             }
 
-            if (SelectedWarehouseFilter != null)
+            if (endDate.HasValue)
             {
-                all = all.Where(s => s.WarehouseId == SelectedWarehouseFilter.Id).ToList();
+                var endOfDay = endDate.Value.Date.AddDays(1).AddTicks(-1);
+                query = query.Where(s => s.ImportDate <= endOfDay);
             }
 
-            if (SelectedStatusFilter != "Tất cả")
+            if (warehouseId.HasValue && warehouseId.Value > 0)
             {
-                string targetStatus = SelectedStatusFilter == "Đã ghi sổ" ? DocumentStatus.Posted : DocumentStatus.Draft;
-                all = all.Where(s => s.Status == targetStatus || (targetStatus == DocumentStatus.Draft && s.Status == "nháp") || (targetStatus == DocumentStatus.Posted && s.Status == "đã ghi sổ")).ToList();
+                query = query.Where(s => s.WarehouseId == warehouseId.Value);
             }
 
-            StockInList = new ObservableCollection<StockIn>(all);
-            TotalCount = all.Count;
-            DraftCount = all.Count(s => s.Status == DocumentStatus.Draft || s.Status == "nháp");
-            PostedCount = all.Count(s => s.Status == DocumentStatus.Posted || s.Status == "đã ghi sổ");
+            if (!string.IsNullOrEmpty(status) && status != "Tất cả")
+            {
+                string targetStatus = status == "Đã ghi sổ" ? DocumentStatus.Posted : DocumentStatus.Draft;
+                query = query.Where(s => s.Status == targetStatus || (targetStatus == DocumentStatus.Draft && s.Status == "nháp") || (targetStatus == DocumentStatus.Posted && s.Status == "đã ghi sổ"));
+            }
+
+            return query;
         }
 
         [RelayCommand]
@@ -427,9 +499,8 @@ namespace QuanLyHangHoa.ViewModels
         {
             if (line == null || line.SelectedProduct == null) return;
             
-            var isAdmin = AuthorizationService.CanPerform(_currentUser, PermissionAction.ManageUsers);
             var existing = string.Join("\n", line.SerialNumbers);
-            var isReadOnly = !CanEdit && !isAdmin;
+            var isReadOnly = !CanEdit;
             var dialog = new Views.SerialInputWindow(existing, null, isReadOnly);
             
             // Try to find the main window or active window to set as owner
@@ -447,106 +518,6 @@ namespace QuanLyHangHoa.ViewModels
                     }
                     line.Quantity = serials.Count;
                     line.NotifySerialChanges();
-                }
-            }
-            else if (isAdmin)
-            {
-                if (dialog.ShowDialog() == true)
-                {
-                    var newSerials = StockInService.ParseSerialRange(dialog.SerialInput);
-                    if (newSerials.Count != (int)line.Quantity)
-                    {
-                        MessageBox.Show($"Số lượng serial mới ({newSerials.Count}) phải khớp chính xác với số lượng của dòng hàng ({line.Quantity})!", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
-                        return;
-                    }
-
-                    try
-                    {
-                        using (var db = _contextFactory())
-                        {
-                            var dbLine = db.StockInLines
-                                .Include(x => x.StockIn)
-                                .Include(x => x.ProductSerials)
-                                .FirstOrDefault(x => x.Id == line.Id);
-
-                            if (dbLine == null)
-                            {
-                                MessageBox.Show("Không tìm thấy dòng phiếu nhập trong cơ sở dữ liệu.", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
-                                return;
-                            }
-
-                            var currentSerials = dbLine.ProductSerials.ToList();
-                            var currentSnList = currentSerials.Select(s => s.SerialNumber).ToList();
-
-                            var removedSnList = currentSnList.Except(newSerials, StringComparer.OrdinalIgnoreCase).ToList();
-                            var addedSnList = newSerials.Except(currentSnList, StringComparer.OrdinalIgnoreCase).ToList();
-
-                            // Kiểm tra các serial bị loại bỏ
-                            foreach (var sn in removedSnList)
-                            {
-                                var ps = currentSerials.FirstOrDefault(x => x.SerialNumber.Equals(sn, StringComparison.OrdinalIgnoreCase));
-                                if (ps != null)
-                                {
-                                    if (ps.CurrentStatus != SerialStatus.InStock.ToString() || ps.CurrentWarehouseId != dbLine.StockIn.WarehouseId)
-                                    {
-                                        MessageBox.Show($"Số serial {sn} đã được xuất kho hoặc bán, không thể sửa đổi.", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
-                                        return;
-                                    }
-                                }
-                            }
-
-                            // Kiểm tra các serial mới được thêm
-                            foreach (var sn in addedSnList)
-                            {
-                                if (db.ProductSerials.Any(x => x.SerialNumber == sn))
-                                {
-                                    MessageBox.Show($"Số serial {sn} đã tồn tại trong hệ thống, không thể sử dụng.", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
-                                    return;
-                                }
-                            }
-
-                            // Thực hiện xóa serial bị loại bỏ
-                            foreach (var sn in removedSnList)
-                            {
-                                var ps = currentSerials.FirstOrDefault(x => x.SerialNumber.Equals(sn, StringComparison.OrdinalIgnoreCase));
-                                if (ps != null)
-                                {
-                                    db.ProductSerials.Remove(ps);
-                                }
-                            }
-
-                            // Thực hiện thêm serial mới
-                            foreach (var sn in addedSnList)
-                            {
-                                var ps = new ProductSerial
-                                {
-                                    ProductId = dbLine.ProductId,
-                                    SerialNumber = sn,
-                                    CurrentStatus = SerialStatus.InStock.ToString(),
-                                    CurrentWarehouseId = dbLine.StockIn.WarehouseId,
-                                    LastStockInLineId = dbLine.Id
-                                };
-                                db.ProductSerials.Add(ps);
-                            }
-
-                            dbLine.DraftSerials = string.Join(",", newSerials);
-                            db.SaveChanges();
-                        }
-
-                        // Đồng bộ lại UI
-                        line.SerialNumbers.Clear();
-                        foreach (var sn in newSerials)
-                        {
-                            line.SerialNumbers.Add(sn);
-                        }
-                        line.NotifySerialChanges();
-
-                        MessageBox.Show("Cập nhật số serial thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show($"Đã xảy ra lỗi khi lưu số serial: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
-                    }
                 }
             }
             else

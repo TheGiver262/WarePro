@@ -53,9 +53,11 @@ namespace QuanLyHangHoa.Views
 
         public ObservableCollection<AvailableSerialItem> AvailableSerials { get; } = new();
         private bool _isUpdating;
+        private bool _hasAvailableSource;
 
         public bool HasAvailableSerials => AvailableSerials.Count > 0;
         public bool ShowAvailableSerials => HasAvailableSerials && !IsReadOnly;
+        public bool ShowAvailableColumn => _hasAvailableSource;
         public string CancelButtonText => IsReadOnly ? "ĐÓNG" : "HỦY BỎ";
         public bool ShowConfirmButton => !IsReadOnly;
         public HorizontalAlignment CancelButtonAlignment => IsReadOnly ? HorizontalAlignment.Right : HorizontalAlignment.Left;
@@ -63,6 +65,7 @@ namespace QuanLyHangHoa.Views
         public SerialInputWindow(string existingInput = "", IEnumerable<ProductSerial>? available = null, bool isReadOnly = false)
         {
             IsReadOnly = isReadOnly;
+            _hasAvailableSource = available != null;
             InitializeComponent();
 
             _isUpdating = true;

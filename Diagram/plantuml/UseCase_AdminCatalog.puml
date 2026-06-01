@@ -1,0 +1,40 @@
+@startuml UseCase_AdminCatalog
+left to right direction
+skinparam packageStyle rect
+
+actor "Quản trị viên" as Admin
+actor "Quản lý" as Manager
+actor "Nhân viên" as Employee
+
+Admin --|> Manager
+
+rectangle "Phân hệ quản trị và danh mục" {
+    package "Quản trị tài khoản & Phân quyền" {
+        usecase "Đăng nhập hệ thống" as UC_Auth1
+        usecase "Đổi mật khẩu" as UC_Auth2
+        usecase "Yêu cầu đổi mật khẩu lần đầu" as UC_Auth3
+        usecase "Quản lý tài khoản người dùng\n(Tạo mới, khóa, mở khóa)" as UC_User1
+        usecase "Thiết lập quyền hạn & vai trò" as UC_User2
+        usecase "Xem nhật ký hệ thống (Audit Log)" as UC_Audit
+    }
+
+    package "Quản lý danh mục nền" {
+        usecase "Quản lý sản phẩm\n(Thông tin, đơn vị, serial)" as UC_Cat1
+        usecase "Quản lý đối tượng\n(Khách hàng, Nhà cung cấp)" as UC_Cat2
+        usecase "Quản lý kho hàng" as UC_Cat3
+    }
+}
+
+Employee --> UC_Auth1
+Employee --> UC_Auth2
+
+Manager --> UC_Audit
+Manager --> UC_Cat1
+Manager --> UC_Cat2
+Manager --> UC_Cat3
+
+Admin --> UC_User1
+Admin --> UC_User2
+
+UC_Auth1 <.. UC_Auth3 : <<extend>>
+@enduml

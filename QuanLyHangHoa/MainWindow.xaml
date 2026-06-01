@@ -52,7 +52,7 @@
                         </Style>
                     </StackPanel.Style>
                     <materialDesign:PackIcon Kind="ViewDashboard" Width="28" Height="28" Foreground="{StaticResource PrimaryPurpleBrush}"/>
-                    <TextBlock Text="WarePro" Foreground="{StaticResource TextOnPrimaryBrush}" FontWeight="Bold" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0"
+                    <TextBlock Text="WareHousePro" Foreground="{StaticResource TextOnPrimaryBrush}" FontWeight="Bold" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0"
                                Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
                 </StackPanel>
 

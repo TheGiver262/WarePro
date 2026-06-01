@@ -1,0 +1,63 @@
+@startuml Architecture_MVVM_WPF_SQLServer
+title Kiến trúc WPF / MVVM / SQL Server
+
+package "Presentation" {
+    [Views\nWPF XAML] as View
+    [ViewModels\nCommands + Validation UI] as VM
+}
+
+package "Application" {
+    [AuthService] as Auth
+    [AuthorizationService] as Authz
+    [ApprovalService] as Approval
+    [Catalog Service] as Catalog
+    [Inventory Service] as Inventory
+    [Sales Service] as Sales
+    [Warranty Service] as Warranty
+    [Reporting Service] as Report
+}
+
+package "Domain" {
+    [Entities\nAppUser, Warehouse, Product,\nStockBalance, ProductSerial,\nWarrantyCoverage, WarrantyClaim] as Entities
+    [Business Rules\nPosting, Approval,\nStock Locking,\nWarranty Eligibility] as Rules
+}
+
+package "Infrastructure" {
+    [Repositories] as Repo
+    [Transactions + Row Locking] as Tx
+    [AuditLog + StockLedger] as Audit
+    database "SQL Server" as DB
+}
+
+View --> VM
+VM --> Auth
+VM --> Authz
+VM --> Approval
+VM --> Catalog
+VM --> Inventory
+VM --> Sales
+VM --> Warranty
+VM --> Report
+
+Auth --> Entities
+Authz --> Rules
+Approval --> Rules
+Catalog --> Entities
+Inventory --> Entities
+Sales --> Entities
+Warranty --> Entities
+Entities --> Rules
+
+Auth --> Repo
+Authz --> Repo
+Approval --> Repo
+Catalog --> Repo
+Inventory --> Repo
+Sales --> Repo
+Warranty --> Repo
+Report --> Repo
+Repo --> Tx
+Tx --> Audit
+Audit --> DB
+
+@enduml

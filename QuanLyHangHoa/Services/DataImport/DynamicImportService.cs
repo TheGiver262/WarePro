@@ -586,13 +586,14 @@ namespace QuanLyHangHoa.Services.DataImport
                         if (product == null)
                             throw new Exception($"Không tìm thấy sản phẩm '{productCode}' khi import dòng.");
 
+                        var pu = db.ProductUnits.FirstOrDefault(u => u.ProductId == product.Id && u.UnitId == product.DefaultUnitId);
                         var line = new StockInLine
                         {
                             StockInId = stockIn.Id,
                             ProductId = product.Id,
                             UnitId = product.DefaultUnitId,
                             Quantity = qty,
-                            BaseQuantity = qty,
+                            BaseQuantity = qty * (pu?.ConversionFactor ?? 1m),
                             UnitPrice = product.CostPrice ?? product.DefaultPrice
                         };
 
@@ -648,7 +649,7 @@ namespace QuanLyHangHoa.Services.DataImport
                             StockInKind.Purchase,
                             StockDocumentStatus.Posted,
                             line.ProductId,
-                            (int)line.Quantity,
+                            line.BaseQuantity > 0 ? (int)line.BaseQuantity : (int)line.Quantity,
                             serials,
                             userId));
                     }
@@ -772,13 +773,14 @@ namespace QuanLyHangHoa.Services.DataImport
                         if (product == null)
                             throw new Exception($"Không tìm thấy sản phẩm '{productCode}' khi import dòng.");
 
+                        var pu = db.ProductUnits.FirstOrDefault(u => u.ProductId == product.Id && u.UnitId == product.DefaultUnitId);
                         var line = new StockOutLine
                         {
                             StockOutId = stockOut.Id,
                             ProductId = product.Id,
                             UnitId = product.DefaultUnitId,
                             Quantity = qty,
-                            BaseQuantity = qty,
+                            BaseQuantity = qty * (pu?.ConversionFactor ?? 1m),
                             UnitPrice = product.DefaultPrice
                         };
 
@@ -819,7 +821,7 @@ namespace QuanLyHangHoa.Services.DataImport
                             StockOutKind.Sale,
                             StockDocumentStatus.Posted,
                             line.ProductId,
-                            (int)line.Quantity,
+                            line.BaseQuantity > 0 ? (int)line.BaseQuantity : (int)line.Quantity,
                             serials,
                             userId));
                     }

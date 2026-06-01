@@ -1,0 +1,87 @@
+@startuml Sequence_XuatKho_GhiSo
+actor Storekeeper as "Nhân viên kho"
+participant UI as "StockOutView"
+participant VM as "StockOutViewModel"
+participant Approval as "ApprovalService"
+participant Authorization as "AuthorizationService"
+participant Service as "InventoryService"
+participant BalanceRepo as "StockBalanceRepository"
+participant StockRepo as "StockOutRepository"
+participant SerialRepo as "SerialRepository"
+participant CoverageRepo as "WarrantyCoverageRepository"
+participant LedgerRepo as "StockLedgerRepository"
+participant AuditRepo as "AuditLogRepository"
+database DB as "SQL Server"
+
+Storekeeper -> UI : Nhập phiếu xuất
+UI -> VM : SubmitStockOut(request)
+VM -> Service : PostStockOut(request)
+Service -> Approval : ValidateStatusTransition()
+Approval --> Service : OK
+Service -> Authorization : ValidatePostingPermission()
+Authorization --> Service : OK
+Service -> Approval : CheckApproverPosterSeparationIfEnabled()
+Approval --> Service : OK
+
+Service -> Service : ResolveDefaultWarehouse()
+Service -> Service : SortLinesByProductId()
+Service -> DB : BEGIN TRAN
+
+Service -> BalanceRepo : LockProductBalances(order by ProductId asc, warehouseId = default)
+BalanceRepo -> DB : SELECT ... WITH (UPDLOCK)
+DB --> BalanceRepo : Current balance
+BalanceRepo --> Service : Locked
+
+Service -> Service : ConvertToBaseQuantity(lines)
+
+alt Có dòng quản lý serial
+    Service -> SerialRepo : LockAndValidateSelectedSerials(order by ProductSerialId asc)
+    SerialRepo -> DB : SELECT serials WHERE status = InStock WITH (UPDLOCK)
+    DB --> SerialRepo : Valid serials
+    SerialRepo --> Service : Serial valid
+end
+
+Service -> Service : CheckAvailableQuantity(warehouseId)
+
+alt Đủ tồn
+    Service -> StockRepo : InsertHeaderAndLines(warehouseId, purposeCode)
+    StockRepo -> DB : INSERT StockOut / StockOutLine
+    DB --> StockRepo : Success
+
+    Service -> BalanceRepo : ApplyOutboundBalanceChange(warehouseId)
+    BalanceRepo -> DB : UPDATE StockBalance
+    DB --> BalanceRepo : Success
+
+    alt Có dòng quản lý serial
+        alt PurposeCode = Sale
+            Service -> SerialRepo : UpdateSerialStatus(Sold)
+            SerialRepo -> DB : UPDATE ProductSerial
+            DB --> SerialRepo : Success
+
+            opt WarrantyPeriodMonths > 0
+                Service -> CoverageRepo : CreateCoverageForSoldSerials(start = PostedAt, end = PostedAt + WarrantyPeriodMonths, status = Active, salesInvoiceId)
+                CoverageRepo -> DB : INSERT WarrantyCoverage
+                DB --> CoverageRepo : Success
+            end
+        else WarrantyReplacement hoặc Adjustment
+            Note over Service,SerialRepo: WarrantyReplacement được xử lý riêng
+        end
+    end
+
+    Service -> LedgerRepo : WriteOutboundLedger(warehouseId)
+    LedgerRepo -> DB : INSERT StockLedger
+    DB --> LedgerRepo : Success
+
+    Service -> AuditRepo : WriteAuditLog()
+    AuditRepo -> DB : INSERT AuditLog
+    DB --> AuditRepo : Success
+
+    Service -> DB : COMMIT
+    Service --> VM : Success
+    VM --> UI : Show success
+else Không đủ tồn
+    Service -> DB : ROLLBACK
+    Service --> VM : Error not enough stock
+    VM --> UI : Show error
+end
+@enduml

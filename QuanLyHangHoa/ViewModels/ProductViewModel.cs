@@ -2,6 +2,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -19,8 +20,10 @@ namespace QuanLyHangHoa.ViewModels
         private readonly ProductService _service;
         private readonly ReferenceDataService _refDataService;
         private readonly AppUser _currentUser;
-        private List<Product> _allProducts = new();
-
+        private int _skip = 0;
+        private const int PageSize = 100;
+        private bool _isLoading = false;
+        private bool _isInitialized = false;
         [ObservableProperty] private bool _canManage;
         [ObservableProperty] private ObservableCollection<Product> _products = new();
         [ObservableProperty] private Product? _selectedProduct;
@@ -43,15 +46,15 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void ToggleAdvancedFilter() => IsAdvancedFilterOpen = !IsAdvancedFilterOpen;
 
-        partial void OnSearchCodeChanged(string value) => ApplyFilters();
-        partial void OnSearchNameChanged(string value) => ApplyFilters();
-        partial void OnSearchStatusChanged(string value) => ApplyFilters();
-        partial void OnSearchSerialChanged(string value) => ApplyFilters();
-        partial void OnSearchWarrantyChanged(string value) => ApplyFilters();
-        partial void OnSelectedCategoryFilterChanged(Category? value) => ApplyFilters();
-        partial void OnSelectedBrandFilterChanged(Brand? value) => ApplyFilters();
-        partial void OnSearchPriceMinChanged(string value) => ApplyFilters();
-        partial void OnSearchPriceMaxChanged(string value) => ApplyFilters();
+        partial void OnSearchCodeChanged(string value) { if (_isInitialized) ApplyFilters(); }
+        partial void OnSearchNameChanged(string value) { if (_isInitialized) ApplyFilters(); }
+        partial void OnSearchStatusChanged(string value) { if (_isInitialized) ApplyFilters(); }
+        partial void OnSearchSerialChanged(string value) { if (_isInitialized) ApplyFilters(); }
+        partial void OnSearchWarrantyChanged(string value) { if (_isInitialized) ApplyFilters(); }
+        partial void OnSelectedCategoryFilterChanged(Category? value) { if (_isInitialized) ApplyFilters(); }
+        partial void OnSelectedBrandFilterChanged(Brand? value) { if (_isInitialized) ApplyFilters(); }
+        partial void OnSearchPriceMinChanged(string value) { if (_isInitialized) ApplyFilters(); }
+        partial void OnSearchPriceMaxChanged(string value) { if (_isInitialized) ApplyFilters(); }
 
         public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Hoạt động", "Dừng"];
         public ObservableCollection<string> SerialOptions { get; } = ["Tất cả", "Có serial", "Không serial"];
@@ -86,85 +89,101 @@ namespace QuanLyHangHoa.ViewModels
             SelectedBrandFilter = Brands.FirstOrDefault();
             
             LoadData();
+            _isInitialized = true;
         }
 
         public void LoadCounts()
         {
-            TotalCount = _allProducts.Count;
-            ActiveCount = _allProducts.Count(p => p.IsActive);
-            InactiveCount = _allProducts.Count(p => !p.IsActive);
+            _ = LoadCountsAsync();
         }
 
+        public async Task LoadCountsAsync()
+        {
+            await Task.Run(() =>
+            {
+                using var db = _contextFactory();
+                var total = db.Products.Count();
+                var active = db.Products.Count(p => p.IsActive);
+                var inactive = db.Products.Count(p => !p.IsActive);
+
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    TotalCount = total;
+                    ActiveCount = active;
+                    InactiveCount = inactive;
+                });
+            });
+        }
         private void LoadData()
         {
-            _allProducts = _service.GetAllProducts(onlyActive: false);
             LoadCounts();
-            ApplyFilters();
+            _ = ApplyFiltersAsync(true);
         }
 
         private void ApplyFilters()
         {
-            var results = _allProducts.AsQueryable();
-
-            // Apply Filters
-            if (!string.IsNullOrWhiteSpace(SearchCode))
-            {
-                var term = SearchCode.ToLower().Trim();
-                results = results.Where(p => p.ProductCode.ToLower().Contains(term));
-            }
-
-            if (!string.IsNullOrWhiteSpace(SearchName))
-            {
-                var term = SearchName.ToLower().Trim();
-                results = results.Where(p => p.DisplayName.ToLower().Contains(term));
-            }
-
-            if (SearchStatus != "Tất cả")
-            {
-                bool active = SearchStatus == "Hoạt động";
-                results = results.Where(p => p.IsActive == active);
-            }
-
-            if (SelectedCategoryFilter != null && SelectedCategoryFilter.Id > 0)
-            {
-                results = results.Where(p => p.CategoryId == SelectedCategoryFilter.Id);
-            }
-
-            if (SelectedBrandFilter != null && SelectedBrandFilter.Id > 0)
-            {
-                results = results.Where(p => p.BrandId == SelectedBrandFilter.Id);
-            }
-
-            if (decimal.TryParse(SearchPriceMin, out decimal min))
-            {
-                results = results.Where(p => p.DefaultPrice >= min);
-            }
-
-            if (decimal.TryParse(SearchPriceMax, out decimal max))
-            {
-                results = results.Where(p => p.DefaultPrice <= max);
-            }
-
-            if (SearchSerial != "Tất cả")
-            {
-                bool tracked = SearchSerial == "Có serial";
-                results = results.Where(p => p.IsSerialTracked == tracked);
-            }
-
-            if (int.TryParse(SearchWarranty, out int warranty))
-            {
-                results = results.Where(p => p.WarrantyPeriodMonths == warranty);
-            }
-
-            var list = results.ToList();
-            Products = new ObservableCollection<Product>(list);
-
-            // Update Stats
-            LowStockCount = list.Count(p => p.StockBalances.Sum(sb => sb.OnHandQuantity) > 0 && p.StockBalances.Sum(sb => sb.OnHandQuantity) <= 5);
-            OutOfStockCount = list.Count(p => p.StockBalances.Sum(sb => sb.OnHandQuantity) <= 0);
-            OutOfStockActiveCount = list.Count(p => p.IsActive && p.StockBalances.Sum(sb => sb.OnHandQuantity) <= 0);
+            _ = ApplyFiltersAsync(true);
         }
 
+        private async Task ApplyFiltersAsync(bool reset)
+        {
+            if (_isLoading) return;
+            _isLoading = true;
+            try
+            {
+                if (reset)
+                {
+                    _skip = 0;
+                    Products.Clear();
+                }
+
+                int? catId = SelectedCategoryFilter?.Id > 0 ? SelectedCategoryFilter.Id : null;
+                int? brId = SelectedBrandFilter?.Id > 0 ? SelectedBrandFilter.Id : null;
+                decimal? priceMin = decimal.TryParse(SearchPriceMin, out decimal min) ? min : null;
+                decimal? priceMax = decimal.TryParse(SearchPriceMax, out decimal max) ? max : null;
+                int? warranty = int.TryParse(SearchWarranty, out int war) ? war : null;
+
+                var list = await Task.Run(() => _service.GetProductsPaged(
+                    SearchCode, SearchName, SearchStatus, SearchSerial, catId, brId, priceMin, priceMax, warranty, _skip, PageSize));
+
+                foreach (var p in list)
+                {
+                    Products.Add(p);
+                }
+                _skip += list.Count;
+
+                // Thống kê đếm bất đồng bộ từ database dựa trên các sản phẩm đã lọc
+                await Task.Run(() =>
+                {
+                    using var db = _contextFactory();
+                    var currentList = Products.ToList();
+                    var lowStock = currentList.Count(p => p.StockBalances.Sum(sb => sb.OnHandQuantity) > 0 && p.StockBalances.Sum(sb => sb.OnHandQuantity) <= 5);
+                    var outStock = currentList.Count(p => p.StockBalances.Sum(sb => sb.OnHandQuantity) <= 0);
+                    var outStockActive = currentList.Count(p => p.IsActive && p.StockBalances.Sum(sb => sb.OnHandQuantity) <= 0);
+
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        LowStockCount = lowStock;
+                        OutOfStockCount = outStock;
+                        OutOfStockActiveCount = outStockActive;
+                    });
+                });
+            }
+            catch (Exception)
+            {
+                // Silence or handle
+            }
+            finally
+            {
+                _isLoading = false;
+            }
+        }
+
+        [RelayCommand]
+        private async Task LoadMore()
+        {
+            await ApplyFiltersAsync(false);
+        }
         [RelayCommand]
         private void Search() => ApplyFilters();
 

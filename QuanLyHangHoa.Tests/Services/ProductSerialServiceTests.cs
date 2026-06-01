@@ -69,7 +69,7 @@ public class ProductSerialServiceTests
             Id = 500,
             DocumentCode = "IN001",
             WarehouseId = 1,
-            PurposeCode = "Import",
+            PurposeCode = "Purchase",
             Status = "Posted",
             CreatedBy = 1,
             CreatedAt = DateTime.UtcNow

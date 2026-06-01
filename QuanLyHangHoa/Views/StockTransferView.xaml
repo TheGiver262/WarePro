@@ -17,10 +17,9 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/> <!-- Header -->
                 <RowDefinition Height="Auto"/> <!-- Filter Section -->
-                <RowDefinition Height="*"/>    <!-- Data Table -->
-                <RowDefinition Height="Auto"/> <!-- Footer Stats -->
+                <RowDefinition Height="*"/>    <!-- Data Table Card (DataGrid + Footer) -->
             </Grid.RowDefinitions>
-
+            
             <!-- Row 0: List Header -->
             <Grid Grid.Row="0" Margin="{StaticResource SectionBottomMargin}">
                 <Grid.ColumnDefinitions>
@@ -93,54 +92,56 @@
                 </Grid>
             </materialDesign:Card>
 
-            <!-- Row 2: Data Table -->
+            <!-- Row 2: Data Table Card -->
             <materialDesign:Card Grid.Row="2" Style="{StaticResource AppCard}" Padding="0">
-                <DataGrid ItemsSource="{Binding StockTransferList}" 
-                          AutoGenerateColumns="False" CanUserAddRows="False" CanUserReorderColumns="False"
-                          IsReadOnly="True" BorderThickness="0">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="MÃ PHIẾU" Binding="{Binding DocumentCode}" Width="150" ElementStyle="{DynamicResource AppDataGridTextBold}"/>
-                        <DataGridTextColumn Header="KHO ĐI" Binding="{Binding FromWarehouse.DisplayName}" Width="*"/>
-                        <DataGridTextColumn Header="KHO ĐẾN" Binding="{Binding ToWarehouse.DisplayName}" Width="*"/>
-                        <DataGridTextColumn Header="NGÀY CHUYỂN" Binding="{Binding TransferDate, StringFormat='dd/MM/yyyy'}" Width="120" ElementStyle="{DynamicResource AppDataGridTextCenter}"/>
-                        <DataGridTemplateColumn Header="TRẠNG THÁI" Width="130" CellTemplate="{StaticResource InventoryStatusBadgeTemplate}"/>
-                        <DataGridTemplateColumn Header="THAO TÁC" Width="120">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <Button ToolTip="Xem chi tiết" Style="{StaticResource ProMaxIconButtonStyle}"
-                                                Command="{Binding DataContext.ViewDetailCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
-                                            <materialDesign:PackIcon Kind="EyeOutline" Width="20" Height="20" Foreground="{StaticResource AppPrimaryBrush}"/>
-                                        </Button>
-                                        <Button ToolTip="Chỉnh sửa" Style="{StaticResource ProMaxIconButtonStyle}" Margin="4,0"
-                                                Command="{Binding DataContext.EditDetailCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
-                                            <materialDesign:PackIcon Kind="PencilOutline" Width="20" Height="20" Foreground="{StaticResource AppSecondaryBrush}"/>
-                                        </Button>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </materialDesign:Card>
-
-            <!-- Row 3: Footer Stats -->
-            <Border Grid.Row="3" Padding="16,12" Background="{StaticResource SurfaceMutedBrush}" Margin="0,16,0,0" CornerRadius="8">
                 <Grid>
-                    <StackPanel Orientation="Horizontal">
-                        <StackPanel Orientation="Horizontal" Margin="0,0,32,0">
-                            <materialDesign:PackIcon Kind="FormatListBulleted" Width="20" Height="20" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0.6"/>
-                            <TextBlock Text="TỔNG PHIẾU:" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}" Opacity="0.6"/>
-                            <TextBlock Text="{Binding TotalCount}" VerticalAlignment="Center" Style="{StaticResource TypographyStatNumber}" Margin="8,0,0,0" FontSize="16"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="FileClockOutline" Width="20" Height="20" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="#F59E0B"/>
-                            <TextBlock Text="PHIẾU NHÁP:" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}" Opacity="0.6"/>
-                            <TextBlock Text="{Binding DraftCount}" VerticalAlignment="Center" Style="{StaticResource TypographyStatNumber}" Margin="8,0,0,0" FontSize="16" Foreground="#F59E0B"/>
-                        </StackPanel>
-                    </StackPanel>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    
+                    <DataGrid Grid.Row="0" ItemsSource="{Binding StockTransferList}" 
+                              AutoGenerateColumns="False" CanUserAddRows="False" CanUserReorderColumns="False"
+                              IsReadOnly="True" BorderThickness="0">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="MÃ PHIẾU" Binding="{Binding DocumentCode}" Width="150" ElementStyle="{DynamicResource AppDataGridTextBold}"/>
+                            <DataGridTextColumn Header="KHO ĐI" Binding="{Binding FromWarehouse.DisplayName}" Width="*"/>
+                            <DataGridTextColumn Header="KHO ĐẾN" Binding="{Binding ToWarehouse.DisplayName}" Width="*"/>
+                            <DataGridTextColumn Header="NGÀY CHUYỂN" Binding="{Binding TransferDate, StringFormat='dd/MM/yyyy'}" Width="120" ElementStyle="{DynamicResource AppDataGridTextCenter}"/>
+                            <DataGridTemplateColumn Header="TRẠNG THÁI" Width="130" CellTemplate="{StaticResource InventoryStatusBadgeTemplate}"/>
+                            <DataGridTemplateColumn Header="THAO TÁC" Width="120">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                            <Button ToolTip="Xem chi tiết" Style="{StaticResource ProMaxIconButtonStyle}"
+                                                    Command="{Binding DataContext.ViewDetailCommand, ElementName=RootStockTransferView}" CommandParameter="{Binding}">
+                                                <materialDesign:PackIcon Kind="EyeOutline" Width="20" Height="20" Foreground="{StaticResource AppPrimaryBrush}"/>
+                                            </Button>
+                                            <Button ToolTip="Chỉnh sửa" Style="{StaticResource ProMaxIconButtonStyle}" Margin="4,0"
+                                                    Command="{Binding DataContext.EditDetailCommand, ElementName=RootStockTransferView}" CommandParameter="{Binding}">
+                                                <materialDesign:PackIcon Kind="PencilOutline" Width="20" Height="20" Foreground="{StaticResource AppSecondaryBrush}"/>
+                                            </Button>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!-- Footer -->
+                    <Border Grid.Row="1" Padding="20,12" Background="{StaticResource AppFooterBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
+                        <TextBlock FontSize="13" Foreground="{StaticResource AppSecondaryBrush}" Style="{StaticResource TypographyCaption}" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <Run Text="Hiện có "/>
+                            <Run Text="{Binding TotalCount, Mode=OneWay}" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <Run Text=" phiếu chuyển kho trong hệ thống · "/>
+                            <Run Text="{Binding DraftCount, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource WarningTextBrush}"/>
+                            <Run Text=" Nháp · "/>
+                            <Run Text="{Binding PostedCount, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource SuccessTextBrush}"/>
+                            <Run Text=" Đã ghi sổ"/>
+                        </TextBlock>
+                    </Border>
                 </Grid>
-            </Border>
+            </materialDesign:Card>
         </Grid>
 
         <!-- ═══════════════════════════════════════════ -->
@@ -262,8 +263,8 @@
                                 </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <ComboBox ItemsSource="{Binding DataContext.AvailableProducts, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                                                  SelectedItem="{Binding SelectedProduct, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        <ComboBox ItemsSource="{Binding DataContext.AvailableProducts, ElementName=RootStockTransferView}" 
+                                                  SelectedItem="{Binding SelectedProduct, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding DataContext.CanEdit, ElementName=RootStockTransferView}"
                                                   DisplayMemberPath="DisplayName" Style="{StaticResource AppComboBoxStyle}" Margin="8,4" BorderThickness="0" Height="36"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -276,7 +277,7 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <ComboBox ItemsSource="{Binding AvailableUnits}" 
-                                                  SelectedItem="{Binding SelectedUnit, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                  SelectedItem="{Binding SelectedUnit, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding DataContext.CanEdit, ElementName=RootStockTransferView}"
                                                   DisplayMemberPath="DisplayName" Style="{StaticResource AppComboBoxStyle}" Margin="8,4" BorderThickness="0" Height="36"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -290,7 +291,7 @@
                                     <DataTemplate>
                                         <TextBox Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" HorizontalContentAlignment="Right" 
                                                   Style="{StaticResource AppTextBoxStyle}" Margin="8,4" Height="36"
-                                                  IsReadOnly="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource InverseBooleanConverter}}"/>
+                                                  IsReadOnly="{Binding DataContext.CanEdit, ElementName=RootStockTransferView, Converter={StaticResource InverseBooleanConverter}}"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -362,8 +363,8 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Button Style="{StaticResource ProMaxIconButtonStyle}" Margin="4" HorizontalAlignment="Center"
-                                                Command="{Binding DataContext.RemoveLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
-                                                Visibility="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                Command="{Binding DataContext.RemoveLineCommand, ElementName=RootStockTransferView}" CommandParameter="{Binding}"
+                                                Visibility="{Binding DataContext.CanEdit, ElementName=RootStockTransferView, Converter={StaticResource BooleanToVisibilityConverter}}">
                                             <materialDesign:PackIcon Kind="TrashCanOutline" Width="20" Height="20" Foreground="{StaticResource AppErrorBrush}"/>
                                         </Button>
                                     </DataTemplate>
@@ -375,12 +376,10 @@
                     <!-- Footer -->
                     <Border Grid.Row="1" Padding="20,12" Background="{StaticResource AppFooterBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
                         <Grid>
-                            <TextBlock FontSize="13" Foreground="{StaticResource AppSecondaryBrush}" VerticalAlignment="Center">
-                                <TextBlock.Text>
-                                    <MultiBinding StringFormat="{}Hiện có {0} dòng hàng trong phiếu">
-                                        <Binding Path="Lines.Count"/>
-                                    </MultiBinding>
-                                </TextBlock.Text>
+                            <TextBlock FontSize="13" Foreground="{StaticResource AppSecondaryBrush}" Style="{StaticResource TypographyCaption}" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                <Run Text="Hiện có "/>
+                                <Run Text="{Binding Lines.Count, Mode=OneWay}" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                <Run Text=" dòng hàng trong phiếu"/>
                             </TextBlock>
                         </Grid>
                     </Border>

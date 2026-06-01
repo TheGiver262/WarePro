@@ -5,6 +5,8 @@ using QuanLyHangHoa.ViewModels;
 using QuanLyHangHoa.Services;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System;
 
 namespace QuanLyHangHoa.Tests.ViewModels;
 
@@ -19,6 +21,10 @@ public class ProductSerialViewModelTests
             () => null!, 
             (inputSearch, prod, brand, inputStatus, from, to, note) =>
             {
+                return new List<ProductSerial>();
+            },
+            (inputSearch, prod, brand, inputStatus, from, to, note, skip, take) =>
+            {
                 searchText = inputSearch;
                 status = inputStatus;
                 return new List<ProductSerial>
@@ -31,6 +37,13 @@ public class ProductSerialViewModelTests
         );
         viewModel.SearchSerial = "ABC";
         viewModel.SelectedStatus = "Trong kho";
+
+        // Chờ tối đa 1 giây cho tác vụ nền hoàn thành
+        int timeout = 100;
+        while ((searchText != "ABC" || viewModel.Serials.Count == 0) && timeout-- > 0)
+        {
+            Thread.Sleep(10);
+        }
 
         Assert.Equal("ABC", searchText);
         Assert.Equal("InStock", status);
@@ -46,6 +59,10 @@ public class ProductSerialViewModelTests
             () => null!,
             (inputSearch, prod, brand, inputStatus, from, to, note) =>
             {
+                return new List<ProductSerial>();
+            },
+            (inputSearch, prod, brand, inputStatus, from, to, note, skip, take) =>
+            {
                 calls.Add((inputSearch, inputStatus));
                 return new List<ProductSerial>();
             },
@@ -56,6 +73,13 @@ public class ProductSerialViewModelTests
         viewModel.SelectedStatus = "Đã bán";
 
         viewModel.ClearSearchCommand.Execute(null);
+
+        // Chờ tác vụ nền hoàn thành
+        int timeout = 100;
+        while ((calls.Count == 0 || calls.Last().Status != "All") && timeout-- > 0)
+        {
+            Thread.Sleep(10);
+        }
 
         Assert.Equal(string.Empty, viewModel.SearchSerial);
         Assert.Equal("Tất cả trạng thái", viewModel.SelectedStatus);

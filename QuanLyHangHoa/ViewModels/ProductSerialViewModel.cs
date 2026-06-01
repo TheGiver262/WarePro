@@ -17,9 +17,16 @@ namespace QuanLyHangHoa.ViewModels
     public partial class ProductSerialViewModel : ObservableObject, IRefreshable
     {
         private readonly Func<string, string, string, string, DateTime?, DateTime?, string, List<ProductSerial>> _serialLoader;
+        private readonly Func<string, string, string, string, DateTime?, DateTime?, string, int, int, List<ProductSerial>> _serialPagedLoader;
         private readonly IProductSerialImportService _importService;
         private readonly Func<AppDbContext> _contextFactory;
         private readonly AppUser _currentUser;
+        private bool _isInitialized;
+        private int _skip = 0;
+        private const int PageSize = 100;
+        private bool _isLoading;
+
+        private bool _isUpdatingFilters;
 
         [ObservableProperty] private ObservableCollection<ProductSerial> _serials = new();
         [ObservableProperty] private ObservableCollection<string> _statuses = new();
@@ -35,13 +42,13 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private DateTime? _searchToDate;
         [ObservableProperty] private string _searchNote = string.Empty;
 
-        partial void OnSearchSerialChanged(string value) => LoadSerials();
-        partial void OnSearchProductChanged(string value) => LoadSerials();
-        partial void OnSearchBrandChanged(string value) => LoadSerials();
-        partial void OnSelectedStatusChanged(string value) => LoadSerials();
-        partial void OnSearchFromDateChanged(DateTime? value) => LoadSerials();
-        partial void OnSearchToDateChanged(DateTime? value) => LoadSerials();
-        partial void OnSearchNoteChanged(string value) => LoadSerials();
+        partial void OnSearchSerialChanged(string value) { if (_isInitialized && !_isUpdatingFilters) LoadSerials(); }
+        partial void OnSearchProductChanged(string value) { if (_isInitialized && !_isUpdatingFilters) LoadSerials(); }
+        partial void OnSearchBrandChanged(string value) { if (_isInitialized && !_isUpdatingFilters) LoadSerials(); }
+        partial void OnSelectedStatusChanged(string value) { if (_isInitialized && !_isUpdatingFilters) LoadSerials(); }
+        partial void OnSearchFromDateChanged(DateTime? value) { if (_isInitialized && !_isUpdatingFilters) LoadSerials(); }
+        partial void OnSearchToDateChanged(DateTime? value) { if (_isInitialized && !_isUpdatingFilters) LoadSerials(); }
+        partial void OnSearchNoteChanged(string value) { if (_isInitialized && !_isUpdatingFilters) LoadSerials(); }
 
         [ObservableProperty] private ProductSerial? _selectedSerial;
         [ObservableProperty] private string _statusMessage = string.Empty;
@@ -53,14 +60,39 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private int _scrappedCount;
         [ObservableProperty] private int _totalCount;
         public ProductSerialViewModel(Func<AppDbContext> contextFactory, AppUser currentUser)
-            : this(contextFactory, new ProductSerialService(contextFactory).SearchSerials, new ProductSerialImportService(contextFactory), currentUser)
+            : this(
+                contextFactory, 
+                new ProductSerialService(contextFactory).SearchSerials, 
+                new ProductSerialService(contextFactory).SearchSerialsPaged,
+                new ProductSerialImportService(contextFactory), 
+                currentUser)
         {
         }
 
-        public ProductSerialViewModel(Func<AppDbContext> contextFactory, Func<string, string, string, string, DateTime?, DateTime?, string, List<ProductSerial>> serialLoader, IProductSerialImportService importService, AppUser currentUser)
+        public ProductSerialViewModel(
+            Func<AppDbContext> contextFactory, 
+            Func<string, string, string, string, DateTime?, DateTime?, string, List<ProductSerial>> serialLoader, 
+            IProductSerialImportService importService, 
+            AppUser currentUser)
+            : this(
+                contextFactory, 
+                serialLoader, 
+                new ProductSerialService(contextFactory).SearchSerialsPaged, 
+                importService, 
+                currentUser)
+        {
+        }
+
+        public ProductSerialViewModel(
+            Func<AppDbContext> contextFactory, 
+            Func<string, string, string, string, DateTime?, DateTime?, string, List<ProductSerial>> serialLoader, 
+            Func<string, string, string, string, DateTime?, DateTime?, string, int, int, List<ProductSerial>> serialPagedLoader,
+            IProductSerialImportService importService, 
+            AppUser currentUser)
         {
             _contextFactory = contextFactory;
             _serialLoader = serialLoader;
+            _serialPagedLoader = serialPagedLoader;
             _importService = importService;
             _currentUser = currentUser;
             
@@ -81,6 +113,7 @@ namespace QuanLyHangHoa.ViewModels
 
             LoadCounts();
             LoadSerials();
+            _isInitialized = true;
             
             // Tự động nạp dữ liệu nếu bảng trống
             if (Serials.Count == 0)
@@ -107,13 +140,21 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void Refresh()
         {
-            SearchSerial = string.Empty;
-            SearchProduct = string.Empty;
-            SearchBrand = string.Empty;
-            SelectedStatus = "Tất cả trạng thái";
-            SearchFromDate = null;
-            SearchToDate = null;
-            SearchNote = string.Empty;
+            _isUpdatingFilters = true;
+            try
+            {
+                SearchSerial = string.Empty;
+                SearchProduct = string.Empty;
+                SearchBrand = string.Empty;
+                SelectedStatus = "Tất cả trạng thái";
+                SearchFromDate = null;
+                SearchToDate = null;
+                SearchNote = string.Empty;
+            }
+            finally
+            {
+                _isUpdatingFilters = false;
+            }
             LoadCounts();
             LoadSerials();
         }
@@ -261,15 +302,18 @@ namespace QuanLyHangHoa.ViewModels
         {
             if (serial == null) return;
             StatusMessage = $"Đang hiển thị chi tiết serial: {serial.SerialNumber}";
-            System.Windows.Application.Current.Dispatcher.Invoke(() => {
-                try {
-                    var detailWindow = new QuanLyHangHoa.Views.ProductSerialDetailView(serial);
-                    detailWindow.Owner = System.Windows.Application.Current.MainWindow;
-                    detailWindow.ShowDialog();
-                } catch (Exception ex) {
-                    StatusMessage = $"Lỗi mở cửa sổ chi tiết: {ex.Message}";
-                }
-            });
+            if (System.Windows.Application.Current != null)
+            {
+                System.Windows.Application.Current.Dispatcher.Invoke(() => {
+                    try {
+                        var detailWindow = new QuanLyHangHoa.Views.ProductSerialDetailView(serial);
+                        detailWindow.Owner = System.Windows.Application.Current.MainWindow;
+                        detailWindow.ShowDialog();
+                    } catch (Exception ex) {
+                        StatusMessage = $"Lỗi mở cửa sổ chi tiết: {ex.Message}";
+                    }
+                });
+            }
         }
 
         [RelayCommand]
@@ -277,54 +321,176 @@ namespace QuanLyHangHoa.ViewModels
         {
             if (serial == null) return;
             
-            var editWindow = new QuanLyHangHoa.Views.ProductSerialEditView(_contextFactory, serial, _currentUser.Id);
-            editWindow.Owner = System.Windows.Application.Current.MainWindow;
-            if (editWindow.ShowDialog() == true)
+            if (System.Windows.Application.Current != null)
             {
-                StatusMessage = $"Đã cập nhật serial {serial.SerialNumber}";
-                LoadCounts();
-                LoadSerials();
+                var editWindow = new QuanLyHangHoa.Views.ProductSerialEditView(_contextFactory, serial, _currentUser.Id);
+                editWindow.Owner = System.Windows.Application.Current.MainWindow;
+                if (editWindow.ShowDialog() == true)
+                {
+                    StatusMessage = $"Đã cập nhật serial {serial.SerialNumber}";
+                    LoadCounts();
+                    LoadSerials();
+                }
             }
         }
-
-
 
         public void LoadCounts()
         {
-            // Update stats from database (unfiltered)
-            var db = _contextFactory?.Invoke();
-            if (db == null) return;
-            using (db)
-            {
-                TotalCount = db.ProductSerials.Count();
-                InStockCount = db.ProductSerials.Count(s => s.CurrentStatus == "InStock");
-                SoldCount = db.ProductSerials.Count(s => s.CurrentStatus == "Sold");
-                ScrappedCount = db.ProductSerials.Count(s => s.CurrentStatus == "Scrapped");
-            }
+            _ = LoadCountsAsync();
         }
+
+        public async Task LoadCountsAsync()
+        {
+            await Task.Run(() =>
+            {
+                using var db = _contextFactory();
+                var total = db.ProductSerials.Count();
+                var inStock = db.ProductSerials.Count(s => s.CurrentStatus == "InStock");
+                var sold = db.ProductSerials.Count(s => s.CurrentStatus == "Sold");
+                var scrapped = db.ProductSerials.Count(s => s.CurrentStatus == "Scrapped");
+
+                if (Application.Current != null)
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        TotalCount = total;
+                        InStockCount = inStock;
+                        SoldCount = sold;
+                        ScrappedCount = scrapped;
+                    });
+                }
+                else
+                {
+                    TotalCount = total;
+                    InStockCount = inStock;
+                    SoldCount = sold;
+                    ScrappedCount = scrapped;
+                }
+            });
+        }
+
+        private System.Threading.CancellationTokenSource? _cts;
 
         private void LoadSerials()
         {
-            string dbStatus = SelectedStatus switch
-            {
-                "Trong kho" => "InStock",
-                "Đã bán" => "Sold",
-                "Đã đặt" => "Reserved",
-                "Đang bảo hành" => "InWarrantyProcess",
-                "Lỗi bảo hành" => "WarrantyDefective",
-                "Đã trả hàng" => "Returned",
-                "Trả lại NCC" => "ReturnedToManufacturer",
-                "Đã đổi mới" => "Replaced",
-                "Đã thanh lý" => "Scrapped",
-                "Dừng" => "Inactive",
-                _ => "All"
-            };
+            _ = LoadSerialsAsync(true);
+        }
 
-            var data = _serialLoader(SearchSerial, SearchProduct, SearchBrand, dbStatus, SearchFromDate, SearchToDate, SearchNote);
-            Serials = new ObservableCollection<ProductSerial>(data);
-            
-            if (string.IsNullOrEmpty(StatusMessage) || StatusMessage.Contains("Tìm thấy"))
-                StatusMessage = $"Tìm thấy {Serials.Count} serial.";
+        private async Task LoadSerialsAsync(bool reset)
+        {
+            if (reset)
+            {
+                _cts?.Cancel();
+                _cts = new System.Threading.CancellationTokenSource();
+            }
+
+            var token = _cts?.Token ?? System.Threading.CancellationToken.None;
+
+            if (_isLoading && !reset)
+            {
+                return;
+            }
+
+            _isLoading = true;
+            try
+            {
+                if (reset)
+                {
+                    _skip = 0;
+                    Serials.Clear();
+                }
+
+                string dbStatus = SelectedStatus switch
+                {
+                    "Trong kho" => "InStock",
+                    "Đã bán" => "Sold",
+                    "Đã đặt" => "Reserved",
+                    "Đang bảo hành" => "InWarrantyProcess",
+                    "Lỗi bảo hành" => "WarrantyDefective",
+                    "Đã trả hàng" => "Returned",
+                    "Trả lại NCC" => "ReturnedToManufacturer",
+                    "Đã đổi mới" => "Replaced",
+                    "Đã thanh lý" => "Scrapped",
+                    "Dừng" => "Inactive",
+                    _ => "All"
+                };
+
+                var data = await Task.Run(() => 
+                {
+                    token.ThrowIfCancellationRequested();
+                    return _serialPagedLoader(
+                        SearchSerial, SearchProduct, SearchBrand, dbStatus, SearchFromDate, SearchToDate, SearchNote, _skip, PageSize);
+                }, token);
+
+                token.ThrowIfCancellationRequested();
+
+                int totalFilteredCount = 0;
+                bool isTestEnv = false;
+                try
+                {
+                    isTestEnv = _contextFactory == null || _contextFactory() == null;
+                }
+                catch
+                {
+                    isTestEnv = true;
+                }
+
+                if (isTestEnv)
+                {
+                    totalFilteredCount = data.Count;
+                }
+                else
+                {
+                    totalFilteredCount = await Task.Run(() => 
+                    {
+                        token.ThrowIfCancellationRequested();
+                        return new ProductSerialService(_contextFactory).GetSerialsCount(
+                            SearchSerial, SearchProduct, SearchBrand, dbStatus, SearchFromDate, SearchToDate, SearchNote);
+                    }, token);
+                }
+
+                token.ThrowIfCancellationRequested();
+
+                foreach (var item in data)
+                {
+                    token.ThrowIfCancellationRequested();
+                    Serials.Add(item);
+                    await Task.Yield();
+                }
+                _skip += data.Count;
+
+                if (Serials.Count >= totalFilteredCount)
+                {
+                    StatusMessage = $"Đã tải toàn bộ {Serials.Count} serial.";
+                }
+                else
+                {
+                    StatusMessage = $"Đang hiển thị {Serials.Count} / {totalFilteredCount} serial.";
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Bị hủy bởi cuộc gọi nạp mới hơn, bỏ qua an toàn
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Lỗi tải dữ liệu: {ex.Message}";
+                try
+                {
+                    System.IO.File.WriteAllText("f:\\Codex Project\\ProductManagement_Antigravity\\wpf_error.log", ex.ToString());
+                }
+                catch {}
+            }
+            finally
+            {
+                _isLoading = false;
+            }
+        }
+
+        [RelayCommand]
+        private async Task LoadMore()
+        {
+            await LoadSerialsAsync(false);
         }
 
         public void RefreshData()

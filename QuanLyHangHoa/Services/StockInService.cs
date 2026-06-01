@@ -34,6 +34,95 @@ namespace QuanLyHangHoa.Services
                 .ToList();
         }
 
+        public virtual List<StockIn> GetStockInPaged(
+            string code,
+            string supplierName,
+            DateTime? startDate,
+            DateTime? endDate,
+            int? warehouseId,
+            string status,
+            int skip,
+            int take)
+        {
+            using var db = _contextFactory();
+            var query = db.StockIns.AsNoTracking()
+                .Include(s => s.Supplier)
+                .Include(s => s.Creator)
+                .Include(s => s.Warehouse)
+                .Include(s => s.Lines)
+                    .ThenInclude(d => d.Product)
+                .AsQueryable();
+
+            query = ApplyStockInFilters(query, code, supplierName, startDate, endDate, warehouseId, status);
+
+            return query
+                .OrderByDescending(s => s.ImportDate)
+                .ThenByDescending(s => s.CreatedAt)
+                .Skip(skip)
+                .Take(take)
+                .ToList();
+        }
+
+        public virtual int GetStockInCount(
+            string code,
+            string supplierName,
+            DateTime? startDate,
+            DateTime? endDate,
+            int? warehouseId,
+            string status)
+        {
+            using var db = _contextFactory();
+            var query = db.StockIns.AsNoTracking().AsQueryable();
+            query = ApplyStockInFilters(query, code, supplierName, startDate, endDate, warehouseId, status);
+            return query.Count();
+        }
+
+        private IQueryable<StockIn> ApplyStockInFilters(
+            IQueryable<StockIn> query,
+            string code,
+            string supplierName,
+            DateTime? startDate,
+            DateTime? endDate,
+            int? warehouseId,
+            string status)
+        {
+            if (!string.IsNullOrWhiteSpace(code))
+            {
+                var term = code.Trim().ToLower();
+                query = query.Where(s => s.DocumentCode.ToLower().Contains(term));
+            }
+
+            if (!string.IsNullOrWhiteSpace(supplierName))
+            {
+                var term = supplierName.Trim().ToLower();
+                query = query.Where(s => s.Supplier != null && s.Supplier.DisplayName.ToLower().Contains(term));
+            }
+
+            if (startDate.HasValue)
+            {
+                query = query.Where(s => s.ImportDate >= startDate.Value.Date);
+            }
+
+            if (endDate.HasValue)
+            {
+                var endOfDay = endDate.Value.Date.AddDays(1).AddTicks(-1);
+                query = query.Where(s => s.ImportDate <= endOfDay);
+            }
+
+            if (warehouseId.HasValue && warehouseId.Value > 0)
+            {
+                query = query.Where(s => s.WarehouseId == warehouseId.Value);
+            }
+
+            if (!string.IsNullOrEmpty(status) && status != "Tất cả")
+            {
+                string targetStatus = status == "Đã ghi sổ" ? DocumentStatus.Posted : DocumentStatus.Draft;
+                query = query.Where(s => s.Status == targetStatus || (targetStatus == DocumentStatus.Draft && s.Status == "nháp") || (targetStatus == DocumentStatus.Posted && s.Status == "đã ghi sổ"));
+            }
+
+            return query;
+        }
+
         public virtual StockIn? GetById(int id)
         {
             using var db = _contextFactory();
@@ -60,7 +149,12 @@ namespace QuanLyHangHoa.Services
                     .FirstOrDefault(s => s.Id == stockIn.Id);
             }
 
-            // Extract serial numbers to DraftSerials string
+            // Extract serial numbers to DraftSerials string and calculate BaseQuantity
+            var productIds = lines.Select(l => l.ProductId).Distinct().ToList();
+            var unitMap = db.ProductUnits
+                .Where(pu => productIds.Contains(pu.ProductId))
+                .ToList();
+
             foreach (var line in lines)
             {
                 var serials = line.ProductSerials?.Select(ps => ps.SerialNumber.Trim()).Where(s => !string.IsNullOrEmpty(s)).ToList() ?? new List<string>();
@@ -73,6 +167,10 @@ namespace QuanLyHangHoa.Services
                     line.DraftSerials = null;
                 }
                 line.ProductSerials = new List<ProductSerial>(); // Prevent EF from modifying ProductSerials
+
+                // Auto convert to base unit
+                var pu = unitMap.FirstOrDefault(u => u.ProductId == line.ProductId && u.UnitId == line.UnitId);
+                line.BaseQuantity = line.Quantity * (pu?.ConversionFactor ?? 1m);
             }
 
             if (existing != null)
@@ -145,6 +243,18 @@ namespace QuanLyHangHoa.Services
             if (stockIn == null) throw new Exception("Không tìm thấy phiếu nhập kho.");
             if (stockIn.Status == DocumentStatus.Posted || stockIn.Status == "đã ghi sổ") 
                 throw new Exception("Phiếu này đã được ghi sổ.");
+
+            // Auto calculate BaseQuantity from ProductUnit in db
+            var lineProductIds = stockIn.Lines.Select(l => l.ProductId).Distinct().ToList();
+            var unitMap = db.ProductUnits
+                .Where(pu => lineProductIds.Contains(pu.ProductId))
+                .ToList();
+
+            foreach (var line in stockIn.Lines)
+            {
+                var pu = unitMap.FirstOrDefault(u => u.ProductId == line.ProductId && u.UnitId == line.UnitId);
+                line.BaseQuantity = line.Quantity * (pu?.ConversionFactor ?? 1m);
+            }
 
             var beforeJson = Serialize(stockIn);
 
@@ -220,7 +330,7 @@ namespace QuanLyHangHoa.Services
                     StockInKind.Purchase,
                     StockDocumentStatus.Posted,
                     line.ProductId,
-                    (int)line.Quantity,
+                    line.BaseQuantity > 0 ? (int)line.BaseQuantity : (int)line.Quantity,
                     serials,
                     userId));
             }

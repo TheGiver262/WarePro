@@ -367,9 +367,11 @@ namespace QuanLyHangHoa.Migrations
 
                     b.HasIndex("LastStockOutLineId");
 
-                    b.HasIndex("ProductId");
-
                     b.HasIndex("StockTransferLineId");
+
+                    b.HasIndex(new[] { "CurrentStatus" }, "IX_ProductSerial_CurrentStatus");
+
+                    b.HasIndex(new[] { "ProductId" }, "IX_ProductSerial_ProductId");
 
                     b.HasIndex(new[] { "SerialNumber" }, "UX_ProductSerial_SerialNumber")
                         .IsUnique();
@@ -484,6 +486,8 @@ namespace QuanLyHangHoa.Migrations
                     b.HasIndex("StockInId");
 
                     b.HasIndex("SupplierId");
+
+                    b.HasIndex(new[] { "InvoiceDate" }, "IX_PurchaseInvoice_InvoiceDate");
 
                     b.HasIndex(new[] { "InvoiceCode" }, "UX_PurchaseInvoice_InvoiceCode")
                         .IsUnique();
@@ -612,6 +616,8 @@ namespace QuanLyHangHoa.Migrations
                     b.HasIndex("CustomerId");
 
                     b.HasIndex("StockOutId");
+
+                    b.HasIndex(new[] { "InvoiceDate" }, "IX_SalesInvoice_InvoiceDate");
 
                     b.HasIndex(new[] { "InvoiceCode" }, "UX_SalesInvoice_InvoiceCode")
                         .IsUnique();
@@ -838,6 +844,9 @@ namespace QuanLyHangHoa.Migrations
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
 
+                    b.Property<string>("SerialNumbers")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("SessionId")
                         .HasColumnType("int");
 
@@ -996,6 +1005,8 @@ namespace QuanLyHangHoa.Migrations
 
                     b.HasIndex("PostedBy");
 
+                    b.HasIndex(new[] { "ImportDate" }, "IX_StockIn_ImportDate");
+
                     b.HasIndex(new[] { "SupplierId" }, "IX_StockIn_SupplierId");
 
                     b.HasIndex(new[] { "WarehouseId", "PostedAt" }, "IX_StockIn_Warehouse_ProductLookup");
@@ -1003,7 +1014,10 @@ namespace QuanLyHangHoa.Migrations
                     b.HasIndex(new[] { "DocumentCode" }, "UX_StockIn_DocumentCode")
                         .IsUnique();
 
-                    b.ToTable("StockIn", (string)null);
+                    b.ToTable("StockIn", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_StockIn_PurposeCode", "[PurposeCode] IN ('Purchase', 'OpeningBalance', 'Adjustment')");
+                        });
                 });
 
             modelBuilder.Entity("QuanLyHangHoa.Models.StockInLine", b =>
@@ -1016,6 +1030,9 @@ namespace QuanLyHangHoa.Migrations
 
                     b.Property<decimal>("BaseQuantity")
                         .HasColumnType("decimal(18, 2)");
+
+                    b.Property<string>("DraftSerials")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
@@ -1159,6 +1176,13 @@ namespace QuanLyHangHoa.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("int");
+
                     b.Property<int>("WarehouseId")
                         .HasColumnType("int");
 
@@ -1173,12 +1197,17 @@ namespace QuanLyHangHoa.Migrations
 
                     b.HasIndex(new[] { "CustomerId" }, "IX_StockOut_CustomerId");
 
+                    b.HasIndex(new[] { "ExportDate" }, "IX_StockOut_ExportDate");
+
                     b.HasIndex(new[] { "WarehouseId", "PostedAt" }, "IX_StockOut_Warehouse_ProductLookup");
 
                     b.HasIndex(new[] { "DocumentCode" }, "UX_StockOut_DocumentCode")
                         .IsUnique();
 
-                    b.ToTable("StockOut", (string)null);
+                    b.ToTable("StockOut", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_StockOut_PurposeCode", "[PurposeCode] IN ('Sale', 'WarrantyReplacement', 'Adjustment')");
+                        });
                 });
 
             modelBuilder.Entity("QuanLyHangHoa.Models.StockOutLine", b =>
@@ -1191,6 +1220,9 @@ namespace QuanLyHangHoa.Migrations
 
                     b.Property<decimal>("BaseQuantity")
                         .HasColumnType("decimal(18, 2)");
+
+                    b.Property<string>("DraftSerials")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
@@ -1547,9 +1579,7 @@ namespace QuanLyHangHoa.Migrations
                     b.HasIndex(new[] { "ClaimCode" }, "UX_WarrantyClaim_ClaimCode")
                         .IsUnique();
 
-                    b.HasIndex(new[] { "ProductSerialId" }, "UX_WarrantyClaim_OpenClaim_PerSerial")
-                        .IsUnique()
-                        .HasFilter("Status != 'Closed'");
+                    b.HasIndex(new[] { "ProductSerialId" }, "UX_WarrantyClaim_OpenClaim_PerSerial");
 
                     b.ToTable("WarrantyClaim", (string)null);
                 });
@@ -2206,8 +2236,8 @@ namespace QuanLyHangHoa.Migrations
                         .HasConstraintName("FK_WarrantyClaim_ProcessedBy");
 
                     b.HasOne("QuanLyHangHoa.Models.ProductSerial", "ProductSerial")
-                        .WithOne("WarrantyClaimProductSerial")
-                        .HasForeignKey("QuanLyHangHoa.Models.WarrantyClaim", "ProductSerialId")
+                        .WithMany("WarrantyClaims")
+                        .HasForeignKey("ProductSerialId")
                         .IsRequired()
                         .HasConstraintName("FK_WarrantyClaim_ProductSerial");
 
@@ -2363,9 +2393,9 @@ namespace QuanLyHangHoa.Migrations
 
                     b.Navigation("StockLedgers");
 
-                    b.Navigation("WarrantyClaimProductSerial");
-
                     b.Navigation("WarrantyClaimReplacementSerials");
+
+                    b.Navigation("WarrantyClaims");
 
                     b.Navigation("WarrantyCoverage");
                 });

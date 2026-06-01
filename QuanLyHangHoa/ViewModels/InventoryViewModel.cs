@@ -1,6 +1,8 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -13,6 +15,10 @@ namespace QuanLyHangHoa.ViewModels
     {
         private readonly ProductService _productService;
         private readonly ReferenceDataService _refDataService;
+        private int _skip = 0;
+        private const int PageSize = 100;
+        private bool _isLoading = false;
+        private bool _isInitialized = false;
 
         [ObservableProperty] private ObservableCollection<Product> _inventoryItems = new();
         [ObservableProperty] private string _searchCode = string.Empty;
@@ -41,61 +47,82 @@ namespace QuanLyHangHoa.ViewModels
             SelectedCategoryFilter = Categories.FirstOrDefault();
 
             LoadData();
+            _isInitialized = true;
         }
 
         [RelayCommand]
         private void ToggleAdvancedFilter() => IsAdvancedFilterOpen = !IsAdvancedFilterOpen;
 
-        partial void OnSearchCodeChanged(string value) => LoadData();
-        partial void OnSearchNameChanged(string value) => LoadData();
-        partial void OnSearchStatusChanged(string value) => LoadData();
-        partial void OnSelectedCategoryFilterChanged(Category? value) => LoadData();
+        partial void OnSearchCodeChanged(string value) { if (_isInitialized) ApplyFilters(); }
+        partial void OnSearchNameChanged(string value) { if (_isInitialized) ApplyFilters(); }
+        partial void OnSearchStatusChanged(string value) { if (_isInitialized) ApplyFilters(); }
+        partial void OnSelectedCategoryFilterChanged(Category? value) { if (_isInitialized) ApplyFilters(); }
 
-        [RelayCommand]
         private void LoadData()
         {
-            var results = _productService.GetAllProducts();
-            if (!string.IsNullOrWhiteSpace(SearchCode))
-            {
-                var term = SearchCode.ToLower().Trim();
-                results = results.Where(p => p.ProductCode.ToLower().Contains(term)).ToList();
-            }
-            if (!string.IsNullOrWhiteSpace(SearchName))
-            {
-                var term = SearchName.ToLower().Trim();
-                results = results.Where(p => p.DisplayName.ToLower().Contains(term)).ToList();
-            }
-            if (SelectedCategoryFilter != null && SelectedCategoryFilter.Id > 0)
-            {
-                results = results.Where(p => p.CategoryId == SelectedCategoryFilter.Id).ToList();
-            }
-            if (SearchStatus != "Tất cả")
-            {
-                if (SearchStatus == "Còn hàng")
-                {
-                    results = results.Where(p => p.StockQuantity > 0).ToList();
-                }
-                else if (SearchStatus == "Sắp hết")
-                {
-                    results = results.Where(p => p.IsLowStock).ToList();
-                }
-                else if (SearchStatus == "Hết hàng")
-                {
-                    results = results.Where(p => p.StockQuantity <= 0).ToList();
-                }
-            }
+            _ = ApplyFiltersAsync(true);
+        }
 
-            InventoryItems = new ObservableCollection<Product>(results);
-            
-            // Tính toán thống kê động
-            LowStockCount = results.Count(p => p.IsLowStock);
-            TotalInventoryValue = results.Sum(p => p.TotalValue);
+        private void ApplyFilters()
+        {
+            _ = ApplyFiltersAsync(true);
+        }
+
+        private async Task ApplyFiltersAsync(bool reset)
+        {
+            if (_isLoading) return;
+            _isLoading = true;
+            try
+            {
+                if (reset)
+                {
+                    _skip = 0;
+                    InventoryItems.Clear();
+                }
+
+                int? catId = SelectedCategoryFilter?.Id > 0 ? SelectedCategoryFilter.Id : null;
+
+                var list = await Task.Run(() => _productService.GetInventoryProductsPaged(
+                    SearchCode, SearchName, catId, SearchStatus, _skip, PageSize));
+
+                foreach (var p in list)
+                {
+                    InventoryItems.Add(p);
+                }
+                _skip += list.Count;
+
+                // Tính toán thống kê động ngầm qua task chạy nền
+                await Task.Run(() =>
+                {
+                    var stats = _productService.GetInventoryStats(
+                        SearchCode, SearchName, catId, SearchStatus);
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        LowStockCount = stats.lowStockCount;
+                        TotalInventoryValue = stats.totalValue;
+                    });
+                });
+            }
+            catch (Exception)
+            {
+                // Silence or handle
+            }
+            finally
+            {
+                _isLoading = false;
+            }
+        }
+
+        [RelayCommand]
+        private async Task LoadMore()
+        {
+            await ApplyFiltersAsync(false);
         }
 
         [RelayCommand]
         private void Search()
         {
-            LoadData();
+            ApplyFilters();
         }
 
         [RelayCommand]
@@ -105,7 +132,7 @@ namespace QuanLyHangHoa.ViewModels
             SearchName = string.Empty;
             SearchStatus = "Tất cả";
             SelectedCategoryFilter = Categories.FirstOrDefault();
-            LoadData();
+            ApplyFilters();
         }
 
         [RelayCommand]

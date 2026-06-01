@@ -20,6 +20,7 @@ namespace QuanLyHangHoa.Services
         {
             using var db = _contextFactory();
             var query = db.ProductSerials
+                .AsNoTracking()
                 .Include(s => s.Product)
                     .ThenInclude(p => p.Brand)
                 .Include(s => s.CurrentWarehouse)
@@ -27,6 +28,46 @@ namespace QuanLyHangHoa.Services
                     .ThenInclude(l => l.StockIn)
                 .AsQueryable();
 
+            query = ApplySerialFilters(query, serial, product, brand, status, fromDate, toDate, note);
+
+            return query
+                .OrderByDescending(s => s.Id)
+                .ThenBy(s => s.SerialNumber)
+                .ToList();
+        }
+
+        public List<ProductSerial> SearchSerialsPaged(string serial, string product, string brand, string status, DateTime? fromDate, DateTime? toDate, string note, int skip, int take)
+        {
+            using var db = _contextFactory();
+            var query = db.ProductSerials
+                .AsNoTracking()
+                .Include(s => s.Product)
+                    .ThenInclude(p => p.Brand)
+                .Include(s => s.CurrentWarehouse)
+                .Include(s => s.LastStockInLine)
+                    .ThenInclude(l => l.StockIn)
+                .AsQueryable();
+
+            query = ApplySerialFilters(query, serial, product, brand, status, fromDate, toDate, note);
+
+            return query
+                .OrderByDescending(s => s.Id)
+                .ThenBy(s => s.SerialNumber)
+                .Skip(skip)
+                .Take(take)
+                .ToList();
+        }
+
+        public int GetSerialsCount(string serial, string product, string brand, string status, DateTime? fromDate, DateTime? toDate, string note)
+        {
+            using var db = _contextFactory();
+            var query = db.ProductSerials.AsNoTracking().AsQueryable();
+            query = ApplySerialFilters(query, serial, product, brand, status, fromDate, toDate, note);
+            return query.Count();
+        }
+
+        private IQueryable<ProductSerial> ApplySerialFilters(IQueryable<ProductSerial> query, string serial, string product, string brand, string status, DateTime? fromDate, DateTime? toDate, string note)
+        {
             if (!string.IsNullOrWhiteSpace(status) && status != "All")
             {
                 query = query.Where(s => s.CurrentStatus == status);
@@ -63,15 +104,11 @@ namespace QuanLyHangHoa.Services
 
             if (toDate.HasValue)
             {
-                // Ensure toDate includes the entire day
                 var endOfDay = toDate.Value.Date.AddDays(1).AddTicks(-1);
                 query = query.Where(s => s.LastStockInLine.StockIn.CreatedAt <= endOfDay);
             }
 
-            return query
-                .OrderByDescending(s => s.LastStockInLine.StockIn.CreatedAt)
-                .ThenBy(s => s.SerialNumber)
-                .ToList();
+            return query;
         }
     }
 }

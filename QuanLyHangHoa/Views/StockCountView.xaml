@@ -28,7 +28,8 @@
                         <TextBlock Text="KIỂM KÊ KHO" Style="{StaticResource TypographyH1}" Foreground="{StaticResource AppTertiaryBrush}"/>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="Đối soát số lượng thực tế tại kho và cập nhật hệ thống" Style="{StaticResource TypographyCaption}" Opacity="0.7" VerticalAlignment="Center"/>
-                            <ContentControl Content="{Binding}" ContentTemplate="{StaticResource InventoryStatusBadgeTemplate}" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                            <ContentControl Content="{Binding}" ContentTemplate="{StaticResource InventoryStatusBadgeTemplate}" VerticalAlignment="Center" Margin="12,0,0,0"
+                                            Visibility="{Binding IsCreateNewVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                         </StackPanel>
                     </StackPanel>
                 </StackPanel>
@@ -57,7 +58,8 @@
                     <materialDesign:Card Grid.Column="0" Style="{StaticResource AppCard}" Margin="0,0,16,0" Padding="0">
                         <Grid>
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="*"/>    <!-- DataGrid -->
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
                             <DataGrid Grid.Row="0" ItemsSource="{Binding PastSessions}" SelectedItem="{Binding SelectedSession}" AutoGenerateColumns="False" 
@@ -84,6 +86,15 @@
                                     </DataGridTemplateColumn>
                                 </DataGrid.Columns>
                             </DataGrid>
+
+                            <!-- Footer -->
+                            <Border Grid.Row="1" Padding="20,12" Background="{StaticResource AppFooterBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
+                                <TextBlock FontSize="13" Foreground="{StaticResource AppSecondaryBrush}" Style="{StaticResource TypographyCaption}" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                    <Run Text="Hiện có "/>
+                                    <Run Text="{Binding PastSessions.Count, Mode=OneWay}" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                    <Run Text=" phiên kiểm kê trong hệ thống"/>
+                                </TextBlock>
+                            </Border>
                         </Grid>
                     </materialDesign:Card>
 
@@ -434,12 +445,10 @@
 
                             <!-- Footer -->
                             <Border Grid.Row="2" Padding="20,12" Background="{StaticResource AppFooterBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
-                                <TextBlock FontSize="13" Foreground="{StaticResource AppSecondaryBrush}">
-                                    <TextBlock.Text>
-                                        <MultiBinding StringFormat="{}Hiện có {0} dòng kiểm kê trong phiên">
-                                            <Binding Path="Lines.Count"/>
-                                        </MultiBinding>
-                                    </TextBlock.Text>
+                                <TextBlock FontSize="13" Foreground="{StaticResource AppSecondaryBrush}" HorizontalAlignment="Left" Style="{StaticResource TypographyCaption}">
+                                    <Run Text="Hiện có "/>
+                                    <Run Text="{Binding Lines.Count, Mode=OneWay}" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                    <Run Text=" dòng kiểm kê trong phiên"/>
                                 </TextBlock>
                             </Border>
                         </Grid>

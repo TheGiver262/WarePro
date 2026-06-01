@@ -1,0 +1,96 @@
+@startuml ERD_Module_04_Warranty
+title Warranty Module ERD
+
+entity AppUser {
+    * Id : int [PK]
+    --
+    * Username : nvarchar(100)
+}
+
+entity Customer {
+    * Id : int [PK]
+    --
+    * CustomerCode : nvarchar(100)
+}
+
+entity Product {
+    * Id : int [PK]
+    --
+    * ProductCode : nvarchar(100)
+    * DisplayName : nvarchar(255)
+}
+
+entity ProductSerial {
+    * Id : int [PK]
+    --
+    * ProductId : int [FK]
+    * SerialNumber : nvarchar(100) [UQ]
+    * CurrentStatus : nvarchar(50)
+    CurrentWarehouseId : int [nullable]
+}
+
+entity StockOut {
+    * Id : int [PK]
+    --
+    * DocumentCode : nvarchar(100)
+}
+
+entity SalesInvoice {
+    * Id : int [PK]
+    --
+    * InvoiceCode : nvarchar(100)
+}
+
+entity WarrantyCoverage {
+    * Id : int [PK]
+    --
+    * ProductSerialId : int [FK]
+    * CustomerId : int [FK]
+    SalesInvoiceId : int [FK, nullable]
+    * WarrantyStartDate : datetime
+    * WarrantyEndDate : datetime
+    * CoverageStatus : nvarchar(50)
+}
+
+entity WarrantyClaim {
+    * Id : int [PK]
+    --
+    * ClaimCode : nvarchar(100) [UQ]
+    * WarrantyCoverageId : int [FK]
+    * ProductSerialId : int [FK]
+    ReplacementSerialId : int [FK, nullable]
+    ReplacementStockOutId : int [FK, nullable]
+    * ReceivedDate : datetime
+    * ProblemDescription : nvarchar(max)
+    TechnicalConclusion : nvarchar(max) [nullable]
+    ManufacturerResult : nvarchar(max) [nullable]
+    RejectionReason : nvarchar(max) [nullable]
+    ProcessingNote : nvarchar(max) [nullable]
+    * Status : nvarchar(50)
+    ApprovedBy : int [FK, nullable]
+    * ProcessedBy : int [FK]
+    ClosedDate : datetime [nullable]
+}
+
+entity StockLedger {
+    * Id : int [PK]
+    --
+    * ProductId : int [FK]
+    ProductSerialId : int [FK, nullable]
+    * Quantity : decimal(18,2)
+}
+
+Product ||--o{ ProductSerial
+ProductSerial ||--o{ WarrantyCoverage
+Customer ||--o{ WarrantyCoverage
+SalesInvoice |o--o{ WarrantyCoverage
+
+WarrantyCoverage ||--o{ WarrantyClaim
+ProductSerial ||--o{ WarrantyClaim
+ProductSerial |o--o{ WarrantyClaim : replacement
+StockOut |o--o| WarrantyClaim : replacement
+
+ProductSerial |o--o{ StockLedger
+AppUser |o--o{ WarrantyClaim : approvedBy
+AppUser ||--o{ WarrantyClaim : processedBy
+@enduml

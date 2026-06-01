@@ -1,0 +1,17 @@
+@startuml State_VongDoi_ChungTuKho
+title Vòng đời chứng từ kho
+
+[*] --> Draft
+Draft --> PendingApproval: Gửi duyệt [Người lập]
+Draft --> Cancelled: Hủy nháp [Người lập/Quản lý]
+
+PendingApproval --> Draft: Từ chối / Yêu cầu sửa [Quản lý]
+PendingApproval --> Approved: Duyệt [Quản lý]
+
+Approved --> Posted: Ghi sổ [Nhân viên kho]
+Approved --> Cancelled: Hủy trước ghi sổ [Quản lý]
+
+Posted --> Locked: Khóa kỳ [Quản lý/Hệ thống]
+Locked --> [*]
+Cancelled --> [*]
+@enduml

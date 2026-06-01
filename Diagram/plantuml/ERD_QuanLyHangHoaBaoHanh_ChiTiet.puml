@@ -1,0 +1,325 @@
+@startuml ERD_QuanLyHangHoaBaoHanh_ChiTiet
+title Sơ đồ ERD quản lý hàng hóa và bảo hành (Rút gọn)
+
+entity AppUser {
+    * Id : int [PK]
+    --
+    * Username : nvarchar(100) [UQ]
+    * FullName : nvarchar(255)
+    * RoleCode : nvarchar(50)
+    * IsActive : bit
+}
+
+entity Category {
+    * Id : int [PK]
+    --
+    * CategoryCode : nvarchar(100) [UQ]
+    * DisplayName : nvarchar(255)
+    * IsActive : bit
+}
+
+entity Brand {
+    * Id : int [PK]
+    --
+    * BrandCode : nvarchar(100) [UQ]
+    * DisplayName : nvarchar(255)
+    * IsActive : bit
+}
+
+entity Unit {
+    * Id : int [PK]
+    --
+    * UnitCode : nvarchar(100) [UQ]
+    * DisplayName : nvarchar(255)
+    * IsActive : bit
+}
+
+entity Supplier {
+    * Id : int [PK]
+    --
+    * SupplierCode : nvarchar(100) [UQ]
+    * DisplayName : nvarchar(255)
+    * IsActive : bit
+}
+
+entity Customer {
+    * Id : int [PK]
+    --
+    * CustomerCode : nvarchar(100) [UQ]
+    * DisplayName : nvarchar(255)
+    * IsActive : bit
+}
+
+entity Warehouse {
+    * Id : int [PK]
+    --
+    * WarehouseCode : nvarchar(100) [UQ]
+    * DisplayName : nvarchar(255)
+    * IsDefault : bit
+    * IsActive : bit
+}
+
+entity Product {
+    * Id : int [PK]
+    --
+    * ProductCode : nvarchar(100) [UQ]
+    * DisplayName : nvarchar(255)
+    * CategoryId : int [FK]
+    * BrandId : int [FK]
+    * DefaultUnitId : int [FK]
+    * IsSerialTracked : bit
+    * IsActive : bit
+}
+
+entity ProductUnit {
+    * Id : int [PK]
+    --
+    * ProductId : int [FK]
+    * UnitId : int [FK]
+    * ConversionFactor : decimal(18,4)
+    * IsBaseUnit : bit
+}
+
+entity StockBalance {
+    * Id : int [PK]
+    --
+    * WarehouseId : int [FK]
+    * ProductId : int [FK]
+    * OnHandQuantity : decimal(18,2)
+    * AvailableQuantity : decimal(18,2)
+}
+
+entity StockIn {
+    * Id : int [PK]
+    --
+    * DocumentCode : nvarchar(100) [UQ]
+    SupplierId : int [FK, nullable]
+    * WarehouseId : int [FK]
+    * PurposeCode : nvarchar(50)
+    * Status : nvarchar(50)
+    * CreatedBy : int [FK]
+    * CreatedAt : datetime
+}
+
+entity StockInLine {
+    * Id : int [PK]
+    --
+    * StockInId : int [FK]
+    * ProductId : int [FK]
+    * UnitId : int [FK]
+    * Quantity : decimal(18,2)
+    * BaseQuantity : decimal(18,2)
+}
+
+entity StockOut {
+    * Id : int [PK]
+    --
+    * DocumentCode : nvarchar(100) [UQ]
+    * CustomerId : int [FK]
+    * WarehouseId : int [FK]
+    * PurposeCode : nvarchar(50)
+    * Status : nvarchar(50)
+    * CreatedBy : int [FK]
+    * CreatedAt : datetime
+}
+
+entity StockOutLine {
+    * Id : int [PK]
+    --
+    * StockOutId : int [FK]
+    * ProductId : int [FK]
+    * UnitId : int [FK]
+    * Quantity : decimal(18,2)
+    * BaseQuantity : decimal(18,2)
+}
+
+entity StockCountSession {
+    * Id : int [PK]
+    --
+    * SessionCode : nvarchar(100) [UQ]
+    * WarehouseId : int [FK]
+    * Status : nvarchar(50)
+    * CreatedBy : int [FK]
+    * CountDate : datetime
+}
+
+entity StockCountLine {
+    * Id : int [PK]
+    --
+    * SessionId : int [FK]
+    * ProductId : int [FK]
+    * SystemQuantity : decimal(18,2)
+    * CountedQuantity : decimal(18,2)
+    * VarianceQuantity : decimal(18,2)
+}
+
+entity ProductSerial {
+    * Id : int [PK]
+    --
+    * ProductId : int [FK]
+    * SerialNumber : nvarchar(100) [UQ]
+    * CurrentStatus : nvarchar(50)
+    CurrentWarehouseId : int [FK, nullable]
+}
+
+entity StockLedger {
+    * Id : int [PK]
+    --
+    * WarehouseId : int [FK]
+    * ProductId : int [FK]
+    ProductSerialId : int [FK, nullable]
+    * SourceDocumentType : nvarchar(100)
+    * SourceDocumentId : int
+    * MovementType : nvarchar(50)
+    * Quantity : decimal(18,2)
+}
+
+entity PurchaseInvoice {
+    * Id : int [PK]
+    --
+    * InvoiceCode : nvarchar(100) [UQ]
+    * SupplierId : int [FK]
+    StockInId : int [FK, nullable]
+    * InvoiceDate : datetime
+    * GrandTotal : decimal(18,2)
+    * PaymentStatus : nvarchar(50)
+}
+
+entity PurchaseInvoiceLine {
+    * Id : int [PK]
+    --
+    * PurchaseInvoiceId : int [FK]
+    * ProductId : int [FK]
+    * UnitId : int [FK]
+    * Quantity : decimal(18,2)
+    * GrandTotal : decimal(18,2)
+}
+
+entity SalesInvoice {
+    * Id : int [PK]
+    --
+    * InvoiceCode : nvarchar(100) [UQ]
+    * CustomerId : int [FK]
+    StockOutId : int [FK, nullable]
+    * InvoiceDate : datetime
+    * GrandTotal : decimal(18,2)
+    * PaymentStatus : nvarchar(50)
+}
+
+entity SalesInvoiceLine {
+    * Id : int [PK]
+    --
+    * SalesInvoiceId : int [FK]
+    * ProductId : int [FK]
+    * UnitId : int [FK]
+    * Quantity : decimal(18,2)
+    * GrandTotal : decimal(18,2)
+}
+
+entity WarrantyCoverage {
+    * Id : int [PK]
+    --
+    * ProductSerialId : int [FK]
+    * CustomerId : int [FK]
+    SalesInvoiceId : int [FK, nullable]
+    * WarrantyStartDate : datetime
+    * WarrantyEndDate : datetime
+    * CoverageStatus : nvarchar(50)
+}
+
+entity WarrantyClaim {
+    * Id : int [PK]
+    --
+    * ClaimCode : nvarchar(100) [UQ]
+    * WarrantyCoverageId : int [FK]
+    * ProductSerialId : int [FK]
+    ReplacementSerialId : int [FK, nullable]
+    ReplacementStockOutId : int [FK, nullable]
+    * ProblemDescription : nvarchar(max)
+    * Status : nvarchar(50)
+    * ProcessedBy : int [FK]
+}
+
+entity AuditLog {
+    * Id : int [PK]
+    --
+    * EntityName : nvarchar(100)
+    * EntityId : int
+    * ActionCode : nvarchar(100)
+    PerformedBy : int [FK]
+    * PerformedAt : datetime
+}
+
+Category ||--o{ Product
+Brand ||--o{ Product
+Unit ||--o{ Product
+Product ||--o{ ProductUnit
+Unit ||--o{ ProductUnit
+
+Warehouse ||--o{ StockBalance
+Product ||--o{ StockBalance
+
+Supplier |o--o{ StockIn
+Warehouse ||--o{ StockIn
+StockIn ||--o{ StockInLine
+Product ||--o{ StockInLine
+Unit ||--o{ StockInLine
+
+Warehouse ||--o{ StockOut
+Customer ||--o{ StockOut
+StockOut ||--o{ StockOutLine
+Product ||--o{ StockOutLine
+Unit ||--o{ StockOutLine
+
+Warehouse ||--o{ StockCountSession
+StockCountSession ||--o{ StockCountLine
+Product ||--o{ StockCountLine
+
+Supplier ||--o{ PurchaseInvoice
+StockIn |o--o| PurchaseInvoice
+PurchaseInvoice ||--o{ PurchaseInvoiceLine
+Product ||--o{ PurchaseInvoiceLine
+Unit ||--o{ PurchaseInvoiceLine
+StockInLine |o--o{ PurchaseInvoiceLine
+
+Customer ||--o{ SalesInvoice
+StockOut |o--o| SalesInvoice
+SalesInvoice ||--o{ SalesInvoiceLine
+Product ||--o{ SalesInvoiceLine
+Unit ||--o{ SalesInvoiceLine
+StockOutLine |o--o{ SalesInvoiceLine
+
+Warehouse |o--o{ ProductSerial
+Product ||--o{ ProductSerial
+StockInLine ||--o{ ProductSerial
+StockOutLine |o--o{ ProductSerial
+
+Warehouse ||--o{ StockLedger
+Product ||--o{ StockLedger
+ProductSerial |o--o{ StockLedger
+
+ProductSerial ||--o{ WarrantyCoverage
+Customer ||--o{ WarrantyCoverage
+SalesInvoice |o--o{ WarrantyCoverage
+
+WarrantyCoverage ||--o{ WarrantyClaim
+ProductSerial ||--o{ WarrantyClaim
+ProductSerial |o--o{ WarrantyClaim : replacement
+StockOut |o--o| WarrantyClaim : replacement
+
+AppUser |o--o{ AppUser : creator
+AppUser ||--o{ StockIn : creator
+AppUser |o--o{ StockIn : approver
+AppUser |o--o{ StockIn : poster
+AppUser ||--o{ StockOut : creator
+AppUser |o--o{ StockOut : approver
+AppUser |o--o{ StockOut : poster
+AppUser ||--o{ StockCountSession : creator
+AppUser |o--o{ StockCountSession : approver
+AppUser |o--o{ StockCountSession : poster
+AppUser ||--o{ StockLedger : poster
+AppUser |o--o{ WarrantyClaim : approver
+AppUser ||--o{ WarrantyClaim : processor
+AppUser ||--o{ AuditLog : performer
+
+@enduml

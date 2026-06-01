@@ -81,9 +81,9 @@ $sections = foreach ($match in $matches) {
 $sectionMeta = @(
     @{ Id = 'ARCH-01'; Svg = 'Architecture_MVVM_WPF_SQLServer.svg'; Category = 'arch'; CardClass = 'full arch-wide'; Badge = 'arch' }
     @{ Id = 'UC-01'; Svg = 'UseCase_TongThe.svg'; Category = 'usecase'; CardClass = 'full flow-xwide'; Badge = 'use' }
+    @{ Id = 'UC-01A'; Svg = 'UseCase_AdminCatalog.svg'; Category = 'usecase'; CardClass = 'flow-wide'; Badge = 'use' }
     @{ Id = 'UC-02'; Svg = 'UseCase_TraCuu_BaoCao.svg'; Category = 'usecase'; CardClass = 'flow-wide'; Badge = 'use' }
-    @{ Id = 'UC-03'; Svg = 'UseCase_NhapKho_HoaDonMua.svg'; Category = 'usecase'; CardClass = 'flow-wide'; Badge = 'use' }
-    @{ Id = 'UC-04'; Svg = 'UseCase_XuatKho_HoaDonBan.svg'; Category = 'usecase'; CardClass = 'flow-wide'; Badge = 'use' }
+    @{ Id = 'UC-03'; Svg = 'UseCase_NhapXuatKho_HoaDon.svg'; Category = 'usecase'; CardClass = 'full flow-xwide'; Badge = 'use' }
     @{ Id = 'UC-05'; Svg = 'UseCase_KiemKe_DieuChinh.svg'; Category = 'usecase'; CardClass = 'flow-wide'; Badge = 'use' }
     @{ Id = 'UC-06'; Svg = 'UseCase_BaoHanh.svg'; Category = 'usecase'; CardClass = 'flow-wide'; Badge = 'use' }
     @{ Id = 'AC-01'; Svg = 'Activity_NhapKho_GhiSo.svg'; Category = 'activity'; CardClass = 'flow-wide'; Badge = 'act' }

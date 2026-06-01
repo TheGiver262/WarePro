@@ -218,6 +218,8 @@ public partial class AppDbContext : DbContext
             entity.ToTable("ProductSerial");
 
             entity.HasIndex(e => e.SerialNumber, "UX_ProductSerial_SerialNumber").IsUnique();
+            entity.HasIndex(e => e.CurrentStatus, "IX_ProductSerial_CurrentStatus");
+            entity.HasIndex(e => e.ProductId, "IX_ProductSerial_ProductId");
 
             entity.Property(e => e.CurrentStatus).HasMaxLength(50);
             entity.Property(e => e.Note).IsRequired(false);
@@ -278,6 +280,7 @@ public partial class AppDbContext : DbContext
             entity.ToTable("PurchaseInvoice");
 
             entity.HasIndex(e => e.InvoiceCode, "UX_PurchaseInvoice_InvoiceCode").IsUnique();
+            entity.HasIndex(e => e.InvoiceDate, "IX_PurchaseInvoice_InvoiceDate");
 
             entity.Property(e => e.GrandTotal).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.CreatedAt).HasPrecision(0);
@@ -347,6 +350,7 @@ public partial class AppDbContext : DbContext
             entity.ToTable("SalesInvoice");
 
             entity.HasIndex(e => e.InvoiceCode, "UX_SalesInvoice_InvoiceCode").IsUnique();
+            entity.HasIndex(e => e.InvoiceDate, "IX_SalesInvoice_InvoiceDate");
 
             entity.Property(e => e.GrandTotal).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.CreatedAt).HasPrecision(0);
@@ -553,13 +557,14 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("PK__StockIn__3214EC07786210D8");
 
-            entity.ToTable("StockIn");
+            entity.ToTable("StockIn", t => t.HasCheckConstraint("CK_StockIn_PurposeCode", "[PurposeCode] IN ('Purchase', 'OpeningBalance', 'Adjustment')"));
 
             entity.HasIndex(e => e.SupplierId, "IX_StockIn_SupplierId");
 
             entity.HasIndex(e => new { e.WarehouseId, e.PostedAt }, "IX_StockIn_Warehouse_ProductLookup");
 
             entity.HasIndex(e => e.DocumentCode, "UX_StockIn_DocumentCode").IsUnique();
+            entity.HasIndex(e => e.ImportDate, "IX_StockIn_ImportDate");
 
             entity.Property(e => e.ApprovedAt).HasPrecision(0);
             entity.Property(e => e.CreatedAt)
@@ -665,13 +670,14 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("PK__StockOut__3214EC073AFD26FA");
 
-            entity.ToTable("StockOut");
+            entity.ToTable("StockOut", t => t.HasCheckConstraint("CK_StockOut_PurposeCode", "[PurposeCode] IN ('Sale', 'WarrantyReplacement', 'Adjustment')"));
 
             entity.HasIndex(e => e.CustomerId, "IX_StockOut_CustomerId");
 
             entity.HasIndex(e => new { e.WarehouseId, e.PostedAt }, "IX_StockOut_Warehouse_ProductLookup");
 
             entity.HasIndex(e => e.DocumentCode, "UX_StockOut_DocumentCode").IsUnique();
+            entity.HasIndex(e => e.ExportDate, "IX_StockOut_ExportDate");
 
             entity.Property(e => e.ApprovedAt).HasPrecision(0);
             entity.Property(e => e.CreatedAt)

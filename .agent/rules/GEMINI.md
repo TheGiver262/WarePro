@@ -131,6 +131,11 @@ When user's prompt is NOT in English:
 - Skills: `.agent/skills/` (Project)
 - Runtime Scripts: `.agent/skills/<skill>/scripts/`
 
+### ⚡ Rust Token Killer (rtk) Requirement
+
+- **Mọi lệnh terminal (git, dotnet, etc.) BẮT BUỘC phải chạy thông qua tiền tố `rtk`** (ví dụ: `rtk dotnet build`, `rtk dotnet test`, `rtk git status`).
+- Điều này giúp tối ưu hóa dung lượng token và tóm tắt kết xuất hệ thống trước khi gửi về cho LLM.
+
 ### 🧠 Read → Understand → Apply
 
 ```

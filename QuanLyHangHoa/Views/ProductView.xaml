@@ -1,11 +1,17 @@
 <UserControl x:Class="QuanLyHangHoa.Views.ProductView"
+             x:Name="RootView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:vm="clr-namespace:QuanLyHangHoa.ViewModels"
+             xmlns:helpers="clr-namespace:QuanLyHangHoa.Helpers"
              mc:Ignorable="d" d:DesignHeight="800" d:DesignWidth="1100">
+    
+    <UserControl.Resources>
+        <helpers:BindingProxy x:Key="Proxy" Data="{Binding}"/>
+    </UserControl.Resources>
     
     <Grid Background="{StaticResource AppBackgroundBrush}">
         <Grid Margin="{StaticResource PagePadding}">
@@ -57,14 +63,14 @@
 
                         <StackPanel Grid.Column="0" Margin="{StaticResource Margin.Right.md}">
                             <TextBlock Text="MÃ SẢN PHẨM" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                            <TextBox Height="32" VerticalContentAlignment="Center"
+                            <TextBox Style="{StaticResource AppTextBoxStyle}" Height="32" Margin="0" VerticalContentAlignment="Center"
                                      materialDesign:HintAssist.Hint="Mã sản phẩm..."
                                      Text="{Binding SearchCode, UpdateSourceTrigger=PropertyChanged}"/>
                         </StackPanel>
 
                         <StackPanel Grid.Column="1" Margin="{StaticResource Margin.Right.md}">
                             <TextBlock Text="TÊN SẢN PHẨM" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                            <TextBox Height="32" VerticalContentAlignment="Center"
+                            <TextBox Style="{StaticResource AppTextBoxStyle}" Height="32" Margin="0" VerticalContentAlignment="Center"
                                      materialDesign:HintAssist.Hint="Tìm kiếm theo tên sản phẩm..."
                                      Text="{Binding SearchName, UpdateSourceTrigger=PropertyChanged}"/>
                         </StackPanel>
@@ -113,25 +119,25 @@
                         <!-- Category -->
                         <StackPanel Grid.Column="0" Margin="{StaticResource Margin.Right.md}">
                             <TextBlock Text="DANH MỤC" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                            <ComboBox ItemsSource="{Binding Categories}" 
+                            <ComboBox Style="{StaticResource AppComboBoxStyle}" ItemsSource="{Binding Categories}" 
                                       SelectedItem="{Binding SelectedCategoryFilter, UpdateSourceTrigger=PropertyChanged}"
                                       DisplayMemberPath="DisplayName"
-                                      Height="32" VerticalContentAlignment="Center"/>
+                                      Height="40" VerticalContentAlignment="Center"/>
                         </StackPanel>
 
                         <!-- Brand -->
                         <StackPanel Grid.Column="1" Margin="{StaticResource Margin.Right.md}">
                             <TextBlock Text="THƯƠNG HIỆU" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                            <ComboBox ItemsSource="{Binding Brands}" 
+                            <ComboBox Style="{StaticResource AppComboBoxStyle}" ItemsSource="{Binding Brands}" 
                                       SelectedItem="{Binding SelectedBrandFilter, UpdateSourceTrigger=PropertyChanged}"
                                       DisplayMemberPath="DisplayName"
-                                      Height="32" VerticalContentAlignment="Center"/>
+                                      Height="40" VerticalContentAlignment="Center"/>
                         </StackPanel>
 
                         <!-- Price Min -->
                         <StackPanel Grid.Column="2" Margin="{StaticResource Margin.Right.md}">
                             <TextBlock Text="GIÁ TỪ" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                            <TextBox Height="32" VerticalContentAlignment="Center"
+                            <TextBox Style="{StaticResource AppTextBoxStyle}" Height="40" VerticalContentAlignment="Center"
                                      materialDesign:HintAssist.Hint="Giá thấp nhất"
                                      Text="{Binding SearchPriceMin, UpdateSourceTrigger=PropertyChanged}"/>
                         </StackPanel>
@@ -139,7 +145,7 @@
                         <!-- Price Max -->
                         <StackPanel Grid.Column="3" Margin="{StaticResource Margin.Right.md}">
                             <TextBlock Text="GIÁ ĐẾN" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                            <TextBox Height="32" VerticalContentAlignment="Center"
+                            <TextBox Style="{StaticResource AppTextBoxStyle}" Height="40" VerticalContentAlignment="Center"
                                      materialDesign:HintAssist.Hint="Giá cao nhất"
                                      Text="{Binding SearchPriceMax, UpdateSourceTrigger=PropertyChanged}"/>
                         </StackPanel>
@@ -147,15 +153,15 @@
                         <!-- Serial -->
                         <StackPanel Grid.Column="4" Margin="{StaticResource Margin.Right.md}">
                             <TextBlock Text="SERIAL" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                            <ComboBox ItemsSource="{Binding SerialOptions}" 
+                            <ComboBox Style="{StaticResource AppComboBoxStyle}" ItemsSource="{Binding SerialOptions}" 
                                       SelectedItem="{Binding SearchSerial, UpdateSourceTrigger=PropertyChanged}"
-                                      Height="32" VerticalContentAlignment="Center"/>
+                                      Height="40" VerticalContentAlignment="Center"/>
                         </StackPanel>
 
                         <!-- Warranty -->
                         <StackPanel Grid.Column="5" Margin="{StaticResource Margin.Right.md}">
                             <TextBlock Text="BẢO HÀNH" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                            <TextBox Height="32" VerticalContentAlignment="Center"
+                            <TextBox Style="{StaticResource AppTextBoxStyle}" Height="40" VerticalContentAlignment="Center"
                                      materialDesign:HintAssist.Hint="Tháng bảo hành..."
                                      Text="{Binding SearchWarranty, UpdateSourceTrigger=PropertyChanged}">
                                 <TextBox.InputBindings>
@@ -167,9 +173,9 @@
                         <!-- Status -->
                         <StackPanel Grid.Column="6">
                             <TextBlock Text="TRẠNG THÁI" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                            <ComboBox ItemsSource="{Binding StatusOptions}" 
+                            <ComboBox Style="{StaticResource AppComboBoxStyle}" ItemsSource="{Binding StatusOptions}" 
                                       SelectedItem="{Binding SearchStatus, UpdateSourceTrigger=PropertyChanged}"
-                                      Height="32" VerticalContentAlignment="Center"/>
+                                      Height="40" VerticalContentAlignment="Center"/>
                         </StackPanel>
                     </Grid>
                 </StackPanel>
@@ -185,6 +191,7 @@
 
                     <DataGrid Grid.Row="0" ItemsSource="{Binding Products}" SelectedItem="{Binding SelectedProduct, Mode=TwoWay}"
                               EnableRowVirtualization="False"
+                              helpers:DataGridHelper.LoadMoreCommand="{Binding LoadMoreCommand}"
                               AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                               RowHeight="60"
                               SelectionMode="Single" SelectionUnit="FullRow">
@@ -324,17 +331,18 @@
                             </DataGridTemplateColumn.Header>
                         </DataGridTemplateColumn>
 
-                        <DataGridTemplateColumn Header="THAO TÁC" Width="95" Visibility="{Binding DataContext.CanManage, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <!-- 7. Thao tác -->
+                        <DataGridTemplateColumn Header="THAO TÁC" Width="95" Visibility="{Binding Data.CanManage, Source={StaticResource Proxy}, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                         <Button Style="{StaticResource ProMaxIconButtonStyle}" ToolTip="Sửa" Margin="0,0,4,0"
-                                                Command="{Binding DataContext.OpenEditProductWindowCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                Command="{Binding DataContext.OpenEditProductWindowCommand, ElementName=RootView}"
                                                 CommandParameter="{Binding}">
                                             <materialDesign:PackIcon Kind="PencilOutline" Width="18" Height="18" Foreground="{StaticResource AppSecondaryBrush}"/>
                                         </Button>
                                         <Button Style="{StaticResource ProMaxIconButtonStyle}" ToolTip="Xóa"
-                                                Command="{Binding DataContext.DeleteProductCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                Command="{Binding DataContext.DeleteProductCommand, ElementName=RootView}"
                                                 CommandParameter="{Binding}">
                                             <materialDesign:PackIcon Kind="TrashCanOutline" Width="18" Height="18" Foreground="{StaticResource AppErrorBrush}"/>
                                         </Button>
@@ -346,14 +354,14 @@
                     </DataGrid>
 
                     <Border Grid.Row="1" Padding="20,12" Background="{StaticResource AppFooterBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
-                        <TextBlock VerticalAlignment="Center" Style="{StaticResource TypographyCaption}">
-                            <TextBlock.Text>
-                                <MultiBinding StringFormat="{}Hiện có {0} sản phẩm trong hệ thống · {1} Hoạt động · {2} Dừng">
-                                    <Binding Path="TotalCount"/>
-                                    <Binding Path="ActiveCount"/>
-                                    <Binding Path="InactiveCount"/>
-                                </MultiBinding>
-                            </TextBlock.Text>
+                        <TextBlock VerticalAlignment="Center" Style="{StaticResource TypographyCaption}" HorizontalAlignment="Left">
+                            <Run Text="Hiện có "/>
+                            <Run Text="{Binding TotalCount, Mode=OneWay}" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <Run Text=" sản phẩm trong hệ thống · "/>
+                            <Run Text="{Binding ActiveCount, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource SuccessTextBrush}"/>
+                            <Run Text=" Hoạt động · "/>
+                            <Run Text="{Binding InactiveCount, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource DangerTextBrush}"/>
+                            <Run Text=" Dừng"/>
                         </TextBlock>
                     </Border>
                 </Grid>

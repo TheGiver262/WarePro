@@ -176,4 +176,71 @@ public class StockOutServiceTests
         var exDup = Assert.Throws<Exception>(() => service.Post(stockOutC.Id, 1));
         Assert.Equal("Các số serial sau bị trùng lặp trong phiếu: [SN-102]. Vui lòng kiểm tra lại trước khi duyệt.", exDup.Message);
     }
+
+    [Fact]
+    public void Post_updates_inventory_using_BaseQuantity_when_unit_conversion_is_applied()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        using (var seedContext = DatabaseHelper.CreateContext(connection))
+        {
+            DatabaseHelper.SeedBasicData(seedContext);
+            seedContext.Units.Add(new Unit { Id = 2, UnitCode = "BOX", DisplayName = "Box", IsActive = true });
+            seedContext.Products.Add(new Product 
+            { 
+                Id = 400, 
+                ProductCode = "P400",
+                DisplayName = "Converted Unit Product Out",
+                CategoryId = 1, 
+                BrandId = 1, 
+                DefaultUnitId = 1, 
+                DefaultPrice = 10m, 
+                IsSerialTracked = false 
+            });
+            seedContext.ProductUnits.Add(new ProductUnit
+            {
+                ProductId = 400,
+                UnitId = 2,
+                ConversionFactor = 12m,
+                IsBaseUnit = false,
+                IsPurchaseUnit = true,
+                IsSalesUnit = true
+            });
+            // Tồn ban đầu: 50 đơn vị cơ sở
+            seedContext.StockBalances.Add(new StockBalance { ProductId = 400, WarehouseId = 1, OnHandQuantity = 50, AvailableQuantity = 50 });
+            seedContext.SaveChanges();
+        }
+
+        var service = new StockOutService(() => DatabaseHelper.CreateContext(connection));
+        var stockOut = new StockOut
+        {
+            DocumentCode = "SO-CONV",
+            CustomerId = 1,
+            WarehouseId = 1,
+            PurposeCode = "Sale",
+            CreatedAt = DateTime.Now
+        };
+        var lines = new List<StockOutLine>
+        {
+            new StockOutLine
+            {
+                ProductId = 400,
+                UnitId = 2,
+                Quantity = 2,
+                UnitPrice = 15m
+            }
+        };
+
+        service.SaveDraft(stockOut, lines, 1);
+        service.Post(stockOut.Id, 1);
+
+        using var assertContext = DatabaseHelper.CreateContext(connection);
+        var balance = assertContext.StockBalances.Single(b => b.ProductId == 400);
+        // Xác minh tồn kho giảm theo BaseQuantity (50 - 24 = 26) chứ không phải Quantity giao dịch (50 - 2 = 48)
+        Assert.Equal(26, balance.OnHandQuantity);
+
+        var ledger = assertContext.StockLedgers.Single(l => l.ProductId == 400);
+        Assert.Equal("Out", ledger.MovementType);
+        Assert.Equal(24, ledger.Quantity);
+    }
 }

@@ -6,6 +6,7 @@
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:vm="clr-namespace:QuanLyHangHoa.ViewModels"
              xmlns:converters="clr-namespace:QuanLyHangHoa.Converters"
+             xmlns:helpers="clr-namespace:QuanLyHangHoa.Helpers"
              mc:Ignorable="d" 
              d:DataContext="{d:DesignInstance vm:InventoryViewModel}"
              d:DesignHeight="800" d:DesignWidth="1100">
@@ -54,86 +55,66 @@
                 </StackPanel>
             </Grid>
 
-            <!-- Row 1: Search Row (Standardized Pro Max) -->
+            <!-- Row 1: Search Row (Standardized Pro Max - Single Row) -->
             <materialDesign:Card Grid.Row="1" Margin="{StaticResource SectionBottomMargin}" Padding="16" Style="{StaticResource AppCard}">
-                <StackPanel>
-                    <!-- Main Search Row -->
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="180"/>      <!-- Mã -->
-                            <ColumnDefinition Width="*"/>        <!-- Tên -->
-                            <ColumnDefinition Width="Auto"/>     <!-- Actions -->
-                        </Grid.ColumnDefinitions>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="150"/>      <!-- Mã -->
+                        <ColumnDefinition Width="*"/>        <!-- Tên -->
+                        <ColumnDefinition Width="200"/>      <!-- Danh mục -->
+                        <ColumnDefinition Width="180"/>      <!-- Trạng thái -->
+                        <ColumnDefinition Width="Auto"/>     <!-- Actions -->
+                    </Grid.ColumnDefinitions>
 
-                        <StackPanel Grid.Column="0" Margin="{StaticResource Margin.Right.md}">
-                            <TextBlock Text="MÃ SẢN PHẨM" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                            <TextBox Height="32" VerticalContentAlignment="Center"
-                                     materialDesign:HintAssist.Hint="Mã sản phẩm..."
-                                     Text="{Binding SearchCode, UpdateSourceTrigger=PropertyChanged}"/>
-                        </StackPanel>
+                    <StackPanel Grid.Column="0" Margin="{StaticResource Margin.Right.md}">
+                        <TextBlock Text="MÃ SẢN PHẨM" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                        <TextBox Style="{StaticResource AppTextBoxStyle}" Height="32" Margin="0" VerticalContentAlignment="Center"
+                                 materialDesign:HintAssist.Hint="Mã sản phẩm..."
+                                 Text="{Binding SearchCode, UpdateSourceTrigger=PropertyChanged}"/>
+                    </StackPanel>
 
-                        <StackPanel Grid.Column="1" Margin="{StaticResource Margin.Right.md}">
-                            <TextBlock Text="TÊN SẢN PHẨM" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                            <TextBox Height="32" VerticalContentAlignment="Center"
-                                     materialDesign:HintAssist.Hint="Tìm kiếm theo tên sản phẩm..."
-                                     Text="{Binding SearchName, UpdateSourceTrigger=PropertyChanged}"/>
-                        </StackPanel>
+                    <StackPanel Grid.Column="1" Margin="{StaticResource Margin.Right.md}">
+                        <TextBlock Text="TÊN SẢN PHẨM" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                        <TextBox Style="{StaticResource AppTextBoxStyle}" Height="32" Margin="0" VerticalContentAlignment="Center"
+                                 materialDesign:HintAssist.Hint="Tìm kiếm theo tên sản phẩm..."
+                                 Text="{Binding SearchName, UpdateSourceTrigger=PropertyChanged}"/>
+                    </StackPanel>
 
-                        <!-- Actions -->
-                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Bottom">
-                            <Button Style="{StaticResource SecondaryButton}" 
-                                    Command="{Binding ToggleAdvancedFilterCommand}"
-                                    ToolTip="Lọc nâng cao"
-                                    Width="180" Height="32" Margin="0,0,8,0">
-                                <StackPanel Orientation="Horizontal">
-                                    <materialDesign:PackIcon Kind="Tune" Width="20" Height="20" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                    <TextBlock Text="BỘ LỌC NÂNG CAO" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
-                                </StackPanel>
-                            </Button>
+                    <!-- Category -->
+                    <StackPanel Grid.Column="2" Margin="{StaticResource Margin.Right.md}">
+                        <TextBlock Text="DANH MỤC" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                        <ComboBox Style="{StaticResource AppComboBoxStyle}" ItemsSource="{Binding Categories}" 
+                                  SelectedItem="{Binding SelectedCategoryFilter, UpdateSourceTrigger=PropertyChanged}"
+                                  DisplayMemberPath="DisplayName"
+                                  Height="32" Margin="0" VerticalContentAlignment="Center"/>
+                    </StackPanel>
 
-                            <Button Style="{StaticResource AppRefreshButton}" 
-                                    Command="{Binding RefreshCommand}"
-                                    ToolTip="Làm mới bộ lọc"
-                                    Margin="0,0,8,0">
-                                <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18"/>
-                            </Button>
+                    <!-- Stock Status -->
+                    <StackPanel Grid.Column="3" Margin="{StaticResource Margin.Right.md}">
+                        <TextBlock Text="TRẠNG THÁI TỒN KHO" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
+                        <ComboBox Style="{StaticResource AppComboBoxStyle}" ItemsSource="{Binding StatusOptions}" 
+                                  SelectedItem="{Binding SearchStatus, UpdateSourceTrigger=PropertyChanged}"
+                                  Height="32" Margin="0" VerticalContentAlignment="Center"/>
+                    </StackPanel>
 
-                            <Button Style="{StaticResource AppExcelButton}" 
-                                    Command="{Binding ExportCommand}">
-                                <StackPanel Orientation="Horizontal">
-                                    <materialDesign:PackIcon Kind="FileExcelOutline" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                    <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
-                                </StackPanel>
-                            </Button>
-                        </StackPanel>
-                    </Grid>
+                    <!-- Actions -->
+                    <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Bottom">
+                        <Button Style="{StaticResource AppRefreshButton}" 
+                                Command="{Binding RefreshCommand}"
+                                ToolTip="Làm mới bộ lọc"
+                                Margin="0,0,8,0">
+                            <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18"/>
+                        </Button>
 
-                    <!-- Advanced Filter Row (Expandable) -->
-                    <Grid Margin="0,16,0,0" Visibility="{Binding IsAdvancedFilterOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="200"/>      <!-- Danh mục -->
-                            <ColumnDefinition Width="200"/>      <!-- Trạng thái tồn -->
-                            <ColumnDefinition Width="*"/>        <!-- Spacer -->
-                        </Grid.ColumnDefinitions>
-
-                        <!-- Category -->
-                        <StackPanel Grid.Column="0" Margin="{StaticResource Margin.Right.md}">
-                            <TextBlock Text="DANH MỤC" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                            <ComboBox ItemsSource="{Binding Categories}" 
-                                      SelectedItem="{Binding SelectedCategoryFilter, UpdateSourceTrigger=PropertyChanged}"
-                                      DisplayMemberPath="DisplayName"
-                                      Height="32" VerticalContentAlignment="Center"/>
-                        </StackPanel>
-
-                        <!-- Stock Status -->
-                        <StackPanel Grid.Column="1" Margin="{StaticResource Margin.Right.md}">
-                            <TextBlock Text="TRẠNG THÁI TỒN KHO" Style="{StaticResource TypographyLabel}" Margin="{StaticResource Margin.Bottom.xs}"/>
-                            <ComboBox ItemsSource="{Binding StatusOptions}" 
-                                      SelectedItem="{Binding SearchStatus, UpdateSourceTrigger=PropertyChanged}"
-                                      Height="32" VerticalContentAlignment="Center"/>
-                        </StackPanel>
-                    </Grid>
-                </StackPanel>
+                        <Button Style="{StaticResource AppExcelButton}" 
+                                Command="{Binding ExportCommand}">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="FileExcelOutline" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
             </materialDesign:Card>
 
             <!-- Row 2: Main Content Card -->
@@ -141,6 +122,7 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     
                     <!-- DataGrid -->
@@ -148,7 +130,11 @@
                               ItemsSource="{Binding InventoryItems}"
                               AutoGenerateColumns="False" CanUserAddRows="False"
                               BorderThickness="0"
-                              SelectionMode="Single" RowHeight="56">
+                              SelectionMode="Single" RowHeight="56"
+                              EnableRowVirtualization="False"
+                              VirtualizingStackPanel.IsVirtualizing="True"
+                              VirtualizingStackPanel.VirtualizationMode="Recycling"
+                              helpers:DataGridHelper.LoadMoreCommand="{Binding LoadMoreCommand}">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="MÃ SẢN PHẨM" Binding="{Binding ProductCode}" Width="150" ElementStyle="{DynamicResource AppDataGridTextBold}"/>
                             <DataGridTextColumn Header="TÊN SẢN PHẨM" Binding="{Binding ProductName}" Width="*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
@@ -195,6 +181,19 @@
                             <DataGridTextColumn Header="GIÁ TRỊ" Binding="{Binding TotalValue, StringFormat='N0'}" Width="160" ElementStyle="{DynamicResource AppDataGridTextRight}"/>
                         </DataGrid.Columns>
                     </DataGrid>
+
+                    <!-- Footer -->
+                    <Border Grid.Row="1" Padding="20,12" Background="{StaticResource AppFooterBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
+                        <TextBlock FontSize="13" Foreground="{StaticResource AppSecondaryBrush}" Style="{StaticResource TypographyCaption}" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <Run Text="Hiện có "/>
+                            <Run Text="{Binding InventoryItems.Count, Mode=OneWay}" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <Run Text=" mặt hàng trong bộ lọc · "/>
+                            <Run Text="{Binding LowStockCount, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource DangerTextBrush}"/>
+                            <Run Text=" dưới định mức tồn · Tổng giá trị tồn: "/>
+                            <Run Text="{Binding TotalInventoryValue, StringFormat='N0', Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource InfoTextBrush}"/>
+                            <Run Text=" VNĐ"/>
+                        </TextBlock>
+                    </Border>
                 </Grid>
             </materialDesign:Card>
         </Grid>

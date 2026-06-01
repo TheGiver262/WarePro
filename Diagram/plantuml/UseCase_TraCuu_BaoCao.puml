@@ -1,0 +1,51 @@
+@startuml UseCase_TraCuu_BaoCao
+left to right direction
+skinparam packageStyle rect
+
+actor "Quản trị viên" as Admin
+actor "Quản lý" as Manager
+actor "Nhân viên kho" as Storekeeper
+actor "Nhân viên bán hàng" as Salesman
+actor "Nhân viên bảo hành" as Technician
+
+Admin --|> Manager
+Manager --|> Storekeeper
+Manager --|> Salesman
+Manager --|> Technician
+
+rectangle "Phân hệ tra cứu và báo cáo" {
+    usecase "Tìm kiếm theo mã, tên, serial" as UC1
+    usecase "Lọc theo trạng thái, ngày, đối tượng" as UC2
+    usecase "Sắp xếp tăng / giảm theo cột" as UC3
+    usecase "Xem tồn theo sản phẩm và serial" as UC4
+    usecase "Xem lịch sử kho" as UC5
+    usecase "Tra cứu serial đã bán và tình trạng bảo hành" as UC6
+    usecase "Tra cứu coverage, claim và lịch sử bảo hành" as UC7
+    usecase "Xem audit log và nhật ký thay đổi" as UC8
+    usecase "Tạo báo cáo tồn kho và nhập xuất tồn" as UC9
+    usecase "Tạo báo cáo doanh thu, công nợ, bảo hành" as UC10
+}
+
+Storekeeper --> UC1
+Storekeeper --> UC2
+Storekeeper --> UC3
+Storekeeper --> UC4
+Storekeeper --> UC5
+
+Salesman --> UC1
+Salesman --> UC2
+Salesman --> UC3
+Salesman --> UC6
+
+Technician --> UC1
+Technician --> UC2
+Technician --> UC3
+Technician --> UC7
+
+Manager --> UC8
+Manager --> UC9
+Manager --> UC10
+
+Admin --> UC8
+
+@enduml

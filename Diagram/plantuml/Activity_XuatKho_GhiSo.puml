@@ -1,0 +1,39 @@
+@startuml Activity_XuatKho_GhiSo
+title Sơ đồ hoạt động Ghi sổ phiếu xuất kho (Rút gọn)
+
+start
+:Lập phiếu xuất kho nháp (Draft);
+:Kiểm tra thông tin bắt buộc và hợp lệ;
+
+if (Thông tin hợp lệ?) then (Không)
+  :Báo lỗi nhập liệu;
+  stop
+else (Có)
+  :Duyệt phiếu xuất kho;
+  :Bắt đầu ghi sổ (Post);
+  
+  partition "Ghi sổ & Cập nhật kho" {
+    :Quy đổi số lượng giao dịch về đơn vị cơ sở;
+    :Kiểm tra tồn kho khả dụng;
+    
+    if (Đủ tồn kho?) then (Không)
+      :Báo lỗi không đủ tồn kho;
+      stop
+    else (Có)
+      if (Có quản lý Serial?) then (Có)
+        :Kiểm tra và cập nhật trạng thái các Serial sang 'Sold';
+        if (Có bảo hành?) then (Có)
+          :Tạo thông tin bảo hành (WarrantyCoverage);
+        endif
+      endif
+      
+      :Trừ số lượng tồn kho (StockBalance);
+      :Ghi nhận thẻ kho (StockLedger) & Audit Log;
+      :Chuyển trạng thái phiếu sang 'Đã ghi sổ' (Posted);
+    endif
+  }
+  
+  :Thông báo xuất kho thành công;
+  stop
+endif
+@enduml

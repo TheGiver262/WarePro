@@ -1,0 +1,13 @@
+Total in DB: 651
+Serials with valid ProductId: 651
+Serials with valid LastStockInLineId: 651
+Serials with both ProductId and LastStockInLineId valid: 651
+SearchSerialsPaged returned: 651
+Status 'InStock': 436
+Status 'InWarrantyProcess': 5
+Status 'Replaced': 1
+Status 'Returned': 1
+Status 'ReturnedToManufacturer': 4
+Status 'Scrapped': 1
+Status 'Sold': 191
+Status 'WarrantyDefective': 12

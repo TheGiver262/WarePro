@@ -32,7 +32,7 @@
 
                     <StackPanel Orientation="Horizontal">
                         <materialDesign:PackIcon Kind="Magnify" Width="20" Height="20" Foreground="{StaticResource AppSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                        <TextBox Width="300" materialDesign:HintAssist.Hint="Tìm kiếm theo tên sản phẩm..." Style="{StaticResource MaterialDesignFloatingHintTextBox}"
+                        <TextBox Width="300" Style="{StaticResource AppTextBoxStyle}" Height="40" materialDesign:HintAssist.Hint="Tìm kiếm theo tên sản phẩm..."
                                  Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
@@ -93,7 +93,7 @@
 
                     <!-- Footer -->
                     <Border Grid.Row="1" Padding="20,12" Background="{StaticResource AppFooterBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
-                        <TextBlock Text="{Binding StatusMessage}" FontSize="13" Foreground="{StaticResource AppSecondaryBrush}" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding StatusMessage}" FontSize="13" Foreground="{StaticResource AppSecondaryBrush}" Style="{StaticResource TypographyCaption}" HorizontalAlignment="Left" VerticalAlignment="Center"/>
                     </Border>
                 </Grid>
             </materialDesign:Card>
