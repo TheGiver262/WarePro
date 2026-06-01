@@ -24,16 +24,38 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private DateTime _endDate = DateTime.Now.AddYears(1);
         [ObservableProperty] private string _status = "Active";
 
+        // Footer statistics
+        [ObservableProperty] private int _totalCount;
+        [ObservableProperty] private int _activeCount;
+        [ObservableProperty] private int _expiredCount;
+        [ObservableProperty] private int _voidedCount;
+
+        // Drawer control
+        [ObservableProperty] private bool _isDetailPanelOpen;
+
         public WarrantyCoverageViewModel(Func<AppDbContext> contextFactory)
         {
             _contextFactory = contextFactory;
             LoadData();
         }
 
+        partial void OnSearchTextChanged(string value) => LoadData();
+
         [RelayCommand]
         public void LoadData()
         {
             using var db = _contextFactory();
+            
+            // Tính toán stats cho footer từ dữ liệu gốc không lọc
+            var baseQuery = db.WarrantyCoverages.AsQueryable();
+            var allCoveragesForStats = baseQuery.ToList();
+
+            TotalCount = allCoveragesForStats.Count;
+            ActiveCount = allCoveragesForStats.Count(c => c.CoverageStatus == "Active");
+            ExpiredCount = allCoveragesForStats.Count(c => c.CoverageStatus == "Expired");
+            VoidedCount = allCoveragesForStats.Count(c => c.CoverageStatus == "Voided");
+
+            // Áp dụng bộ lọc
             var query = db.WarrantyCoverages
                 .Include(c => c.ProductSerial!)
                 .ThenInclude(p => p.Product!)
@@ -42,33 +64,51 @@ namespace QuanLyHangHoa.ViewModels
 
             if (!string.IsNullOrWhiteSpace(SearchText))
             {
+                var term = SearchText.ToLower();
                 query = query.Where(c => 
-                    (c.ProductSerial != null && c.ProductSerial.SerialNumber.Contains(SearchText)) ||
-                    (c.Customer != null && c.Customer.DisplayName.Contains(SearchText)) ||
-                    (c.ProductSerial != null && c.ProductSerial.Product != null && c.ProductSerial.Product.DisplayName.Contains(SearchText))
+                    (c.ProductSerial != null && c.ProductSerial.SerialNumber.ToLower().Contains(term)) ||
+                    (c.Customer != null && c.Customer.DisplayName.ToLower().Contains(term)) ||
+                    (c.ProductSerial != null && c.ProductSerial.Product != null && c.ProductSerial.Product.DisplayName.ToLower().Contains(term))
                 );
             }
 
-            Coverages = new ObservableCollection<WarrantyCoverage>(query.ToList());
+            Coverages = new ObservableCollection<WarrantyCoverage>(query.OrderBy(c => c.ProductSerial.SerialNumber).ToList());
+        }
+
+        [RelayCommand]
+        private void EditCoverage(WarrantyCoverage coverage)
+        {
+            SelectedCoverage = coverage;
+            SerialNumber = coverage.ProductSerial?.SerialNumber ?? string.Empty;
+            StartDate = coverage.WarrantyStartDate;
+            EndDate = coverage.WarrantyEndDate;
+            Status = coverage.CoverageStatus;
+            IsDetailPanelOpen = true;
+        }
+
+        [RelayCommand]
+        private void CloseDetail()
+        {
+            IsDetailPanelOpen = false;
         }
 
         [RelayCommand]
         private void SaveCoverage()
         {
-            if (SelectedCoverage == null)
-            {
-                // Create new logic could go here if needed, 
-                // but usually coverage is created automatically during sales.
-                // For now, let's just support editing existing coverage.
-                return;
-            }
+            if (SelectedCoverage == null) return;
 
             try
             {
                 using var db = _contextFactory();
+                // Cập nhật giá trị thay đổi từ form vào SelectedCoverage
+                SelectedCoverage.WarrantyStartDate = StartDate;
+                SelectedCoverage.WarrantyEndDate = EndDate;
+                SelectedCoverage.CoverageStatus = Status;
+
                 db.WarrantyCoverages.Update(SelectedCoverage);
                 db.SaveChanges();
                 MessageBox.Show("Cập nhật thông tin bảo hành thành công!", "Thông báo");
+                IsDetailPanelOpen = false;
                 LoadData();
             }
             catch (Exception ex)
@@ -78,22 +118,33 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
-        private void DeleteCoverage()
+        private void DeleteCoverage(WarrantyCoverage coverage)
         {
-            if (SelectedCoverage == null) return;
-            if (MessageBox.Show("Xóa thông tin bảo hành này?", "Xác nhận", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+            if (coverage == null) return;
+            if (MessageBox.Show("Xóa thông tin bảo hành này?", "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
             {
                 try
                 {
                     using var db = _contextFactory();
-                    db.WarrantyCoverages.Remove(SelectedCoverage);
+                    db.WarrantyCoverages.Remove(coverage);
                     db.SaveChanges();
+                    IsDetailPanelOpen = false;
                     LoadData();
                 }
                 catch (Exception ex)
                 {
                     MessageBox.Show(ex.Message, "Lỗi");
                 }
+            }
+        }
+
+        // Hỗ trợ xóa SelectedCoverage khi đang ở trong Drawer
+        [RelayCommand]
+        private void DeleteSelectedCoverage()
+        {
+            if (SelectedCoverage != null)
+            {
+                DeleteCoverage(SelectedCoverage);
             }
         }
 

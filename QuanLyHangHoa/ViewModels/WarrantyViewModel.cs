@@ -53,6 +53,13 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private int _completedCount;
         [ObservableProperty] private int _overdueCount;
 
+        // Detailed stats for footer
+        [ObservableProperty] private int _openCount;
+        [ObservableProperty] private int _manufacturerWaitCount;
+        [ObservableProperty] private int _readyCount;
+        [ObservableProperty] private int _closedCount;
+        [ObservableProperty] private int _rejectedCount;
+
         // Detail panel visibility
         [ObservableProperty] private bool _isDetailPanelOpen;
 
@@ -96,17 +103,44 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void ResetFilter()
         {
-            SearchText = string.Empty;
-            SelectedStatusFilter = "Tất cả";
-            SearchFromDate = null;
-            SearchToDate = null;
+            _searchText = string.Empty;
+            OnPropertyChanged(nameof(SearchText));
+            _selectedStatusFilter = "Tất cả";
+            OnPropertyChanged(nameof(SelectedStatusFilter));
+            _searchFromDate = null;
+            OnPropertyChanged(nameof(SearchFromDate));
+            _searchToDate = null;
+            OnPropertyChanged(nameof(SearchToDate));
             LoadData();
         }
+
+        partial void OnSearchTextChanged(string value) => LoadData();
+        partial void OnSelectedStatusFilterChanged(string value) => LoadData();
+        partial void OnSearchFromDateChanged(DateTime? value) => LoadData();
+        partial void OnSearchToDateChanged(DateTime? value) => LoadData();
 
         [RelayCommand]
         public void LoadData()
         {
             using var db = _contextFactory();
+            
+            // Lấy tất cả các phiếu không lọc trước để tính toán các con số tổng quan cho stat cards và footer
+            var baseQuery = db.WarrantyClaims.AsQueryable();
+            var allClaimsForStats = baseQuery.ToList();
+
+            // Tính toán stats cho cards và footer từ dữ liệu gốc
+            TotalWarrantyCount = allClaimsForStats.Count;
+            RepairingCount = allClaimsForStats.Count(c => c.Status == "Open" || c.Status == "ManufacturerWait");
+            CompletedCount = allClaimsForStats.Count(c => c.Status == "Ready");
+            OverdueCount = allClaimsForStats.Count(c => c.ExpectedReturnDate.HasValue && c.ExpectedReturnDate.Value.Date < DateTime.Today && c.Status != "Closed" && c.Status != "Rejected");
+
+            OpenCount = allClaimsForStats.Count(c => c.Status == "Open");
+            ManufacturerWaitCount = allClaimsForStats.Count(c => c.Status == "ManufacturerWait");
+            ReadyCount = allClaimsForStats.Count(c => c.Status == "Ready");
+            ClosedCount = allClaimsForStats.Count(c => c.Status == "Closed");
+            RejectedCount = allClaimsForStats.Count(c => c.Status == "Rejected");
+
+            // Áp dụng bộ lọc cho danh sách hiển thị
             var query = db.WarrantyClaims
                 .Include(c => c.ProductSerial)
                 .ThenInclude(s => s.Product)
@@ -141,12 +175,6 @@ namespace QuanLyHangHoa.ViewModels
 
             var allClaims = query.OrderByDescending(c => c.ReceivedDate).ToList();
             Warranties = new ObservableCollection<WarrantyClaim>(allClaims);
-
-            // Update summary stats
-            TotalWarrantyCount = allClaims.Count;
-            RepairingCount = allClaims.Count(c => c.Status == "Open" || c.Status == "ManufacturerWait");
-            CompletedCount = allClaims.Count(c => c.Status == "Ready");
-            OverdueCount = allClaims.Count(c => c.ExpectedReturnDate.HasValue && c.ExpectedReturnDate.Value.Date < DateTime.Today && c.Status != "Closed" && c.Status != "Rejected");
         }
 
         [RelayCommand]
