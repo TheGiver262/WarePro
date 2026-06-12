@@ -190,7 +190,9 @@
                     </Grid.RowDefinitions>
 
                     <DataGrid Grid.Row="0" ItemsSource="{Binding Products}" SelectedItem="{Binding SelectedProduct, Mode=TwoWay}"
-                              EnableRowVirtualization="False"
+                              EnableRowVirtualization="True"
+                              VirtualizingPanel.VirtualizationMode="Standard"
+                              VirtualizingPanel.ScrollUnit="Pixel"
                               helpers:DataGridHelper.LoadMoreCommand="{Binding LoadMoreCommand}"
                               AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                               RowHeight="60"
@@ -337,12 +339,12 @@
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                         <Button Style="{StaticResource ProMaxIconButtonStyle}" ToolTip="Sửa" Margin="0,0,4,0"
-                                                Command="{Binding DataContext.OpenEditProductWindowCommand, ElementName=RootView}"
+                                                Command="{Binding DataContext.OpenEditProductWindowCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
                                                 CommandParameter="{Binding}">
                                             <materialDesign:PackIcon Kind="PencilOutline" Width="18" Height="18" Foreground="{StaticResource AppSecondaryBrush}"/>
                                         </Button>
                                         <Button Style="{StaticResource ProMaxIconButtonStyle}" ToolTip="Xóa"
-                                                Command="{Binding DataContext.DeleteProductCommand, ElementName=RootView}"
+                                                Command="{Binding DataContext.DeleteProductCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
                                                 CommandParameter="{Binding}">
                                             <materialDesign:PackIcon Kind="TrashCanOutline" Width="18" Height="18" Foreground="{StaticResource AppErrorBrush}"/>
                                         </Button>

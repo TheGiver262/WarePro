@@ -91,15 +91,64 @@
             <!-- Row 3: Data Table -->
             <materialDesign:Card Grid.Row="3" Style="{StaticResource AppCard}" Padding="0">
                 <DataGrid ItemsSource="{Binding Warranties}" SelectedItem="{Binding SelectedWarranty}"
+                           EnableRowVirtualization="True"
+                           VirtualizingPanel.VirtualizationMode="Recycling"
+                           VirtualizingPanel.ScrollUnit="Pixel"
                            AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                            BorderThickness="0" RowHeight="40">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="MÃ PHIẾU" Binding="{Binding ClaimCode}" Width="Auto" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
-                        <DataGridTextColumn Header="NGÀY NHẬN" Binding="{Binding ReceivedDate, StringFormat=dd/MM/yyyy HH:mm}" Width="Auto" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
-                        <DataGridTextColumn Header="SERIAL / IMEI" Binding="{Binding ProductSerial.SerialNumber}" Width="150" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                        <DataGridTextColumn Header="SẢN PHẨM" Binding="{Binding ProductSerial.Product.Name}" Width="*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                        <DataGridTextColumn Header="KHÁCH HÀNG" Binding="{Binding WarrantyCoverage.Customer.FullName}" Width="150" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                        <DataGridTextColumn Header="TRẠNG THÁI" Binding="{Binding Status}" Width="Auto">
+                        <DataGridTextColumn Binding="{Binding ClaimCode}" Width="Auto" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}">
+                            <DataGridTextColumn.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                    <TextBlock Text="MÃ PHIẾU" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Binding="{Binding ReceivedDate, StringFormat=dd/MM/yyyy HH:mm}" Width="Auto" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}">
+                            <DataGridTextColumn.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                    <TextBlock Text="NGÀY NHẬN" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Binding="{Binding ProductSerial.SerialNumber}" Width="150" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}">
+                            <DataGridTextColumn.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                    <TextBlock Text="SERIAL / IMEI" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Binding="{Binding ProductSerial.Product.Name}" Width="*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}">
+                            <DataGridTextColumn.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                    <TextBlock Text="SẢN PHẨM" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Binding="{Binding WarrantyCoverage.Customer.FullName}" Width="150" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}">
+                            <DataGridTextColumn.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                    <TextBlock Text="KHÁCH HÀNG" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+
+                        <DataGridTextColumn Binding="{Binding Status}" Width="Auto">
+                            <DataGridTextColumn.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                    <TextBlock Text="TRẠNG THÁI" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DataGridTextColumn.Header>
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock" BasedOn="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}">
                                     <Setter Property="FontWeight" Value="SemiBold"/>

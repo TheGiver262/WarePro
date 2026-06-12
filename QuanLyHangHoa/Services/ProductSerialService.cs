@@ -26,6 +26,8 @@ namespace QuanLyHangHoa.Services
                 .Include(s => s.CurrentWarehouse)
                 .Include(s => s.LastStockInLine)
                     .ThenInclude(l => l.StockIn)
+                .Include(s => s.LastStockOutLine)
+                    .ThenInclude(l => l.StockOut)
                 .AsQueryable();
 
             query = ApplySerialFilters(query, serial, product, brand, status, fromDate, toDate, note);
@@ -46,6 +48,8 @@ namespace QuanLyHangHoa.Services
                 .Include(s => s.CurrentWarehouse)
                 .Include(s => s.LastStockInLine)
                     .ThenInclude(l => l.StockIn)
+                .Include(s => s.LastStockOutLine)
+                    .ThenInclude(l => l.StockOut)
                 .AsQueryable();
 
             query = ApplySerialFilters(query, serial, product, brand, status, fromDate, toDate, note);

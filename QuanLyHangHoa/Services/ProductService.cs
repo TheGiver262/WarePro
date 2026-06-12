@@ -94,14 +94,14 @@ namespace QuanLyHangHoa.Services
         {
             if (!string.IsNullOrWhiteSpace(searchCode))
             {
-                var term = searchCode.ToLower().Trim();
-                query = query.Where(p => p.ProductCode.ToLower().Contains(term));
+                var term = searchCode.Trim();
+                query = query.Where(p => p.ProductCode.Contains(term));
             }
 
             if (!string.IsNullOrWhiteSpace(searchName))
             {
-                var term = searchName.ToLower().Trim();
-                query = query.Where(p => p.DisplayName.ToLower().Contains(term));
+                var term = searchName.Trim();
+                query = query.Where(p => p.DisplayName.Contains(term));
             }
 
             if (searchStatus != "Tất cả" && !string.IsNullOrEmpty(searchStatus))
@@ -329,14 +329,14 @@ namespace QuanLyHangHoa.Services
         {
             if (!string.IsNullOrWhiteSpace(searchCode))
             {
-                var term = searchCode.ToLower().Trim();
-                query = query.Where(p => p.ProductCode.ToLower().Contains(term));
+                var term = searchCode.Trim();
+                query = query.Where(p => p.ProductCode.Contains(term));
             }
 
             if (!string.IsNullOrWhiteSpace(searchName))
             {
-                var term = searchName.ToLower().Trim();
-                query = query.Where(p => p.DisplayName.ToLower().Contains(term));
+                var term = searchName.Trim();
+                query = query.Where(p => p.DisplayName.Contains(term));
             }
 
             if (categoryId.HasValue && categoryId.Value > 0)

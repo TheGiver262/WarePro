@@ -15,8 +15,14 @@
                 "shadcn@latest",
                 "mcp"
             ]
+        },
+        "headroom": {
+            "command": "C:\\Users\\player\\AppData\\Local\\Python\\pythoncore-3.14-64\\Scripts\\headroom.exe",
+            "args": [
+                "mcp",
+                "serve"
+            ]
         }
-        //other mcp servers
     }
 }
 

@@ -21,7 +21,7 @@ namespace QuanLyHangHoa.Services
         public List<WarrantyCoverage> GetAllCoverages()
         {
             using var db = _contextFactory();
-            return db.WarrantyCoverages
+            return db.WarrantyCoverages.AsNoTracking()
                 .Include(c => c.ProductSerial)
                     .ThenInclude(s => s!.Product)
                 .ToList();
@@ -39,7 +39,7 @@ namespace QuanLyHangHoa.Services
         public List<WarrantyClaim> GetAllClaims()
         {
             using var db = _contextFactory();
-            return db.WarrantyClaims
+            return db.WarrantyClaims.AsNoTracking()
                 .Include(c => c.ProductSerial)
                     .ThenInclude(s => s!.Product)
                 .Include(c => c.WarrantyCoverage)

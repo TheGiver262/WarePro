@@ -299,14 +299,14 @@ namespace QuanLyHangHoa.Services
         {
             if (!string.IsNullOrWhiteSpace(code))
             {
-                var term = code.Trim().ToLower();
-                query = query.Where(i => i.InvoiceCode != null && i.InvoiceCode.ToLower().Contains(term));
+                var term = code.Trim();
+                query = query.Where(i => i.InvoiceCode != null && i.InvoiceCode.Contains(term));
             }
 
             if (!string.IsNullOrWhiteSpace(customerName))
             {
-                var term = customerName.Trim().ToLower();
-                query = query.Where(i => i.Customer != null && i.Customer.DisplayName != null && i.Customer.DisplayName.ToLower().Contains(term));
+                var term = customerName.Trim();
+                query = query.Where(i => i.Customer != null && i.Customer.DisplayName != null && i.Customer.DisplayName.Contains(term));
             }
 
             if (startDate.HasValue)
@@ -406,14 +406,14 @@ namespace QuanLyHangHoa.Services
         {
             if (!string.IsNullOrWhiteSpace(code))
             {
-                var term = code.Trim().ToLower();
-                query = query.Where(i => i.InvoiceCode != null && i.InvoiceCode.ToLower().Contains(term));
+                var term = code.Trim();
+                query = query.Where(i => i.InvoiceCode != null && i.InvoiceCode.Contains(term));
             }
 
             if (!string.IsNullOrWhiteSpace(supplierName))
             {
-                var term = supplierName.Trim().ToLower();
-                query = query.Where(i => i.Supplier != null && i.Supplier.DisplayName != null && i.Supplier.DisplayName.ToLower().Contains(term));
+                var term = supplierName.Trim();
+                query = query.Where(i => i.Supplier != null && i.Supplier.DisplayName != null && i.Supplier.DisplayName.Contains(term));
             }
 
             if (startDate.HasValue)

@@ -65,6 +65,10 @@ namespace QuanLyHangHoa.Tests.Services
                 service.Post(stockIn.Id, 1);
 
                 // Verify stock balance increased by 24 (not 2)
+                if (balanceBefore != null)
+                {
+                    db.Entry(balanceBefore).Reload();
+                }
                 var balanceAfter = db.StockBalances.FirstOrDefault(b => b.ProductId == product.Id && b.WarehouseId == 1);
                 Assert.NotNull(balanceAfter);
                 Assert.Equal(qtyBefore + 24m, balanceAfter.OnHandQuantity);

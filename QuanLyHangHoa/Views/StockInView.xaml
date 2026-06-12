@@ -156,27 +156,75 @@
                     </Grid.RowDefinitions>
                     
                     <DataGrid Grid.Row="0" ItemsSource="{Binding StockInList}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserReorderColumns="False" IsReadOnly="True" RowHeight="56"
-                              EnableRowVirtualization="False"
-                              helpers:DataGridHelper.LoadMoreCommand="{Binding LoadMoreCommand}">
+                               EnableRowVirtualization="True"
+                               VirtualizingPanel.VirtualizationMode="Standard"
+                               VirtualizingPanel.ScrollUnit="Pixel"
+                               helpers:DataGridHelper.LoadMoreCommand="{Binding LoadMoreCommand}">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="MÃ PHIẾU" Binding="{Binding DocumentCode}" Width="150" ElementStyle="{DynamicResource AppDataGridTextBold}"/>
-                            <DataGridTextColumn Header="NGÀY NHẬP" Binding="{Binding ImportDate, StringFormat='dd/MM/yyyy'}" Width="120" ElementStyle="{DynamicResource AppDataGridTextCenter}"/>
-                            <DataGridTextColumn Header="NHÀ CUNG CẤP" Binding="{Binding Supplier.DisplayName}" Width="*" ElementStyle="{DynamicResource AppDataGridText}"/>
-                            <DataGridTextColumn Header="KHO" Binding="{Binding Warehouse.DisplayName}" Width="150" ElementStyle="{DynamicResource AppDataGridText}"/>
-                            <DataGridTextColumn Header="NGƯỜI LẬP" Binding="{Binding Creator.FullName}" Width="150" ElementStyle="{DynamicResource AppDataGridText}"/>
+                            <DataGridTextColumn Binding="{Binding DocumentCode}" Width="150" ElementStyle="{DynamicResource AppDataGridTextBold}">
+                                <DataGridTextColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="MÃ PHIẾU" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Binding="{Binding ImportDate, StringFormat='dd/MM/yyyy'}" Width="120" ElementStyle="{DynamicResource AppDataGridTextCenter}">
+                                <DataGridTextColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="NGÀY NHẬN" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Binding="{Binding Supplier.DisplayName}" Width="*" ElementStyle="{DynamicResource AppDataGridText}">
+                                <DataGridTextColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="NHÀ CUNG CẤP" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Binding="{Binding Warehouse.DisplayName}" Width="150" ElementStyle="{DynamicResource AppDataGridText}">
+                                <DataGridTextColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="KHO" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Binding="{Binding Creator.FullName}" Width="150" ElementStyle="{DynamicResource AppDataGridText}">
+                                <DataGridTextColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="NGƯỜI LẬP" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
                             
-                            <DataGridTemplateColumn Header="TRẠNG THÁI" Width="140" CellTemplate="{StaticResource InventoryStatusBadgeTemplate}"/>
+                            <DataGridTemplateColumn Width="140" CellTemplate="{StaticResource InventoryStatusBadgeTemplate}">
+                                <DataGridTemplateColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="TRẠNG THÁI" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataGridTemplateColumn.Header>
+                            </DataGridTemplateColumn>
 
                             <DataGridTemplateColumn Header="THAO TÁC" Width="170">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                             <Button Style="{StaticResource ProMaxIconButtonStyle}" ToolTip="Xem chi tiết"
-                                                    Command="{Binding DataContext.ViewDetailCommand, ElementName=RootStockInView}" CommandParameter="{Binding}">
+                                                    Command="{Binding DataContext.ViewDetailCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" CommandParameter="{Binding}">
                                                 <materialDesign:PackIcon Kind="EyeOutline" Width="20" Height="20" Foreground="{StaticResource AppPrimaryBrush}"/>
                                             </Button>
                                             <Button ToolTip="Chỉnh sửa"
-                                                     Command="{Binding DataContext.EditDetailCommand, ElementName=RootStockInView}" CommandParameter="{Binding}">
+                                                     Command="{Binding DataContext.EditDetailCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" CommandParameter="{Binding}">
                                                  <Button.Style>
                                                      <Style TargetType="Button" BasedOn="{StaticResource ProMaxIconButtonStyle}">
                                                          <Setter Property="Visibility" Value="Collapsed"/>
@@ -184,21 +232,21 @@
                                                              <MultiDataTrigger>
                                                                  <MultiDataTrigger.Conditions>
                                                                      <Condition Binding="{Binding Status}" Value="nháp"/>
-                                                                     <Condition Binding="{Binding DataContext.CanUserEdit, ElementName=RootStockInView}" Value="True"/>
+                                                                     <Condition Binding="{Binding DataContext.CanUserEdit, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" Value="True"/>
                                                                  </MultiDataTrigger.Conditions>
                                                                  <Setter Property="Visibility" Value="Visible"/>
                                                              </MultiDataTrigger>
                                                              <MultiDataTrigger>
                                                                  <MultiDataTrigger.Conditions>
                                                                      <Condition Binding="{Binding Status}" Value="Draft"/>
-                                                                     <Condition Binding="{Binding DataContext.CanUserEdit, ElementName=RootStockInView}" Value="True"/>
+                                                                     <Condition Binding="{Binding DataContext.CanUserEdit, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" Value="True"/>
                                                                  </MultiDataTrigger.Conditions>
                                                                  <Setter Property="Visibility" Value="Visible"/>
                                                              </MultiDataTrigger>
                                                              <MultiDataTrigger>
                                                                  <MultiDataTrigger.Conditions>
                                                                      <Condition Binding="{Binding Status}" Value="draft"/>
-                                                                     <Condition Binding="{Binding DataContext.CanUserEdit, ElementName=RootStockInView}" Value="True"/>
+                                                                     <Condition Binding="{Binding DataContext.CanUserEdit, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" Value="True"/>
                                                                  </MultiDataTrigger.Conditions>
                                                                  <Setter Property="Visibility" Value="Visible"/>
                                                              </MultiDataTrigger>
@@ -208,7 +256,7 @@
                                                  <materialDesign:PackIcon Kind="PencilOutline" Width="20" Height="20" Foreground="{StaticResource AppSecondaryBrush}"/>
                                              </Button>
                                              <Button ToolTip="Duyệt phiếu"
-                                                     Command="{Binding DataContext.ApproveDocumentCommand, ElementName=RootStockInView}" CommandParameter="{Binding}">
+                                                     Command="{Binding DataContext.ApproveDocumentCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" CommandParameter="{Binding}">
                                                  <Button.Style>
                                                      <Style TargetType="Button" BasedOn="{StaticResource ProMaxIconButtonStyle}">
                                                          <Setter Property="Visibility" Value="Collapsed"/>
@@ -216,14 +264,14 @@
                                                              <MultiDataTrigger>
                                                                  <MultiDataTrigger.Conditions>
                                                                      <Condition Binding="{Binding Status}" Value="Draft"/>
-                                                                     <Condition Binding="{Binding DataContext.IsAdminOrManager, ElementName=RootStockInView}" Value="True"/>
+                                                                     <Condition Binding="{Binding DataContext.IsAdminOrManager, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" Value="True"/>
                                                                  </MultiDataTrigger.Conditions>
                                                                  <Setter Property="Visibility" Value="Visible"/>
                                                              </MultiDataTrigger>
                                                              <MultiDataTrigger>
                                                                  <MultiDataTrigger.Conditions>
                                                                      <Condition Binding="{Binding Status}" Value="nháp"/>
-                                                                     <Condition Binding="{Binding DataContext.IsAdminOrManager, ElementName=RootStockInView}" Value="True"/>
+                                                                     <Condition Binding="{Binding DataContext.IsAdminOrManager, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" Value="True"/>
                                                                  </MultiDataTrigger.Conditions>
                                                                  <Setter Property="Visibility" Value="Visible"/>
                                                              </MultiDataTrigger>
@@ -233,7 +281,7 @@
                                                  <materialDesign:PackIcon Kind="CheckDecagramOutline" Width="20" Height="20" Foreground="{StaticResource SuccessTextBrush}"/>
                                              </Button>
                                              <Button ToolTip="In phiếu"
-                                                     Command="{Binding DataContext.PrintCommand, ElementName=RootStockInView}" CommandParameter="{Binding}">
+                                                     Command="{Binding DataContext.PrintCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" CommandParameter="{Binding}">
                                                  <Button.Style>
                                                      <Style TargetType="Button" BasedOn="{StaticResource ProMaxIconButtonStyle}">
                                                          <Setter Property="Visibility" Value="Collapsed"/>
@@ -402,7 +450,10 @@
                     </Grid.RowDefinitions>
 
                     <DataGrid Grid.Row="0" ItemsSource="{Binding Lines}" 
-                               EnableRowVirtualization="False" CanUserReorderColumns="False"
+                               EnableRowVirtualization="True"
+                               VirtualizingPanel.VirtualizationMode="Standard"
+                               VirtualizingPanel.ScrollUnit="Pixel"
+                               CanUserReorderColumns="False"
                                AutoGenerateColumns="False" CanUserAddRows="False" 
                                RowHeight="64" IsReadOnly="True">
                         <DataGrid.Columns>
@@ -412,11 +463,11 @@
                                 </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <ComboBox ItemsSource="{Binding DataContext.AvailableProducts, ElementName=RootStockInView}" 
+                                        <ComboBox ItemsSource="{Binding DataContext.AvailableProducts, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" 
                                                   SelectedItem="{Binding SelectedProduct, UpdateSourceTrigger=PropertyChanged}"
                                                   IsEditable="True" LostFocus="ProductComboBox_LostFocus"
                                                   DisplayMemberPath="DisplayName" Style="{StaticResource AppComboBoxStyle}" Margin="8,4" BorderThickness="0" Height="36"
-                                                  IsEnabled="{Binding DataContext.CanEdit, ElementName=RootStockInView}"/>
+                                                  IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -502,7 +553,7 @@
 
                                                 <!-- Edit button -->
                                                 <Button Grid.Column="1" Style="{StaticResource ProMaxIconButtonStyle}"
-                                                        Command="{Binding DataContext.OpenSerialInputCommand, ElementName=RootStockInView}"
+                                                        Command="{Binding DataContext.OpenSerialInputCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
                                                         CommandParameter="{Binding}"
                                                         VerticalAlignment="Center" Margin="8,0,0,0" Width="32" Height="32" Padding="0">
                                                     <materialDesign:PackIcon Kind="BarcodeScan" Width="18" Height="18">
@@ -535,8 +586,8 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                          <Button Style="{StaticResource ProMaxIconButtonStyle}" Margin="4" HorizontalAlignment="Center"
-                                                 Command="{Binding DataContext.RemoveLineCommand, ElementName=RootStockInView}" CommandParameter="{Binding}"
-                                                 Visibility="{Binding DataContext.CanEdit, ElementName=RootStockInView, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                 Command="{Binding DataContext.RemoveLineCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" CommandParameter="{Binding}"
+                                                 Visibility="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}, Converter={StaticResource BooleanToVisibilityConverter}}">
                                             <materialDesign:PackIcon Kind="TrashCanOutline" Width="20" Height="20" Foreground="{StaticResource AppErrorBrush}"/>
                                         </Button>
                                     </DataTemplate>

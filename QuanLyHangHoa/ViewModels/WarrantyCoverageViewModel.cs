@@ -16,7 +16,12 @@ namespace QuanLyHangHoa.ViewModels
 
         [ObservableProperty] private ObservableCollection<WarrantyCoverage> _coverages = new();
         [ObservableProperty] private WarrantyCoverage? _selectedCoverage;
-        [ObservableProperty] private string _searchText = string.Empty;
+        [ObservableProperty] private string _searchSerial = string.Empty;
+        [ObservableProperty] private string _searchCustomer = string.Empty;
+        [ObservableProperty] private string _searchProduct = string.Empty;
+        [ObservableProperty] private string _selectedStatusFilter = "Tất cả";
+
+        public ObservableCollection<string> StatusFilterOptions { get; } = new() { "Tất cả", "Active", "Expired", "Voided" };
 
         // Form properties for New/Edit
         [ObservableProperty] private string _serialNumber = string.Empty;
@@ -39,7 +44,20 @@ namespace QuanLyHangHoa.ViewModels
             LoadData();
         }
 
-        partial void OnSearchTextChanged(string value) => LoadData();
+        partial void OnSearchSerialChanged(string value) => LoadData();
+        partial void OnSearchCustomerChanged(string value) => LoadData();
+        partial void OnSearchProductChanged(string value) => LoadData();
+        partial void OnSelectedStatusFilterChanged(string value) => LoadData();
+
+        [RelayCommand]
+        public void ResetFilters()
+        {
+            SearchSerial = string.Empty;
+            SearchCustomer = string.Empty;
+            SearchProduct = string.Empty;
+            SelectedStatusFilter = "Tất cả";
+            LoadData();
+        }
 
         [RelayCommand]
         public void LoadData()
@@ -62,14 +80,27 @@ namespace QuanLyHangHoa.ViewModels
                 .Include(c => c.Customer!)
                 .AsQueryable();
 
-            if (!string.IsNullOrWhiteSpace(SearchText))
+            if (!string.IsNullOrWhiteSpace(SearchSerial))
             {
-                var term = SearchText.ToLower();
-                query = query.Where(c => 
-                    (c.ProductSerial != null && c.ProductSerial.SerialNumber.ToLower().Contains(term)) ||
-                    (c.Customer != null && c.Customer.DisplayName.ToLower().Contains(term)) ||
-                    (c.ProductSerial != null && c.ProductSerial.Product != null && c.ProductSerial.Product.DisplayName.ToLower().Contains(term))
-                );
+                var term = SearchSerial.Trim();
+                query = query.Where(c => c.ProductSerial != null && c.ProductSerial.SerialNumber.Contains(term));
+            }
+
+            if (!string.IsNullOrWhiteSpace(SearchCustomer))
+            {
+                var term = SearchCustomer.Trim();
+                query = query.Where(c => c.Customer != null && c.Customer.DisplayName.Contains(term));
+            }
+
+            if (!string.IsNullOrWhiteSpace(SearchProduct))
+            {
+                var term = SearchProduct.Trim();
+                query = query.Where(c => c.ProductSerial != null && c.ProductSerial.Product != null && c.ProductSerial.Product.DisplayName.Contains(term));
+            }
+
+            if (!string.IsNullOrWhiteSpace(SelectedStatusFilter) && SelectedStatusFilter != "Tất cả")
+            {
+                query = query.Where(c => c.CoverageStatus == SelectedStatusFilter);
             }
 
             Coverages = new ObservableCollection<WarrantyCoverage>(query.OrderBy(c => c.ProductSerial.SerialNumber).ToList());

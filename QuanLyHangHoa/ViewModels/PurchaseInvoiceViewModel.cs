@@ -189,7 +189,16 @@ namespace QuanLyHangHoa.ViewModels
                     List<StockIn> stockIns;
                     using (var context = _mainViewModel?.ContextFactory?.Invoke() ?? new AppDbContext())
                     {
-                        stockIns = await Task.Run(() => context.StockIns.ToList());
+                        var tempStockIns = await Task.Run(() => context.StockIns
+                            .AsNoTracking()
+                            .Select(s => new { s.Id, s.DocumentCode })
+                            .ToList());
+                        
+                        stockIns = tempStockIns.Select(t => new StockIn 
+                        { 
+                            Id = t.Id, 
+                            DocumentCode = t.DocumentCode 
+                        }).ToList();
                     }
 
                     Application.Current.Dispatcher.Invoke(() =>
@@ -213,28 +222,33 @@ namespace QuanLyHangHoa.ViewModels
                 }
                 _skip += data.Count;
 
-                // Thống kê đếm bất đồng bộ từ database
+                // Thống kê đếm bất đồng bộ từ database (gộp thành 1 truy vấn duy nhất)
                 await Task.Run(() =>
                 {
-                    var count = _invoiceService.GetPurchaseInvoicesCount(SearchInvoiceCode, SearchSupplierName, FilterStartDate, FilterEndDate, paymentStatus, FilterMinTotal, FilterMaxTotal);
                     using var db = _mainViewModel?.ContextFactory?.Invoke() ?? new AppDbContext();
                     var query = db.PurchaseInvoices.AsNoTracking().AsQueryable();
                     query = ApplyPurchaseInvoiceFiltersStatic(query, SearchInvoiceCode, SearchSupplierName, FilterStartDate, FilterEndDate, paymentStatus, FilterMinTotal, FilterMaxTotal);
                     
-                    var totalAmount = query.Sum(i => i.GrandTotal);
-                    var paid = query.Count(i => i.PaymentStatus == "Paid");
-                    var partial = query.Count(i => i.PaymentStatus == "Partial");
-                    var unpaid = query.Count(i => i.PaymentStatus == "Unpaid");
-                    var overdue = query.Count(i => i.PaymentStatus == "Overdue");
+                    var stats = query.GroupBy(i => 1)
+                        .Select(g => new
+                        {
+                            TotalCount = g.Count(),
+                            TotalAmount = g.Sum(i => i.GrandTotal),
+                            Paid = g.Count(i => i.PaymentStatus == "Paid"),
+                            Partial = g.Count(i => i.PaymentStatus == "Partial"),
+                            Unpaid = g.Count(i => i.PaymentStatus == "Unpaid"),
+                            Overdue = g.Count(i => i.PaymentStatus == "Overdue")
+                        })
+                        .FirstOrDefault() ?? new { TotalCount = 0, TotalAmount = 0m, Paid = 0, Partial = 0, Unpaid = 0, Overdue = 0 };
 
                     Application.Current.Dispatcher.Invoke(() =>
                     {
-                        TotalPurchaseCount = count;
-                        TotalPurchaseAmount = totalAmount;
-                        PaidCount = paid;
-                        PartialCount = partial;
-                        UnpaidCount = unpaid;
-                        OverdueCount = overdue;
+                        TotalPurchaseCount = stats.TotalCount;
+                        TotalPurchaseAmount = stats.TotalAmount;
+                        PaidCount = stats.Paid;
+                        PartialCount = stats.Partial;
+                        UnpaidCount = stats.Unpaid;
+                        OverdueCount = stats.Overdue;
                     });
                 });
             }

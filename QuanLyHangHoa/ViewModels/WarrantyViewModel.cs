@@ -24,11 +24,14 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _serialNumber = string.Empty;
         [ObservableProperty] private string _problemDescription = string.Empty;
         [ObservableProperty] private string _statusMessage = string.Empty;
+        [ObservableProperty] private ObservableCollection<string> _availableSerials = new();
 
         // List & Filter fields
         [ObservableProperty] private ObservableCollection<WarrantyClaim> _warranties = new();
         [ObservableProperty] private WarrantyClaim? _selectedWarranty;
-        [ObservableProperty] private string _searchText = string.Empty;
+        [ObservableProperty] private string _searchSerial = string.Empty;
+        [ObservableProperty] private string _searchCustomer = string.Empty;
+        [ObservableProperty] private string _searchClaimCode = string.Empty;
         [ObservableProperty] private string _selectedStatusFilter = "Tất cả";
         [ObservableProperty] private DateTime? _searchFromDate;
         [ObservableProperty] private DateTime? _searchToDate;
@@ -103,18 +106,17 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void ResetFilter()
         {
-            _searchText = string.Empty;
-            OnPropertyChanged(nameof(SearchText));
-            _selectedStatusFilter = "Tất cả";
-            OnPropertyChanged(nameof(SelectedStatusFilter));
-            _searchFromDate = null;
-            OnPropertyChanged(nameof(SearchFromDate));
-            _searchToDate = null;
-            OnPropertyChanged(nameof(SearchToDate));
-            LoadData();
+            SearchSerial = string.Empty;
+            SearchCustomer = string.Empty;
+            SearchClaimCode = string.Empty;
+            SelectedStatusFilter = "Tất cả";
+            SearchFromDate = null;
+            SearchToDate = null;
         }
 
-        partial void OnSearchTextChanged(string value) => LoadData();
+        partial void OnSearchSerialChanged(string value) => LoadData();
+        partial void OnSearchCustomerChanged(string value) => LoadData();
+        partial void OnSearchClaimCodeChanged(string value) => LoadData();
         partial void OnSelectedStatusFilterChanged(string value) => LoadData();
         partial void OnSearchFromDateChanged(DateTime? value) => LoadData();
         partial void OnSearchToDateChanged(DateTime? value) => LoadData();
@@ -148,14 +150,22 @@ namespace QuanLyHangHoa.ViewModels
                 .ThenInclude(wc => wc.Customer)
                 .AsQueryable();
 
-            if (!string.IsNullOrWhiteSpace(SearchText))
+            if (!string.IsNullOrWhiteSpace(SearchClaimCode))
             {
-                var term = SearchText.ToLower();
-                query = query.Where(c =>
-                    (c.ClaimCode != null && c.ClaimCode.ToLower().Contains(term)) ||
-                    (c.ProductSerial != null && c.ProductSerial.SerialNumber != null && c.ProductSerial.SerialNumber.ToLower().Contains(term)) ||
-                    (c.ProductSerial != null && c.ProductSerial.Product != null && c.ProductSerial.Product.DisplayName != null && c.ProductSerial.Product.DisplayName.ToLower().Contains(term))
-                );
+                var term = SearchClaimCode.ToLower();
+                query = query.Where(c => c.ClaimCode != null && c.ClaimCode.ToLower().Contains(term));
+            }
+
+            if (!string.IsNullOrWhiteSpace(SearchSerial))
+            {
+                var term = SearchSerial.ToLower();
+                query = query.Where(c => c.ProductSerial != null && c.ProductSerial.SerialNumber != null && c.ProductSerial.SerialNumber.ToLower().Contains(term));
+            }
+
+            if (!string.IsNullOrWhiteSpace(SearchCustomer))
+            {
+                var term = SearchCustomer.ToLower();
+                query = query.Where(c => c.WarrantyCoverage != null && c.WarrantyCoverage.Customer != null && c.WarrantyCoverage.Customer.DisplayName != null && c.WarrantyCoverage.Customer.DisplayName.ToLower().Contains(term));
             }
 
             if (SelectedStatusFilter != "Tất cả")
@@ -182,11 +192,29 @@ namespace QuanLyHangHoa.ViewModels
         {
             SelectedWarranty = null;
             ResetForm();
-            IsDetailPanelOpen = true;
+
+            // Load available serials from Database
+            try
+            {
+                using var db = _contextFactory();
+                var serials = db.ProductSerials
+                    .Select(s => s.SerialNumber)
+                    .Distinct()
+                    .OrderBy(s => s)
+                    .ToList();
+                AvailableSerials = new ObservableCollection<string>(serials);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Lỗi tải danh sách Serial: {ex.Message}");
+            }
+
+            var createClaimWindow = new Views.CreateWarrantyWindow(this);
+            createClaimWindow.ShowDialog();
         }
 
         [RelayCommand]
-        private void CreateWarrantyClaim()
+        private void CreateWarrantyClaim(object? parameter)
         {
             if (!Validate()) return;
 
@@ -202,6 +230,11 @@ namespace QuanLyHangHoa.ViewModels
                 _showMessage(StatusMessage, "Thông báo");
                 ResetForm();
                 LoadData();
+
+                if (parameter is Window window)
+                {
+                    window.Close();
+                }
             }
             catch (InvalidOperationException ex)
             {

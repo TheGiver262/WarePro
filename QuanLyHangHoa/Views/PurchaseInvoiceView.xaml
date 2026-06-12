@@ -176,7 +176,9 @@
                             <DataGrid Grid.Row="0"
                                       ItemsSource="{Binding Invoices}"
                                       SelectedItem="{Binding SelectedInvoice}"
-                                      EnableRowVirtualization="False"
+                                      EnableRowVirtualization="True"
+                                      VirtualizingPanel.VirtualizationMode="Recycling"
+                                      VirtualizingPanel.ScrollUnit="Pixel"
                                       helpers:DataGridHelper.LoadMoreCommand="{Binding LoadMoreCommand}"
                                       AutoGenerateColumns="False"
                                       IsReadOnly="True"
@@ -185,27 +187,83 @@
                                       CanUserAddRows="False"
                                       CanUserReorderColumns="False">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="SỐ HĐ" Binding="{Binding InvoiceCode}" Width="Auto" ElementStyle="{DynamicResource AppDataGridTextBold}"/>
-                                    <DataGridTextColumn Header="NGÀY NHẬP" Binding="{Binding InvoiceDate, StringFormat='dd/MM/yyyy'}" Width="Auto" ElementStyle="{DynamicResource AppDataGridTextCenter}"/>
-                                    <DataGridTextColumn Header="NHÀ CUNG CẤP" Binding="{Binding Supplier.DisplayName}" Width="*"/>
-                                    <DataGridTextColumn Header="TRƯỚC THUẾ" Binding="{Binding SubTotal, StringFormat='N0'}" Width="Auto" ElementStyle="{DynamicResource AppDataGridTextRight}"/>
-                                    <DataGridTextColumn Header="THUẾ" Binding="{Binding TaxAmount, StringFormat='N0'}" Width="Auto" ElementStyle="{DynamicResource AppDataGridTextRight}"/>
-                                    <DataGridTextColumn Header="TỔNG TIỀN" Binding="{Binding GrandTotal, StringFormat='N0'}" Width="Auto" ElementStyle="{DynamicResource AppDataGridTextRightBold}"/>
-                                    <DataGridTemplateColumn Header="TRẠNG THÁI TT" Width="Auto" CellTemplate="{StaticResource PaymentStatusBadgeTemplate}"/>
+                                    <DataGridTextColumn Binding="{Binding InvoiceCode}" Width="Auto" ElementStyle="{DynamicResource AppDataGridTextBold}">
+                                        <DataGridTextColumn.Header>
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                                <TextBlock Text="SỐ HĐ" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </DataGridTextColumn.Header>
+                                    </DataGridTextColumn>
+
+                                    <DataGridTextColumn Binding="{Binding InvoiceDate, StringFormat='dd/MM/yyyy'}" Width="Auto" ElementStyle="{DynamicResource AppDataGridTextCenter}">
+                                        <DataGridTextColumn.Header>
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                                <TextBlock Text="NGÀY NHẬP" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </DataGridTextColumn.Header>
+                                    </DataGridTextColumn>
+
+                                    <DataGridTextColumn Binding="{Binding Supplier.DisplayName}" Width="*">
+                                        <DataGridTextColumn.Header>
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                                <TextBlock Text="NHÀ CUNG CẤP" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </DataGridTextColumn.Header>
+                                    </DataGridTextColumn>
+
+                                    <DataGridTextColumn Binding="{Binding SubTotal, StringFormat='N0'}" Width="Auto" ElementStyle="{DynamicResource AppDataGridTextRight}">
+                                        <DataGridTextColumn.Header>
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                                <TextBlock Text="TRƯỚC THUẾ" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </DataGridTextColumn.Header>
+                                    </DataGridTextColumn>
+
+                                    <DataGridTextColumn Binding="{Binding TaxAmount, StringFormat='N0'}" Width="Auto" ElementStyle="{DynamicResource AppDataGridTextRight}">
+                                        <DataGridTextColumn.Header>
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                                <TextBlock Text="THUẾ" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </DataGridTextColumn.Header>
+                                    </DataGridTextColumn>
+
+                                    <DataGridTextColumn Binding="{Binding GrandTotal, StringFormat='N0'}" Width="Auto" ElementStyle="{DynamicResource AppDataGridTextRightBold}">
+                                        <DataGridTextColumn.Header>
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                                <TextBlock Text="TỔNG TIỀN" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </DataGridTextColumn.Header>
+                                    </DataGridTextColumn>
+
+                                    <DataGridTemplateColumn Width="Auto" CellTemplate="{StaticResource PaymentStatusBadgeTemplate}">
+                                        <DataGridTemplateColumn.Header>
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                                <TextBlock Text="TRẠNG THÁI TT" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </DataGridTemplateColumn.Header>
+                                    </DataGridTemplateColumn>
+
                                     <DataGridTemplateColumn Header="THAO TÁC" Width="130">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
                                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                                     <Button Style="{StaticResource ProMaxIconButtonStyle}" Content="{materialDesign:PackIcon Kind=EyeOutline}" 
-                                                            Command="{Binding DataContext.ViewInvoiceCommand, ElementName=RootPurchaseInvoiceView}"
+                                                            Command="{Binding DataContext.ViewInvoiceCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
                                                             CommandParameter="{Binding}"
                                                             ToolTip="Xem chi tiết"/>
                                                     <Button Style="{StaticResource ProMaxIconButtonStyle}" Content="{materialDesign:PackIcon Kind=PencilOutline}" 
-                                                            Command="{Binding DataContext.EditInvoiceCommand, ElementName=RootPurchaseInvoiceView}"
+                                                            Command="{Binding DataContext.EditInvoiceCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
                                                             CommandParameter="{Binding}"
                                                             Margin="4,0,0,0" ToolTip="Chỉnh sửa"/>
                                                     <Button Style="{StaticResource ProMaxIconButtonStyle}" Content="{materialDesign:PackIcon Kind=PrinterOutline}" 
-                                                            Command="{Binding DataContext.PrintInvoiceCommand, ElementName=RootPurchaseInvoiceView}"
+                                                            Command="{Binding DataContext.PrintInvoiceCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
                                                             CommandParameter="{Binding}"
                                                             Margin="4,0,0,0" ToolTip="In hóa đơn"/>
                                                 </StackPanel>
@@ -335,7 +393,7 @@
                                     <StackPanel Grid.Row="0" Grid.Column="2" Margin="16,0,0,16">
                                         <TextBlock Text="PHIẾU NHẬP KHO" Style="{StaticResource DetailFormLabel}"/>
                                         <ComboBox ItemsSource="{Binding AvailableStockIns}" SelectedItem="{Binding SelectedStockIn}"
-                                                  DisplayMemberPath="StockInCode" Style="{StaticResource DetailFormComboBoxStyle}"
+                                                  DisplayMemberPath="DocumentCode" Style="{StaticResource DetailFormComboBoxStyle}"
                                                   IsEnabled="{Binding IsViewMode, Converter={StaticResource InverseBooleanConverter}}"/>
                                     </StackPanel>
 
@@ -474,9 +532,9 @@
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
                                                     <Button Style="{StaticResource ProMaxIconButtonStyle}"
-                                                            Command="{Binding DataContext.RemoveLineCommand, ElementName=RootPurchaseInvoiceView}"
+                                                            Command="{Binding DataContext.RemoveLineCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
                                                             CommandParameter="{Binding}" VerticalAlignment="Center"
-                                                            Visibility="{Binding DataContext.IsViewMode, ElementName=RootPurchaseInvoiceView, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                                                            Visibility="{Binding DataContext.IsViewMode, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                                                         <materialDesign:PackIcon Kind="TrashCanOutline" Width="18" Height="18" Foreground="{StaticResource AppErrorBrush}"/>
                                                     </Button>
                                                 </DataTemplate>

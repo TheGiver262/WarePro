@@ -125,7 +125,9 @@
                     </Grid.RowDefinitions>
                     
                     <DataGrid Grid.Row="0" ItemsSource="{Binding Suppliers}" SelectedItem="{Binding SelectedSupplier, Mode=TwoWay}"
-                               AlternationCount="10000" EnableRowVirtualization="False"
+                               AlternationCount="10000" EnableRowVirtualization="True"
+                               VirtualizingPanel.VirtualizationMode="Recycling"
+                               VirtualizingPanel.ScrollUnit="Pixel"
                                AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                                RowHeight="52">
                         <DataGrid.Columns>

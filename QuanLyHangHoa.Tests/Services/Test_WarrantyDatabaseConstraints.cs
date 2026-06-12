@@ -20,6 +20,24 @@ namespace QuanLyHangHoa.Tests.Services
 
             using (var db = new AppDbContext(options))
             {
+                // Dọn dẹp dữ liệu cũ từ các lần chạy trước để tránh trùng lặp khoá chính
+                var oldClaims = db.WarrantyClaims.Where(c => c.ClaimCode.StartsWith("WC-TEST-")).ToList();
+                if (oldClaims.Any()) db.WarrantyClaims.RemoveRange(oldClaims);
+
+                var oldCoverages = db.WarrantyCoverages.Where(c => c.ProductSerial.SerialNumber.StartsWith("SN-TEST-W-")).ToList();
+                if (oldCoverages.Any()) db.WarrantyCoverages.RemoveRange(oldCoverages);
+
+                var oldSerials = db.ProductSerials.Where(s => s.SerialNumber.StartsWith("SN-TEST-W-")).ToList();
+                if (oldSerials.Any()) db.ProductSerials.RemoveRange(oldSerials);
+                try
+                {
+                    db.SaveChanges();
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    // Bỏ qua nếu test chạy song song khác đã xóa trước
+                }
+
                 // 1. Tìm hoặc tạo khách hàng mẫu
                 var customer = db.Customers.FirstOrDefault(c => c.CustomerCode != "CUS-ADJ");
                 if (customer == null)
@@ -59,7 +77,36 @@ namespace QuanLyHangHoa.Tests.Services
                 // 3. Tạo 10 ProductSerial mới để gán quyền bảo hành
                 var random = new Random();
                 var serialList = new List<ProductSerial>();
+                var firstStockInLineId = db.StockInLines.Select(s => s.Id).FirstOrDefault();
+                if (firstStockInLineId == 0)
+                {
+                    var stockIn = new StockIn
+                    {
+                        DocumentCode = $"SI-TEMP-{Guid.NewGuid().ToString().Substring(0, 6).ToUpper()}",
+                        ImportDate = DateTime.Now,
+                        Status = "Posted",
+                        CreatedBy = 1,
+                        WarehouseId = db.Warehouses.Select(w => w.Id).First(),
+                        PurposeCode = "IM-PURCHASE"
+                    };
+                    db.StockIns.Add(stockIn);
+                    db.SaveChanges();
+
+                    var line = new StockInLine
+                    {
+                        StockInId = stockIn.Id,
+                        ProductId = product.Id,
+                        Quantity = 10,
+                        BaseQuantity = 10,
+                        UnitPrice = 100000m,
+                        UnitId = product.DefaultUnitId
+                    };
+                    db.StockInLines.Add(line);
+                    db.SaveChanges();
+                    firstStockInLineId = line.Id;
+                }
                 
+                var firstWarehouseId = db.Warehouses.Select(w => w.Id).First();
                 for (int i = 1; i <= 10; i++)
                 {
                     string uniqueSerial = $"SN-TEST-W-{Guid.NewGuid().ToString().Substring(0, 8).ToUpper()}";
@@ -68,7 +115,8 @@ namespace QuanLyHangHoa.Tests.Services
                         ProductId = product.Id,
                         SerialNumber = uniqueSerial,
                         CurrentStatus = SerialStatus.Sold.ToString(),
-                        CreatedAt = DateTime.Now
+                        LastStockInLineId = firstStockInLineId,
+                        CurrentWarehouseId = firstWarehouseId
                     };
                     db.ProductSerials.Add(serial);
                     serialList.Add(serial);

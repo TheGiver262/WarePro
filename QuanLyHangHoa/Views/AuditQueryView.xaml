@@ -85,6 +85,9 @@
                         </Grid.RowDefinitions>
 
                         <DataGrid Grid.Row="0" ItemsSource="{Binding Entries}" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                                  EnableRowVirtualization="True"
+                                  VirtualizingPanel.VirtualizationMode="Recycling"
+                                  VirtualizingPanel.ScrollUnit="Pixel"
                                   RowHeight="54" BorderThickness="0" Background="Transparent"
                                   HeadersVisibility="Column" GridLinesVisibility="Horizontal"
                                   HorizontalGridLinesBrush="{StaticResource AppBorderBrush}">

@@ -88,14 +88,14 @@ namespace QuanLyHangHoa.Services
         {
             if (!string.IsNullOrWhiteSpace(code))
             {
-                var term = code.Trim().ToLower();
-                query = query.Where(s => s.DocumentCode.ToLower().Contains(term));
+                var term = code.Trim();
+                query = query.Where(s => s.DocumentCode.Contains(term));
             }
 
             if (!string.IsNullOrWhiteSpace(supplierName))
             {
-                var term = supplierName.Trim().ToLower();
-                query = query.Where(s => s.Supplier != null && s.Supplier.DisplayName.ToLower().Contains(term));
+                var term = supplierName.Trim();
+                query = query.Where(s => s.Supplier != null && s.Supplier.DisplayName.Contains(term));
             }
 
             if (startDate.HasValue)

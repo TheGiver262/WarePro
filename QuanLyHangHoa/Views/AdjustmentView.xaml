@@ -78,14 +78,30 @@
             <!-- Row 2: Data Table Section -->
             <materialDesign:Card Grid.Row="2" Style="{StaticResource AppCard}" Padding="0">
                 <DataGrid ItemsSource="{Binding Adjustments}" AutoGenerateColumns="False" CanUserAddRows="False" 
+                          EnableRowVirtualization="True"
+                          VirtualizingPanel.VirtualizationMode="Recycling"
+                          VirtualizingPanel.ScrollUnit="Pixel" 
                           IsReadOnly="True" BorderThickness="0" RowHeight="54" Background="Transparent"
                           HeadersVisibility="Column" GridLinesVisibility="Horizontal"
                           HorizontalGridLinesBrush="{StaticResource AppBorderBrush}">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="THỜI GIAN" Binding="{Binding AdjustmentDate, StringFormat=dd/MM/yyyy HH:mm}" Width="Auto" 
-                                           ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+                        <DataGridTextColumn Binding="{Binding AdjustmentDate, StringFormat=dd/MM/yyyy HH:mm}" Width="Auto" 
+                                           ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}">
+                            <DataGridTextColumn.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                    <TextBlock Text="THỜI GIAN" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DataGridTextColumn.Header>
+                        </DataGridTextColumn>
                         
-                        <DataGridTemplateColumn Header="SẢN PHẨM" Width="2*">
+                        <DataGridTemplateColumn Width="2*">
+                            <DataGridTemplateColumn.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                    <TextBlock Text="SẢN PHẨM" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DataGridTemplateColumn.Header>
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel VerticalAlignment="Center" Margin="12,0">
@@ -96,11 +112,24 @@
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
 
-                        <DataGridTextColumn Header="SL CŨ" Binding="{Binding OldQuantity}" Width="*" 
-                                           ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
+                        <DataGridTextColumn Binding="{Binding OldQuantity}" Width="*" 
+                                           ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}">
+                            <DataGridTextColumn.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                    <TextBlock Text="SL CŨ" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DataGridTextColumn.Header>
+                        </DataGridTextColumn>
                         
-                        <DataGridTextColumn Header="SL MỚI" Binding="{Binding NewQuantity}" Width="*" 
+                        <DataGridTextColumn Binding="{Binding NewQuantity}" Width="*" 
                                            ElementStyle="{DynamicResource AppDataGridTextCenterBold}">
+                            <DataGridTextColumn.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                    <TextBlock Text="SL MỚI" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DataGridTextColumn.Header>
                             <DataGridTextColumn.CellStyle>
                                 <Style TargetType="DataGridCell" BasedOn="{StaticResource MaterialDesignDataGridCell}">
                                     <Setter Property="FontWeight" Value="Bold"/>
@@ -109,7 +138,13 @@
                             </DataGridTextColumn.CellStyle>
                         </DataGridTextColumn>
 
-                        <DataGridTextColumn Header="LÝ DO ĐIỀU CHỈNH" Binding="{Binding Reason}" Width="2*">
+                        <DataGridTextColumn Binding="{Binding Reason}" Width="2*">
+                            <DataGridTextColumn.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                    <TextBlock Text="LÝ DO ĐIỀU CHỈNH" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DataGridTextColumn.Header>
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock" BasedOn="{StaticResource MaterialDesignDataGridTextColumnElementStyle}">
                                     <Setter Property="FontStyle" Value="Italic"/>

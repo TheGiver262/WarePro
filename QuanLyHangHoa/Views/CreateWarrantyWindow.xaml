@@ -1,0 +1,83 @@
+<Window x:Class="QuanLyHangHoa.Views.CreateWarrantyWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:vm="clr-namespace:QuanLyHangHoa.ViewModels"
+        Title="Tạo phiếu bảo hành" Height="480" Width="440"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        MouseDown="Window_MouseDown"
+        d:DataContext="{d:DesignInstance vm:WarrantyViewModel}"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d">
+    
+    <Border Background="{StaticResource AppSurfaceBrush}" CornerRadius="16" BorderThickness="1" BorderBrush="{StaticResource AppBorderBrush}">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="20" Color="#20000000" ShadowDepth="0" Direction="0" Opacity="0.3"/>
+        </Border.Effect>
+        <Grid Margin="24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Grid Grid.Row="0" Margin="0,0,0,24">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="ShieldAlertOutline" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
+                    <StackPanel Margin="16,0,0,0">
+                        <TextBlock Text="TẠO MỚI PHIẾU" Style="{StaticResource TypographyH1}"/>
+                        <TextBlock Text="Điền thông tin tiếp nhận bảo hành sản phẩm" Style="{StaticResource TypographyCaption}"/>
+                    </StackPanel>
+                </StackPanel>
+                
+                <Button HorizontalAlignment="Right" VerticalAlignment="Top" Style="{StaticResource ProMaxIconButtonStyle}" Click="Cancel_Click" Width="30" Height="30">
+                    <materialDesign:PackIcon Kind="Close" Width="18" Height="18" Foreground="{StaticResource TextSecondaryBrush}"/>
+                </Button>
+            </Grid>
+
+            <!-- Form -->
+            <StackPanel Grid.Row="1">
+                <!-- Mã phiếu bảo hành -->
+                <TextBlock Text="MÃ PHIẾU BẢO HÀNH" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8" FontWeight="SemiBold"/>
+                <TextBox Style="{StaticResource AppTextBoxStyle}" Height="40" Text="{Binding ClaimCode, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,16"/>
+
+                <!-- Số Serial / IMEI -->
+                <TextBlock Text="SỐ SERIAL / IMEI" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8" FontWeight="SemiBold"/>
+                <ComboBox Style="{StaticResource AppComboBoxStyle}" 
+                          Height="40" 
+                          IsEditable="True" 
+                          IsTextSearchEnabled="True"
+                          ItemsSource="{Binding AvailableSerials}"
+                          Text="{Binding SerialNumber, UpdateSourceTrigger=PropertyChanged}"
+                          materialDesign:HintAssist.Hint="Nhập hoặc chọn số Serial/IMEI..."
+                          Margin="0,0,0,16" VerticalContentAlignment="Center"/>
+
+                <!-- Mô tả lỗi -->
+                <TextBlock Text="MÔ TẢ LỖI / YÊU CẦU" Style="{StaticResource TypographyCaption}" Margin="0,0,0,8" FontWeight="SemiBold"/>
+                <TextBox Style="{StaticResource AppTextBoxStyle}" Height="80" TextWrapping="Wrap" AcceptsReturn="True" 
+                         VerticalScrollBarVisibility="Auto" Text="{Binding ProblemDescription, UpdateSourceTrigger=PropertyChanged}"
+                         materialDesign:HintAssist.Hint="Mô tả chi tiết lỗi của sản phẩm..."
+                         Margin="0,0,0,8"/>
+            </StackPanel>
+
+            <!-- Actions -->
+            <Grid Grid.Row="2" Margin="0,16,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Button Grid.Column="0" Style="{StaticResource SecondaryButton}" Click="Cancel_Click" Margin="0,0,8,0" Height="38">
+                    <TextBlock Text="HUỶ BỎ" Style="{StaticResource TypographyButtonText}"/>
+                </Button>
+                <Button Grid.Column="1" Style="{StaticResource PrimaryButton}" 
+                        Command="{Binding CreateWarrantyClaimCommand}" 
+                        CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}" Margin="8,0,0,0" Height="38">
+                    <TextBlock Text="XÁC NHẬN" Style="{StaticResource TypographyButtonText}"/>
+                </Button>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

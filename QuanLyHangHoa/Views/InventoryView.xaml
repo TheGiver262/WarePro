@@ -128,23 +128,54 @@
                     <!-- DataGrid -->
                     <DataGrid Grid.Row="0"
                               ItemsSource="{Binding InventoryItems}"
-                              AutoGenerateColumns="False" CanUserAddRows="False"
+                              AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                               BorderThickness="0"
                               SelectionMode="Single" RowHeight="56"
-                              EnableRowVirtualization="False"
-                              VirtualizingStackPanel.IsVirtualizing="True"
-                              VirtualizingStackPanel.VirtualizationMode="Recycling"
+                              EnableRowVirtualization="True"
+                              VirtualizingPanel.VirtualizationMode="Standard"
+                              VirtualizingPanel.ScrollUnit="Pixel"
                               helpers:DataGridHelper.LoadMoreCommand="{Binding LoadMoreCommand}">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="MÃ SẢN PHẨM" Binding="{Binding ProductCode}" Width="150" ElementStyle="{DynamicResource AppDataGridTextBold}"/>
-                            <DataGridTextColumn Header="TÊN SẢN PHẨM" Binding="{Binding ProductName}" Width="*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                            <DataGridTextColumn Header="DANH MỤC" Binding="{Binding CategoryName}" Width="150" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                            <DataGridTextColumn Header="ĐƠN VỊ" Binding="{Binding UnitName}" Width="100" ElementStyle="{DynamicResource AppDataGridTextCenter}"/>
+                            <DataGridTextColumn Binding="{Binding ProductCode}" Width="150" ElementStyle="{DynamicResource AppDataGridTextBold}">
+                                <DataGridTextColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="MÃ SẢN PHẨM" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Binding="{Binding ProductName, Mode=OneWay}" Width="*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}">
+                                <DataGridTextColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="TÊN SẢN PHẨM" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Binding="{Binding CategoryName}" Width="150" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}">
+                                <DataGridTextColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="DANH MỤC" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Binding="{Binding UnitName}" Width="100" ElementStyle="{DynamicResource AppDataGridTextCenter}">
+                                <DataGridTextColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="ĐƠN VỊ" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
                             
                             <DataGridTemplateColumn Width="150">
                                 <DataGridTemplateColumn.Header>
                                     <StackPanel Orientation="Horizontal">
-                                        <materialDesign:PackIcon Kind="Filter" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
                                         <TextBlock Text="TỒN KHO" VerticalAlignment="Center" Style="{StaticResource TypographyLabel}"/>
                                     </StackPanel>
                                 </DataGridTemplateColumn.Header>
@@ -178,7 +209,14 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                             
-                            <DataGridTextColumn Header="GIÁ TRỊ" Binding="{Binding TotalValue, StringFormat='N0'}" Width="160" ElementStyle="{DynamicResource AppDataGridTextRight}"/>
+                            <DataGridTextColumn Binding="{Binding TotalValue, StringFormat='N0'}" Width="160" ElementStyle="{DynamicResource AppDataGridTextRight}">
+                                <DataGridTextColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="GIÁ TRỊ" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
                         </DataGrid.Columns>
                     </DataGrid>
 

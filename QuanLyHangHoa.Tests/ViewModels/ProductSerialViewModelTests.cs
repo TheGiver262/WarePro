@@ -40,7 +40,7 @@ public class ProductSerialViewModelTests
 
         // Chờ tối đa 1 giây cho tác vụ nền hoàn thành
         int timeout = 100;
-        while ((searchText != "ABC" || viewModel.Serials.Count == 0) && timeout-- > 0)
+        while ((searchText != "ABC" || status != "InStock" || viewModel.Serials.Count == 0) && timeout-- > 0)
         {
             Thread.Sleep(10);
         }

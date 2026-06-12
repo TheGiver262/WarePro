@@ -122,6 +122,9 @@
                 <!-- DataGrid -->
                 <materialDesign:Card Grid.Column="0" Style="{StaticResource AppCard}" Padding="0" Margin="{StaticResource Margin.Right.md}">
                     <DataGrid ItemsSource="{Binding Logs}" SelectedItem="{Binding SelectedLog}" 
+                              EnableRowVirtualization="True"
+                              VirtualizingPanel.VirtualizationMode="Recycling"
+                              VirtualizingPanel.ScrollUnit="Pixel" 
                               AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                               RowHeight="40" BorderThickness="0">
                         <DataGrid.Columns>

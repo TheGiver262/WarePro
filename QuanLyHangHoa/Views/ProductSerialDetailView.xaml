@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         mc:Ignorable="d"
-        Title="Thông tin Serial" Height="550" Width="600"
+        Title="Thông tin Serial" Height="580" Width="600"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource MaterialDesignPaper}"
         FontFamily="{StaticResource AppFontFamily}"
@@ -33,6 +33,7 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
@@ -91,8 +92,14 @@
                     <TextBlock x:Name="TxtExportCode" Text="---" Style="{StaticResource TypographyH3}" Margin="0,4,0,0"/>
                 </StackPanel>
 
+                <!-- Invoice Code -->
+                <StackPanel Grid.Row="5" Grid.Column="0" Margin="0,0,8,16">
+                    <TextBlock Text="Mã hóa đơn bán" Style="{StaticResource TypographyLabel}"/>
+                    <TextBlock x:Name="TxtInvoiceCode" Text="---" Style="{StaticResource TypographyH3}" Margin="0,4,0,0" Foreground="{StaticResource AppPrimaryBrush}" FontWeight="SemiBold"/>
+                </StackPanel>
+
                 <!-- Note -->
-                <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,16">
+                <StackPanel Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,16">
                     <TextBlock Text="Ghi chú" Style="{StaticResource TypographyLabel}"/>
                     <TextBlock x:Name="TxtNote" Text="Ghi chú chi tiết..." Style="{StaticResource TypographyBody}" TextWrapping="Wrap" Margin="0,4,0,0"/>
                 </StackPanel>

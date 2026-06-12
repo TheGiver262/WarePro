@@ -47,29 +47,47 @@
             <materialDesign:Card Grid.Row="1" Style="{StaticResource AppCard}" Padding="{StaticResource Spacing.md}" Margin="{StaticResource Margin.Bottom.md}">
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="1.5*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
+                    <!-- Serial Search -->
                     <StackPanel Grid.Column="0" Margin="{StaticResource Margin.Right.md}">
-                        <TextBlock Text="TÌM KIẾM CHUNG" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
-                        <Grid>
-                            <TextBox Style="{StaticResource AppTextBoxStyle}" Height="40" materialDesign:HintAssist.Hint="Tìm kiếm theo serial/IMEI, khách hàng, sản phẩm..." 
-                                     Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}">
-                                <TextBox.InputBindings>
-                                    <KeyBinding Key="Enter" Command="{Binding LoadDataCommand}"/>
-                                </TextBox.InputBindings>
-                            </TextBox>
-                            <materialDesign:PackIcon Kind="Search" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,12,0" Foreground="{StaticResource TextDisabledBrush}" Width="20" Height="20"/>
-                        </Grid>
+                        <TextBlock Text="SỐ SERIAL / IMEI" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
+                        <TextBox Style="{StaticResource AppTextBoxStyle}" Height="40" Margin="0" materialDesign:HintAssist.Hint="Tìm số serial..." 
+                                  Text="{Binding SearchSerial, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"/>
                     </StackPanel>
 
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Bottom">
-                        <Button Command="{Binding LoadDataCommand}" Style="{StaticResource PrimaryButton}" Height="40">
-                            <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="Search" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                <TextBlock Text="TÌM KIẾM" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
-                            </StackPanel>
+                    <!-- Customer Search -->
+                    <StackPanel Grid.Column="1" Margin="{StaticResource Margin.Right.md}">
+                        <TextBlock Text="KHÁCH HÀNG" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
+                        <TextBox Style="{StaticResource AppTextBoxStyle}" Height="40" Margin="0" materialDesign:HintAssist.Hint="Tìm khách hàng..." 
+                                  Text="{Binding SearchCustomer, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Product Search -->
+                    <StackPanel Grid.Column="2" Margin="{StaticResource Margin.Right.md}">
+                        <TextBlock Text="SẢN PHẨM" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
+                        <TextBox Style="{StaticResource AppTextBoxStyle}" Height="40" Margin="0" materialDesign:HintAssist.Hint="Tìm sản phẩm..." 
+                                  Text="{Binding SearchProduct, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Status Filter -->
+                    <StackPanel Grid.Column="3" Margin="{StaticResource Margin.Right.md}">
+                        <TextBlock Text="TRẠNG THÁI" Style="{StaticResource TypographyLabel}" Margin="0,0,0,8"/>
+                        <ComboBox Style="{StaticResource AppComboBoxStyle}" Height="40" Margin="0" VerticalContentAlignment="Center"
+                                  ItemsSource="{Binding StatusFilterOptions}" 
+                                  SelectedItem="{Binding SelectedStatusFilter, UpdateSourceTrigger=PropertyChanged}"/>
+                    </StackPanel>
+
+                    <!-- Actions -->
+                    <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Bottom">
+                        <Button Command="{Binding ResetFiltersCommand}" Style="{StaticResource ProMaxIconButtonStyle}" 
+                                Height="40" Width="40" ToolTip="Reset bộ lọc">
+                            <materialDesign:PackIcon Kind="Refresh" Width="22" Height="22"/>
                         </Button>
                     </StackPanel>
                 </Grid>
@@ -85,10 +103,18 @@
 
                     <DataGrid Grid.Row="0" ItemsSource="{Binding Coverages}" SelectedItem="{Binding SelectedCoverage}"
                                AlternationCount="10000" EnableRowVirtualization="True"
+                              VirtualizingPanel.VirtualizationMode="Recycling"
+                              VirtualizingPanel.ScrollUnit="Pixel"
                                AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                                BorderThickness="0" RowHeight="56" Background="Transparent">
                         <DataGrid.Columns>
-                            <DataGridTemplateColumn Header="SERIAL / IMEI" Width="160" SortMemberPath="ProductSerial.SerialNumber">
+                            <DataGridTemplateColumn Width="160" SortMemberPath="ProductSerial.SerialNumber">
+                                <DataGridTemplateColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="SERIAL / IMEI" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding ProductSerial.SerialNumber}" VerticalAlignment="Center" Margin="12,0" FontWeight="SemiBold" Style="{StaticResource TypographyDataMono}"/>
@@ -96,7 +122,13 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTemplateColumn Header="SẢN PHẨM" Width="*" SortMemberPath="ProductSerial.Product.DisplayName">
+                            <DataGridTemplateColumn Width="*" SortMemberPath="ProductSerial.Product.DisplayName">
+                                <DataGridTemplateColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="SẢN PHẨM" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding ProductSerial.Product.DisplayName}" VerticalAlignment="Center" Margin="12,0" FontWeight="Medium"/>
@@ -104,7 +136,13 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTemplateColumn Header="KHÁCH HÀNG" Width="180" SortMemberPath="Customer.DisplayName">
+                            <DataGridTemplateColumn Width="180" SortMemberPath="Customer.DisplayName">
+                                <DataGridTemplateColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="KHÁCH HÀNG" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding Customer.DisplayName}" VerticalAlignment="Center" Margin="12,0"/>
@@ -112,15 +150,36 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTextColumn Header="BẮT ĐẦU" Binding="{Binding WarrantyStartDate, StringFormat=dd/MM/yyyy}" Width="110" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
-                            <DataGridTextColumn Header="KẾT THÚC" Binding="{Binding WarrantyEndDate, StringFormat=dd/MM/yyyy}" Width="110" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
+                            <DataGridTextColumn Binding="{Binding WarrantyStartDate, StringFormat=dd/MM/yyyy}" Width="110" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}">
+                                <DataGridTextColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="BẮT ĐẦU" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
                             
-                            <DataGridTemplateColumn Header="TRẠNG THÁI" Width="120" SortMemberPath="CoverageStatus">
+                            <DataGridTextColumn Binding="{Binding WarrantyEndDate, StringFormat=dd/MM/yyyy}" Width="110" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}">
+                                <DataGridTextColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="KẾT THÚC" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                            
+                            <DataGridTemplateColumn Width="120" SortMemberPath="CoverageStatus">
+                                <DataGridTemplateColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="TRẠNG THÁI" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Border CornerRadius="12" Padding="12,4" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="12,0"
                                                 Background="{Binding CoverageStatus, Converter={StaticResource StatusToBgBrushConverter}}">
-                                            <TextBlock Text="{Binding CoverageStatus}" 
+                                            <TextBlock Text="{Binding CoverageStatus, Converter={StaticResource StatusToTextConverter}}" 
                                                        Foreground="{Binding CoverageStatus, Converter={StaticResource StatusToFgBrushConverter}}"
                                                        FontSize="11" FontWeight="SemiBold"/>
                                         </Border>
@@ -134,12 +193,12 @@
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                             <Button Style="{StaticResource ProMaxIconButtonStyle}" ToolTip="Chỉnh sửa"
-                                                    Command="{Binding DataContext.EditCoverageCommand, ElementName=RootView}"
+                                                    Command="{Binding DataContext.EditCoverageCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
                                                     CommandParameter="{Binding}">
                                                 <materialDesign:PackIcon Kind="PencilOutline" Width="20" Height="20" Foreground="{StaticResource AppSecondaryBrush}"/>
                                             </Button>
                                             <Button Style="{StaticResource ProMaxIconButtonStyle}" ToolTip="Xoá quyền bảo hành"
-                                                    Command="{Binding DataContext.DeleteCoverageCommand, ElementName=RootView}"
+                                                    Command="{Binding DataContext.DeleteCoverageCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
                                                     CommandParameter="{Binding}">
                                                 <materialDesign:PackIcon Kind="TrashCanOutline" Width="20" Height="20" Foreground="{StaticResource AppErrorBrush}"/>
                                             </Button>

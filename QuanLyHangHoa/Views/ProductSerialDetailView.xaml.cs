@@ -1,7 +1,9 @@
 using System;
 using System.Windows;
 using System.Windows.Media;
+using System.Linq;
 using QuanLyHangHoa.Models;
+using QuanLyHangHoa.Data;
 
 namespace QuanLyHangHoa.Views
 {
@@ -41,6 +43,27 @@ namespace QuanLyHangHoa.Views
             }
 
             TxtExportCode.Text = serial.LastStockOutLine?.StockOut?.DocumentCode ?? "---";
+
+            string invoiceCode = "---";
+            if (serial.LastStockOutLine?.StockOut != null)
+            {
+                try
+                {
+                    using (var db = new AppDbContext())
+                    {
+                        var invoice = db.SalesInvoices.FirstOrDefault(si => si.StockOutId == serial.LastStockOutLine.StockOutId);
+                        if (invoice != null)
+                        {
+                            invoiceCode = invoice.InvoiceCode;
+                        }
+                    }
+                }
+                catch
+                {
+                    // Fallback
+                }
+            }
+            TxtInvoiceCode.Text = invoiceCode;
         }
 
         private string GetStatusDisplay(string status)

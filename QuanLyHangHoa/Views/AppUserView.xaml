@@ -120,7 +120,9 @@
                     </Grid.RowDefinitions>
 
                     <DataGrid Grid.Row="0" ItemsSource="{Binding Users}" SelectedItem="{Binding SelectedUser, Mode=TwoWay}"
-                               AlternationCount="10000" EnableRowVirtualization="False"
+                               AlternationCount="10000" EnableRowVirtualization="True"
+                               VirtualizingPanel.VirtualizationMode="Recycling"
+                               VirtualizingPanel.ScrollUnit="Pixel"
                                AutoGenerateColumns="False" CanUserAddRows="False" CanUserReorderColumns="False" IsReadOnly="True"
                                BorderThickness="0" RowHeight="56" Background="Transparent">
                         <DataGrid.ColumnHeaderStyle>
@@ -224,12 +226,12 @@
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                             <Button Style="{StaticResource ProMaxIconButtonStyle}" ToolTip="Chỉnh sửa"
-                                                    Command="{Binding DataContext.EditUserCommand, ElementName=RootView}"
+                                                    Command="{Binding DataContext.EditUserCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
                                                     CommandParameter="{Binding}">
                                                 <materialDesign:PackIcon Kind="PencilOutline" Width="20" Height="20" Foreground="{StaticResource AppSecondaryBrush}"/>
                                             </Button>
                                             <Button Style="{StaticResource ProMaxIconButtonStyle}" ToolTip="Xoá người dùng"
-                                                    Command="{Binding DataContext.DeleteUserCommand, ElementName=RootView}"
+                                                    Command="{Binding DataContext.DeleteUserCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
                                                     CommandParameter="{Binding}">
                                                 <materialDesign:PackIcon Kind="TrashCanOutline" Width="20" Height="20" Foreground="{StaticResource AppErrorBrush}"/>
                                             </Button>

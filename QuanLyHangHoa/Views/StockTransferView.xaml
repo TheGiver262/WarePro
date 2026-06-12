@@ -104,21 +104,61 @@
                               AutoGenerateColumns="False" CanUserAddRows="False" CanUserReorderColumns="False"
                               IsReadOnly="True" BorderThickness="0">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="MÃ PHIẾU" Binding="{Binding DocumentCode}" Width="150" ElementStyle="{DynamicResource AppDataGridTextBold}"/>
-                            <DataGridTextColumn Header="KHO ĐI" Binding="{Binding FromWarehouse.DisplayName}" Width="*"/>
-                            <DataGridTextColumn Header="KHO ĐẾN" Binding="{Binding ToWarehouse.DisplayName}" Width="*"/>
-                            <DataGridTextColumn Header="NGÀY CHUYỂN" Binding="{Binding TransferDate, StringFormat='dd/MM/yyyy'}" Width="120" ElementStyle="{DynamicResource AppDataGridTextCenter}"/>
-                            <DataGridTemplateColumn Header="TRẠNG THÁI" Width="130" CellTemplate="{StaticResource InventoryStatusBadgeTemplate}"/>
+                            <DataGridTextColumn Binding="{Binding DocumentCode}" Width="150" ElementStyle="{DynamicResource AppDataGridTextBold}">
+                                <DataGridTextColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="MÃ PHIẾU" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Binding="{Binding FromWarehouse.DisplayName}" Width="*">
+                                <DataGridTextColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="KHO ĐI" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Binding="{Binding ToWarehouse.DisplayName}" Width="*">
+                                <DataGridTextColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="KHO ĐẾN" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Binding="{Binding TransferDate, StringFormat='dd/MM/yyyy'}" Width="120" ElementStyle="{DynamicResource AppDataGridTextCenter}">
+                                <DataGridTextColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="NGÀY CHUYỂN" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+
+                            <DataGridTemplateColumn Width="130" CellTemplate="{StaticResource InventoryStatusBadgeTemplate}">
+                                <DataGridTemplateColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
+                                        <TextBlock Text="TRẠNG THÁI" Style="{StaticResource TypographyLabel}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataGridTemplateColumn.Header>
+                            </DataGridTemplateColumn>
+
                             <DataGridTemplateColumn Header="THAO TÁC" Width="120">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                             <Button ToolTip="Xem chi tiết" Style="{StaticResource ProMaxIconButtonStyle}"
-                                                    Command="{Binding DataContext.ViewDetailCommand, ElementName=RootStockTransferView}" CommandParameter="{Binding}">
+                                                    Command="{Binding DataContext.ViewDetailCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" CommandParameter="{Binding}">
                                                 <materialDesign:PackIcon Kind="EyeOutline" Width="20" Height="20" Foreground="{StaticResource AppPrimaryBrush}"/>
                                             </Button>
                                             <Button ToolTip="Chỉnh sửa" Style="{StaticResource ProMaxIconButtonStyle}" Margin="4,0"
-                                                    Command="{Binding DataContext.EditDetailCommand, ElementName=RootStockTransferView}" CommandParameter="{Binding}">
+                                                    Command="{Binding DataContext.EditDetailCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" CommandParameter="{Binding}">
                                                 <materialDesign:PackIcon Kind="PencilOutline" Width="20" Height="20" Foreground="{StaticResource AppSecondaryBrush}"/>
                                             </Button>
                                         </StackPanel>
@@ -263,8 +303,8 @@
                                 </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <ComboBox ItemsSource="{Binding DataContext.AvailableProducts, ElementName=RootStockTransferView}" 
-                                                  SelectedItem="{Binding SelectedProduct, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding DataContext.CanEdit, ElementName=RootStockTransferView}"
+                                        <ComboBox ItemsSource="{Binding DataContext.AvailableProducts, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" 
+                                                  SelectedItem="{Binding SelectedProduct, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
                                                   DisplayMemberPath="DisplayName" Style="{StaticResource AppComboBoxStyle}" Margin="8,4" BorderThickness="0" Height="36"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -277,7 +317,7 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <ComboBox ItemsSource="{Binding AvailableUnits}" 
-                                                  SelectedItem="{Binding SelectedUnit, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding DataContext.CanEdit, ElementName=RootStockTransferView}"
+                                                  SelectedItem="{Binding SelectedUnit, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
                                                   DisplayMemberPath="DisplayName" Style="{StaticResource AppComboBoxStyle}" Margin="8,4" BorderThickness="0" Height="36"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -291,7 +331,7 @@
                                     <DataTemplate>
                                         <TextBox Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" HorizontalContentAlignment="Right" 
                                                   Style="{StaticResource AppTextBoxStyle}" Margin="8,4" Height="36"
-                                                  IsReadOnly="{Binding DataContext.CanEdit, ElementName=RootStockTransferView, Converter={StaticResource InverseBooleanConverter}}"/>
+                                                  IsReadOnly="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}, Converter={StaticResource InverseBooleanConverter}}"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -335,7 +375,7 @@
 
                                             <!-- Edit button -->
                                             <Button Grid.Column="1" Style="{StaticResource ProMaxIconButtonStyle}"
-                                                    Command="{Binding DataContext.OpenSerialInputCommand, ElementName=RootStockTransferView}"
+                                                    Command="{Binding DataContext.OpenSerialInputCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
                                                     CommandParameter="{Binding}"
                                                     VerticalAlignment="Center" Margin="8,0,0,0" Width="32" Height="32" Padding="0">
                                                 <materialDesign:PackIcon Kind="BarcodeScan" Width="18" Height="18">
@@ -363,8 +403,8 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Button Style="{StaticResource ProMaxIconButtonStyle}" Margin="4" HorizontalAlignment="Center"
-                                                Command="{Binding DataContext.RemoveLineCommand, ElementName=RootStockTransferView}" CommandParameter="{Binding}"
-                                                Visibility="{Binding DataContext.CanEdit, ElementName=RootStockTransferView, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                Command="{Binding DataContext.RemoveLineCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" CommandParameter="{Binding}"
+                                                Visibility="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}, Converter={StaticResource BooleanToVisibilityConverter}}">
                                             <materialDesign:PackIcon Kind="TrashCanOutline" Width="20" Height="20" Foreground="{StaticResource AppErrorBrush}"/>
                                         </Button>
                                     </DataTemplate>

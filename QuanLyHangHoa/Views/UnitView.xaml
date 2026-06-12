@@ -101,7 +101,9 @@
                     
                     <!-- Table Header Border -->                
                     <DataGrid Grid.Row="1" ItemsSource="{Binding Units}" SelectedItem="{Binding SelectedUnit, Mode=TwoWay}"
-                               AlternationCount="10000" EnableRowVirtualization="False"
+                               AlternationCount="10000" EnableRowVirtualization="True"
+                               VirtualizingPanel.VirtualizationMode="Recycling"
+                               VirtualizingPanel.ScrollUnit="Pixel"
                                AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                                RowHeight="52" BorderThickness="0" Background="Transparent">
                         <DataGrid.Columns>

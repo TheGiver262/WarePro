@@ -117,7 +117,9 @@
                     </Grid.RowDefinitions>
                     
                     <DataGrid Grid.Row="0" ItemsSource="{Binding Brands}" SelectedItem="{Binding SelectedBrand, Mode=TwoWay}"
-                              AlternationCount="10000" EnableRowVirtualization="False"
+                              AlternationCount="10000" EnableRowVirtualization="True"
+                              VirtualizingPanel.VirtualizationMode="Recycling"
+                              VirtualizingPanel.ScrollUnit="Pixel"
                               AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                               RowHeight="54">
 
@@ -181,12 +183,12 @@
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                             <Button Style="{StaticResource ProMaxIconButtonStyle}" ToolTip="Chỉnh sửa"
-                                                    Command="{Binding DataContext.EditBrandCommand, ElementName=RootView}"
+                                                    Command="{Binding DataContext.EditBrandCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
                                                     CommandParameter="{Binding}">
                                                 <materialDesign:PackIcon Kind="PencilOutline" Width="22" Height="22" Foreground="{StaticResource AppTertiaryBrush}"/>
                                             </Button>
                                             <Button Style="{StaticResource ProMaxIconButtonStyle}" ToolTip="Xoá thương hiệu"
-                                                    Command="{Binding DataContext.DeleteBrandCommand, ElementName=RootView}"
+                                                    Command="{Binding DataContext.DeleteBrandCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
                                                     CommandParameter="{Binding}">
                                                 <materialDesign:PackIcon Kind="TrashCanOutline" Width="22" Height="22" Foreground="{StaticResource DangerTextBrush}"/>
                                             </Button>
