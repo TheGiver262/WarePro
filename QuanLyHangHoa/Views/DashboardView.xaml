@@ -5,7 +5,8 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:converters="clr-namespace:QuanLyHangHoa.Converters"
-             mc:Ignorable="d" d:DesignHeight="800" d:DesignWidth="1100">
+             xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
+             mc:Ignorable="d" d:DesignHeight="950" d:DesignWidth="1100">
     <UserControl.Resources>
         <Style x:Key="MetricCardButtonStyle" TargetType="Button" BasedOn="{StaticResource MaterialDesignFlatButton}">
             <Setter Property="Padding" Value="0"/>
@@ -20,146 +21,237 @@
             </Style.Triggers>
         </Style>
     </UserControl.Resources>
+    
     <Grid Background="{StaticResource AppBackgroundBrush}">
         <Grid Margin="{StaticResource PagePadding}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
-            <StackPanel Grid.Row="0" Margin="{StaticResource SectionBottomMargin}">
+            
+            <!-- Tiêu đề trang -->
+            <StackPanel Grid.Row="0" Margin="0,0,0,16">
                 <TextBlock Text="Dashboard" Style="{DynamicResource TypographyH1}"/>
-                <TextBlock Text="Tổng quan hoạt động kinh doanh" Style="{DynamicResource TypographyCaption}"/>
+                <TextBlock Text="Phân tích số liệu và quản trị kho hàng thời gian thực" Style="{DynamicResource TypographyCaption}"/>
             </StackPanel>
-            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                <StackPanel>
-                    <UniformGrid Columns="6" Margin="0,0,0,24">
-                        <!-- 1. Sản phẩm -->
-                        <Button Command="{Binding NavigateToProductsCommand}" Style="{StaticResource MetricCardButtonStyle}" Margin="0,0,12,12">
-                            <materialDesign:Card Padding="16">
-                                <StackPanel>
-                                    <Border Background="#EDE9FE" Width="40" Height="40" CornerRadius="5" HorizontalAlignment="Left">
-                                        <materialDesign:PackIcon Kind="PackageVariant" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource DashProductIconBrush}"/>
-                                    </Border>
-                                    <TextBlock Text="SẢN PHẨM" Style="{DynamicResource TypographyLabel}" Margin="0,14,0,4"/>
-                                    <TextBlock Text="{Binding Stats.TotalInventoryCount, StringFormat='N0'}" Style="{DynamicResource TypographyStatNumber}"/>
-                                    <TextBlock Text="Sản phẩm trong kho" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                </StackPanel>
-                            </materialDesign:Card>
-                        </Button>
-                        
-                        <!-- 2. Phiếu nhập -->
-                        <Button Command="{Binding NavigateToStockInCommand}" Style="{StaticResource MetricCardButtonStyle}" Margin="0,0,12,12">
-                            <materialDesign:Card Padding="16">
-                                <StackPanel>
-                                    <Border Background="#DCFCE7" Width="40" Height="40" CornerRadius="5" HorizontalAlignment="Left">
-                                        <materialDesign:PackIcon Kind="ArrowDownBold" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource DashStockInIconBrush}"/>
-                                    </Border>
-                                    <TextBlock Text="PHIẾU NHẬP" Style="{DynamicResource TypographyLabel}" Margin="0,14,0,4"/>
-                                    <TextBlock Text="{Binding Stats.StockInMonthCount}" Style="{DynamicResource TypographyStatNumber}"/>
-                                    <TextBlock Text="Nhập kho tháng này" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                </StackPanel>
-                            </materialDesign:Card>
-                        </Button>
+            
+            <!-- Hệ thống Tab Phân Vai (Kinh doanh vs Vận hành) -->
+            <TabControl Grid.Row="1" Style="{StaticResource MaterialDesignTabControl}" materialDesign:ColorZoneAssist.Mode="Standard">
+                
+                <!-- TAB 1: QUẢN LÝ KINH DOANH -->
+                <TabItem Header="QUẢN LÝ KINH DOANH" FontSize="14" FontWeight="SemiBold">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,16,0,0">
+                        <StackPanel>
+                            <!-- Hàng 4 KPI Cards tài chính -->
+                            <UniformGrid Columns="4" Margin="0,0,0,16">
+                                <!-- Doanh thu tháng này -->
+                                <Button Command="{Binding NavigateToSalesInvoicesCommand}" Style="{StaticResource MetricCardButtonStyle}" Margin="0,0,12,12">
+                                    <materialDesign:Card Padding="16">
+                                        <StackPanel>
+                                            <Border Background="#FCE7F3" Width="40" Height="40" CornerRadius="5" HorizontalAlignment="Left">
+                                                <materialDesign:PackIcon Kind="Cash" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="#EC4899"/>
+                                            </Border>
+                                            <TextBlock Text="DOANH THU THÁNG" Style="{DynamicResource TypographyLabel}" Margin="0,14,0,4"/>
+                                            <TextBlock Text="{Binding Stats.RevenueMonth, StringFormat='{}{0:N0} đ'}" Style="{DynamicResource TypographyStatNumber}" FontSize="18"/>
+                                            <TextBlock Text="Phát sinh trong tháng" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        </StackPanel>
+                                    </materialDesign:Card>
+                                </Button>
 
-                        <!-- 3. Phiếu xuất -->
-                        <Button Command="{Binding NavigateToSalesInvoicesCommand}" Style="{StaticResource MetricCardButtonStyle}" Margin="0,0,12,12">
-                            <materialDesign:Card Padding="16">
-                                <StackPanel>
-                                    <Border Background="#FFF7ED" Width="40" Height="40" CornerRadius="5" HorizontalAlignment="Left">
-                                        <materialDesign:PackIcon Kind="ArrowUpBold" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource DashStockOutIconBrush}"/>
-                                    </Border>
-                                    <TextBlock Text="PHIẾU XUẤT" Style="{DynamicResource TypographyLabel}" Margin="0,14,0,4"/>
-                                    <TextBlock Text="{Binding Stats.StockOutMonthCount}" Style="{DynamicResource TypographyStatNumber}"/>
-                                    <TextBlock Text="Xuất kho tháng này" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                </StackPanel>
-                            </materialDesign:Card>
-                        </Button>
+                                <!-- Doanh thu năm nay -->
+                                <Button Command="{Binding NavigateToSalesInvoicesCommand}" Style="{StaticResource MetricCardButtonStyle}" Margin="0,0,12,12">
+                                    <materialDesign:Card Padding="16">
+                                        <StackPanel>
+                                            <Border Background="#D1FAE5" Width="40" Height="40" CornerRadius="5" HorizontalAlignment="Left">
+                                                <materialDesign:PackIcon Kind="TrendingUp" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="#10B981"/>
+                                            </Border>
+                                            <TextBlock Text="DOANH THU NĂM" Style="{DynamicResource TypographyLabel}" Margin="0,14,0,4"/>
+                                            <TextBlock Text="{Binding Stats.RevenueYear, StringFormat='{}{0:N0} đ'}" Style="{DynamicResource TypographyStatNumber}" FontSize="18"/>
+                                            <TextBlock Text="Doanh thu tích lũy năm nay" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        </StackPanel>
+                                    </materialDesign:Card>
+                                </Button>
 
-                        <!-- 4. Bảo hành -->
-                        <Button Command="{Binding NavigateToWarrantyCommand}" Style="{StaticResource MetricCardButtonStyle}" Margin="0,0,12,12">
-                            <materialDesign:Card Padding="16">
-                                <StackPanel>
-                                    <Border Background="#F5F3FF" Width="40" Height="40" CornerRadius="5" HorizontalAlignment="Left">
-                                        <materialDesign:PackIcon Kind="ShieldCheckOutline" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource DashWarrantyIconBrush}"/>
-                                    </Border>
-                                    <TextBlock Text="BẢO HÀNH" Style="{DynamicResource TypographyLabel}" Margin="0,14,0,4"/>
-                                    <TextBlock Text="{Binding Stats.WarrantyActiveCount}" Style="{DynamicResource TypographyStatNumber}"/>
-                                    <TextBlock Text="Yêu cầu đang xử lý" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                </StackPanel>
-                            </materialDesign:Card>
-                        </Button>
+                                <!-- HĐ Bán nợ -->
+                                <Button Command="{Binding NavigateToSalesInvoicesCommand}" Style="{StaticResource MetricCardButtonStyle}" Margin="0,0,12,12">
+                                    <materialDesign:Card Padding="16">
+                                        <StackPanel>
+                                            <Border Background="#FEFCE8" Width="40" Height="40" CornerRadius="5" HorizontalAlignment="Left">
+                                                <materialDesign:PackIcon Kind="CashMultiple" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource DashSalesUnpaidIconBrush}"/>
+                                            </Border>
+                                            <TextBlock Text="HĐ BÁN NỢ" Style="{DynamicResource TypographyLabel}" Margin="0,14,0,4"/>
+                                            <TextBlock Text="{Binding Stats.UnpaidSalesInvoiceCount}" Style="{DynamicResource TypographyStatNumber}"/>
+                                            <TextBlock Text="Khách hàng chưa thanh toán" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        </StackPanel>
+                                    </materialDesign:Card>
+                                </Button>
 
-                        <!-- 5. Hóa đơn mua chưa thanh toán -->
-                        <Button Command="{Binding NavigateToPurchaseInvoicesCommand}" Style="{StaticResource MetricCardButtonStyle}" Margin="0,0,12,12">
-                            <materialDesign:Card Padding="16">
-                                <StackPanel>
-                                    <Border Background="#FEF2F2" Width="40" Height="40" CornerRadius="5" HorizontalAlignment="Left">
-                                        <materialDesign:PackIcon Kind="FileDocumentOutline" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource DashPurchaseUnpaidIconBrush}"/>
-                                    </Border>
-                                    <TextBlock Text="HĐ MUA NỢ" Style="{DynamicResource TypographyLabel}" Margin="0,14,0,4"/>
-                                    <TextBlock Text="{Binding Stats.UnpaidPurchaseInvoiceCount}" Style="{DynamicResource TypographyStatNumber}"/>
-                                    <TextBlock Text="Hóa đơn chưa TT" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                </StackPanel>
-                            </materialDesign:Card>
-                        </Button>
+                                <!-- HĐ Mua nợ -->
+                                <Button Command="{Binding NavigateToPurchaseInvoicesCommand}" Style="{StaticResource MetricCardButtonStyle}" Margin="0,0,0,12">
+                                    <materialDesign:Card Padding="16">
+                                        <StackPanel>
+                                            <Border Background="#FEF2F2" Width="40" Height="40" CornerRadius="5" HorizontalAlignment="Left">
+                                                <materialDesign:PackIcon Kind="FileDocumentOutline" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource DashPurchaseUnpaidIconBrush}"/>
+                                            </Border>
+                                            <TextBlock Text="HĐ MUA NỢ" Style="{DynamicResource TypographyLabel}" Margin="0,14,0,4"/>
+                                            <TextBlock Text="{Binding Stats.UnpaidPurchaseInvoiceCount}" Style="{DynamicResource TypographyStatNumber}"/>
+                                            <TextBlock Text="Công nợ cần trả NCC" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        </StackPanel>
+                                    </materialDesign:Card>
+                                </Button>
+                            </UniformGrid>
 
-                        <!-- 6. Hóa đơn bán chưa thanh toán -->
-                        <Button Command="{Binding NavigateToSalesInvoicesCommand}" Style="{StaticResource MetricCardButtonStyle}" Margin="0,0,0,12">
-                            <materialDesign:Card Padding="16">
-                                <StackPanel>
-                                    <Border Background="#FEFCE8" Width="40" Height="40" CornerRadius="5" HorizontalAlignment="Left">
-                                        <materialDesign:PackIcon Kind="CashMultiple" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource DashSalesUnpaidIconBrush}"/>
-                                    </Border>
-                                    <TextBlock Text="HĐ BÁN NỢ" Style="{DynamicResource TypographyLabel}" Margin="0,14,0,4"/>
-                                    <TextBlock Text="{Binding Stats.UnpaidSalesInvoiceCount}" Style="{DynamicResource TypographyStatNumber}"/>
-                                    <TextBlock Text="Khách chưa thanh toán" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                </StackPanel>
-                            </materialDesign:Card>
-                        </Button>
-                    </UniformGrid>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="2*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <materialDesign:Card Grid.Column="0" Margin="0,0,12,0" Padding="20">
-                            <StackPanel>
-                                <TextBlock Text="Biểu đồ tăng trưởng" Style="{DynamicResource TypographyH2}" Margin="0,0,0,20"/>
-                                <Border Height="340" Background="{StaticResource SurfaceMutedBrush}" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="5">
-                                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                        <materialDesign:PackIcon Kind="ChartLine" Width="48" Height="48" Foreground="{StaticResource TextDisabledBrush}"/>
-                                        <TextBlock Text="Dữ liệu biểu đồ đang được cập nhật..." Style="{DynamicResource TypographyCaption}" Margin="0,12,0,0"/>
+                            <!-- Hàng 1 biểu đồ: Doanh thu vs Chi phí & Cơ cấu tồn kho -->
+                            <Grid Margin="0,0,0,16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="6*"/>
+                                    <ColumnDefinition Width="4*"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <!-- Cột 1: Doanh thu vs Chi phí -->
+                                <materialDesign:Card Grid.Column="0" Margin="0,0,8,0" Padding="16">
+                                    <StackPanel>
+                                        <TextBlock Text="Doanh thu vs Chi phí (6 tháng qua)" Style="{DynamicResource TypographyH2}" Margin="0,0,0,12"/>
+                                        <Grid Height="280">
+                                            <lvc:CartesianChart Series="{Binding RevenueExpenseSeries}" XAxes="{Binding RevenueExpenseXAxes}"/>
+                                        </Grid>
                                     </StackPanel>
-                                </Border>
-                            </StackPanel>
-                        </materialDesign:Card>
-                        <materialDesign:Card Grid.Column="1" Padding="20">
-                            <StackPanel>
-                                <TextBlock Text="Hoạt động gần đây" Style="{DynamicResource TypographyH2}" Margin="0,0,0,20"/>
-                                <ItemsControl ItemsSource="{Binding Stats.Activities}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Grid Margin="0,0,0,14">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                </Grid.ColumnDefinitions>
-                                                <Border Background="{StaticResource SurfaceMutedBrush}" Width="36" Height="34" CornerRadius="18">
-                                                    <materialDesign:PackIcon Kind="{Binding IconKind, Converter={StaticResource SafePackIconKindConverter}}" Width="18" Height="18" Foreground="{Binding IconColor}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                </Border>
-                                                <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
-                                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" FontSize="13"/>
-                                                    <TextBlock Text="{Binding TimeAgo}" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                                </StackPanel>
-                                            </Grid>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </StackPanel>
-                        </materialDesign:Card>
-                    </Grid>
-                </StackPanel>
-            </ScrollViewer>
+                                </materialDesign:Card>
+                                
+                                <!-- Cột 2: Cơ cấu giá trị tồn kho -->
+                                <materialDesign:Card Grid.Column="1" Margin="8,0,0,0" Padding="16">
+                                    <StackPanel>
+                                        <TextBlock Text="Cơ cấu tồn kho theo danh mục" Style="{DynamicResource TypographyH2}" Margin="0,0,0,12"/>
+                                        <Grid Height="280">
+                                            <lvc:PieChart Series="{Binding InventoryPieSeries}" LegendPosition="Right"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </materialDesign:Card>
+                            </Grid>
+
+                            <!-- Hàng 2: Top sản phẩm bán chạy -->
+                            <materialDesign:Card Padding="16" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <TextBlock Text="Top 5 sản phẩm bán chạy nhất" Style="{DynamicResource TypographyH2}" Margin="0,0,0,12"/>
+                                    <Grid Height="250">
+                                        <lvc:CartesianChart Series="{Binding TopProductsSeries}" YAxes="{Binding TopProductsYAxes}"/>
+                                    </Grid>
+                                </StackPanel>
+                            </materialDesign:Card>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+                
+                <!-- TAB 2: VẬN HÀNH & KHO HÀNG -->
+                <TabItem Header="VẬN HÀNH &amp; KHO HÀNG" FontSize="14" FontWeight="SemiBold">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,16,0,0">
+                        <StackPanel>
+                            <!-- Hàng 4 KPI Cards vận hành -->
+                            <UniformGrid Columns="4" Margin="0,0,0,16">
+                                <!-- Tổng sản phẩm tồn kho -->
+                                <Button Command="{Binding NavigateToProductsCommand}" Style="{StaticResource MetricCardButtonStyle}" Margin="0,0,12,12">
+                                    <materialDesign:Card Padding="16">
+                                        <StackPanel>
+                                            <Border Background="#EDE9FE" Width="40" Height="40" CornerRadius="5" HorizontalAlignment="Left">
+                                                <materialDesign:PackIcon Kind="PackageVariant" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource DashProductIconBrush}"/>
+                                            </Border>
+                                            <TextBlock Text="SẢN PHẨM TRONG KHO" Style="{DynamicResource TypographyLabel}" Margin="0,14,0,4"/>
+                                            <TextBlock Text="{Binding Stats.TotalInventoryCount, StringFormat='N0'}" Style="{DynamicResource TypographyStatNumber}"/>
+                                            <TextBlock Text="Tổng sản lượng hiện tại" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        </StackPanel>
+                                    </materialDesign:Card>
+                                </Button>
+
+                                <!-- Nhập kho tháng -->
+                                <Button Command="{Binding NavigateToStockInCommand}" Style="{StaticResource MetricCardButtonStyle}" Margin="0,0,12,12">
+                                    <materialDesign:Card Padding="16">
+                                        <StackPanel>
+                                            <Border Background="#DCFCE7" Width="40" Height="40" CornerRadius="5" HorizontalAlignment="Left">
+                                                <materialDesign:PackIcon Kind="ArrowDownBold" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource DashStockInIconBrush}"/>
+                                            </Border>
+                                            <TextBlock Text="PHIẾU NHẬP" Style="{DynamicResource TypographyLabel}" Margin="0,14,0,4"/>
+                                            <TextBlock Text="{Binding Stats.StockInMonthCount}" Style="{DynamicResource TypographyStatNumber}"/>
+                                            <TextBlock Text="Nhập kho tháng này" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        </StackPanel>
+                                    </materialDesign:Card>
+                                </Button>
+
+                                <!-- Xuất kho tháng -->
+                                <Button Command="{Binding NavigateToSalesInvoicesCommand}" Style="{StaticResource MetricCardButtonStyle}" Margin="0,0,12,12">
+                                    <materialDesign:Card Padding="16">
+                                        <StackPanel>
+                                            <Border Background="#FFF7ED" Width="40" Height="40" CornerRadius="5" HorizontalAlignment="Left">
+                                                <materialDesign:PackIcon Kind="ArrowUpBold" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource DashStockOutIconBrush}"/>
+                                            </Border>
+                                            <TextBlock Text="PHIẾU XUẤT" Style="{DynamicResource TypographyLabel}" Margin="0,14,0,4"/>
+                                            <TextBlock Text="{Binding Stats.StockOutMonthCount}" Style="{DynamicResource TypographyStatNumber}"/>
+                                            <TextBlock Text="Xuất kho tháng này" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        </StackPanel>
+                                    </materialDesign:Card>
+                                </Button>
+
+                                <!-- Bảo hành đang xử lý -->
+                                <Button Command="{Binding NavigateToWarrantyCommand}" Style="{StaticResource MetricCardButtonStyle}" Margin="0,0,0,12">
+                                    <materialDesign:Card Padding="16">
+                                        <StackPanel>
+                                            <Border Background="#F5F3FF" Width="40" Height="40" CornerRadius="5" HorizontalAlignment="Left">
+                                                <materialDesign:PackIcon Kind="ShieldCheckOutline" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{StaticResource DashWarrantyIconBrush}"/>
+                                            </Border>
+                                            <TextBlock Text="YÊU CẦU BẢO HÀNH" Style="{DynamicResource TypographyLabel}" Margin="0,14,0,4"/>
+                                            <TextBlock Text="{Binding Stats.WarrantyActiveCount}" Style="{DynamicResource TypographyStatNumber}"/>
+                                            <TextBlock Text="Đang xử lý / Tiếp nhận" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        </StackPanel>
+                                    </materialDesign:Card>
+                                </Button>
+                            </UniformGrid>
+
+                            <!-- Hàng biểu đồ vận hành & hoạt động gần đây -->
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="6*"/>
+                                    <ColumnDefinition Width="4*"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <!-- Xu hướng nhập xuất kho -->
+                                <materialDesign:Card Grid.Column="0" Margin="0,0,8,0" Padding="16">
+                                    <StackPanel>
+                                        <TextBlock Text="Xu hướng dịch chuyển kho (7 ngày qua)" Style="{DynamicResource TypographyH2}" Margin="0,0,0,12"/>
+                                        <Grid Height="280">
+                                            <lvc:CartesianChart Series="{Binding StockMovementSeries}" XAxes="{Binding StockMovementXAxes}"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </materialDesign:Card>
+                                
+                                <!-- Hoạt động gần đây -->
+                                <materialDesign:Card Grid.Column="1" Margin="8,0,0,0" Padding="16">
+                                    <StackPanel>
+                                        <TextBlock Text="Hoạt động gần đây" Style="{DynamicResource TypographyH2}" Margin="0,0,0,16"/>
+                                        <ItemsControl ItemsSource="{Binding Stats.Activities}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid Margin="0,0,0,14">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Border Background="{StaticResource SurfaceMutedBrush}" Width="36" Height="34" CornerRadius="18">
+                                                            <materialDesign:PackIcon Kind="{Binding IconKind, Converter={StaticResource SafePackIconKindConverter}}" Width="18" Height="18" Foreground="{Binding IconColor}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                        <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" FontSize="13"/>
+                                                            <TextBlock Text="{Binding TimeAgo}" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </materialDesign:Card>
+                            </Grid>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+            </TabControl>
         </Grid>
     </Grid>
 </UserControl>

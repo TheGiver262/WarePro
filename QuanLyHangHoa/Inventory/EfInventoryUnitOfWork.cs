@@ -94,10 +94,22 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
         var serial = _context.ProductSerials.SingleOrDefault(s => s.SerialNumber == snapshot.SerialNumber);
         if (serial is null)
         {
+            var stockInLineId = _context.StockInLines
+                .Where(l => l.ProductId == snapshot.ProductId)
+                .OrderByDescending(l => l.Id)
+                .Select(l => l.Id)
+                .FirstOrDefault();
+
+            if (stockInLineId == 0)
+            {
+                stockInLineId = _context.StockInLines.Select(l => l.Id).FirstOrDefault();
+            }
+
             serial = new ProductSerial
             {
                 SerialNumber = snapshot.SerialNumber,
-                ProductId = snapshot.ProductId
+                ProductId = snapshot.ProductId,
+                LastStockInLineId = stockInLineId
             };
             _context.ProductSerials.Add(serial);
         }

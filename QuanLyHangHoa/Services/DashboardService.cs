@@ -14,6 +14,32 @@ namespace QuanLyHangHoa.Services
         public string? IconColor { get; set; }
     }
 
+    public class RevenueExpenseData
+    {
+        public string Month { get; set; } = string.Empty;
+        public decimal Revenue { get; set; }
+        public decimal Expense { get; set; }
+    }
+
+    public class InventoryStructureData
+    {
+        public string CategoryName { get; set; } = string.Empty;
+        public decimal TotalValue { get; set; }
+    }
+
+    public class TopSellingProductData
+    {
+        public string ProductName { get; set; } = string.Empty;
+        public int TotalSold { get; set; }
+    }
+
+    public class StockMovementData
+    {
+        public string Date { get; set; } = string.Empty;
+        public int StockInCount { get; set; }
+        public int StockOutCount { get; set; }
+    }
+
     public class DashboardStats
     {
         public int TotalInventoryCount { get; set; }
@@ -27,6 +53,10 @@ namespace QuanLyHangHoa.Services
         public decimal RevenueMonth { get; set; }
         public decimal RevenueYear { get; set; }
         public System.Collections.Generic.List<RecentActivity> Activities { get; set; } = new();
+        public System.Collections.Generic.List<RevenueExpenseData> RevenueExpenseChart { get; set; } = new();
+        public System.Collections.Generic.List<InventoryStructureData> InventoryStructureChart { get; set; } = new();
+        public System.Collections.Generic.List<TopSellingProductData> TopSellingProductsChart { get; set; } = new();
+        public System.Collections.Generic.List<StockMovementData> StockMovementChart { get; set; } = new();
     }
 
     public class DashboardService
@@ -70,7 +100,6 @@ namespace QuanLyHangHoa.Services
             stats.RevenueMonth = salesMonth.Sum(s => s.GrandTotal);
 
             // Unpaid Invoices
-            // Unpaid Invoices (Unpaid / Partial - stored as English in DB)
             stats.UnpaidSalesInvoiceCount = await context.SalesInvoices
                 .CountAsync(s => s.PaymentStatus == "Unpaid" || s.PaymentStatus == "Partial" || s.PaymentStatus == "Overdue");
             stats.UnpaidPurchaseInvoiceCount = await context.PurchaseInvoices
@@ -81,35 +110,154 @@ namespace QuanLyHangHoa.Services
                 .CountAsync(w => w.Status == "Active" || w.Status == "Processing");
 
             // Recent Activity
-            var recentStockIns = await context.StockIns
+            var rawStockIns = await context.StockIns
                 .OrderByDescending(s => s.CreatedAt)
-                .Take(3)
-                .Select(s => new RecentActivity 
-                { 
-                    Title = "Nhập kho: " + s.DocumentCode, 
-                    TimeAgo = GetRelativeTime(s.CreatedAt),
-                    IconKind = "ArrowDown",
-                    IconColor = "#10B981"
-                })
+                .Take(5)
+                .Select(s => new { Type = "In", s.DocumentCode, s.CreatedAt })
                 .ToListAsync();
 
-            var recentStockOuts = await context.StockOuts
+            var rawStockOuts = await context.StockOuts
                 .OrderByDescending(s => s.CreatedAt)
-                .Take(3)
-                .Select(s => new RecentActivity 
-                { 
-                    Title = "Xuất kho: " + s.DocumentCode, 
-                    TimeAgo = GetRelativeTime(s.CreatedAt),
-                    IconKind = "ArrowUp",
-                    IconColor = "#3B82F6"
-                })
+                .Take(5)
+                .Select(s => new { Type = "Out", s.DocumentCode, s.CreatedAt })
                 .ToListAsync();
 
-            stats.Activities.AddRange(recentStockIns);
-            stats.Activities.AddRange(recentStockOuts);
-            stats.Activities = stats.Activities.OrderByDescending(a => a.TimeAgo).Take(5).ToList();
+            var combinedActivities = rawStockIns
+                .Concat(rawStockOuts)
+                .OrderByDescending(a => a.CreatedAt)
+                .Take(5)
+                .Select(a => new RecentActivity
+                {
+                    Title = (a.Type == "In" ? "Nhập kho: " : "Xuất kho: ") + a.DocumentCode,
+                    TimeAgo = GetRelativeTime(a.CreatedAt),
+                    IconKind = a.Type == "In" ? "ArrowDown" : "ArrowUp",
+                    IconColor = a.Type == "In" ? "#10B981" : "#3B82F6"
+                })
+                .ToList();
+
+            stats.Activities = combinedActivities;
+
+            // Load chart data concurrently
+            var revenueExpenseTask = GetRevenueAndExpenseChartDataAsync(6); // 6 months
+            var inventoryStructureTask = GetInventoryStructureChartDataAsync();
+            var topSellingTask = GetTopSellingProductsAsync(5); // Top 5
+            var stockMovementTask = GetStockMovementTrendAsync(7); // 7 days
+
+            await Task.WhenAll(revenueExpenseTask, inventoryStructureTask, topSellingTask, stockMovementTask);
+
+            stats.RevenueExpenseChart = await revenueExpenseTask;
+            stats.InventoryStructureChart = await inventoryStructureTask;
+            stats.TopSellingProductsChart = await topSellingTask;
+            stats.StockMovementChart = await stockMovementTask;
 
             return stats;
+        }
+
+        public async Task<System.Collections.Generic.List<RevenueExpenseData>> GetRevenueAndExpenseChartDataAsync(int months)
+        {
+            using var context = _contextFactory();
+            var now = DateTime.Now;
+            var startDate = new DateTime(now.Year, now.Month, 1).AddMonths(-months + 1);
+
+            var sales = await context.SalesInvoices
+                .Where(s => s.InvoiceDate >= startDate)
+                .Select(s => new { s.InvoiceDate.Year, s.InvoiceDate.Month, s.GrandTotal })
+                .ToListAsync();
+
+            var purchases = await context.PurchaseInvoices
+                .Where(p => p.InvoiceDate >= startDate)
+                .Select(p => new { p.InvoiceDate.Year, p.InvoiceDate.Month, p.GrandTotal })
+                .ToListAsync();
+
+            var result = new System.Collections.Generic.List<RevenueExpenseData>();
+            for (int i = 0; i < months; i++)
+            {
+                var date = startDate.AddMonths(i);
+                var monthStr = date.ToString("MM/yyyy");
+
+                var monthlySales = sales.Where(s => s.Year == date.Year && s.Month == date.Month).Sum(s => s.GrandTotal);
+                var monthlyPurchases = purchases.Where(p => p.Year == date.Year && p.Month == date.Month).Sum(p => p.GrandTotal);
+
+                result.Add(new RevenueExpenseData
+                {
+                    Month = monthStr,
+                    Revenue = monthlySales,
+                    Expense = monthlyPurchases
+                });
+            }
+
+            return result;
+        }
+
+        public async Task<System.Collections.Generic.List<InventoryStructureData>> GetInventoryStructureChartDataAsync()
+        {
+            using var context = _contextFactory();
+            var balances = await context.StockBalances
+                .Include(sb => sb.Product)
+                    .ThenInclude(p => p.Category)
+                .ToListAsync();
+
+            var grouped = balances
+                .GroupBy(sb => sb.Product.CategoryName)
+                .Select(g => new InventoryStructureData
+                {
+                    CategoryName = g.Key,
+                    TotalValue = g.Sum(sb => sb.OnHandQuantity * (sb.Product.CostPrice ?? sb.Product.DefaultPrice))
+                })
+                .OrderByDescending(x => x.TotalValue)
+                .ToList();
+
+            return grouped;
+        }
+
+        public async Task<System.Collections.Generic.List<TopSellingProductData>> GetTopSellingProductsAsync(int limit)
+        {
+            using var context = _contextFactory();
+            var grouped = await context.SalesInvoiceLines
+                .Include(l => l.Product)
+                .GroupBy(l => l.Product.DisplayName)
+                .Select(g => new TopSellingProductData
+                {
+                    ProductName = g.Key,
+                    TotalSold = (int)g.Sum(l => l.Quantity)
+                })
+                .OrderByDescending(x => x.TotalSold)
+                .Take(limit)
+                .ToListAsync();
+
+            return grouped;
+        }
+
+        public async Task<System.Collections.Generic.List<StockMovementData>> GetStockMovementTrendAsync(int days)
+        {
+            using var context = _contextFactory();
+            var startDate = DateTime.Today.AddDays(-days + 1);
+
+            var stockIns = await context.StockIns
+                .Where(s => s.CreatedAt >= startDate)
+                .Select(s => s.CreatedAt.Date)
+                .ToListAsync();
+
+            var stockOuts = await context.StockOuts
+                .Where(s => s.CreatedAt >= startDate)
+                .Select(s => s.CreatedAt.Date)
+                .ToListAsync();
+
+            var result = new System.Collections.Generic.List<StockMovementData>();
+            for (int i = 0; i < days; i++)
+            {
+                var date = startDate.AddDays(i);
+                var dateStr = date.ToString("dd/MM");
+
+                result.Add(new StockMovementData
+                {
+                    Date = dateStr,
+                    StockInCount = stockIns.Count(d => d == date),
+                    StockOutCount = stockOuts.Count(d => d == date)
+                });
+            }
+
+            return result;
         }
 
         private string GetRelativeTime(DateTime date)

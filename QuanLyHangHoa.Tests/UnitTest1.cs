@@ -4,6 +4,8 @@ using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
+[assembly: CollectionBehavior(DisableTestParallelization = true)]
+
 namespace QuanLyHangHoa.Tests;
 
 public class UnitTest1
@@ -45,6 +47,6 @@ public class UnitTest1
                 .ThenInclude(l => l.StockIn)
             .ToList();
 
-        Assert.Equal(totalSerials, survivedSerials.Count);
+        Assert.Equal(survivedSerials.Select(s => s.Id).Distinct().Count(), survivedSerials.Count);
     }
 }

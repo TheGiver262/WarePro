@@ -198,6 +198,7 @@ namespace QuanLyHangHoa.ViewModels
             {
                 using var db = _contextFactory();
                 var serials = db.ProductSerials
+                    .Where(s => s.WarrantyCoverage != null && s.WarrantyCoverage.CoverageStatus == "Active" && s.WarrantyCoverage.WarrantyEndDate >= DateTime.Now)
                     .Select(s => s.SerialNumber)
                     .Distinct()
                     .OrderBy(s => s)
