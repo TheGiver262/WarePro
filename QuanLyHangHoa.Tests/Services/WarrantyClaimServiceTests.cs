@@ -246,4 +246,135 @@ public class WarrantyClaimServiceTests
         context.SaveChanges();
         return claim.Id;
     }
+
+    [Fact]
+    public void ReceiveFromManufacturerReplaced_updates_old_coverage_to_inactive_and_creates_new_coverage_with_remaining_days()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        int claimId;
+        string newSerialNo = "NEW-WARRANTY-SERIAL-1";
+        using (var seedContext = CreateContext(connection))
+        {
+            DatabaseHelper.SeedBasicData(seedContext);
+            seedContext.Products.Add(new Product { Id = 3000, ProductCode = "P3000", DisplayName = "P30", CategoryId = 1, BrandId = 1, DefaultUnitId = 1, DefaultPrice = 10m, IsSerialTracked = true });
+            
+            var serial = new ProductSerial { SerialNumber = "OLD-WARRANTY-SERIAL-1", ProductId = 3000, CurrentStatus = "ReturnedToManufacturer" };
+            seedContext.ProductSerials.Add(serial);
+            seedContext.SaveChanges();
+            
+            var coverage = new WarrantyCoverage 
+            { 
+                ProductSerialId = serial.Id, 
+                CustomerId = 1, 
+                WarrantyStartDate = DateTime.Now.AddDays(-10), 
+                WarrantyEndDate = DateTime.Now.AddDays(20), 
+                CoverageStatus = "Active" 
+            };
+            seedContext.WarrantyCoverages.Add(coverage);
+            seedContext.SaveChanges();
+
+            var claim = new WarrantyClaim
+            {
+                ClaimCode = "WC-REPLACE-1",
+                WarrantyCoverageId = coverage.Id,
+                ProductSerialId = serial.Id,
+                ReceivedDate = DateTime.Now,
+                Status = "ManufacturerWait"
+            };
+            seedContext.WarrantyClaims.Add(claim);
+            seedContext.SaveChanges();
+            claimId = claim.Id;
+        }
+
+        var service = new WarrantyClaimService(() => CreateContext(connection));
+        service.ReceiveFromManufacturerReplaced(claimId, newSerialNo, "Replaced by manufacturer", userId: 4);
+
+        using var assertContext = CreateContext(connection);
+        var oldCoverage = assertContext.WarrantyCoverages.FirstOrDefault(c => c.ProductSerial.SerialNumber == "OLD-WARRANTY-SERIAL-1");
+        Assert.NotNull(oldCoverage);
+        Assert.Equal("Inactive", oldCoverage.CoverageStatus);
+
+        var newSerial = assertContext.ProductSerials.FirstOrDefault(s => s.SerialNumber == newSerialNo);
+        Assert.NotNull(newSerial);
+
+        var newCoverage = assertContext.WarrantyCoverages.FirstOrDefault(c => c.ProductSerialId == newSerial.Id);
+        Assert.NotNull(newCoverage);
+        Assert.Equal("Active", newCoverage.CoverageStatus);
+        Assert.Equal(1, newCoverage.CustomerId);
+        
+        var remainingDays = (newCoverage.WarrantyEndDate - DateTime.Now).TotalDays;
+        Assert.True(remainingDays > 19 && remainingDays <= 20);
+    }
+
+    [Fact]
+    public void ReplaceSerial_updates_old_coverage_to_inactive_and_creates_new_coverage_with_remaining_days()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        int claimId;
+        string replacementSerialNo = "REPLACE-WARRANTY-SERIAL-2";
+        using (var seedContext = CreateContext(connection))
+        {
+            DatabaseHelper.SeedBasicData(seedContext);
+            seedContext.Products.Add(new Product { Id = 3001, ProductCode = "P3001", DisplayName = "P31", CategoryId = 1, BrandId = 1, DefaultUnitId = 1, DefaultPrice = 10m, IsSerialTracked = true });
+            
+            var serial = new ProductSerial { SerialNumber = "OLD-WARRANTY-SERIAL-2", ProductId = 3001, CurrentStatus = "InWarrantyProcess" };
+            seedContext.ProductSerials.Add(serial);
+
+            var replacementSerial = new ProductSerial { SerialNumber = replacementSerialNo, ProductId = 3001, CurrentStatus = "InStock", CurrentWarehouseId = 1 };
+            seedContext.ProductSerials.Add(replacementSerial);
+            seedContext.StockBalances.Add(new StockBalance
+            {
+                ProductId = 3001,
+                WarehouseId = 1,
+                OnHandQuantity = 1,
+                AvailableQuantity = 1
+            });
+            seedContext.SaveChanges();
+            
+            var coverage = new WarrantyCoverage 
+            { 
+                ProductSerialId = serial.Id, 
+                CustomerId = 1, 
+                WarrantyStartDate = DateTime.Now.AddDays(-5), 
+                WarrantyEndDate = DateTime.Now.AddDays(15), 
+                CoverageStatus = "Active" 
+            };
+            seedContext.WarrantyCoverages.Add(coverage);
+            seedContext.SaveChanges();
+
+            var claim = new WarrantyClaim
+            {
+                ClaimCode = "WC-REPLACE-2",
+                WarrantyCoverageId = coverage.Id,
+                ProductSerialId = serial.Id,
+                ReceivedDate = DateTime.Now,
+                Status = "Open"
+            };
+            seedContext.WarrantyClaims.Add(claim);
+            seedContext.SaveChanges();
+            claimId = claim.Id;
+        }
+
+        var service = new WarrantyClaimService(() => CreateContext(connection));
+        service.ReplaceSerial(claimId, replacementSerialNo, "Direct replacement", userId: 4);
+
+        using var assertContext = CreateContext(connection);
+        var oldCoverage = assertContext.WarrantyCoverages.FirstOrDefault(c => c.ProductSerial.SerialNumber == "OLD-WARRANTY-SERIAL-2");
+        Assert.NotNull(oldCoverage);
+        Assert.Equal("Inactive", oldCoverage.CoverageStatus);
+
+        var newSerial = assertContext.ProductSerials.FirstOrDefault(s => s.SerialNumber == replacementSerialNo);
+        Assert.NotNull(newSerial);
+
+        var newCoverage = assertContext.WarrantyCoverages.FirstOrDefault(c => c.ProductSerialId == newSerial.Id);
+        Assert.NotNull(newCoverage);
+        Assert.Equal("Active", newCoverage.CoverageStatus);
+        Assert.Equal(1, newCoverage.CustomerId);
+        
+        var remainingDays = (newCoverage.WarrantyEndDate - DateTime.Now).TotalDays;
+        Assert.True(remainingDays > 14 && remainingDays <= 15);
+    }
 }
+

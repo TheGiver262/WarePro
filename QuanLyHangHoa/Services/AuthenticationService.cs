@@ -15,6 +15,26 @@ namespace QuanLyHangHoa.Services
             _contextFactory = contextFactory;
         }
 
+        private void WriteAudit(AppDbContext db, string entityName, int entityId, string actionCode, int performedBy)
+        {
+            try
+            {
+                db.AuditLogs.Add(new AuditLog
+                {
+                    EntityName = entityName,
+                    EntityId = entityId,
+                    ActionCode = actionCode,
+                    PerformedBy = performedBy,
+                    PerformedAt = DateTime.Now
+                });
+                db.SaveChanges();
+            }
+            catch
+            {
+                // Tránh lỗi ghi log làm gián đoạn luồng chính
+            }
+        }
+
         public LoginResult Authenticate(string username, string password)
         {
             using var db = _contextFactory();
@@ -22,8 +42,18 @@ namespace QuanLyHangHoa.Services
             var user = db.AppUsers.FirstOrDefault(u => u.Username == username);
             
             // Strict case-sensitive check in application logic
-            if (user == null || user.Username != username) return LoginResult.Invalid();
-            if (!user.IsActive) return LoginResult.Inactive();
+            if (user == null || user.Username != username)
+            {
+                var systemUserId = db.AppUsers.OrderBy(u => u.Id).Select(u => u.Id).FirstOrDefault();
+                WriteAudit(db, "AppUser", 0, "LoginFailedUnknownUser", systemUserId == 0 ? 1 : systemUserId);
+                return LoginResult.Invalid(0);
+            }
+
+            if (!user.IsActive)
+            {
+                WriteAudit(db, "AppUser", user.Id, "LoginFailed", user.Id);
+                return LoginResult.Inactive();
+            }
             
             // Check lockout
             if (user.LockoutUntil.HasValue && user.LockoutUntil.Value > DateTime.Now)
@@ -52,11 +82,28 @@ namespace QuanLyHangHoa.Services
                 {
                     // Increment failed attempts and handle lockout
                     user.FailedLoginCount++;
-                    if (user.FailedLoginCount >= 5)
+                    user.LastFailedLoginAt = DateTime.Now;
+                    
+                    if (user.FailedLoginCount >= 10)
                     {
-                        user.LockoutUntil = DateTime.Now.AddMinutes(30);
+                        user.LockoutUntil = DateTime.Now.AddMinutes(15);
+                        db.SaveChanges();
+                        WriteAudit(db, "AppUser", user.Id, "SuspiciousLoginAttempt", user.Id);
+                        return LoginResult.Locked(user.LockoutUntil);
                     }
-                    db.SaveChanges();
+                    else if (user.FailedLoginCount >= 5)
+                    {
+                        user.LockoutUntil = DateTime.Now.AddMinutes(5);
+                        db.SaveChanges();
+                        WriteAudit(db, "AppUser", user.Id, "LoginLocked", user.Id);
+                        return LoginResult.Locked(user.LockoutUntil);
+                    }
+                    else
+                    {
+                        db.SaveChanges();
+                        WriteAudit(db, "AppUser", user.Id, "LoginFailed", user.Id);
+                        return LoginResult.Invalid(user.FailedLoginCount);
+                    }
                 }
             }
             catch
@@ -64,7 +111,7 @@ namespace QuanLyHangHoa.Services
                 // In case of invalid hash format or other errors
             }
 
-            return LoginResult.Invalid();
+            return LoginResult.Invalid(user?.FailedLoginCount ?? 0);
         }
 
         public void ChangePassword(int userId, string currentPassword, string newPassword)

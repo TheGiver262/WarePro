@@ -557,7 +557,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("PK__StockIn__3214EC07786210D8");
 
-            entity.ToTable("StockIn", t => t.HasCheckConstraint("CK_StockIn_PurposeCode", "[PurposeCode] IN ('Purchase', 'OpeningBalance', 'Adjustment')"));
+            entity.ToTable("StockIn", t => t.HasCheckConstraint("CK_StockIn_PurposeCode", "[PurposeCode] IN ('Purchase', 'OpeningBalance', 'Adjustment', 'WarrantyReceive')"));
 
             entity.HasIndex(e => e.SupplierId, "IX_StockIn_SupplierId");
 

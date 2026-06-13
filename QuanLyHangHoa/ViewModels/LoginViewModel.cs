@@ -64,17 +64,23 @@ namespace QuanLyHangHoa.ViewModels
                     break;
 
                 case LoginStatus.LockedOut:
-                    var localTime = result.LockoutUntil?.ToLocalTime().ToString("HH:mm:ss") ?? "n/a";
-                    ErrorMessage = $"Tài khoản bị khóa tạm thời đến {localTime} do nhập sai nhiều lần.";
+                    ErrorMessage = "Tên tài khoản hoặc mật khẩu không đúng hoặc tài khoản đang tạm khóa!";
                     break;
 
                 case LoginStatus.Inactive:
-                    ErrorMessage = "Tài khoản bị vô hiệu hóa do vi phạm bảo mật. Vui lòng liên hệ Admin.";
+                    ErrorMessage = "Tên tài khoản hoặc mật khẩu không đúng!";
                     break;
 
                 case LoginStatus.InvalidCredentials:
                 default:
-                    ErrorMessage = "Tên tài khoản hoặc mật khẩu không đúng!";
+                    if (result.FailedLoginCount >= 3 && result.FailedLoginCount < 5)
+                    {
+                        ErrorMessage = "Tên tài khoản hoặc mật khẩu không đúng!\n(Nhập sai tên đăng nhập/mật khẩu liên tiếp sẽ bị khóa tài khoản tạm thời)";
+                    }
+                    else
+                    {
+                        ErrorMessage = "Tên tài khoản hoặc mật khẩu không đúng!";
+                    }
                     break;
             }
         }

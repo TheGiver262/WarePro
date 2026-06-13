@@ -235,17 +235,7 @@ namespace QuanLyHangHoa.Services
                         UnitId = unitId,
                         Quantity = 1,
                         BaseQuantity = 1,
-                        UnitPrice = 0,
-                        ProductSerials = new List<ProductSerial>
-                        {
-                            new ProductSerial
-                            {
-                                ProductId = product.Id,
-                                SerialNumber = newSerialNumber,
-                                CurrentWarehouseId = warehouseId,
-                                CurrentStatus = "InStock"
-                            }
-                        }
+                        UnitPrice = 0
                     }
                 }
             };
@@ -277,7 +267,7 @@ namespace QuanLyHangHoa.Services
                 DocumentCode = $"WRO-{DateTime.Now:yyyyMMddHHmmss}",
                 CustomerId = customerId,
                 WarehouseId = warehouseId,
-                PurposeCode = "WarrantyReplace",
+                PurposeCode = "WarrantyReplacement",
                 Status = DocumentStatus.Posted,
                 ExportDate = DateTime.Now,
                 Notes = $"Xuất serial mới BH cho claim #{claim.ClaimCode}",
@@ -311,7 +301,29 @@ namespace QuanLyHangHoa.Services
                 new[] { newSerialNumber },
                 userId));
 
-            // 4. Update claim
+            // 4. Update Warranty Coverage
+            var oldCoverage = claim.WarrantyCoverage;
+            if (oldCoverage != null && oldCoverage.CoverageStatus == "Active")
+            {
+                oldCoverage.CoverageStatus = "Inactive";
+
+                var remainingDays = (oldCoverage.WarrantyEndDate - DateTime.Now).TotalDays;
+                if (remainingDays > 0)
+                {
+                    var newCoverage = new WarrantyCoverage
+                    {
+                        ProductSerialId = newSerial.Id,
+                        CustomerId = oldCoverage.CustomerId,
+                        SalesInvoiceId = oldCoverage.SalesInvoiceId,
+                        WarrantyStartDate = DateTime.Now,
+                        WarrantyEndDate = DateTime.Now.AddDays(remainingDays),
+                        CoverageStatus = "Active"
+                    };
+                    db.WarrantyCoverages.Add(newCoverage);
+                }
+            }
+
+            // 5. Update claim
             claim.TechnicalConclusion = conclusion;
             claim.ResolutionType = "ManufacturerReplace";
             claim.ReplacementSerialId = newSerial.Id;
@@ -395,7 +407,7 @@ namespace QuanLyHangHoa.Services
                 DocumentCode = $"WRO-{DateTime.Now:yyyyMMddHHmmss}",
                 CustomerId = customerId,
                 WarehouseId = warehouseId,
-                PurposeCode = "WarrantyReplace",
+                PurposeCode = "WarrantyReplacement",
                 Status = DocumentStatus.Posted,
                 ExportDate = DateTime.Now,
                 Notes = $"Đổi serial BH cho claim #{claim.ClaimCode}",
@@ -433,6 +445,28 @@ namespace QuanLyHangHoa.Services
                 1,
                 new[] { replacementSerial },
                 userId));
+
+            // Update Warranty Coverage
+            var oldCoverage = claim.WarrantyCoverage;
+            if (oldCoverage != null && oldCoverage.CoverageStatus == "Active")
+            {
+                oldCoverage.CoverageStatus = "Inactive";
+
+                var remainingDays = (oldCoverage.WarrantyEndDate - DateTime.Now).TotalDays;
+                if (remainingDays > 0)
+                {
+                    var newCoverage = new WarrantyCoverage
+                    {
+                        ProductSerialId = newSerial.Id,
+                        CustomerId = oldCoverage.CustomerId,
+                        SalesInvoiceId = oldCoverage.SalesInvoiceId,
+                        WarrantyStartDate = DateTime.Now,
+                        WarrantyEndDate = DateTime.Now.AddDays(remainingDays),
+                        CoverageStatus = "Active"
+                    };
+                    db.WarrantyCoverages.Add(newCoverage);
+                }
+            }
 
             // Update claim
             claim.ReplacementSerialId = newSerial.Id;

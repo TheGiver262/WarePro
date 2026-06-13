@@ -39,6 +39,40 @@ namespace QuanLyHangHoa.Services
         {
             var result = new ImportResult<OpeningBalanceImportRow>();
 
+            int stockInId = 0;
+            try
+            {
+                using var db = _contextFactory();
+                var warehouseProvider = new DbDefaultWarehouseProvider(db);
+                var warehouseId = warehouseProvider.GetDefaultWarehouseId();
+                var stockIn = new StockIn
+                {
+                    DocumentCode = $"SI-OB-{DateTime.Now:yyyyMMddHHmmss}",
+                    WarehouseId = warehouseId,
+                    PurposeCode = "OpeningBalance",
+                    Status = DocumentStatus.Posted,
+                    ImportDate = DateTime.Now,
+                    Notes = $"Import tồn đầu kỳ từ Excel/CSV",
+                    CreatedBy = postedByUserId,
+                    CreatedAt = DateTime.Now,
+                    PostedBy = postedByUserId,
+                    PostedAt = DateTime.Now
+                };
+                db.StockIns.Add(stockIn);
+                db.SaveChanges();
+                stockInId = stockIn.Id;
+            }
+            catch (Exception ex)
+            {
+                result.Errors.Add(new RowError
+                {
+                    RowNumber = 0,
+                    Data = "Khởi tạo chứng từ nhập đầu kỳ",
+                    ErrorMessage = $"Không thể khởi tạo chứng từ nhập đầu kỳ: {ex.Message}"
+                });
+                return result;
+            }
+
             foreach (var row in rows)
             {
                 try
@@ -52,8 +86,29 @@ namespace QuanLyHangHoa.Services
                         warehouseProvider,
                         new SystemClock());
 
+                    var product = db.Products.Find(row.ProductId);
+                    var unitId = db.ProductUnits
+                        .Where(pu => pu.ProductId == row.ProductId && pu.IsBaseUnit)
+                        .Select(pu => pu.UnitId)
+                        .FirstOrDefault();
+                    if (unitId == 0 && product != null) unitId = product.DefaultUnitId;
+                    if (unitId == 0) unitId = 1;
+
+                    var line = new StockInLine
+                    {
+                        StockInId = stockInId,
+                        ProductId = row.ProductId,
+                        UnitId = unitId,
+                        Quantity = row.Quantity,
+                        BaseQuantity = row.Quantity,
+                        UnitPrice = product?.DefaultPrice ?? 0,
+                        DraftSerials = string.IsNullOrWhiteSpace(row.SerialNumbers) ? null : row.SerialNumbers
+                    };
+                    db.StockInLines.Add(line);
+                    db.SaveChanges();
+
                     postingService.PostStockIn(new PostStockInCommand(
-                        0,
+                        stockInId,
                         warehouseId,
                         StockInKind.OpeningBalance,
                         StockDocumentStatus.Approved,
@@ -61,6 +116,17 @@ namespace QuanLyHangHoa.Services
                         row.Quantity,
                         StockInService.ParseSerialRange(row.SerialNumbers),
                         postedByUserId));
+
+                    var sns = StockInService.ParseSerialRange(row.SerialNumbers);
+                    if (sns.Any())
+                    {
+                        var dbSerials = db.ProductSerials.Where(ps => sns.Contains(ps.SerialNumber)).ToList();
+                        foreach (var s in dbSerials)
+                        {
+                            s.LastStockInLineId = line.Id;
+                        }
+                        db.SaveChanges();
+                    }
 
                     transaction.Commit();
                     result.ImportedItems.Add(row);
@@ -74,6 +140,24 @@ namespace QuanLyHangHoa.Services
                         Data = $"ProductId={row.ProductId}; Quantity={row.Quantity}; SerialNumbers={row.SerialNumbers}",
                         ErrorMessage = ex.Message
                     });
+                }
+            }
+
+            if (result.SuccessCount == 0 && stockInId > 0)
+            {
+                try
+                {
+                    using var db = _contextFactory();
+                    var stockIn = db.StockIns.Find(stockInId);
+                    if (stockIn != null)
+                    {
+                        db.StockIns.Remove(stockIn);
+                        db.SaveChanges();
+                    }
+                }
+                catch
+                {
+                    // Ignore
                 }
             }
 
