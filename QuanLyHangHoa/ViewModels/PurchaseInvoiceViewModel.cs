@@ -87,6 +87,7 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void Refresh()
         {
+            _isInitialized = false;
             SearchInvoiceCode = string.Empty;
             SearchSupplierName = string.Empty;
             FilterStartDate = null;
@@ -95,6 +96,7 @@ namespace QuanLyHangHoa.ViewModels
             FilterLinkDocCode = string.Empty;
             FilterMinTotal = null;
             FilterMaxTotal = null;
+            _isInitialized = true;
 
             LoadData();
         }

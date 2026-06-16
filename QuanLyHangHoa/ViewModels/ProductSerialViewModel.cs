@@ -344,10 +344,15 @@ namespace QuanLyHangHoa.ViewModels
             await Task.Run(() =>
             {
                 using var db = _contextFactory();
-                var total = db.ProductSerials.Count();
-                var inStock = db.ProductSerials.Count(s => s.CurrentStatus == "InStock");
-                var sold = db.ProductSerials.Count(s => s.CurrentStatus == "Sold");
-                var scrapped = db.ProductSerials.Count(s => s.CurrentStatus == "Scrapped");
+                var statusCounts = db.ProductSerials
+                    .GroupBy(s => s.CurrentStatus)
+                    .Select(g => new { Status = g.Key, Count = g.Count() })
+                    .ToList();
+
+                var inStock = statusCounts.FirstOrDefault(x => x.Status == "InStock")?.Count ?? 0;
+                var sold = statusCounts.FirstOrDefault(x => x.Status == "Sold")?.Count ?? 0;
+                var scrapped = statusCounts.FirstOrDefault(x => x.Status == "Scrapped")?.Count ?? 0;
+                var total = statusCounts.Sum(x => x.Count);
 
                 if (Application.Current != null)
                 {

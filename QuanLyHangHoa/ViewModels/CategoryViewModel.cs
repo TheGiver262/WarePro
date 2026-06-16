@@ -7,13 +7,11 @@ using QuanLyHangHoa.Views;
 using System;
 using System.Collections.ObjectModel;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Windows;
 using ClosedXML.Excel;
 using System.Text.Json;
 using QuanLyHangHoa.Services;
-using System.Text.Json.Serialization;
 
 namespace QuanLyHangHoa.ViewModels
 {
@@ -206,7 +204,7 @@ namespace QuanLyHangHoa.ViewModels
 
         private string Serialize(Category c)
         {
-            return System.Text.Json.JsonSerializer.Serialize(new { c.Id, c.CategoryCode, c.DisplayName, c.IsActive });
+            return JsonSerializer.Serialize(new { c.Id, c.CategoryCode, c.DisplayName, c.IsActive });
         }
     }
 }

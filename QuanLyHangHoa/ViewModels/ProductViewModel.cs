@@ -10,7 +10,6 @@ using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
 using QuanLyHangHoa.Views;
 using QuanLyHangHoa.Data;
-using System.Text.Json;
 
 namespace QuanLyHangHoa.ViewModels
 {
@@ -102,9 +101,14 @@ namespace QuanLyHangHoa.ViewModels
             await Task.Run(() =>
             {
                 using var db = _contextFactory();
-                var total = db.Products.Count();
-                var active = db.Products.Count(p => p.IsActive);
-                var inactive = db.Products.Count(p => !p.IsActive);
+                var statusCounts = db.Products
+                    .GroupBy(p => p.IsActive)
+                    .Select(g => new { IsActive = g.Key, Count = g.Count() })
+                    .ToList();
+
+                var active = statusCounts.FirstOrDefault(x => x.IsActive)?.Count ?? 0;
+                var inactive = statusCounts.FirstOrDefault(x => !x.IsActive)?.Count ?? 0;
+                var total = active + inactive;
 
                 Application.Current.Dispatcher.Invoke(() =>
                 {

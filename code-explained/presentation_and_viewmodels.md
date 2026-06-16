@@ -75,31 +75,78 @@ Lớp [LoginViewModel.cs](file:///f:/Codex%20Project/ProductManagement_Antigravi
 Đây là các màn hình nghiệp vụ phức tạp hỗ trợ thủ kho tạo mới và quản lý các phiếu xuất/nhập hàng.
 
 * **Quản lý dòng chi tiết động:** Các dòng sản phẩm được liên kết với một `ObservableCollection<StockInLine>` (hoặc `StockOutLine`). Bất kỳ thao tác thêm/xóa sản phẩm trên bảng hiển thị đều tự động cập nhật vào danh sách này.
-* **Cơ chế bắt sự kiện quét mã vạch (Barcode Scanner Integration):**
-  Khi thủ kho đặt con trỏ tại ô quét Serial và bấm nút quét (hoặc nhập phím Enter), ViewModel thực thi Command bắt sự kiện quét:
+* **Cơ chế tích hợp máy quét mã vạch vật lý (Barcode Scanner Integration):**
+  Trong mã nguồn thực tế, hệ thống không dùng một Command nhận diện máy quét riêng biệt mà tận dụng cơ chế giả lập bàn phím (**Keyboard Emulation**) của các máy quét mã vạch thông dụng:
+  * Khi thủ kho nhấn nút nhập serial của dòng sản phẩm, hệ thống mở cửa sổ `SerialInputWindow` chứa ô nhập liệu `SerialTextBox` (cấu hình `AcceptsReturn="True"` để nhận phím Enter xuống dòng).
+  * Khi đặt con trỏ vào ô này và bấm quét, máy quét sẽ tự động điền chuỗi ký tự số Serial và gửi kèm phím `Enter` ảo, làm con trỏ tự động xuống dòng tiếp theo để chờ quét mã kế tiếp.
+  * Sự kiện `SerialTextBox_TextChanged` trong [SerialInputWindow.xaml.cs](file:///f:/Codex%20Project/ProductManagement_Antigravity/QuanLyHangHoa/Views/SerialInputWindow.xaml.cs#L156-L179) tự động kích hoạt hàm phân tích cú pháp dải số Serial `StockInService.ParseSerialRange()` để đếm và hiển thị số lượng serial đã nhận diện thời gian thực trên nhãn Preview.
+  * **Cách kiểm thử mà không cần máy quét:** Người dùng chỉ cần mở cửa sổ nhập, gõ tay một số serial, nhấn phím `Enter` trên bàn phím máy tính để xuống dòng, rồi gõ tiếp serial thứ hai... Hành động gõ tay và nhấn Enter này giả lập chính xác 100% hành vi của máy quét mã vạch vật lý đối với ô nhập liệu.
+* **Điều khiển trạng thái giao diện theo Trạng thái chứng từ:**
+  Khi một phiếu đang ở trạng thái `Posted` (Đã ghi sổ) hoặc đang ở chế độ chỉ xem (`IsViewMode`), toàn bộ các control nhập liệu, nút bấm "Lưu", "Ghi sổ", "Xóa" trên giao diện WPF sẽ tự động chuyển sang trạng thái Disable (vô hiệu hóa) bằng cách liên kết thuộc tính `IsEnabled` với thuộc tính `CanEdit` trong ViewModel:
+  ```csharp
+  public bool CanEdit => !IsPosted && !IsViewMode;
+  ```
+
+---
+
+## 3A. Giao diện Hóa đơn Mua/Bán (`PurchaseInvoiceViewModel` & `SalesInvoiceViewModel`)
+
+Các lớp này quản lý trạng thái hiển thị, tìm kiếm và thanh toán của hóa đơn mua hàng từ nhà cung cấp và hóa đơn bán hàng cho khách hàng.
+
+* **Cơ chế chống Race Condition khi làm mới bộ lọc (Filter Reset):**
+  Trong ViewModels hóa đơn, các thuộc tính lọc (như `SearchInvoiceCode`, `SearchSupplierName`, `SelectedFilterPaymentStatus`...) đều kích hoạt phương thức nạp dữ liệu `LoadData()` tự động mỗi khi giá trị thay đổi (`OnSearchInvoiceCodeChanged`...). 
+  Khi người dùng bấm nút "Làm mới", hệ thống reset đồng loạt tất cả các tham số này về trạng thái trống. Để tránh việc kích hoạt nhiều luồng `LoadData()` bất đồng bộ chạy song song gây ra tranh chấp tài nguyên (Race Condition), hệ thống sử dụng cờ hiệu `_isInitialized`:
   ```csharp
   [RelayCommand]
-  private void AddSerialFromScanner(string serialNo)
+  private void Refresh()
   {
-      if (string.IsNullOrWhiteSpace(serialNo)) return;
-      var cleanSerial = serialNo.Trim();
-      
-      // Kiểm tra trùng lặp ngay trên giao diện trước khi lưu
-      if (CurrentLineSerials.Contains(cleanSerial))
-      {
-          WarningMessage = "Số serial này đã có trong danh sách quét.";
-          return;
-      }
-      
-      CurrentLineSerials.Add(cleanSerial);
-      UpdateLineQuantity();
+      _isInitialized = false; // Tạm ngắt cơ chế nạp tự động
+      SearchInvoiceCode = string.Empty;
+      SearchSupplierName = string.Empty;
+      FilterStartDate = null;
+      FilterEndDate = null;
+      SelectedFilterPaymentStatus = "Tất cả";
+      FilterLinkDocCode = string.Empty;
+      FilterMinTotal = null;
+      FilterMaxTotal = null;
+      _isInitialized = true;  // Bật lại cơ chế
+
+      LoadData(); // Chỉ thực thi tải dữ liệu duy nhất một lần
   }
   ```
-* **Điều khiển trạng thái giao diện theo Trạng thái chứng từ:**
-  Khi một phiếu đang ở trạng thái `Posted` (Đã ghi sổ), toàn bộ các control nhập liệu, nút bấm "Lưu nháp", "Ghi sổ", "Xóa" trên giao diện WPF sẽ tự động chuyển sang trạng thái Disable (vô hiệu hóa) bằng cách liên kết thuộc tính `IsEnabled` với thuộc tính `IsEditable` trong ViewModel:
+  Nhờ cờ này, việc reset hàng loạt thuộc tính diễn ra đồng bộ trên UI mà không tạo ra các truy vấn SQL dư thừa lên database.
+
+---
+
+## 3B. Thiết kế Layout DataGrid & Khắc phục lệch cột (UI Layout Stability)
+
+Để đảm bảo độ ổn định của giao diện người dùng (WPF DataGrid) khi làm mới dữ liệu hoặc khi danh sách tạm thời trống:
+* **Vấn đề:** Việc thiết lập độ rộng cột là `Width="Auto"` kết hợp với cơ chế ảo hóa dòng (`EnableRowVirtualization="True"`) của WPF sẽ khiến DataGrid liên tục tính toán lại độ rộng cột khi dữ liệu rỗng hoặc khi thêm từng dòng dữ liệu mới. Điều này dẫn đến hiện tượng giật màn hình hoặc lệch hàng giữa tiêu đề cột (Header) và ô dữ liệu (Cells).
+* **Giải pháp:** Cố định độ rộng (Width) cho các cột chính trong DataGrid trên toàn bộ hệ thống:
+  * *Hóa đơn Mua/Bán (`PurchaseInvoiceView` & `SalesInvoiceView`):* Số HĐ (`140`), Ngày (`120`), Trước thuế (`120`), Thuế (`100`), Tổng tiền (`130`), Trạng thái (`130`), Thao tác (`130`), còn lại cột Tên đối tác co giãn tỷ lệ (`*`).
+  * *Phiếu điều chỉnh (`AdjustmentView`):* Cố định cột Thời gian (`150`).
+  * *Hồ sơ bảo hành (`WarrantyClaimView`):* Cố định Mã phiếu (`120`), Ngày nhận (`140`), Trạng thái (`120`).
+* **Kết quả:** Layout DataGrid được cố định chắc chắn, không bị co cụm về kích thước tiêu đề khi danh sách trống, giải quyết triệt để lỗi lệch cột.
+
+---
+
+## 3C. Tối ưu hóa truy vấn CSDL đếm số lượng (Database Counts Optimization)
+
+Nhằm giảm tải kết nối cơ sở dữ liệu và cải thiện tốc độ phản hồi của giao diện:
+* **Vấn đề cũ:** Tại các màn hình danh sách sản phẩm hoặc danh sách số Serial, để hiển thị bộ đếm số lượng theo trạng thái ở các Tab (ví dụ: Tất cả, Hoạt động, Ngừng hoạt động; hoặc InStock, Sold, Scrapped), hệ thống thực hiện gọi nhiều lệnh truy vấn `.Count()` liên tiếp lên Entity Framework Core. Điều này sinh ra 3-4 câu lệnh SQL `SELECT COUNT(*)` riêng biệt gửi tới SQL Server.
+* **Giải pháp tối ưu:** Sử dụng gom nhóm `GroupBy` trong một câu truy vấn LINQ duy nhất để lấy toàn bộ số lượng theo trạng thái, sau đó ánh xạ vào bộ đếm:
   ```csharp
-  public bool IsEditable => Document?.Status == DocumentStatus.Draft;
+  // Ví dụ trong ProductViewModel.cs
+  var counts = await db.Products
+      .GroupBy(p => p.IsActive)
+      .Select(g => new { IsActive = g.Key, Count = g.Count() })
+      .ToListAsync();
+
+  ActiveCount = counts.FirstOrDefault(c => c.IsActive)?.Count ?? 0;
+  InactiveCount = counts.FirstOrDefault(c => !c.IsActive)?.Count ?? 0;
+  TotalCount = ActiveCount + InactiveCount;
   ```
+* **Ý nghĩa:** Tiết kiệm đến 66% - 75% số lượng kết nối Database (từ 3-4 query giảm xuống còn 1 query duy nhất), tối ưu hóa đáng kể tốc độ tải ban đầu của View.
 
 ---
 
@@ -112,11 +159,15 @@ Lớp [ReportViewModel.cs](file:///f:/Codex%20Project/ProductManagement_Antigrav
 * Các thuộc tính `RevenueExpenseSeries` (kiểu `ISeries[]`) và `RevenueExpenseXAxes` (kiểu `Axis[]`) được cấu hình màu sắc, kích thước điểm vẽ (`GeometrySize = 6`), và nhãn xoay nghiêng 15 độ để tránh chồng chéo chữ trên giao diện nhỏ.
 
 ### Tab 2: Báo cáo Xuất-Nhập-Tồn tổng hợp
+* **Đầy đủ dữ liệu sản phẩm:** Báo cáo Xuất-Nhập-Tồn được thiết kế để không bỏ sót các sản phẩm đã ngừng hoạt động (Inactive) nhưng vẫn còn số dư tồn kho hoặc có phát sinh giao dịch nhập xuất trong kỳ báo cáo (loại bỏ lọc cứng `IsActive = true` trong truy vấn sản phẩm).
 * **Tính toán số liệu trong kỳ:** Với mỗi sản phẩm, hệ thống lọc Sổ kho (`StockLedger`) để chia thành 3 giai đoạn:
   * *Tồn đầu kỳ:* Tổng lượng nhập trừ lượng xuất trước ngày `FromDate`.
   * *Nhập/Xuất trong kỳ:* Phát sinh từ ngày `FromDate` đến ngày `ToDate`.
   * *Tồn cuối kỳ:* Bằng Tồn đầu kỳ + Nhập trong kỳ - Xuất trong kỳ.
-* Số tiền tương ứng được tính toán bằng cách nhân số lượng với giá trị kho (Giá vốn trung bình hoặc giá bán mặc định).
+* **Bộ lọc và Tự động làm mới:** 
+  * Cung cấp tùy chọn lọc `"Tất cả danh mục"` (bằng cách chèn bản ghi giả với `Id = 0` vào đầu danh sách) giúp người dùng dễ dàng xem lại toàn bộ sản phẩm của mọi danh mục.
+  * Tự động kích hoạt tải lại báo cáo ngay khi người dùng thay đổi lựa chọn danh mục (`SelectedCategory`) hoặc nhập ô tìm kiếm tên sản phẩm (`SearchProductText`) thông qua các phương thức lắng nghe thay đổi của CommunityToolkit.Mvvm, mang lại trải nghiệm mượt mà và trực quan.
+  * Số tiền tương ứng được tính toán bằng cách nhân số lượng với giá trị kho (Giá vốn trung bình hoặc giá bán mặc định).
 
 ### Tab 3: Sổ kho / Thẻ kho chi tiết
 * **Thuật toán tính tồn lũy kế (Running Balance):**

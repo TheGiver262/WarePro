@@ -66,7 +66,7 @@
                                       CanUserAddRows="False" SelectionMode="Single" BorderThickness="0" RowHeight="50"
                                       IsReadOnly="True">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Binding="{Binding SessionCode}" Width="160" ElementStyle="{DynamicResource AppDataGridTextBold}">
+                                    <DataGridTextColumn Binding="{Binding SessionCode}" Width="*" ElementStyle="{DynamicResource AppDataGridTextBold}">
                                         <DataGridTextColumn.Header>
                                             <StackPanel Orientation="Horizontal">
                                                 <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
@@ -84,7 +84,7 @@
                                         </DataGridTextColumn.Header>
                                     </DataGridTextColumn>
 
-                                    <DataGridTextColumn Binding="{Binding CountDate, StringFormat='{}{0:dd/MM/yyyy HH:mm}'}" Width="140" ElementStyle="{DynamicResource AppDataGridTextCenter}">
+                                    <DataGridTextColumn Binding="{Binding CountDate, StringFormat='{}{0:dd/MM/yyyy HH:mm}'}" Width="160" ElementStyle="{DynamicResource AppDataGridTextCenter}">
                                         <DataGridTextColumn.Header>
                                             <StackPanel Orientation="Horizontal">
                                                 <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>

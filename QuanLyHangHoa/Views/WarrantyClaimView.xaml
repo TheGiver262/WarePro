@@ -97,7 +97,7 @@
                            AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                            BorderThickness="0" RowHeight="40">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Binding="{Binding ClaimCode}" Width="Auto" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}">
+                        <DataGridTextColumn Binding="{Binding ClaimCode}" Width="120" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}">
                             <DataGridTextColumn.Header>
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
@@ -106,7 +106,7 @@
                             </DataGridTextColumn.Header>
                         </DataGridTextColumn>
 
-                        <DataGridTextColumn Binding="{Binding ReceivedDate, StringFormat=dd/MM/yyyy HH:mm}" Width="Auto" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}">
+                        <DataGridTextColumn Binding="{Binding ReceivedDate, StringFormat=dd/MM/yyyy HH:mm}" Width="140" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}">
                             <DataGridTextColumn.Header>
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
@@ -142,7 +142,7 @@
                             </DataGridTextColumn.Header>
                         </DataGridTextColumn>
 
-                        <DataGridTextColumn Binding="{Binding Status}" Width="Auto">
+                        <DataGridTextColumn Binding="{Binding Status}" Width="120">
                             <DataGridTextColumn.Header>
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>

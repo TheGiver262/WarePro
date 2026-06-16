@@ -58,6 +58,9 @@ namespace QuanLyHangHoa.ViewModels
             Refresh();
         }
 
+        partial void OnSelectedCategoryChanged(Category? value) => Refresh();
+        partial void OnSearchProductTextChanged(string value) => Refresh();
+
         // Tải danh sách bộ lọc ban đầu (Sản phẩm & Danh mục)
         private void LoadFilterData()
         {
@@ -66,6 +69,8 @@ namespace QuanLyHangHoa.ViewModels
                 using var db = new AppDbContext();
                 var activeCategories = db.Categories.Where(c => c.IsActive).OrderBy(c => c.DisplayName).ToList();
                 Categories = new ObservableCollection<Category>(activeCategories);
+                Categories.Insert(0, new Category { Id = 0, DisplayName = "Tất cả danh mục" });
+                SelectedCategory = Categories.FirstOrDefault();
 
                 var activeProducts = db.Products.Where(p => p.IsActive).OrderBy(p => p.DisplayName).ToList();
                 Products = new ObservableCollection<Product>(activeProducts);
@@ -203,9 +208,9 @@ namespace QuanLyHangHoa.ViewModels
                 var startDate = FromDate.Date;
                 var endDate = ToDate.Date.AddDays(1).AddTicks(-1);
 
-                // Lấy danh sách sản phẩm theo bộ lọc danh mục và từ khóa
-                var prodQuery = db.Products.Include(p => p.Category).Where(p => p.IsActive);
-                if (SelectedCategory != null)
+                // Lấy danh sách sản phẩm theo bộ lọc danh mục và từ khóa (bao gồm cả sản phẩm Inactive có số dư/phát sinh)
+                var prodQuery = db.Products.Include(p => p.Category).AsQueryable();
+                if (SelectedCategory != null && SelectedCategory.Id > 0)
                 {
                     prodQuery = prodQuery.Where(p => p.CategoryId == SelectedCategory.Id);
                 }

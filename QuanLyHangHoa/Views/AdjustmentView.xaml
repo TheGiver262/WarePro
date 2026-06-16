@@ -85,7 +85,7 @@
                           HeadersVisibility="Column" GridLinesVisibility="Horizontal"
                           HorizontalGridLinesBrush="{StaticResource AppBorderBrush}">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Binding="{Binding AdjustmentDate, StringFormat=dd/MM/yyyy HH:mm}" Width="Auto" 
+                        <DataGridTextColumn Binding="{Binding AdjustmentDate, StringFormat=dd/MM/yyyy HH:mm}" Width="150" 
                                            ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}">
                             <DataGridTextColumn.Header>
                                 <StackPanel Orientation="Horizontal">

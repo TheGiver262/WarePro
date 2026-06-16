@@ -187,7 +187,7 @@
                                       CanUserAddRows="False"
                                       CanUserReorderColumns="False">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Binding="{Binding InvoiceCode}" Width="Auto" ElementStyle="{DynamicResource AppDataGridTextBold}">
+                                    <DataGridTextColumn Binding="{Binding InvoiceCode}" Width="140" ElementStyle="{DynamicResource AppDataGridTextBold}">
                                         <DataGridTextColumn.Header>
                                             <StackPanel Orientation="Horizontal">
                                                 <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
@@ -196,7 +196,7 @@
                                         </DataGridTextColumn.Header>
                                     </DataGridTextColumn>
 
-                                    <DataGridTextColumn Binding="{Binding InvoiceDate, StringFormat='dd/MM/yyyy'}" Width="Auto" ElementStyle="{DynamicResource AppDataGridTextCenter}">
+                                    <DataGridTextColumn Binding="{Binding InvoiceDate, StringFormat='dd/MM/yyyy'}" Width="120" ElementStyle="{DynamicResource AppDataGridTextCenter}">
                                         <DataGridTextColumn.Header>
                                             <StackPanel Orientation="Horizontal">
                                                 <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
@@ -214,7 +214,7 @@
                                         </DataGridTextColumn.Header>
                                     </DataGridTextColumn>
 
-                                    <DataGridTextColumn Binding="{Binding SubTotal, StringFormat='N0'}" Width="Auto" ElementStyle="{DynamicResource AppDataGridTextRight}">
+                                    <DataGridTextColumn Binding="{Binding SubTotal, StringFormat='N0'}" Width="120" ElementStyle="{DynamicResource AppDataGridTextRight}">
                                         <DataGridTextColumn.Header>
                                             <StackPanel Orientation="Horizontal">
                                                 <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
@@ -223,7 +223,7 @@
                                         </DataGridTextColumn.Header>
                                     </DataGridTextColumn>
 
-                                    <DataGridTextColumn Binding="{Binding TaxAmount, StringFormat='N0'}" Width="Auto" ElementStyle="{DynamicResource AppDataGridTextRight}">
+                                    <DataGridTextColumn Binding="{Binding TaxAmount, StringFormat='N0'}" Width="100" ElementStyle="{DynamicResource AppDataGridTextRight}">
                                         <DataGridTextColumn.Header>
                                             <StackPanel Orientation="Horizontal">
                                                 <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
@@ -232,7 +232,7 @@
                                         </DataGridTextColumn.Header>
                                     </DataGridTextColumn>
 
-                                    <DataGridTextColumn Binding="{Binding GrandTotal, StringFormat='N0'}" Width="Auto" ElementStyle="{DynamicResource AppDataGridTextRightBold}">
+                                    <DataGridTextColumn Binding="{Binding GrandTotal, StringFormat='N0'}" Width="130" ElementStyle="{DynamicResource AppDataGridTextRightBold}">
                                         <DataGridTextColumn.Header>
                                             <StackPanel Orientation="Horizontal">
                                                 <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
@@ -241,7 +241,7 @@
                                         </DataGridTextColumn.Header>
                                     </DataGridTextColumn>
 
-                                    <DataGridTemplateColumn Width="Auto" CellTemplate="{StaticResource PaymentStatusBadgeTemplate}">
+                                    <DataGridTemplateColumn Width="130" CellTemplate="{StaticResource PaymentStatusBadgeTemplate}">
                                         <DataGridTemplateColumn.Header>
                                             <StackPanel Orientation="Horizontal">
                                                 <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>

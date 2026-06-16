@@ -114,16 +114,29 @@ Sơ đồ tuần tự này mô tả sự phối hợp liên phân hệ giữa ph
 
 ## 5. Các Sơ đồ Trạng thái (State Machine Diagrams)
 
-Sơ đồ State Machine định nghĩa tất cả các trạng thái có thể có của một thực thể và các sự kiện kích hoạt chuyển dịch trạng thái (State Transitions).
+Sơ đồ State Machine định nghĩa tất cả các trạng thái có thể có của một thực thể và các sự kiện kích hoạt chuyển dịch trạng thái (State Transitions) trong cơ sở dữ liệu.
 
 ### State 16: Vòng đời của chứng từ kho (Document Lifecycle)
-Để đảm bảo quy trình tinh gọn cho doanh nghiệp vừa và nhỏ, vòng đời chứng từ được giản lược tối đa:
-* `Draft` (Nháp): Trạng thái ban đầu của chứng từ khi mới tạo. Ở trạng thái này, người dùng có toàn quyền chỉnh sửa thông tin, thêm/xóa dòng sản phẩm, quét lại số serial.
-* Sự kiện `Post` (Ghi sổ) được kích hoạt bởi thủ kho hoặc quản lý.
-* `Posted` (Đã ghi sổ): Chứng từ chuyển sang trạng thái đã ghi sổ và bị đóng băng hoàn toàn. Người dùng không thể chỉnh sửa, xóa hay thay đổi bất kỳ thông tin nào để bảo vệ tính toàn vẹn số liệu kế toán.
+Để đảm bảo quy trình kiểm soát chặt chẽ nhưng vẫn tinh gọn cho doanh nghiệp, vòng đời chứng từ được quản lý qua các trạng thái:
+* `Draft` (Nháp): Trạng thái ban đầu khi khởi tạo chứng từ. Thủ kho hoặc nhân viên bán hàng có quyền chỉnh sửa thông tin sản phẩm, số lượng, quét serial và cập nhật đơn giá.
+* `Posted` (Đã ghi sổ): Trạng thái chứng từ được duyệt hoạt động và khóa số liệu. Khi chuyển sang `Posted`, hệ thống lập tức cập nhật sổ kho (`StockLedger`), số dư tồn (`StockBalance`) và đổi trạng thái Serial. Chứng từ ở trạng thái này bị đóng băng hoàn toàn (không được phép sửa hoặc xóa).
+* `Cancelled` (Hủy nháp): Chứng từ nháp bị hủy bỏ khi không còn nhu cầu giao dịch. Trạng thái này không làm thay đổi tồn kho thực tế và là trạng thái đóng.
 
-### State 17: Vòng đời của thiết bị / Số Serial (Serial Number Lifecycle)
-Mỗi số Serial đại diện cho một thiết bị vật lý cụ thể và có một vòng đời di chuyển liên tục:
+### State 17: Vòng đời hồ sơ bảo hành (Warranty Claim Lifecycle)
+Theo dõi hành trình xử lý một yêu cầu bảo hành từ lúc tiếp nhận cho đến khi đóng hồ sơ:
+* `Checking` (Đang kiểm tra): Kỹ thuật viên tiếp nhận máy lỗi của khách hàng và thực hiện kiểm tra nguyên nhân lỗi.
+* `WaitingDecision` (Chờ quyết định): Có kết luận kỹ thuật (từ nội bộ hoặc từ hãng). Quản lý hoặc kỹ thuật viên chuẩn bị duyệt phương án xử lý cuối cùng.
+* `SentToManufacturer` (Gửi hãng): Trường hợp lỗi nặng không thể xử lý trong nước, kỹ thuật viên chuyển thiết bị về trung tâm bảo hành của hãng sản xuất.
+* `WaitingManufacturerResult` (Chờ kết quả từ hãng): Trạng thái hãng đang kiểm tra và quyết định phương án xử lý (sửa hay đổi).
+* `Repairing` (Đang sửa): Thực hiện khắc phục lỗi thiết bị bằng cách sửa chữa linh kiện.
+* `Repaired` (Đã sửa xong): Thiết bị cũ đã được sửa xong hoàn toàn và sẵn sàng giao trả.
+* `Replaced` (Đổi mới): Quyết định đổi một thiết bị thay thế mới (tạo bảo hành mới kế thừa thời gian còn lại).
+* `Rejected` (Từ chối): Từ chối bảo hành do vi phạm chính sách bảo hành của hãng (rơi vỡ, ngập nước...).
+* `ReturnedToCustomer` (Đã trả khách): Thiết bị (máy cũ đã sửa, máy mới thay thế hoặc máy bị từ chối) được bàn giao lại cho khách hàng.
+* `Closed` (Đã đóng): Hoàn tất quy trình bảo hành khép kín và lưu giữ lịch sử.
+
+### Sơ đồ bổ trợ: Vòng đời của thiết bị / Số Serial (Serial Number Lifecycle)
+Mỗi số Serial đại diện cho một thiết bị vật lý cụ thể, di chuyển liên tục qua các trạng thái:
 ```
 +--------+   Nhập kho    +---------+     Bán hàng    +------+
 | Unborn | -----------> | InStock | --------------> | Sold |
@@ -142,15 +155,15 @@ Mỗi số Serial đại diện cho một thiết bị vật lý cụ thể và 
                                                  |  Scrapped | (Thanh lý)
                                                  +-----------+
 ```
-* `InStock` (Trong kho): Thiết bị đang nằm tại một kho cụ thể, sẵn sàng bán hoặc điều chuyển.
-* `Sold` (Đã bán): Thiết bị đã được xuất bán và bàn giao cho khách hàng (xóa thông tin kho hiện tại).
-* `InWarrantyProcess` (Đang bảo hành): Thiết bị bị lỗi và được nhân viên bảo hành tiếp nhận xử lý.
-* `ReturnedToManufacturer` (Đã gửi hãng): Thiết bị được chuyển về hãng sản xuất để bảo hành sửa chữa.
-* `Scrapped` (Thanh lý/Hủy): Thiết bị hỏng nặng không thể sửa chữa và bị loại bỏ khỏi hệ thống.
+* `InStock` (Trong kho): Thiết bị nằm tại kho vật lý, sẵn sàng để bán hoặc chuyển kho nội bộ.
+* `Sold` (Đã bán): Thiết bị đã xuất bán cho khách hàng thông qua hóa đơn bán hàng.
+* `InWarrantyProcess` (Đang bảo hành): Thiết bị lỗi do khách gửi lại, đang nằm trong quy trình xử lý của phân hệ bảo hành.
+* `ReturnedToManufacturer` (Đã gửi hãng): Thiết bị được gửi đi hãng và đang chờ hãng sửa chữa.
+* `Scrapped` (Thanh lý/Hủy): Thiết bị hỏng nặng, không thể sửa chữa và hãng từ chối đổi mới, bị hủy bỏ khỏi hệ thống.
 
-### State 18: Vòng đời của quyền bảo hành (Warranty Coverage Lifecycle)
-* `Active` (Hiệu lực): Quyền bảo hành đang hoạt động tốt và thời gian hiện tại nằm trong hạn bảo hành. Khách hàng có quyền yêu cầu sửa chữa miễn phí.
-* `Inactive` (Vô hiệu/Hết hạn): Quyền bảo hành bị đóng do hết hạn thời gian hoặc do thiết bị cũ đã bị thu hồi/vô hiệu hóa trong quá trình đổi mới.
+### Sơ đồ bổ trợ: Vòng đời của quyền bảo hành (Warranty Coverage Lifecycle)
+* `Active` (Hiệu lực): Quyền bảo hành đang hoạt động tốt và thời gian hiện hành nằm trong hạn bảo hành của Serial đó.
+* `Inactive` (Vô hiệu/Hết hạn): Quyền bảo hành hết hiệu lực do hết thời hạn bảo hành hoặc thiết bị cũ bị thu hồi để thực hiện đổi mới bảo hành (bị đóng trong transaction).
 
 ---
 
