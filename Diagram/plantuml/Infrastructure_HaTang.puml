@@ -1,0 +1,57 @@
+@startuml Infrastructure_HaTang
+title Sơ đồ Hạ tầng Máy chủ & Lưu trữ (Infrastructure Diagram)
+
+left to right direction
+skinparam NodeBackgroundColor #LightYellow
+skinparam DatabaseBackgroundColor #LightCyan
+
+package "Hạ tầng văn phòng chính (Headquarters)" {
+    node "Mạng nội bộ (Office LAN)" {
+        [Switch Cisco Catalyst] as Switch
+        [Firewall Cisco ASA / pfSense] as Firewall
+    }
+    
+    node "Máy tính trạm (Client PCs)" {
+        [WPF Client App (PC-01)] as PC1
+        [WPF Client App (PC-02)] as PC2
+    }
+    
+    node "Máy chủ chính (Main SQL DB Server)" as MainDBServer {
+        node "Hệ điều hành Windows Server 2022" {
+            node "Phần cứng vật lý:\n- CPU: Intel Xeon Gold (16 Cores)\n- RAM: 64GB DDR5 ECC\n- Disk: NVMe RAID 10 (High Write I/O)" {
+                database "SQL Server Instance" as SqlInstance {
+                    [QuanLyHangHoa CSDL] as MainDB
+                }
+            }
+        }
+    }
+    
+    node "Hạ tầng Lưu trữ nội bộ (NAS Storage)" as NASServer {
+        [Synology NAS (RAID 6)] as NASStorage
+    }
+}
+
+package "Hạ tầng đám mây (Cloud Infrastructure)" {
+    cloud "Amazon Web Services (AWS) / Azure" as CloudSvc {
+        [Amazon S3 / Azure Blob Storage\n(Cold Backup Storage)] as CloudBackup
+        [Amazon SES / SMTP Cloud Service] as CloudEmail
+    }
+    
+    cloud "Hạ tầng API Hãng (Manufacturer Warranty Service)" as MfgCloud {
+        [Manufacturer API Server] as MfgAPIServer
+    }
+}
+
+' Kết nối hạ tầng
+PC1 --> Switch : Ethernet
+PC2 --> Switch : Ethernet
+Switch --> Firewall : Internal Traffic
+
+Firewall --> SqlInstance : TCP Port 1433 (Database Connection)
+SqlInstance --> NASStorage : Sao lưu hàng đêm (Local Backup Script - .bak)
+
+Firewall --> CloudBackup : Đồng bộ backup hàng tuần qua Internet (HTTPS)
+Firewall --> CloudEmail : Gửi email thông báo (SMTP TLS Port 587)
+Firewall --> MfgAPIServer : Đồng bộ hồ sơ claim bảo hành (HTTPS Cổng 443)
+
+@enduml

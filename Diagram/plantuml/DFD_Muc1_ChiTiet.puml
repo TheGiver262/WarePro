@@ -1,0 +1,66 @@
+@startuml DFD_Muc1_ChiTiet
+title Sơ đồ Luồng Dữ liệu DFD Mức 1 - Phân rã Hệ thống
+
+left to right direction
+skinparam ComponentStyle uml2
+skinparam databaseBackgroundColor #LightYellow
+skinparam componentBackgroundColor #LightCyan
+
+' Tác nhân ngoài
+actor "Khách hàng" as Customer
+actor "Nhà cung cấp" as Supplier
+actor "Hãng sản xuất" as Manufacturer
+actor "Người dùng" as User
+
+' Các Kho dữ liệu (Data Stores)
+database "D1: Tài khoản & Nhật ký\n(AppUser, AuditLog)" as D1
+database "D2: Danh mục sản phẩm\n(Product, Category, Warehouse...)" as D2
+database "D3: Tồn dư & Thẻ kho\n(StockBalance, StockLedger)" as D3
+database "D4: Chứng từ kho\n(StockIn, StockOut, StockAdjustment)" as D4
+database "D5: Hóa đơn thương mại\n(PurchaseInvoice, SalesInvoice)" as D5
+database "D6: Số Serial thiết bị\n(ProductSerial)" as D6
+database "D7: Bảo hành & Khiếu nại\n(WarrantyCoverage, WarrantyClaim)" as D7
+
+' Các Tiến trình chính (Processes)
+component "1.0 Quản trị Hệ thống &\nXác thực Đăng nhập" as P1
+component "2.0 Quản lý Kho & Tồn kho\n(Nhập, Xuất, Điều chỉnh)" as P2
+component "3.0 Quản lý Hóa đơn\n& Thương mại" as P3
+component "4.0 Quản lý & Tiếp nhận\nBảo hành" as P4
+
+' Luồng dữ liệu cho Tiến trình 1.0 (Quản trị hệ thống)
+User --> P1 : Thông tin đăng nhập/Tạo user
+P1 --> D1 : Truy vấn & Lưu tài khoản
+D1 --> P1 : Trả về quyền hạn (RoleCode)
+P1 --> User : Cấp quyền truy cập hệ thống
+
+' Luồng dữ liệu cho Tiến trình 2.0 (Quản lý Kho)
+User --> P2 : Lập phiếu kho (Nhập/Xuất/Điều chỉnh/Import)
+P2 --> D2 : Tra cứu danh mục sản phẩm, kho hàng
+P2 --> D4 : Lưu thông tin phiếu (Draft -> Posted)
+P2 --> D3 : Cập nhật số dư OnHand/Available & Ghi sổ Ledger
+P2 --> D6 : Kích hoạt trạng thái Serial (InStock/Sold/Replaced)
+P2 --> User : Báo cáo tồn kho & Nhật ký thẻ kho
+Supplier --> P2 : Hàng giao kèm phiếu nhập kho
+
+' Luồng dữ liệu cho Tiến trình 3.0 (Quản lý Hóa đơn)
+User --> P3 : Lập Hóa đơn Mua / Bán
+P3 --> D4 : Đối chiếu tham chiếu Phiếu Kho nguồn
+P3 --> D5 : Lưu trữ thông tin hóa đơn (Tổng tiền, thuế, công nợ)
+D5 --> P3 : Trả về báo cáo doanh thu & công nợ
+P3 --> User : Hiển thị danh sách hóa đơn & báo cáo
+P3 --> Customer : Giao Hóa đơn bán lẻ (SalesInvoice)
+Supplier --> P3 : Hóa đơn mua hàng (PurchaseInvoice)
+
+' Luồng dữ liệu cho Tiến trình 4.0 (Quản lý Bảo hành)
+Customer --> P4 : Gửi thiết bị lỗi
+User --> P4 : Thao tác tiếp nhận & xử lý bảo hành
+P4 --> D6 : Quét và cập nhật trạng thái Serial (InWarrantyProcess)
+P4 --> D5 : Đối soát Hóa đơn bán liên quan
+P4 --> D7 : Kiểm tra Coverage (Active), lưu Claim bảo hành
+P4 --> D3 : Gọi P2 để xuất máy thay thế từ tồn kho
+P4 --> Manufacturer : Chuyển máy lỗi & Yêu cầu duyệt claim của hãng
+Manufacturer --> P4 : Trả kết quả duyệt & Trả máy hỏng đã sửa/mới
+P4 --> Customer : Trả máy cũ đã sửa / Giao máy mới đổi
+P4 --> User : Báo cáo tỷ lệ lỗi & lịch sử bảo hành
+
+@enduml

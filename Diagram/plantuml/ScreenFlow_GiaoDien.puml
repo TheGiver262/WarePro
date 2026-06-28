@@ -1,0 +1,78 @@
+@startuml ScreenFlow_GiaoDien
+title Sơ đồ luồng di chuyển màn hình (Screen Flow Diagram)
+
+[*] --> LoginWindow : Mở ứng dụng
+
+state LoginWindow {
+  [*] --> LoginForm
+  LoginForm --> ChangePasswordForm : Đăng nhập lần đầu / Yêu cầu đổi pass
+  ChangePasswordForm --> LoginForm : Đổi pass thành công
+}
+
+LoginWindow --> MainWindow : Xác thực thành công (Khởi tạo UserContext)
+
+state MainWindow {
+  [*] --> MainDashboard : Tải mặc định
+  
+  state "Quản lý Danh mục" as CatalogSub {
+    [*] --> ProductList
+    ProductList --> ProductDetail : Click "Thêm mới/Chi tiết"
+    ProductList --> PartnerList : Chọn tab "Đối tác"
+    ProductList --> WarehouseList : Chọn tab "Kho"
+  }
+  
+  state "Quản lý Kho hàng" as StockSub {
+    [*] --> StockInList
+    StockInList --> StockInDetail : Click "Lập phiếu nhập"
+    StockInDetail --> SerialInputPopup : Click "Quét Serial" (Sản phẩm quản lý Serial)
+    SerialInputPopup --> StockInDetail : Xác nhận Serial
+    
+    StockInList --> StockOutList : Chọn tab "Xuất kho"
+    StockOutList --> StockOutDetail : Click "Lập phiếu xuất"
+    StockOutDetail --> SerialSelectPopup : Click "Chọn Serial"
+    SerialSelectPopup --> StockOutDetail : Xác nhận Serial
+    
+    StockInList --> StockCountList : Chọn tab "Kiểm kê"
+    StockCountList --> StockCountDetail : Click "Khởi tạo kiểm kê"
+    StockCountDetail --> StockAdjustmentDetail : Click "Cân đối kho" (Tự động sinh phiếu điều chỉnh)
+  }
+  
+  state "Quản lý Hóa đơn" as InvoiceSub {
+    [*] --> PurchaseInvoiceList
+    PurchaseInvoiceList --> SalesInvoiceList : Chọn tab "Hóa đơn bán"
+    SalesInvoiceList --> SalesInvoiceDetail : Click "Chi tiết"
+    SalesInvoiceDetail --> PrintPreviewWindow : Click "In hóa đơn"
+  }
+  
+  state "Phân hệ Bảo hành" as WarrantySub {
+    [*] --> WarrantyClaimList
+    WarrantyClaimList --> WarrantyClaimCreate : Click "Tiếp nhận bảo hành"
+    WarrantyClaimCreate --> WarrantyClaimDetail : Bấm "Tạo hồ sơ" thành công
+    WarrantyClaimDetail --> ReplacementSerialPopup : Click "Đổi mới" (Chọn Serial thay thế)
+    ReplacementSerialPopup --> WarrantyClaimDetail : Xác nhận Serial thay thế
+    WarrantyClaimDetail --> PrintPreviewWindow : Click "In phiếu bảo hành"
+  }
+  
+  state "Báo cáo Thống kê" as ReportSub {
+    [*] --> StockReport
+    StockReport --> FinancialReport : Chọn tab "Doanh thu & Công nợ"
+    StockReport --> WarrantyReport : Chọn tab "Báo cáo Bảo hành"
+  }
+  
+  state "Cấu hình & User" as SystemSub {
+    [*] --> AppUserList
+    AppUserList --> AuditLogList : Chọn tab "Audit Log"
+  }
+  
+  MainDashboard --> CatalogSub : Click Sidebar "Danh mục"
+  MainDashboard --> StockSub : Click Sidebar "Quản lý Kho"
+  MainDashboard --> InvoiceSub : Click Sidebar "Hóa đơn"
+  MainDashboard --> WarrantySub : Click Sidebar "Bảo hành"
+  MainDashboard --> ReportSub : Click Sidebar "Báo cáo"
+  MainDashboard --> SystemSub : Click Sidebar "Hệ thống" (Chỉ Admin/Manager)
+}
+
+MainWindow --> LoginWindow : Click "Đăng xuất"
+MainWindow --> [*] : Đóng ứng dụng
+
+@enduml

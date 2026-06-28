@@ -1,0 +1,43 @@
+@startuml UserJourney_BaoHanh
+title Bản đồ Hành trình Người dùng (User Journey Map) - Nghiệp vụ Bảo hành đổi mới
+
+left to right direction
+skinparam RectangleBackgroundColor #GhostWhite
+skinparam NodeBackgroundColor #LightYellow
+
+node "1. Mua hàng & Kích hoạt" as Phase1 {
+    [Hành động: Khách hàng mua thiết bị mới] as A1
+    [Điểm chạm: Gặp NV Bán hàng & Hóa đơn bán lẻ] as T1
+    [Cảm xúc: Vui vẻ, hào hứng (5/5)] as E1
+}
+
+node "2. Thiết bị phát sinh lỗi" as Phase2 {
+    [Hành động: Máy đột ngột hỏng sau 3 tháng] as A2
+    [Điểm chạm: Tương tác với thiết bị lỗi] as T2
+    [Cảm xúc: Bực mình, lo lắng mất dữ liệu (1/5)] as E2
+}
+
+node "3. Mang máy đi bảo hành" as Phase3 {
+    [Hành động: Mang thiết bị tới cửa hàng] as A3
+    [Điểm chạm: Gặp NV Bảo hành, quét Serial kiểm tra] as T3
+    [Cảm xúc: Hy vọng, e dè thủ tục (3/5)] as E3
+}
+
+node "4. Đợi kiểm tra & Xử lý" as Phase4 {
+    [Hành động: Máy hỏng nặng, chờ duyệt đổi mới] as A4
+    [Điểm chạm: SMS thông báo tiến độ tự động] as T4
+    [Cảm xúc: Hồi hộp, chờ đợi kết quả (2/5)] as E4
+}
+
+node "5. Nhận thiết bị thay thế" as Phase5 {
+    [Hành động: Nhận máy mới & Ký biên bản đổi trả] as A5
+    [Điểm chạm: Gặp kỹ thuật viên, nhận máy & bảo hành kế thừa] as T5
+    [Cảm xúc: Rất hài lòng, tin tưởng dịch vụ (5/5)] as E5
+}
+
+Phase1 --> Phase2 : Thiết bị hỏng
+Phase2 --> Phase3 : Đem máy bảo hành
+Phase3 --> Phase4 : Chờ kỹ thuật kiểm tra
+Phase4 --> Phase5 : Nhận máy mới đổi trả
+
+@enduml

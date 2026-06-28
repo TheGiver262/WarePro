@@ -1,0 +1,73 @@
+flowchart TB
+    %% Tác nhân ngoài
+    Customer([Khách hàng])
+    Supplier([Nhà cung cấp])
+    Manufacturer([Hãng sản xuất])
+    User([Người dùng])
+
+    %% Tiến trình chính (Processes)
+    subgraph Processes["Các Tiến trình Hệ thống"]
+        P1((1.0 Quản trị Hệ thống<br/>& Xác thực Đăng nhập))
+        P2((2.0 Quản lý Kho & Tồn kho<br/>Nhập, Xuất, Điều chỉnh))
+        P3((3.0 Quản lý Hóa đơn<br/>& Thương mại))
+        P4((4.0 Quản lý & Tiếp nhận<br/>Bảo hành))
+    end
+
+    %% Kho dữ liệu (Data Stores)
+    subgraph DataStores["Kho dữ liệu Database"]
+        D1[(D1: AppUser & AuditLog)]
+        D2[(D2: Product & Category & Warehouse)]
+        D3[(D3: StockBalance & StockLedger)]
+        D4[(D4: StockIn & StockOut & StockCount)]
+        D5[(D5: PurchaseInvoice & SalesInvoice)]
+        D6[(D6: ProductSerial)]
+        D7[(D7: WarrantyCoverage & WarrantyClaim)]
+    end
+
+    %% Style các nhóm node
+    style P1 fill:#e6f3ff,stroke:#0066cc,stroke-width:1.5px
+    style P2 fill:#e6f3ff,stroke:#0066cc,stroke-width:1.5px
+    style P3 fill:#e6f3ff,stroke:#0066cc,stroke-width:1.5px
+    style P4 fill:#e6f3ff,stroke:#0066cc,stroke-width:1.5px
+    style D1 fill:#fff9e6,stroke:#cc9900,stroke-width:1px
+    style D2 fill:#fff9e6,stroke:#cc9900,stroke-width:1px
+    style D3 fill:#fff9e6,stroke:#cc9900,stroke-width:1px
+    style D4 fill:#fff9e6,stroke:#cc9900,stroke-width:1px
+    style D5 fill:#fff9e6,stroke:#cc9900,stroke-width:1px
+    style D6 fill:#fff9e6,stroke:#cc9900,stroke-width:1px
+    style D7 fill:#fff9e6,stroke:#cc9900,stroke-width:1px
+
+    %% Luồng dữ liệu P1.0 (Xác thực)
+    User -->|Đăng nhập/Tạo tài khoản| P1
+    P1 <-->|Truy vấn/Ghi tài khoản| D1
+    P1 -->|Cấp quyền hạn| User
+
+    %% Luồng dữ liệu P2.0 (Quản lý Kho)
+    User -->|Lập phiếu kho/Import đầu kỳ| P2
+    P2 -->|Tra cứu sản phẩm & kho| D2
+    P2 -->|Lưu phiếu Draft/Posted| D4
+    P2 -->|Cập nhật số dư & ghi sổ Ledger| D3
+    P2 -->|Đổi trạng thái InStock/Sold| D6
+    P2 -->|Trả về Báo cáo tồn & Thẻ kho| User
+    Supplier -->|Giao hàng kèm phiếu| P2
+
+    %% Luồng dữ liệu P3.0 (Hóa đơn)
+    User -->|Lập hóa đơn| P3
+    P3 -->|Tham chiếu phiếu kho| D4
+    P3 -->|Lưu hóa đơn & công nợ| D5
+    D5 -->|Báo cáo doanh thu & công nợ| P3
+    P3 -->|Danh sách hóa đơn| User
+    P3 -->|Hóa đơn bán lẻ| Customer
+    Supplier -->|Giao hóa đơn mua| P3
+
+    %% Luồng dữ liệu P4.0 (Bảo hành)
+    Customer -->|Gửi máy lỗi| P4
+    User -->|Thao tác bảo hành/đổi mới| P4
+    P4 <-->|Kiểm tra & Cập nhật trạng thái| D6
+    P4 -->|Tra cứu đối chiếu hóa đơn| D5
+    P4 <-->|Tra cứu coverage & lưu claim| D7
+    P4 -->|Yêu cầu xuất máy thay thế| P2
+    P4 -->|Gửi máy lỗi & gửi claim| Manufacturer
+    Manufacturer -->|Trả máy hỏng đã sửa/máy mới| P4
+    P4 -->|Trả máy đã sửa / giao máy mới| Customer
+    P4 -->|Báo cáo tỷ lệ lỗi & claim| User

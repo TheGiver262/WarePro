@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
+using QuanLyHangHoa.Services;
 using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
@@ -16,6 +17,8 @@ namespace QuanLyHangHoa.ViewModels
 {
     public partial class ReportViewModel : ObservableObject
     {
+        private readonly Func<AppDbContext> _contextFactory;
+        private readonly ReportTraceService _traceService;
         // --- CHUNG ---
         [ObservableProperty] private DateTime _fromDate = DateTime.Today.AddDays(-30);
         [ObservableProperty] private DateTime _toDate = DateTime.Today;
@@ -44,10 +47,21 @@ namespace QuanLyHangHoa.ViewModels
 
         // --- TAB 4: TRUY VẾT SERIAL ---
         [ObservableProperty] private string _searchSerialText = string.Empty;
+        [ObservableProperty] private string _serialProductText = string.Empty;
+        [ObservableProperty] private string _serialDocumentText = string.Empty;
+        [ObservableProperty] private string _serialPartnerText = string.Empty;
+        [ObservableProperty] private string? _selectedSerialStatus = "All";
+        [ObservableProperty] private ObservableCollection<string> _serialStatuses = new(new[] { "All", "InStock", "Sold", "Transferred", "Reserved", "Warranty" });
         [ObservableProperty] private ObservableCollection<SerialTraceReportItem> _serialTraceReports = new();
 
-        public ReportViewModel()
+        public ReportViewModel() : this(() => new AppDbContext())
         {
+        }
+
+        public ReportViewModel(Func<AppDbContext> contextFactory)
+        {
+            _contextFactory = contextFactory;
+            _traceService = new ReportTraceService(contextFactory);
             LoadFilterData();
             Refresh();
         }
@@ -66,7 +80,7 @@ namespace QuanLyHangHoa.ViewModels
         {
             try
             {
-                using var db = new AppDbContext();
+                using var db = _contextFactory();
                 var activeCategories = db.Categories.Where(c => c.IsActive).OrderBy(c => c.DisplayName).ToList();
                 Categories = new ObservableCollection<Category>(activeCategories);
                 Categories.Insert(0, new Category { Id = 0, DisplayName = "Tất cả danh mục" });
@@ -110,7 +124,7 @@ namespace QuanLyHangHoa.ViewModels
         {
             try
             {
-                using var db = new AppDbContext();
+                using var db = _contextFactory();
                 var startDate = FromDate.Date;
                 var endDate = ToDate.Date.AddDays(1).AddTicks(-1);
 
@@ -204,7 +218,7 @@ namespace QuanLyHangHoa.ViewModels
         {
             try
             {
-                using var db = new AppDbContext();
+                using var db = _contextFactory();
                 var startDate = FromDate.Date;
                 var endDate = ToDate.Date.AddDays(1).AddTicks(-1);
 
@@ -292,82 +306,31 @@ namespace QuanLyHangHoa.ViewModels
                     return;
                 }
 
-                using var db = new AppDbContext();
-                var startDate = FromDate.Date;
-                var endDate = ToDate.Date.AddDays(1).AddTicks(-1);
-
-                // Lấy toàn bộ Ledger của sản phẩm
-                var allLedgers = db.StockLedgers
-                    .Where(l => l.ProductId == SelectedProduct.Id && l.PostedAt <= endDate)
-                    .OrderBy(l => l.PostedAt)
-                    .ToList();
-
-                // Tính tồn đầu kỳ
-                decimal currentQty = allLedgers
-                    .Where(l => l.PostedAt < startDate)
-                    .Sum(l => l.MovementType == "In" ? l.Quantity : -l.Quantity);
-                LedgerStartQty = currentQty;
-
-                var currentLedgers = allLedgers.Where(l => l.PostedAt >= startDate && l.PostedAt <= endDate).ToList();
-                var reportList = new List<StockLedgerReportItem>();
-
-                // Để lấy tên đối tác và mã chứng từ nhanh, ta tải trước thông tin chứng từ liên quan
-                var stockInIds = currentLedgers.Where(l => l.SourceDocumentType == "StockIn").Select(l => l.SourceDocumentId).Distinct().ToList();
-                var stockIns = db.StockIns.Include(s => s.Supplier).Where(s => stockInIds.Contains(s.Id)).ToDictionary(s => s.Id);
-
-                var stockOutIds = currentLedgers.Where(l => l.SourceDocumentType == "StockOut").Select(l => l.SourceDocumentId).Distinct().ToList();
-                var stockOuts = db.StockOuts.Include(s => s.Customer).Where(s => stockOutIds.Contains(s.Id)).ToDictionary(s => s.Id);
-
-                var adjustmentIds = currentLedgers.Where(l => l.SourceDocumentType == "StockAdjustment").Select(l => l.SourceDocumentId).Distinct().ToList();
-                var adjustments = db.StockAdjustments.Where(s => adjustmentIds.Contains(s.Id)).ToDictionary(s => s.Id);
-
-                foreach (var l in currentLedgers)
-                {
-                    string docCode = $"Ref-{l.SourceDocumentId}";
-                    string purpose = l.SourceDocumentType;
-                    string partner = "-";
-
-                    if (l.SourceDocumentType == "StockIn" && stockIns.TryGetValue(l.SourceDocumentId, out var si))
-                    {
-                        docCode = si.DocumentCode;
-                        purpose = si.PurposeCode == "Purchase" ? "Nhập mua" : (si.PurposeCode == "OpeningBalance" ? "Nhập tồn đầu" : "Nhập điều chỉnh");
-                        partner = si.Supplier?.DisplayName ?? "-";
-                    }
-                    else if (l.SourceDocumentType == "StockOut" && stockOuts.TryGetValue(l.SourceDocumentId, out var so))
-                    {
-                        docCode = so.DocumentCode;
-                        purpose = so.PurposeCode == "Sale" ? "Xuất bán" : (so.PurposeCode == "WarrantyReplacement" ? "Xuất bảo hành" : "Xuất điều chỉnh");
-                        partner = so.Customer?.DisplayName ?? "-";
-                    }
-                    else if (l.SourceDocumentType == "StockAdjustment" && adjustments.TryGetValue(l.SourceDocumentId, out var sa))
-                    {
-                        docCode = sa.DocumentCode;
-                        purpose = "Kiểm kê / Điều chỉnh";
-                        partner = "Hệ thống";
-                    }
-
-                    decimal inQty = l.MovementType == "In" ? l.Quantity : 0;
-                    decimal outQty = l.MovementType == "Out" ? l.Quantity : 0;
-                    currentQty += (inQty - outQty);
-
-                    reportList.Add(new StockLedgerReportItem
-                    {
-                        Date = l.PostedAt,
-                        DocumentCode = docCode,
-                        Purpose = purpose,
-                        PartnerName = partner,
-                        InQty = inQty,
-                        OutQty = outQty,
-                        BalanceQty = currentQty
-                    });
-                }
-
-                LedgerEndQty = currentQty;
-                LedgerReports = new ObservableCollection<StockLedgerReportItem>(reportList.OrderByDescending(r => r.Date));
+                var result = _traceService.GetProductTimeline(SelectedProduct.Id, FromDate, ToDate);
+                LedgerStartQty = result.StartQuantity;
+                LedgerEndQty = result.EndQuantity;
+                LedgerReports = new ObservableCollection<StockLedgerReportItem>(
+                    result.Items
+                        .OrderByDescending(r => r.Date)
+                        .Select(r => new StockLedgerReportItem
+                        {
+                            Date = r.Date,
+                            ProductCode = r.ProductCode,
+                            ProductName = r.ProductName,
+                            DocumentCode = r.DocumentCode,
+                            SourceDocumentType = r.SourceDocumentType,
+                            Purpose = r.Purpose,
+                            PartnerName = r.PartnerName,
+                            WarehouseName = r.WarehouseName,
+                            UserName = r.UserName,
+                            InQty = r.InQty,
+                            OutQty = r.OutQty,
+                            BalanceQty = r.BalanceQty
+                        }));
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Lỗi tải sổ kho chi tiết: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine(ex.Message);
             }
         }
 
@@ -376,70 +339,45 @@ namespace QuanLyHangHoa.ViewModels
         {
             try
             {
-                using var db = new AppDbContext();
-                
-                var query = db.ProductSerials
-                    .Include(s => s.Product)
-                    .Include(s => s.LastStockInLine)
-                        .ThenInclude(l => l.StockIn)
-                            .ThenInclude(si => si.Supplier)
-                    .Include(s => s.LastStockOutLine)
-                        .ThenInclude(l => l.StockOut)
-                            .ThenInclude(so => so.Customer)
-                    .Include(s => s.WarrantyCoverage)
-                    .AsQueryable();
-
-                if (!string.IsNullOrWhiteSpace(SearchSerialText))
+                var result = _traceService.SearchSerialTrace(new SerialTraceFilter
                 {
-                    var serialKeyword = SearchSerialText.Trim().ToLower();
-                    query = query.Where(s => s.SerialNumber.ToLower().Contains(serialKeyword));
-                }
+                    SearchText = SearchSerialText,
+                    ProductText = SerialProductText,
+                    DocumentText = SerialDocumentText,
+                    PartnerText = SerialPartnerText,
+                    Status = SelectedSerialStatus,
+                    FromDate = FromDate,
+                    ToDate = ToDate
+                });
 
-                // Giới hạn kết xuất tối đa 100 dòng để bảo đảm hiệu năng
-                var serials = query.OrderBy(s => s.SerialNumber).Take(100).ToList();
-                var reportList = new List<SerialTraceReportItem>();
-
-                foreach (var s in serials)
-                {
-                    string wStatus = "Chưa bán (Trong kho)";
-                    if (s.LastStockOutLine != null)
+                SerialTraceReports = new ObservableCollection<SerialTraceReportItem>(
+                    result.Select(r => new SerialTraceReportItem
                     {
-                        if (s.WarrantyCoverage != null)
-                        {
-                            wStatus = (s.WarrantyCoverage.CoverageStatus == "Active" && s.WarrantyCoverage.WarrantyEndDate >= DateTime.Now)
-                                ? "Còn bảo hành"
-                                : "Hết hạn bảo hành";
-                        }
-                        else
-                        {
-                            wStatus = "Không có bảo hành";
-                        }
-                    }
-
-                    reportList.Add(new SerialTraceReportItem
-                    {
-                        SerialNumber = s.SerialNumber,
-                        ProductName = s.Product.DisplayName,
-                        
-                        ImportDocCode = s.LastStockInLine.StockIn.DocumentCode,
-                        ImportDate = s.LastStockInLine.StockIn.CreatedAt,
-                        SupplierName = s.LastStockInLine.StockIn.Supplier?.DisplayName ?? "-",
-                        
-                        ExportDocCode = s.LastStockOutLine?.StockOut.DocumentCode ?? "-",
-                        ExportDate = s.LastStockOutLine?.StockOut.CreatedAt,
-                        CustomerName = s.LastStockOutLine?.StockOut.Customer?.DisplayName ?? "-",
-                        SellPrice = s.LastStockOutLine?.UnitPrice,
-                        
-                        WarrantyStatus = wStatus,
-                        WarrantyEndDate = s.WarrantyCoverage?.WarrantyEndDate
-                    });
-                }
-
-                SerialTraceReports = new ObservableCollection<SerialTraceReportItem>(reportList);
+                        SerialNumber = r.SerialNumber,
+                        ProductCode = r.ProductCode,
+                        ProductName = r.ProductName,
+                        CurrentStatus = r.CurrentStatus,
+                        CurrentWarehouseName = r.CurrentWarehouseName,
+                        ImportDocCode = r.ImportDocCode,
+                        ImportDate = r.ImportDate,
+                        ImportWarehouseName = r.ImportWarehouseName,
+                        SupplierName = r.SupplierName,
+                        ExportDocCode = r.ExportDocCode,
+                        ExportDate = r.ExportDate,
+                        ExportWarehouseName = r.ExportWarehouseName,
+                        CustomerName = r.CustomerName,
+                        SellPrice = r.SellPrice,
+                        SalesInvoiceCode = r.SalesInvoiceCode,
+                        SalesInvoiceDate = r.SalesInvoiceDate,
+                        WarrantyStatus = r.WarrantyStatus,
+                        WarrantyStartDate = r.WarrantyStartDate,
+                        WarrantyEndDate = r.WarrantyEndDate,
+                        WarrantyCustomerName = r.WarrantyCustomerName
+                    }));
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Lỗi tải báo cáo truy vết Serial: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine(ex.Message);
             }
         }
     }
@@ -480,9 +418,14 @@ namespace QuanLyHangHoa.ViewModels
     public class StockLedgerReportItem
     {
         public DateTime Date { get; set; }
+        public string ProductCode { get; set; } = string.Empty;
+        public string ProductName { get; set; } = string.Empty;
         public string DocumentCode { get; set; } = string.Empty;
+        public string SourceDocumentType { get; set; } = string.Empty;
         public string Purpose { get; set; } = string.Empty;
         public string PartnerName { get; set; } = string.Empty;
+        public string WarehouseName { get; set; } = string.Empty;
+        public string UserName { get; set; } = string.Empty;
         public decimal InQty { get; set; }
         public decimal OutQty { get; set; }
         public decimal BalanceQty { get; set; }
@@ -491,21 +434,30 @@ namespace QuanLyHangHoa.ViewModels
     public class SerialTraceReportItem
     {
         public string SerialNumber { get; set; } = string.Empty;
+        public string ProductCode { get; set; } = string.Empty;
         public string ProductName { get; set; } = string.Empty;
+        public string CurrentStatus { get; set; } = string.Empty;
+        public string CurrentWarehouseName { get; set; } = string.Empty;
 
         // Nhập
         public string ImportDocCode { get; set; } = string.Empty;
         public DateTime? ImportDate { get; set; }
+        public string ImportWarehouseName { get; set; } = string.Empty;
         public string SupplierName { get; set; } = string.Empty;
 
         // Xuất
         public string ExportDocCode { get; set; } = string.Empty;
         public DateTime? ExportDate { get; set; }
+        public string ExportWarehouseName { get; set; } = string.Empty;
         public string CustomerName { get; set; } = string.Empty;
         public decimal? SellPrice { get; set; }
 
         // Bảo hành
+        public string SalesInvoiceCode { get; set; } = string.Empty;
+        public DateTime? SalesInvoiceDate { get; set; }
         public string WarrantyStatus { get; set; } = string.Empty;
+        public DateTime? WarrantyStartDate { get; set; }
         public DateTime? WarrantyEndDate { get; set; }
+        public string WarrantyCustomerName { get; set; } = string.Empty;
     }
 }

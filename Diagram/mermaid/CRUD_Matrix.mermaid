@@ -1,0 +1,69 @@
+flowchart LR
+    %% Định nghĩa các Modules
+    subgraph Modules["Modules Chức năng"]
+        ModUser["1. Quản lý Tài khoản (Auth & User)"]
+        ModCat["2. Quản lý Danh mục (Catalog)"]
+        ModStock["3. Nghiệp vụ Nhập/Xuất kho"]
+        ModCount["4. Kiểm kê & Điều chỉnh"]
+        ModInvoice["5. Quản lý Hóa đơn"]
+        ModWarranty["6. Phân hệ Bảo hành"]
+        ModAudit["7. Nhật ký hệ thống (Audit)"]
+    end
+
+    %% Định nghĩa các Tables CSDL
+    subgraph Tables["Thực thể CSDL"]
+        T_User[(AppUser)]
+        T_Prod[(Product)]
+        T_Bal[(StockBalance)]
+        T_In[(StockIn)]
+        T_Out[(StockOut)]
+        T_Count[(StockCountSession)]
+        T_Adj[(StockAdjustment)]
+        T_SInv[(SalesInvoice)]
+        T_PInv[(PurchaseInvoice)]
+        T_Serial[(ProductSerial)]
+        T_Ledger[(StockLedger)]
+        T_Cov[(WarrantyCoverage)]
+        T_Claim[(WarrantyClaim)]
+        T_Audit[(AuditLog)]
+    end
+
+    %% Thiết lập style
+    style Modules fill:#f0f8ff,stroke:#0055ff,stroke-width:1px
+    style Tables fill:#fffaf0,stroke:#d2691e,stroke-width:1px
+
+    %% Các liên kết CRUD
+    ModUser -->|C R U D| T_User
+    ModUser -->|C R| T_Audit
+
+    ModCat -->|C R U D| T_Prod
+    ModCat -->|C| T_Audit
+
+    ModStock -->|C R U| T_In
+    ModStock -->|C R U| T_Out
+    ModStock -->|R U| T_Bal
+    ModStock -->|C R U| T_Serial
+    ModStock -->|C R| T_Ledger
+    ModStock -->|C| T_Audit
+
+    ModCount -->|C R U D| T_Count
+    ModCount -->|C R U| T_Adj
+    ModCount -->|R U| T_Bal
+    ModCount -->|R U| T_Serial
+    ModCount -->|C R| T_Ledger
+    ModCount -->|C| T_Audit
+
+    ModInvoice -->|C R U D| T_SInv
+    ModInvoice -->|C R U D| T_PInv
+    ModInvoice -->|R| T_In
+    ModInvoice -->|R| T_Out
+    ModInvoice -->|C R U| T_Cov
+    ModInvoice -->|C| T_Audit
+
+    ModWarranty -->|C R U D| T_Claim
+    ModWarranty -->|R U| T_Cov
+    ModWarranty -->|R U| T_Serial
+    ModWarranty -->|C R| T_Out
+    ModWarranty -->|C| T_Audit
+
+    ModAudit -->|R| T_Audit

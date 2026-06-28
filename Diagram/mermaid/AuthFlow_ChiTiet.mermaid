@@ -1,0 +1,50 @@
+flowchart TD
+    Start([Bắt đầu]) --> Input[Nhập Username & Password]
+    Input --> CheckEmpty{Có để trống<br/>trường nào không?}
+    
+    CheckEmpty -- Có --> ShowEmptyErr[Hiển thị lỗi: Vui lòng nhập đầy đủ] --> Input
+    CheckEmpty -- Không --> QueryUser[Truy vấn AppUser theo Username]
+    
+    QueryUser --> CheckExist{Username tồn tại?}
+    CheckExist -- Không --> LogUnknown[Ghi AuditLog: LoginFailedUnknownUser]
+    LogUnknown --> ShowGenericErr[Hiển thị lỗi chung: Sai tài khoản hoặc mật khẩu] --> Input
+    
+    CheckExist -- Có --> CheckActive{AppUser.IsActive == true?}
+    CheckActive -- Không --> ShowGenericErr
+    CheckActive -- Có --> CheckLock{AppUser.LockoutUntil > DateTime.Now?}
+    
+    CheckLock -- Có --> ShowLockErr[Hiển thị lỗi: Tài khoản bị tạm khóa đến LockoutUntil] --> Input
+    CheckLock -- Không --> PBKDF2[Băm Password đầu vào bằng PBKDF2]
+    
+    PBKDF2 --> CompareHash{Khớp mật khẩu?}
+    
+    CompareHash -- Không --> IncFailed[AppUser.FailedLoginCount += 1<br/>AppUser.LastFailedLoginAt = DateTime.Now]
+    IncFailed --> CheckThreshold{FailedLoginCount?}
+    
+    CheckThreshold -- ">= 10" --> Lock15[Khóa 15 phút: LockoutUntil = Now + 15m<br/>Ghi AuditLog: SuspiciousLoginAttempt]
+    Lock15 --> ShowLock15Err[Cảnh báo: Nhập sai nhiều, khóa tài khoản 15 phút] --> SaveFailedDB
+    
+    CheckThreshold -- ">= 5" --> Lock5[Khóa 5 phút: LockoutUntil = Now + 5m]
+    Lock5 --> ShowLock5Err[Cảnh báo: Tài khoản bị khóa tạm thời 5 phút] --> SaveFailedDB
+    
+    CheckThreshold -- ">= 3" --> WarnLock[Cảnh báo: Nhập sai tiếp sẽ bị khóa tài khoản] --> SaveFailedDB
+    CheckThreshold -- Khác --> SaveFailedDB[Lưu FailedLoginCount & Lockout vào DB]
+    SaveFailedDB --> ShowGenericErr
+    
+    CompareHash -- Có --> ResetFailed[AppUser.FailedLoginCount = 0<br/>AppUser.LockoutUntil = null<br/>AppUser.LastLoginAt = DateTime.Now]
+    ResetFailed --> SaveSuccessDB[Lưu thông tin đăng nhập thành công vào DB]
+    
+    SaveSuccessDB --> CheckChangePass{MustChangePassword == true?}
+    CheckChangePass -- Có --> ForceChange[Mở giao diện đổi mật khẩu bắt buộc<br/>Cập nhật PasswordHash mới và MustChangePassword = false]
+    ForceChange --> InitContext
+    CheckChangePass -- Không --> InitContext[Khởi tạo UserContext đăng nhập]
+    
+    InitContext --> RBAC[Tải Sidebar Menu theo AppUser.RoleCode]
+    RBAC --> LoadAdmin["ADMIN: Full quyền + Quản lý User"]
+    RBAC --> LoadManager["MANAGER: Menu Kho, BH, Hóa đơn, Duyệt đặc biệt"]
+    RBAC --> LoadStore["STOREKEEPER: Menu Kho, Kiểm kê, HĐ Mua"]
+    RBAC --> LoadSales["SALESMAN: Menu Xuất kho, HĐ Bán"]
+    RBAC --> LoadTech["TECHNICIAN: Menu Tiếp nhận & Xử lý bảo hành"]
+    
+    LoadAdmin & LoadManager & LoadStore & LoadSales & LoadTech --> OpenMain[Mở màn hình chính MainWindow]
+    OpenMain --> End([Kết thúc])

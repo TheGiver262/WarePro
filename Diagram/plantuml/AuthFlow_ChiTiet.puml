@@ -1,0 +1,76 @@
+@startuml AuthFlow_ChiTiet
+title Quy trình Đăng nhập, Xác thực PBKDF2, Khóa tài khoản & Phân quyền
+
+start
+:Nhập Username & Password trên giao diện;
+if (Kiểm tra các trường có để trống?) then (Có)
+  :Hiển thị lỗi: "Vui lòng nhập đầy đủ thông tin";
+  stop
+else (Không)
+  :Truy vấn AppUser từ Database theo Username;
+  if (Username tồn tại?) then (Không)
+    :Ghi AuditLog: ActionCode = "LoginFailedUnknownUser";
+    :Hiển thị lỗi chung: "Sai tài khoản hoặc mật khẩu";
+    stop
+  else (Có)
+    if (AppUser.IsActive == false?) then (Đúng)
+      :Hiển thị lỗi chung: "Sai tài khoản hoặc mật khẩu";
+      stop
+    else (Không - Tài khoản đang hoạt động)
+      if (AppUser.LockoutUntil > DateTime.Now?) then (Có - Đang bị khóa)
+        :Hiển thị lỗi: "Tài khoản bị tạm khóa đến [LockoutUntil]";
+        stop
+      else (Không - Không bị khóa)
+        :Thực hiện băm Password đầu vào bằng PBKDF2;
+        :So sánh chuỗi Hash vừa tạo với AppUser.PasswordHash;
+        if (Khớp mật khẩu?) then (Không khớp)
+          :AppUser.FailedLoginCount += 1;
+          :AppUser.LastFailedLoginAt = DateTime.Now;
+          
+          if (FailedLoginCount >= 10) then (Đúng)
+            :Khóa tài khoản 15 phút:
+            AppUser.LockoutUntil = DateTime.Now + 15 phút;
+            :Ghi AuditLog: ActionCode = "SuspiciousLoginAttempt";
+            :Hiển thị cảnh báo: "Nhập sai quá nhiều. Tài khoản bị khóa 15 phút!";
+          else if (FailedLoginCount >= 5) then (Đúng)
+            :Khóa tài khoản 5 phút:
+            AppUser.LockoutUntil = DateTime.Now + 5 phút;
+            :Hiển thị cảnh báo: "Tài khoản bị tạm khóa 5 phút!";
+          else if (FailedLoginCount >= 3) then (Đúng)
+            :Hiển thị cảnh báo: "Nhập sai liên tiếp sẽ bị khóa tài khoản!";
+          else
+            :Hiển thị lỗi chung: "Sai tài khoản hoặc mật khẩu";
+          endif
+          
+          :Lưu thay đổi FailedLoginCount & Lockout/FailedDate vào DB;
+          stop
+        else (Có khớp mật khẩu)
+          :AppUser.FailedLoginCount = 0;
+          :AppUser.LockoutUntil = null;
+          :AppUser.LastLoginAt = DateTime.Now;
+          :Lưu thông tin đăng nhập thành công vào DB;
+          
+          if (AppUser.MustChangePassword == true?) then (Có)
+            :Yêu cầu người dùng nhập mật khẩu mới;
+            :Cập nhật PasswordHash mới (PBKDF2);
+            :AppUser.MustChangePassword = false;
+            :AppUser.LastPasswordChangedAt = DateTime.Now;
+            :Lưu thông tin mật khẩu mới vào DB;
+          else (Không)
+          endif
+          
+          :Đăng nhập thành công, khởi tạo UserContext;
+          :Tải Menu Sidebar dựa trên AppUser.RoleCode (RBAC):
+          - ADMIN: Full quyền hệ thống + Quản lý User
+          - MANAGER: Full quyền kho, bảo hành, hóa đơn, duyệt đặc biệt
+          - STOREKEEPER: Menu kho, kiểm kê, hóa đơn mua
+          - SALESMAN: Menu xuất kho, hóa đơn bán
+          - TECHNICIAN: Menu tiếp nhận và xử lý bảo hành;
+          :Mở Màn hình chính MainWindow;
+          stop
+        endif
+      endif
+    endif
+  endif
+endif
+@enduml

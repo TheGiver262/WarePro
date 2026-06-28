@@ -1,0 +1,61 @@
+flowchart TD
+    subgraph MainWindow["Cửa sổ làm việc chính (MainWindow.xaml)"]
+        direction TB
+        
+        %% Thanh Topbar
+        subgraph Topbar["Thanh công cụ phía trên (Topbar)"]
+            Title["✨ HỆ THỐNG QUẢN LÝ KHO & BẢO HÀNH (WAREHOUSEPRO)"]
+            UserContext["Tài khoản: Nguyễn Văn A (Quản trị viên) | 🔓 Đăng xuất"]
+        end
+
+        %% Khu vực thân ứng dụng
+        subgraph Body["Khu vực làm việc chính"]
+            direction LR
+            
+            %% Sidebar
+            subgraph Sidebar["Trình đơn điều hướng (Sidebar)"]
+                direction TB
+                Menu_Home["🏠 Trang chủ / Dashboard"]
+                Menu_Cat["📦 Quản lý Danh mục"]
+                Menu_Stock["🔄 Quản lý Kho hàng"]
+                Menu_Inv["🧾 Quản lý Hóa đơn"]
+                Menu_Warr["🛡️ Phân hệ Bảo hành"]
+                Menu_Rep["📊 Báo cáo Thống kê"]
+                Menu_User["⚙️ Quản trị & User"]
+            end
+
+            %% Workspace Content
+            subgraph Workspace["Không gian làm việc (Content Area)"]
+                direction TB
+                
+                %% Widgets
+                subgraph Widgets["Báo cáo chỉ số nhanh (Summary Cards)"]
+                    direction LR
+                    W_Stock["📦 TỒN KHO TỔNG HỢP<br/>Sản phẩm: 1,240 cái<br/>Serial trong kho: 850 cái"]
+                    W_Sales["💵 HÓA ĐƠN HÔM NAY<br/>Doanh thu: 145.500.000 đ<br/>Mua: 2 phiếu | Bán: 12 phiếu"]
+                    W_Warr["🛠️ TRẠNG THÁI BẢO HÀNH<br/>Đang sửa: 2 | Đang gửi hãng: 3<br/>Chờ duyệt đổi mới: 1"]
+                end
+                
+                %% Main Table
+                subgraph TableArea["Danh sách Phiếu bảo hành chờ duyệt đặc biệt"]
+                    direction TB
+                    HeaderRow["Mã Claim | Serial lỗi | Sản phẩm | Phương án | Trạng thái | Hành động"]
+                    Row1["CLM-0092 | SR-9923812 | iPhone 15 Pro | Đổi mới | Chờ duyệt | BUTTON: Duyệt đổi | BUTTON: Từ chối"]
+                    Row2["CLM-0095 | SR-8823120 | Dell XPS 13 | Từ chối | Chờ duyệt | BUTTON: Duyệt từ chối | BUTTON: Y/C Sửa"]
+                end
+            end
+        end
+        
+        Topbar --> Body
+    end
+
+    %% Định dạng CSS cho UI trực quan
+    style MainWindow fill:#f0f4f8,stroke:#333,stroke-width:2px
+    style Topbar fill:#1e3a8a,stroke:#fff,color:#fff
+    style Sidebar fill:#0f172a,stroke:#333,color:#fff
+    style Workspace fill:#ffffff,stroke:#eee
+    style Widgets fill:#f8fafc,stroke:#e2e8f0
+    style TableArea fill:#ffffff,stroke:#e2e8f0
+    style W_Stock fill:#dbeafe,stroke:#3b82f6,color:#1e3a8a
+    style W_Sales fill:#dcfce7,stroke:#22c55e,color:#14532d
+    style W_Warr fill:#fee2e2,stroke:#ef4444,color:#7f1d1d

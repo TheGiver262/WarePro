@@ -176,18 +176,6 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
-        private void OpenAuditQueryView()
-        {
-            NavigateToView("AuditQuery", () => new AuditQueryView { DataContext = new AuditQueryViewModel(ContextFactory) }, "TRUY VẤN LỊCH SỬ", "Xem lịch sử biến động kho và chứng từ");
-        }
-
-        [RelayCommand]
-        private void OpenWarrantyCoverageView()
-        {
-            NavigateToView("WarrantyCoverage", () => new WarrantyCoverageView { DataContext = new WarrantyCoverageViewModel(ContextFactory) }, "QUYỀN BẢO HÀNH", "Thiết lập các gói và điều kiện bảo hành");
-        }
-
-        [RelayCommand]
         private void OpenReportView()
         {
             NavigateToView("Report", () => new ReportView { DataContext = new ReportViewModel() }, "BÁO CÁO", "Phân tích hiệu quả kinh doanh và tài chính");

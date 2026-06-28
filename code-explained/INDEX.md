@@ -119,3 +119,27 @@
 | Đổi mật khẩu | `OpenChangePasswordViewCommand` | `MainViewModel.OpenChangePasswordView()` |
 | Scroll xuống đáy | `ScrollChanged` event | `StockInView.xaml.cs` → `LoadMoreCommand` |
 | Gõ vào ô tìm kiếm | `OnSearchDocumentCodeChanged()` | `StockInViewModel.LoadData()` |
+
+---
+
+## Phụ lục bổ sung sau rà soát codebase hiện tại
+
+Các file dưới đây được bổ sung để lấp các khoảng trống của bộ tài liệu cũ, đặc biệt phục vụ việc giải thích trước hội đồng bảo vệ đồ án:
+
+| File | Nhóm | Nội dung |
+|---|---|---|
+| [DOC_COVERAGE_AUDIT.md](./DOC_COVERAGE_AUDIT.md) | Rà soát tài liệu | Ma trận đối chiếu tài liệu hiện có với code hiện tại, điểm thiếu và rủi ro cần nói khi bảo vệ |
+| [06_kiem_ke_chuyen_kho_dieu_chinh.md](./06_kiem_ke_chuyen_kho_dieu_chinh.md) | Kho nâng cao | Kiểm kê, xử lý chênh lệch, điều chỉnh kho trực tiếp, chuyển kho nội bộ |
+| [07_hoa_don_dashboard_bao_cao.md](./07_hoa_don_dashboard_bao_cao.md) | Hóa đơn và báo cáo | Hóa đơn mua bán, công nợ, tự sinh bảo hành, dashboard KPI, báo cáo xuất nhập tồn và truy vết serial |
+| [08_audit_import_testing.md](./08_audit_import_testing.md) | Audit, import, test | Audit log, stock ledger timeline, import Excel CSV, import tồn đầu kỳ, chiến lược kiểm thử |
+| [09_so_tay_bao_ve_hoi_dong.md](./09_so_tay_bao_ve_hoi_dong.md) | Ôn bảo vệ | Hỏi đáp nhanh để giải thích kiến trúc, nghiệp vụ, test và hạn chế trước hội đồng |
+
+### Thứ tự đọc khuyến nghị để chuẩn bị bảo vệ
+
+1. Đọc architecture_overview.md để nắm kiến trúc tổng thể.
+2. Đọc 01_khoi_dong_va_dieu_huong.md và 02_models_va_database.md để nắm startup, navigation và dữ liệu.
+3. Đọc 05_views_va_inventory_layer.md và inventory_core_engine.md để nắm lõi tồn kho.
+4. Đọc 06_kiem_ke_chuyen_kho_dieu_chinh.md để nắm nghiệp vụ kho nâng cao.
+5. Đọc 07_hoa_don_dashboard_bao_cao.md để nắm hóa đơn, bảo hành tự sinh và báo cáo.
+6. Đọc 08_audit_import_testing.md để nắm audit, import và kiểm thử.
+7. Đọc 09_so_tay_bao_ve_hoi_dong.md cuối cùng để luyện trả lời câu hỏi.

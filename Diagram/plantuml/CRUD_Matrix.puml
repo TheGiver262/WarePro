@@ -1,0 +1,72 @@
+@startuml CRUD_Matrix
+title Ma trận CRUD - Tương tác giữa các Chức năng & Thực thể CSDL
+
+left to right direction
+skinparam PackageStyle rect
+skinparam CardBackgroundColor #LightYellow
+skinparam FrameBackgroundColor #LightCyan
+
+frame "Modules Chức năng" {
+    [1. Quản lý Tài khoản (Auth & User)] as ModUser
+    [2. Quản lý Danh mục (Catalog)] as ModCat
+    [3. Nghiệp vụ Nhập/Xuất kho (Stock In/Out)] as ModStock
+    [4. Kiểm kê & Điều chỉnh (Stock Count)] as ModCount
+    [5. Quản lý Hóa đơn (Invoicing)] as ModInvoice
+    [6. Phân hệ Bảo hành (Warranty)] as ModWarranty
+    [7. Nhật ký hệ thống (Audit Viewer)] as ModAudit
+}
+
+card "Thực thể Dữ liệu (Database Tables)" {
+    card AppUser
+    card Product
+    card StockBalance
+    card StockIn
+    card StockOut
+    card StockCountSession
+    card StockAdjustment
+    card SalesInvoice
+    card PurchaseInvoice
+    card ProductSerial
+    card StockLedger
+    card WarrantyCoverage
+    card WarrantyClaim
+    card AuditLog
+}
+
+' Liên kết CRUD giữa Modules và Tables
+ModUser --> AppUser : "C R U D"
+ModUser --> AuditLog : "C R"
+
+ModCat --> Product : "C R U D"
+ModCat --> AuditLog : "C"
+
+ModStock --> StockIn : "C R U"
+ModStock --> StockOut : "C R U"
+ModStock --> StockBalance : "R U"
+ModStock --> ProductSerial : "C R U"
+ModStock --> StockLedger : "C R"
+ModStock --> AuditLog : "C"
+
+ModCount --> StockCountSession : "C R U D"
+ModCount --> StockAdjustment : "C R U"
+ModCount --> StockBalance : "R U"
+ModCount --> ProductSerial : "R U"
+ModCount --> StockLedger : "C R"
+ModCount --> AuditLog : "C"
+
+ModInvoice --> SalesInvoice : "C R U D"
+ModInvoice --> PurchaseInvoice : "C R U D"
+ModInvoice --> StockIn : "R"
+ModInvoice --> StockOut : "R"
+ModInvoice --> WarrantyCoverage : "C R U"
+ModInvoice --> AuditLog : "C"
+
+ModWarranty --> WarrantyClaim : "C R U D"
+ModWarranty --> WarrantyCoverage : "R U"
+ModWarranty --> ProductSerial : "R U"
+ModWarranty --> StockOut : "C R"
+ModWarranty --> AuditLog : "C"
+
+ModAudit --> AuditLog : "R"
+
+@enduml

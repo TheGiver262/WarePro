@@ -1,0 +1,47 @@
+@startuml Integration_HeThong
+title Sơ đồ tích hợp hệ thống (System Integration Diagram)
+
+left to right direction
+skinparam NodeBackgroundColor #LightYellow
+skinparam DatabaseBackgroundColor #LightCyan
+
+node "Hệ thống nội bộ WareHousePro" {
+    [WPF Client Application] as WPFApp #LightBlue
+    database "CSDL SQL Server" as SQLDB
+    [Excel/CSV Import & Export Engine] as ExcelEngine
+}
+
+node "Hệ thống Tích hợp Ngoài (External Systems)" {
+    node "Hệ thống Hóa đơn điện tử (e-Invoice Provider)" as eInvoice {
+        [API Gateway (Invoice Issuance)] as eInvoiceAPI
+        [Tax Portal Sync Service] as TaxSync
+        eInvoiceAPI --> TaxSync
+    }
+    
+    node "Hệ thống Bảo hành Hãng (Manufacturer Warranty Portal)" as MfgSystem {
+        [Warranty Claims API] as MfgAPI
+        [Parts Logistics & Tracking] as MfgParts
+        MfgAPI --> MfgParts
+    }
+    
+    node "Hệ thống Thông báo (Notification Service)" as NotifySystem {
+        [SMTP Mail Server] as SMTPServer
+        [SMS Gateway] as SMSGateway
+    }
+}
+
+file "Tệp tin dữ liệu (.xlsx / .csv)" as DataFile
+
+' Luồng tích hợp
+WPFApp <--> SQLDB : (1) Tương tác dữ liệu local (ADO.NET)
+WPFApp --> ExcelEngine : (2) Gọi module phân tích tệp tin
+
+DataFile --> ExcelEngine : (3) Import tồn đầu kỳ / danh mục sản phẩm
+ExcelEngine --> DataFile : (4) Export báo cáo xuất nhập tồn / doanh thu
+
+WPFApp --> eInvoiceAPI : (5) HTTPS REST API (Ký số & phát hành hóa đơn điện tử)
+WPFApp --> MfgAPI : (6) HTTPS REST API (Đồng bộ hồ sơ, kiểm tra bảo hành hãng)
+WPFApp --> SMTPServer : (7) SMTP Protocol (Gửi thư thông báo cho khách hàng khi bảo hành xong)
+WPFApp --> SMSGateway : (8) HTTP API (Gửi tin nhắn SMS mã nhận máy)
+
+@enduml

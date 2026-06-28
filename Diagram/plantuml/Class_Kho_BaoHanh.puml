@@ -1,0 +1,140 @@
+@startuml Class_Kho_BaoHanh
+title Sơ đồ lớp (Class Diagram) phân hệ Kho & Bảo hành
+
+package "Domain Layer (Entities)" {
+    class Product {
+        + int Id
+        + string ProductCode
+        + string DisplayName
+        + int WarrantyPeriodMonths
+        + bool IsSerialTracked
+        + bool IsActive
+    }
+    
+    class ProductSerial {
+        + int Id
+        + int ProductId
+        + string SerialNumber
+        + string CurrentStatus
+        + int? CurrentWarehouseId
+        + int LastStockInLineId
+        + int? LastStockOutLineId
+    }
+    
+    class StockBalance {
+        + int Id
+        + int WarehouseId
+        + int ProductId
+        + decimal OnHandQuantity
+        + decimal AvailableQuantity
+        + decimal ReservedQuantity
+    }
+    
+    class WarrantyCoverage {
+        + int Id
+        + int ProductSerialId
+        + int CustomerId
+        + int? SalesInvoiceId
+        + DateTime StartDate
+        + DateTime EndDate
+        + string CoverageStatus
+        + bool IsActive
+    }
+    
+    class WarrantyClaim {
+        + int Id
+        + string ClaimCode
+        + int WarrantyCoverageId
+        + int ProductSerialId
+        + int? ReplacementSerialId
+        + int? ReplacementStockOutId
+        + string Status
+        + string ResolutionType
+        + DateTime ReceivedDate
+        + string ProblemDescription
+        + string TechnicalConclusion
+    }
+}
+
+package "Infrastructure Layer (Data Access)" {
+    class AppDbContext {
+        + DbSet<Product> Products
+        + DbSet<ProductSerial> ProductSerials
+        + DbSet<StockBalance> StockBalances
+        + DbSet<WarrantyCoverage> WarrantyCoverages
+        + DbSet<WarrantyClaim> WarrantyClaims
+        + SaveChanges()
+    }
+    
+    class EfUnitOfWork {
+        - AppDbContext _context
+        + IRepository<T> GetRepository<T>()
+        + SaveChanges()
+        + BeginTransaction()
+        + Commit()
+        + Rollback()
+    }
+}
+
+package "Application Services Layer" {
+    class StockInService {
+        - AppDbContext _context
+        - InventoryPostingService _posting
+        + Post(stockInId: int, userId: int): Task
+    }
+    
+    class StockOutService {
+        - AppDbContext _context
+        - InventoryPostingService _posting
+        + Post(stockOutId: int, userId: int): Task
+    }
+    
+    class InventoryPostingService {
+        - AppDbContext _context
+        + PostStockIn(stockInId: int): void
+        + PostStockOut(stockOutId: int): void
+    }
+    
+    class WarrantyClaimService {
+        - AppDbContext _context
+        - StockOutService _stockOut
+        + CreateClaim(serialNo: string, problem: string): Task<int>
+        + ReplaceSerial(claimId: int, newSerial: string): Task
+    }
+}
+
+package "Presentation Layer (ViewModels)" {
+    class StockInViewModel {
+        - StockInService _stockService
+        + ObservableCollection<StockInLine> Lines
+        + RelayCommand ConfirmAndPostCommand
+        + Post()
+    }
+    
+    class WarrantyClaimViewModel {
+        - WarrantyClaimService _warrantyService
+        + WarrantyClaim CurrentClaim
+        + RelayCommand ReplaceSerialCommand
+        + ReplaceSerial()
+    }
+}
+
+' Quan hệ kết nối giữa các class
+Product "1" *-- "0..*" ProductSerial
+ProductSerial "1" *-- "0..*" WarrantyCoverage
+WarrantyCoverage "1" *-- "0..*" WarrantyClaim
+Product "1" *-- "0..*" StockBalance
+
+StockInService --> AppDbContext
+StockInService --> InventoryPostingService
+StockOutService --> AppDbContext
+StockOutService --> InventoryPostingService
+WarrantyClaimService --> AppDbContext
+WarrantyClaimService --> StockOutService
+
+EfUnitOfWork --> AppDbContext
+
+StockInViewModel --> StockInService
+WarrantyClaimViewModel --> WarrantyClaimService
+
+@enduml

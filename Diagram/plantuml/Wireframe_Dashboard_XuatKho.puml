@@ -1,0 +1,53 @@
+@startsalt Wireframe_Dashboard_XuatKho
+title Wireframe Giao diện thô - Hệ thống WareHousePro (WPF)
+
+mainframe Giao diện chính (MainWindow - WPF)
+{
+  {
+    .
+    == Menu Hệ thống ==
+    [ Trang chủ / Dashboard ]
+    [ Quản lý Danh mục    ]
+    [ Quản lý Kho hàng    ]
+    [ Quản lý Hóa đơn     ]
+    [ Phân hệ Bảo hành    ]
+    [ Báo cáo Thống kê    ]
+    [ Cấu hình & User     ]
+    .
+  } | {
+    {
+      **BẢNG ĐIỀU KHIỂN CHÍNH (DASHBOARD)** | [Đăng xuất (Admin)]
+    }
+    --
+    {
+      ==== Tồn kho tổng hợp ====
+      Sản phẩm: 1,240 cái
+      Serial trong kho: 850 cái
+      Cần nhập thêm: 5 mã hàng
+    } | {
+      ==== Hóa đơn hôm nay ====
+      Doanh thu: 145.500.000 đ
+      Hóa đơn mua: 2 phiếu
+      Hóa đơn bán: 12 phiếu
+    } | {
+      ==== Trạng thái Bảo hành ====
+      Đang kiểm tra: 3 claim
+      Đang sửa chữa: 2 claim
+      Chờ duyệt đổi mới: 1 claim
+    }
+    --
+    **BIỂU ĐỒ DOANH THU & BIẾN ĐỘNG KHO (7 NGÀY GẦN NHẤT)**
+    {
+      [ Biểu đồ cột: Doanh thu mua vs bán ]
+      [ Biểu đồ tròn: Cơ cấu sản phẩm lỗi ]
+    }
+    --
+    **PHIẾU BẢO HÀNH CHỜ DUYỆT ĐẶC BIỆT (MANAGER OVERRIDE)**
+    {#
+      Mã Claim | Serial lỗi | Sản phẩm | Phương án | Trạng thái | Hành động
+      CLM-0092 | SR-9923812 | iPhone 15 Pro | Đổi mới | Chờ duyệt | [ Duyệt đổi ] [ Từ chối ]
+      CLM-0095 | SR-8823120 | Laptop Dell XPS | Từ chối | Chờ duyệt | [ Duyệt từ chối ] [ Y/C Sửa ]
+    }
+  }
+}
+@endsalt

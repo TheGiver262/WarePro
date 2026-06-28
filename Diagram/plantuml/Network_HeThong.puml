@@ -1,0 +1,57 @@
+@startuml Network_HeThong
+title Sơ đồ thiết kế mạng (Network Diagram) hệ thống WareHousePro
+
+left to right direction
+skinparam ComponentStyle uml2
+skinparam NodeBackgroundColor #LightYellow
+
+cloud "Mạng Internet công cộng" as Internet
+
+node "Thiết bị Tường lửa Gateway\n(Firewall pfSense - IP WAN: 1.2.3.4)" as FW {
+    [NAT & Routing Engine] as Routing
+    [VPN Server (OpenVPN/IPsec)] as VPNServer
+}
+
+' Kết nối internet
+Internet <--> FW : WAN Interface
+
+package "Mạng LAN nội bộ doanh nghiệp (192.168.0.0/16)" as LANNetwork {
+    
+    node "VLAN 10: Vùng máy trạm nhân viên\n(IP Subnet: 192.168.10.0/24)" as VLAN10 {
+        [PC Thủ kho - 192.168.10.11] as PC_Store
+        [PC Bán hàng - 192.168.10.12] as PC_Sales
+        [PC Kỹ thuật bảo hành - 192.168.10.13] as PC_Tech
+    }
+    
+    node "VLAN 20: Vùng máy chủ bảo mật (Server Zone)\n(IP Subnet: 192.168.20.0/24)" as VLAN20 {
+        [SQL Database Server - 192.168.20.100] as DB_Server
+        [NAS Storage (Backup) - 192.168.20.200] as NAS_Server
+    }
+    
+    node "VLAN 30: Mạng Guest/Wifi khách\n(IP Subnet: 192.168.30.0/24)" as VLAN30 {
+        [Thiết bị di động của khách] as GuestDevice
+    }
+}
+
+node "Kênh kết nối từ xa (Remote VPN Pool)\n(IP Subnet: 10.8.0.0/24)" as VPNTunnel {
+    [Client làm việc từ xa - 10.8.0.10] as RemoteClient
+}
+
+' Kết nối VPN
+RemoteClient <--> VPNServer : Kết nối Tunnel mã hóa
+
+' Định tuyến Firewall đến các VLAN
+FW --> VLAN10 : Định tuyến nội bộ (All allowed)
+FW --> VLAN20 : Định tuyến nội bộ (Chỉ cho phép cổng 1433/445)
+FW --> VLAN30 : Chỉ cho phép truy cập Internet (Bị chặn kết nối VLAN 10 & 20)
+
+' Kết nối giữa các vùng
+PC_Store --> DB_Server : TCP Cổng 1433 (Được phép)
+PC_Sales --> DB_Server : TCP Cổng 1433 (Được phép)
+PC_Tech --> DB_Server : TCP Cổng 1433 (Được phép)
+RemoteClient --> DB_Server : TCP Cổng 1433 qua VPN Tunnel (Được phép)
+
+DB_Server --> NAS_Server : TCP Cổng 445 (Đồng bộ backup nội bộ)
+GuestDevice -[dashed]-> DB_Server : <font color=red><b>Bị Firewall chặn cổng 1433</b></font>
+
+@enduml

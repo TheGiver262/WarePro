@@ -278,7 +278,7 @@ namespace QuanLyHangHoa.ViewModels
             var existing = string.Join("\n", line.SerialNumbers);
             var isReadOnly = !CanEdit;
 
-            List<ProductSerial> available = null;
+            List<ProductSerial>? available = null;
             if (line.SelectedProduct != null && SelectedFromWarehouse != null)
             {
                 using (var db = _contextFactory())

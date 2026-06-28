@@ -275,6 +275,8 @@
                                         <DataGridTextColumn Header="SỐ CHỨNG TỪ" Binding="{Binding DocumentCode}" Width="2*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
                                         <DataGridTextColumn Header="LOẠI GIAO DỊCH" Binding="{Binding Purpose}" Width="2*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
                                         <DataGridTextColumn Header="ĐỐI TÁC" Binding="{Binding PartnerName}" Width="3*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+                                    <DataGridTextColumn Header="KHO" Binding="{Binding WarehouseName}" Width="2*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+                                    <DataGridTextColumn Header="NGUOI GHI" Binding="{Binding UserName}" Width="1.5*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
                                         <DataGridTextColumn Header="SỐ LƯỢNG NHẬP" Binding="{Binding InQty, StringFormat=N0}" Width="1.5*">
                                             <DataGridTextColumn.ElementStyle>
                                                 <Style TargetType="TextBlock" BasedOn="{StaticResource MaterialDesignDataGridTextColumnRightElementStyle}">
@@ -344,18 +346,25 @@
                                             </Style>
                                         </DataGridTextColumn.ElementStyle>
                                     </DataGridTextColumn>
+                                    <DataGridTextColumn Header="MA SP" Binding="{Binding ProductCode}" Width="1.2*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
                                     <DataGridTextColumn Header="TÊN SẢN PHẨM" Binding="{Binding ProductName}" Width="2.5*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+                                    <DataGridTextColumn Header="TRANG THAI" Binding="{Binding CurrentStatus}" Width="1.2*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+                                    <DataGridTextColumn Header="KHO HIEN TAI" Binding="{Binding CurrentWarehouseName}" Width="1.6*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
                                     
                                     <!-- Nhập -->
                                     <DataGridTextColumn Header="PHIẾU NHẬP" Binding="{Binding ImportDocCode}" Width="1.5*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
                                     <DataGridTextColumn Header="NGÀY NHẬP" Binding="{Binding ImportDate, StringFormat=dd/MM/yyyy}" Width="1.2*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
                                     <DataGridTextColumn Header="NCC CUNG CẤP" Binding="{Binding SupplierName}" Width="2*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+                                    <DataGridTextColumn Header="KHO NHAP" Binding="{Binding ImportWarehouseName}" Width="1.5*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
                                     
                                     <!-- Xuất -->
                                     <DataGridTextColumn Header="PHIẾU XUẤT" Binding="{Binding ExportDocCode}" Width="1.5*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
                                     <DataGridTextColumn Header="NGÀY XUẤT" Binding="{Binding ExportDate, StringFormat=dd/MM/yyyy}" Width="1.2*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
                                     <DataGridTextColumn Header="KHÁCH HÀNG" Binding="{Binding CustomerName}" Width="2*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+                                    <DataGridTextColumn Header="KHO XUAT" Binding="{Binding ExportWarehouseName}" Width="1.5*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
                                     <DataGridTextColumn Header="GIÁ BÁN" Binding="{Binding SellPrice, StringFormat=N0}" Width="1.5*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnRightElementStyle}"/>
+                                    <DataGridTextColumn Header="HOA DON" Binding="{Binding SalesInvoiceCode}" Width="1.5*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+                                    <DataGridTextColumn Header="NGAY HOA DON" Binding="{Binding SalesInvoiceDate, StringFormat=dd/MM/yyyy}" Width="1.3*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
                                     
                                     <!-- Bảo hành -->
                                     <DataGridTextColumn Header="TRẠNG THÁI BẢO HÀNH" Binding="{Binding WarrantyStatus}" Width="1.8*">
@@ -366,6 +375,8 @@
                                         </DataGridTextColumn.ElementStyle>
                                     </DataGridTextColumn>
                                     <DataGridTextColumn Header="HẠN BẢO HÀNH" Binding="{Binding WarrantyEndDate, StringFormat=dd/MM/yyyy}" Width="1.3*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+                                    <DataGridTextColumn Header="BAT DAU BH" Binding="{Binding WarrantyStartDate, StringFormat=dd/MM/yyyy}" Width="1.3*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+                                    <DataGridTextColumn Header="KHACH BH" Binding="{Binding WarrantyCustomerName}" Width="1.6*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
                                 </DataGrid.Columns>
                             </DataGrid>
                         </materialDesign:Card>

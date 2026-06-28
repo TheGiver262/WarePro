@@ -1,0 +1,62 @@
+flowchart TD
+    Start([Bắt đầu]) --> Receive[Tiếp nhận thiết bị lỗi từ khách hàng]
+    Receive --> Scan[Quét số Serial của thiết bị]
+    Scan --> CheckExist{Serial tồn tại<br/>trong hệ thống?}
+    
+    CheckExist -- Không --> ErrorExist[Báo lỗi: Serial không hợp lệ] --> End([Kết thúc])
+    CheckExist -- Có --> QueryCoverage[Truy vấn Quyền bảo hành WarrantyCoverage]
+    
+    QueryCoverage --> CheckExp{Hạn bảo hành EndDate<br/>>= Ngày hiện tại?}
+    CheckExp -- Không --> RejectExp[Từ chối bảo hành: Hết hạn] --> End
+    CheckExp -- Có --> CheckClaimOpen{Đã có claim bảo hành<br/>nào đang mở không?}
+    
+    CheckClaimOpen -- Có --> ErrorClaim[Báo lỗi: Sản phẩm đang xử lý bảo hành] --> End
+    CheckClaimOpen -- Không --> CreateClaim[Khởi tạo WarrantyClaim mới dạng Checking<br/>Đồng thời đổi Serial sang InWarrantyProcess]
+    
+    CreateClaim --> TechCheck[Kỹ thuật viên kiểm tra lỗi]
+    TechCheck --> CheckUserFault{Lỗi do người dùng<br/>rơi vỡ, ngập nước...?}
+    
+    CheckUserFault -- Có --> RejectFault[Quyết định từ chối bảo hành Rejected]
+    RejectFault --> ReturnOldFault[Trả thiết bị lỗi cho khách]
+    ReturnOldFault --> ResetSerialFault[Đổi Serial cũ sang Sold]
+    ResetSerialFault --> CloseClaimFault[Đóng claim Closed] --> End
+    
+    CheckUserFault -- Không --> CheckRepairable{Có thể sửa chữa<br/>nội bộ / thay linh kiện?}
+    
+    CheckRepairable -- Có --> Repairing[Tiến hành sửa chữa: Claim -> Repairing]
+    Repairing --> Repaired[Sửa xong: Claim -> Repaired]
+    Repaired --> ReturnOldRepaired[Trả máy cũ đã sửa cho khách]
+    ReturnOldRepaired --> ResetSerialRepaired[Đổi Serial cũ sang Sold]
+    ResetSerialRepaired --> CloseClaimRepaired[Đóng claim Closed] --> End
+    
+    CheckRepairable -- Không --> SendToMfg{Gửi hãng hay<br/>đổi mới trực tiếp?}
+    
+    SendToMfg -- Gửi hãng --> ClaimSent[Claim -> SentToManufacturer]
+    ClaimSent --> WaitMfg[Chờ phản hồi: WaitingManufacturerResult]
+    WaitMfg --> CheckMfgRepaired{Hãng sửa chữa được?}
+    
+    CheckMfgRepaired -- Có --> ClaimRepairedMfg[Claim -> Repaired]
+    ClaimRepairedMfg --> ReturnMfgRepaired[Trả máy cũ đã sửa cho khách]
+    ReturnMfgRepaired --> ResetSerialMfg[Đổi Serial cũ sang Sold]
+    ResetSerialMfg --> CloseClaimMfg[Đóng claim Closed] --> End
+    
+    CheckMfgRepaired -- Không --> DecisionReplace[Duyệt quyết định Đổi mới thiết bị]
+    SendToMfg -- Đổi mới ngay --> DecisionReplace
+    
+    DecisionReplace --> CheckStock{Có sẵn Serial thay thế<br/>cùng loại trong kho?}
+    
+    CheckStock -- Không --> WaitStock[Claim -> WaitingDecision<br/>Thông báo thiếu hàng thay thế] --> End
+    CheckStock -- Có --> TxStart[BEGIN TRANSACTION]
+    
+    TxStart --> DeactivateCoverage[Đóng bảo hành cũ: Status -> Inactive]
+    DeactivateCoverage --> CalcRemaining[Tính số ngày còn lại: RemainingDays]
+    CalcRemaining --> CreateStockOut[Tạo phiếu xuất kho đổi mới: StockOut WarrantyReplacement]
+    CreateStockOut --> PostStockOut[Ghi sổ xuất kho Posted:<br/>- Trừ StockBalance<br/>- Serial mới sang Replaced<br/>- Ghi StockLedger & AuditLog]
+    PostStockOut --> CreateNewCoverage[Tạo WarrantyCoverage mới cho Serial thay thế<br/>Kế thừa RemainingDays]
+    CreateNewCoverage --> LinkClaim[Cập nhật claim: gắn ReplacementSerialId & StockOutId]
+    LinkClaim --> TxCommit[COMMIT TRANSACTION]
+    
+    TxCommit --> DeliverNew[Bàn giao thiết bị mới cho khách]
+    DeliverNew --> SoldNew[Cập nhật Serial mới sang Sold]
+    SoldNew --> ScrappedOld[Cập nhật Serial cũ sang Replaced / ReturnedToManufacturer]
+    ScrappedOld --> CloseClaimReplace[Đóng claim Closed] --> End

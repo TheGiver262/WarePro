@@ -1,0 +1,59 @@
+flowchart TD
+    %% Định nghĩa các tiêu đề hàng và cột
+    subgraph Grid["Biểu đồ nhiệt Mật độ lỗi bảo hành (Heatmap)"]
+        direction TB
+        
+        %% Hàng tiêu đề cột
+        H_Label["Thương hiệu / Nhóm hàng"] --- H_Phone["Điện thoại"] --- H_Lap["Laptop"] --- H_Tab["Tablet"] --- H_Watch["Smartwatch"] --- H_Acc["Phụ kiện"]
+        
+        %% Dòng 1: Apple
+        R1_Label["<b>Apple</b>"] --- R1_C1["🔴 ĐỎ (High: 45)"] --- R1_C2["🟠 CAM (Mid: 12)"] --- R1_C3["🟡 VÀNG (Low: 8)"] --- R1_C4["🟡 VÀNG (Low: 5)"] --- R1_C5["🟢 XANH (Min: 2)"]
+        
+        %% Dòng 2: Dell
+        R2_Label["<b>Dell</b>"] --- R2_C1["⚪ N/A"] --- R2_C2["🔴 ĐỎ (High: 38)"] --- R2_C3["⚪ N/A"] --- R2_C4["⚪ N/A"] --- R2_C5["🟢 XANH (Min: 1)"]
+        
+        %% Dòng 3: Asus
+        R3_Label["<b>Asus</b>"] --- R3_C1["⚪ N/A"] --- R3_C2["🟠 CAM (Mid: 22)"] --- R3_C3["⚪ N/A"] --- R3_C4["⚪ N/A"] --- R3_C5["⚪ N/A"]
+        
+        %% Dòng 4: Samsung
+        R4_Label["<b>Samsung</b>"] --- R4_C1["🟠 CAM (Mid: 18)"] --- R4_C2["⚪ N/A"] --- R4_C3["🟡 VÀNG (Low: 9)"] --- R4_C4["🟡 VÀNG (Low: 6)"] --- R4_C5["🟢 XANH (Min: 3)"]
+        
+        %% Dòng 5: Xiaomi
+        R5_Label["<b>Xiaomi</b>"] --- R5_C1["🟡 VÀNG (Low: 10)"] --- R5_C2["⚪ N/A"] --- R5_C3["🟢 XANH (Min: 3)"] --- R5_C4["🟢 XANH (Min: 4)"] --- R5_C5["🟢 XANH (Min: 1)"]
+    end
+
+    %% Định nghĩa Style màu cho Heatmap
+    %% High (Red)
+    style R1_C1 fill:#ff4d4d,stroke:#333,color:#fff
+    style R2_C2 fill:#ff4d4d,stroke:#333,color:#fff
+    
+    %% Mid (Orange)
+    style R1_C2 fill:#ffc266,stroke:#333
+    style R3_C2 fill:#ffc266,stroke:#333
+    style R4_C1 fill:#ffc266,stroke:#333
+    
+    %% Low (Yellow)
+    style R1_C3 fill:#ffff99,stroke:#333
+    style R1_C4 fill:#ffff99,stroke:#333
+    style R4_C3 fill:#ffff99,stroke:#333
+    style R4_C4 fill:#ffff99,stroke:#333
+    style R5_C1 fill:#ffff99,stroke:#333
+
+    %% Min (Green)
+    style R1_C5 fill:#adebad,stroke:#333
+    style R2_C5 fill:#adebad,stroke:#333
+    style R4_C5 fill:#adebad,stroke:#333
+    style R5_C3 fill:#adebad,stroke:#333
+    style R5_C4 fill:#adebad,stroke:#333
+    style R5_C5 fill:#adebad,stroke:#333
+
+    %% N/A (Gray)
+    style R2_C1 fill:#f2f2f2,stroke:#eee,color:#aaa
+    style R2_C3 fill:#f2f2f2,stroke:#eee,color:#aaa
+    style R2_C4 fill:#f2f2f2,stroke:#eee,color:#aaa
+    style R3_C1 fill:#f2f2f2,stroke:#eee,color:#aaa
+    style R3_C3 fill:#f2f2f2,stroke:#eee,color:#aaa
+    style R3_C4 fill:#f2f2f2,stroke:#eee,color:#aaa
+    style R3_C5 fill:#f2f2f2,stroke:#eee,color:#aaa
+    style R4_C2 fill:#f2f2f2,stroke:#eee,color:#aaa
+    style R5_C2 fill:#f2f2f2,stroke:#eee,color:#aaa

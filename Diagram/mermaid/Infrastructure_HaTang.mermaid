@@ -1,0 +1,54 @@
+flowchart TD
+    subgraph Office_HQ["Trụ sở chính Văn phòng (HQ)"]
+        direction TB
+        
+        subgraph Client_Zone["Khu vực Máy trạm Nhân viên"]
+            PC1["PC Bán hàng (WPF App)"]
+            PC2["PC Thủ kho (WPF App)"]
+            PC3["PC Bảo hành (WPF App)"]
+        end
+
+        subgraph Network_Core["Thiết bị Mạng nội bộ LAN"]
+            Switch["Cisco Core Switch"]
+            Firewall["pfSense Firewall / Router"]
+            Client_Zone -->|Ethernet| Switch
+            Switch --> Firewall
+        end
+
+        subgraph DB_Host["Máy chủ Cơ sở dữ liệu chính"]
+            direction TB
+            ServerHardware["Phần cứng Server:<br/>- CPU: Intel Xeon 16 Cores<br/>- RAM: 64GB DDR5 ECC<br/>- Storage: NVMe RAID 10 (High I/O)"]
+            OS["Hệ điều hành Windows Server 2022"]
+            DBEngine[("SQL Server Database Engine")]
+            
+            ServerHardware --> OS --> DBEngine
+        end
+        
+        subgraph Local_Backup["Thiết bị Lưu trữ Sao lưu nội bộ"]
+            NAS["Synology NAS Storage (RAID 6)"]
+        end
+        
+        Firewall -->|TCP Cổng 1433| DB_Host
+        DB_Host -->|Mạng nội bộ: Sao lưu hàng đêm .bak| NAS
+    end
+
+    subgraph AWS_Azure["Hạ tầng Đám mây (AWS / Azure)"]
+        CloudStorage["Cold Backup (Azure Blob / AWS S3)"]
+        SMTPCloud["SMTP Email Gateway (SES/SendGrid)"]
+    end
+
+    subgraph External_APIs["Các API Dịch vụ bên ngoài"]
+        MfgAPI["API Bảo hành của Hãng"]
+        eInvoice["API Hóa đơn điện tử"]
+    end
+
+    %% Kết nối internet và cloud
+    Firewall -->|Bảo mật VPN/HTTPS| CloudStorage
+    Firewall -->|SMTP TLS Cổng 587| SMTPCloud
+    Firewall -->|HTTPS REST API| MfgAPI
+    Firewall -->|HTTPS REST API| eInvoice
+
+    style Office_HQ fill:#e6f3ff,stroke:#0066cc,stroke-width:1.5px
+    style DB_Host fill:#fff0f5,stroke:#ff0077,stroke-width:1.2px
+    style AWS_Azure fill:#fff9e6,stroke:#cc9900,stroke-width:1px
+    style External_APIs fill:#f2f9f2,stroke:#00aa22,stroke-width:1px

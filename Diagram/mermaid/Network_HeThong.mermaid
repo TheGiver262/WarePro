@@ -1,0 +1,58 @@
+flowchart TD
+    %% Vùng Internet
+    Internet((Mạng Internet))
+    
+    %% Vùng Edge Firewall
+    subgraph Edge["Thiết bị Tường lửa Gateway"]
+        Firewall["pfSense Tường lửa (IP WAN: 1.2.3.4)"]
+        VPNServer["OpenVPN Server Daemon (Port 1194)"]
+        Firewall <--> VPNServer
+    end
+    Internet <-->|Cáp WAN| Firewall
+
+    %% Kết nối VPN từ xa
+    subgraph VPNTunnel["Vùng kết nối VPN (10.8.0.0/24)"]
+        RemoteClient["Laptop nhân viên ngoài văn phòng<br/>(IP: 10.8.0.10)"]
+    end
+    RemoteClient <-->|Mã hóa OpenVPN Tunnel| VPNServer
+
+    %% Mạng LAN doanh nghiệp
+    subgraph LAN["Mạng LAN doanh nghiệp (192.168.0.0/16)"]
+        
+        subgraph VLAN10["VLAN 10: Máy trạm Nhân viên (192.168.10.0/24)"]
+            PC_Store["PC Thủ kho<br/>(IP: 192.168.10.11)"]
+            PC_Sales["PC Bán hàng<br/>(IP: 192.168.10.12)"]
+            PC_Tech["PC Kỹ thuật bảo hành<br/>(IP: 192.168.10.13)"]
+        end
+
+        subgraph VLAN20["VLAN 20: Server bảo mật (192.168.20.0/24)"]
+            DBServer["SQL Database Server<br/>(IP: 192.168.20.100)"]
+            NAS["Synology NAS Backup<br/>(IP: 192.168.20.200)"]
+        end
+
+        subgraph VLAN30["VLAN 30: Mạng Guest/Wifi khách (192.168.30.0/24)"]
+            GuestDevice["Điện thoại/Laptop của khách"]
+        end
+    end
+
+    %% Các chính sách kiểm soát gói tin của Firewall
+    Firewall -->|Định tuyến| VLAN10
+    Firewall -->|Chỉ mở cổng 1433/445| VLAN20
+    Firewall -->|Chỉ cho ra Internet| VLAN30
+
+    %% Kết nối cơ sở dữ liệu
+    PC_Store -->|TCP Port 1433| DBServer
+    PC_Sales -->|TCP Port 1433| DBServer
+    PC_Tech -->|TCP Port 1433| DBServer
+    RemoteClient -->|Định tuyến VPN: TCP Port 1433| DBServer
+    
+    DBServer -->|Đồng bộ backup: TCP Port 445| NAS
+    
+    %% Đường chặn kết nối bảo mật
+    GuestDevice -.x|Bị Firewall chặn cổng 1433| DBServer
+
+    style Edge fill:#fff0f5,stroke:#ff0077,stroke-width:1.5px
+    style VPNTunnel fill:#f5f5f5,stroke:#999,stroke-width:1px
+    style VLAN10 fill:#e6f3ff,stroke:#0066cc,stroke-width:1px
+    style VLAN20 fill:#fee2e2,stroke:#ef4444,stroke-width:1px
+    style VLAN30 fill:#fff9e6,stroke:#cc9900,stroke-width:1px

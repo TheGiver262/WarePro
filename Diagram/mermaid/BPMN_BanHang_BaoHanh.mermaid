@@ -1,0 +1,92 @@
+flowchart TD
+    %% Định nghĩa các làn bơi bằng Subgraph
+    subgraph Customer["Khách hàng"]
+        c_buy[Yêu cầu mua hàng]
+        c_use[Nhận máy & Sử dụng]
+        c_fail[Thiết bị lỗi]
+        c_claim[Mang máy lỗi đi bảo hành]
+        c_receive_old[Nhận lại máy lỗi mang về]
+        c_receive_rep[Nhận lại máy đã sửa]
+        c_receive_new[Nhận máy mới thay thế]
+    end
+
+    subgraph Salesman["Nhân viên Bán hàng"]
+        s_invoice[Lập Hóa đơn bán & Phiếu xuất Draft]
+        s_detail[Chọn sản phẩm & số lượng]
+    end
+
+    subgraph Storekeeper["Thủ kho"]
+        sk_check[Kiểm tra tồn kho thực tế]
+        sk_serial[Chọn/quét số Serial xuất]
+        sk_post[Ghi sổ xuất kho Posted]
+        sk_deliver[Bàn giao sản phẩm cho khách]
+        
+        sk_check_rep[Kiểm tra tồn kho thay thế]
+        sk_serial_rep[Chọn số Serial máy mới]
+        sk_post_rep[Ghi sổ xuất đổi mới]
+        sk_deliver_rep[Bàn giao máy mới cho bảo hành]
+    end
+
+    subgraph Technician["Nhân viên Bảo hành"]
+        t_receive[Tiếp nhận máy lỗi]
+        t_validate{Hợp lệ bảo hành?}
+        t_claim[Lập hồ sơ WarrantyClaim]
+        t_check[Kiểm tra lỗi chi tiết]
+        t_repairable{Có sửa được?}
+        t_repair[Sửa chữa thiết bị lỗi]
+        t_return_old[Giao trả máy cũ đã sửa]
+        t_propose[Lập đề xuất đổi mới]
+        t_return_new[Bàn giao máy mới cho khách]
+        t_close[Đóng claim & Đổi trạng thái các serial]
+    end
+
+    subgraph Manager["Quản lý"]
+        m_review[Xem xét hồ sơ & đề xuất]
+        m_approve{Phê duyệt đổi mới?}
+        m_sign[Ký duyệt quyết định]
+    end
+
+    %% Định nghĩa luồng nghiệp vụ chạy qua các làn
+    c_buy --> s_invoice
+    s_invoice --> s_detail
+    s_detail --> sk_check
+    sk_check --> sk_serial
+    sk_serial --> sk_post
+    sk_post --> sk_deliver
+    sk_deliver --> c_use
+    c_use -->|Sau một thời gian| c_fail
+    c_fail --> c_claim
+    c_claim --> t_receive
+    
+    t_receive --> t_validate
+    t_validate -- Không --> c_receive_old
+    t_validate -- Có --> t_claim
+    
+    t_claim --> t_check
+    t_check --> t_repairable
+    
+    t_repairable -- Có --> t_repair
+    t_repair --> t_return_old
+    t_return_old --> c_receive_rep
+    
+    t_repairable -- Không --> t_propose
+    t_propose --> m_review
+    m_review --> m_approve
+    
+    m_approve -- Không --> t_check
+    m_approve -- Có --> m_sign
+    
+    m_sign --> sk_check_rep
+    sk_check_rep --> sk_serial_rep
+    sk_serial_rep --> sk_post_rep
+    sk_post_rep --> sk_deliver_rep
+    sk_deliver_rep --> t_return_new
+    t_return_new --> c_receive_new
+    c_receive_new --> t_close
+    
+    %% Style bổ sung để phân biệt các subgraph
+    style Customer fill:#f9f9f9,stroke:#333,stroke-width:1px
+    style Salesman fill:#f0f8ff,stroke:#0055ff,stroke-width:1px
+    style Storekeeper fill:#fff0f5,stroke:#ff0077,stroke-width:1px
+    style Technician fill:#f5fffa,stroke:#00aa55,stroke-width:1px
+    style Manager fill:#fffff0,stroke:#aaaa00,stroke-width:1px

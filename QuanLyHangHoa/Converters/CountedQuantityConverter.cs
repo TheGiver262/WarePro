@@ -6,7 +6,7 @@ namespace QuanLyHangHoa.Converters
 {
     public class CountedQuantityConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value == null) return string.Empty;
 
@@ -19,7 +19,7 @@ namespace QuanLyHangHoa.Converters
             return value.ToString() ?? string.Empty;
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
             var strValue = value as string;
             if (string.IsNullOrWhiteSpace(strValue))

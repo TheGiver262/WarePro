@@ -1,0 +1,68 @@
+flowchart TD
+    subgraph Presentation["Presentation Component (WPF App)"]
+        Views["Views (XAML Windows/Pages)"]
+        VM["ViewModels (DataContext/Commands)"]
+        Conv["Converters & Styles"]
+        
+        Views <-->|Data Binding / Commands| VM
+        VM --> Conv
+    end
+
+    subgraph Application["Application Services Component"]
+        subgraph Interfaces["Service Interfaces"]
+            IAuth["IAuthService"]
+            IStock["IStockService"]
+            IWarranty["IWarrantyService"]
+            ICat["ICatalogService"]
+        end
+        
+        subgraph Impls["Service Implementations"]
+            AuthSvc["Auth & Authorization Service"]
+            StockSvc["Inventory & Stock Service"]
+            WarrSvc["Warranty Claim Service"]
+            CatSvc["Catalog Service"]
+            PostSvc["Inventory Posting Service"]
+        end
+        
+        AuthSvc -.- IAuth
+        StockSvc -.- IStock
+        WarrSvc -.- IWarranty
+        CatSvc -.- ICat
+        
+        StockSvc -->|delegates| PostSvc
+        WarrSvc -->|delegates| PostSvc
+    end
+
+    subgraph Infrastructure["Infrastructure & Data Component"]
+        IUOW["IUnitOfWork (Interface)"]
+        UOW["EfUnitOfWork & Repositories"]
+        DbContext["EF Core 8 AppDbContext"]
+        Tx["Database Transaction Handler"]
+        
+        UOW -.- IUOW
+        UOW --> DbContext
+        DbContext --> Tx
+    end
+
+    subgraph DB["Database Server"]
+        SQL[(SQL Server)]
+    end
+
+    subgraph Ext["External Integrations"]
+        Excel["Excel/CSV Helper (ClosedXML)"]
+        MfgAPI["Manufacturer API Connector"]
+    end
+
+    %% Kết nối liên phân hệ
+    VM -->|calls| Interfaces
+    Impls -->|db operations| IUOW
+    PostSvc -->|writes Ledger/Balances| UOW
+    DbContext -->|SQL Client Provider| SQL
+    
+    StockSvc -->|reads/writes| Excel
+    WarrSvc -->|syncs claims| MfgAPI
+    
+    style Presentation fill:#f9f9f9,stroke:#333,stroke-width:1px
+    style Application fill:#e6f3ff,stroke:#0066cc,stroke-width:1px
+    style Infrastructure fill:#fff9e6,stroke:#cc9900,stroke-width:1px
+    style DB fill:#fff0f5,stroke:#ff0077,stroke-width:1px

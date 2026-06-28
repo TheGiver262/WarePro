@@ -431,4 +431,4 @@ public class CategoryService
 | `CategoryService`, `BrandService`, ... | CRUD danh mục tham chiếu | Thấp |
 | `ReferenceDataService` | Load các dropdown (kho, đơn vị, ...) | Thấp |
 | `OpeningBalanceImportService` | Import tồn đầu kỳ từ Excel | Trung bình |
-| `AuditQueryService` | Truy vấn lịch sử thay đổi | Trung bình |
+| `ReportTraceService / AuditLogService` | Truy vet san pham/serial va nhat ky he thong | Trung bình |

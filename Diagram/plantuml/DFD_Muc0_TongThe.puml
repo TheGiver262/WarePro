@@ -1,0 +1,31 @@
+@startuml DFD_Muc0_TongThe
+title Sơ đồ Luồng Dữ liệu DFD Mức 0 (Context Diagram)
+
+left to right direction
+skinparam packageStyle rect
+skinparam ComponentStyle uml2
+
+actor "Khách hàng" as Customer
+actor "Nhà cung cấp" as Supplier
+actor "Hãng sản xuất" as Manufacturer
+actor "Người dùng (Admin/Nhân viên)" as User
+
+rectangle "Hệ thống Quản lý Hàng hóa & Bảo hành (WareHousePro)" as System #LightBlue
+
+' Luồng dữ liệu với Khách hàng
+Customer --> System : (1) Yêu cầu mua sản phẩm\n(2) Thiết bị lỗi cần bảo hành
+System --> Customer : (3) Hóa đơn bán lẻ (SalesInvoice)\n(4) Thiết bị đã bảo hành (Sửa/Đổi mới)
+
+' Luồng dữ liệu với Nhà cung cấp
+Supplier --> System : (1) Giao hàng kèm thông tin sản phẩm\n(2) Hóa đơn mua hàng (PurchaseInvoice)
+System --> Supplier : (3) Yêu cầu đặt hàng/Trả hàng lỗi
+
+' Luồng dữ liệu với Hãng sản xuất
+System --> Manufacturer : (1) Gửi thiết bị hỏng của khách\n(2) Gửi yêu cầu claim bảo hành
+Manufacturer --> System : (3) Trả lại thiết bị đã sửa/đổi mới\n(4) Kết quả phê duyệt kỹ thuật của hãng
+
+' Luồng dữ liệu với Người dùng
+User --> System : (1) Thông tin đăng nhập (Credentials)\n(2) Yêu cầu nhập/xuất/kiểm kê/điều chỉnh\n(3) Lệnh lập báo cáo thống kê
+System --> User : (4) Phản hồi thao tác (Thành công/Lỗi)\n(5) Dữ liệu tra cứu sản phẩm/tồn kho\n(6) Báo cáo thống kê & Nhật ký hệ thống (Audit Log)
+
+@enduml

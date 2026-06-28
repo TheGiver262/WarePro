@@ -216,7 +216,7 @@ namespace QuanLyHangHoa.ViewModels
                     : null;
 
                 var data = await Task.Run(() => _invoiceService.GetSalesInvoicesPaged(
-                    SearchInvoiceCode, SearchCustomerName, FilterStartDate, FilterEndDate, paymentStatus, FilterMinTotal, FilterMaxTotal, _skip, PageSize));
+                    SearchInvoiceCode, SearchCustomerName, FilterStartDate, FilterEndDate, paymentStatus ?? string.Empty, FilterMinTotal, FilterMaxTotal, _skip, PageSize));
 
                 foreach (var inv in data)
                 {
@@ -229,7 +229,7 @@ namespace QuanLyHangHoa.ViewModels
                 {
                     using var db = _mainViewModel?.ContextFactory?.Invoke() ?? new AppDbContext();
                     var query = db.SalesInvoices.AsNoTracking().AsQueryable();
-                    query = ApplySalesInvoiceFiltersStatic(query, SearchInvoiceCode, SearchCustomerName, FilterStartDate, FilterEndDate, paymentStatus, FilterMinTotal, FilterMaxTotal);
+                    query = ApplySalesInvoiceFiltersStatic(query, SearchInvoiceCode, SearchCustomerName, FilterStartDate, FilterEndDate, paymentStatus ?? string.Empty, FilterMinTotal, FilterMaxTotal);
                     
                     var stats = query.GroupBy(i => 1)
                         .Select(g => new

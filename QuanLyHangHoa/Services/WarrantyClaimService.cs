@@ -488,8 +488,8 @@ namespace QuanLyHangHoa.Services
                 ?? throw new InvalidOperationException($"Phiếu bảo hành #{claimId} không tồn tại.");
 
             // Kiểm tra xem đã tạo chứng từ liên quan hay chưa
-            bool hasRelatedStockIn = db.StockIns.Any(si => si.Notes.Contains(claim.ClaimCode));
-            bool hasRelatedStockOut = db.StockOuts.Any(so => so.Notes.Contains(claim.ClaimCode)) || claim.ReplacementStockOutId.HasValue;
+            bool hasRelatedStockIn = db.StockIns.Any(si => si.Notes != null && si.Notes.Contains(claim.ClaimCode));
+            bool hasRelatedStockOut = db.StockOuts.Any(so => so.Notes != null && so.Notes.Contains(claim.ClaimCode)) || claim.ReplacementStockOutId.HasValue;
 
             if (hasRelatedStockIn || hasRelatedStockOut)
             {

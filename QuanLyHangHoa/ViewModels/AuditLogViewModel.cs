@@ -17,7 +17,7 @@ namespace QuanLyHangHoa.ViewModels
 {
     public partial class AuditLogViewModel : ObservableObject, IRefreshable
     {
-        private readonly AuditQueryService _auditService = null!;
+        private readonly AuditLogService _auditService = null!;
         private readonly AppUserService _userService = null!;
 
         [ObservableProperty] private ObservableCollection<AuditLog> _logs = new();
@@ -48,7 +48,7 @@ namespace QuanLyHangHoa.ViewModels
         public AuditLogViewModel(Func<AppDbContext> contextFactory)
         {
             _contextFactory = contextFactory;
-            _auditService = new AuditQueryService(contextFactory);
+            _auditService = new AuditLogService(contextFactory);
             _userService = new AppUserService(contextFactory);
             LoadMetadata();
             LoadLogs();

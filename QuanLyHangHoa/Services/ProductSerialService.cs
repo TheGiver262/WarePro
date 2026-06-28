@@ -22,12 +22,12 @@ namespace QuanLyHangHoa.Services
             var query = db.ProductSerials
                 .AsNoTracking()
                 .Include(s => s.Product)
-                    .ThenInclude(p => p.Brand)
+                    .ThenInclude(p => p!.Brand)
                 .Include(s => s.CurrentWarehouse)
                 .Include(s => s.LastStockInLine)
-                    .ThenInclude(l => l.StockIn)
+                    .ThenInclude(l => l!.StockIn)
                 .Include(s => s.LastStockOutLine)
-                    .ThenInclude(l => l.StockOut)
+                    .ThenInclude(l => l!.StockOut)
                 .AsQueryable();
 
             query = ApplySerialFilters(query, serial, product, brand, status, fromDate, toDate, note);
@@ -44,12 +44,12 @@ namespace QuanLyHangHoa.Services
             var query = db.ProductSerials
                 .AsNoTracking()
                 .Include(s => s.Product)
-                    .ThenInclude(p => p.Brand)
+                    .ThenInclude(p => p!.Brand)
                 .Include(s => s.CurrentWarehouse)
                 .Include(s => s.LastStockInLine)
-                    .ThenInclude(l => l.StockIn)
+                    .ThenInclude(l => l!.StockIn)
                 .Include(s => s.LastStockOutLine)
-                    .ThenInclude(l => l.StockOut)
+                    .ThenInclude(l => l!.StockOut)
                 .AsQueryable();
 
             query = ApplySerialFilters(query, serial, product, brand, status, fromDate, toDate, note);
@@ -86,13 +86,13 @@ namespace QuanLyHangHoa.Services
             if (!string.IsNullOrWhiteSpace(product))
             {
                 var keyword = product.Trim();
-                query = query.Where(s => s.Product.DisplayName.Contains(keyword) || s.Product.ProductCode.Contains(keyword));
+                query = query.Where(s => s.Product != null && (s.Product.DisplayName.Contains(keyword) || s.Product.ProductCode.Contains(keyword)));
             }
 
             if (!string.IsNullOrWhiteSpace(brand))
             {
                 var keyword = brand.Trim();
-                query = query.Where(s => s.Product.Brand.DisplayName.Contains(keyword));
+                query = query.Where(s => s.Product != null && s.Product.Brand != null && s.Product.Brand.DisplayName.Contains(keyword));
             }
 
             if (!string.IsNullOrWhiteSpace(note))
@@ -103,13 +103,13 @@ namespace QuanLyHangHoa.Services
 
             if (fromDate.HasValue)
             {
-                query = query.Where(s => s.LastStockInLine.StockIn.CreatedAt >= fromDate.Value);
+                query = query.Where(s => s.LastStockInLine != null && s.LastStockInLine.StockIn != null && s.LastStockInLine.StockIn.CreatedAt >= fromDate.Value);
             }
 
             if (toDate.HasValue)
             {
                 var endOfDay = toDate.Value.Date.AddDays(1).AddTicks(-1);
-                query = query.Where(s => s.LastStockInLine.StockIn.CreatedAt <= endOfDay);
+                query = query.Where(s => s.LastStockInLine != null && s.LastStockInLine.StockIn != null && s.LastStockInLine.StockIn.CreatedAt <= endOfDay);
             }
 
             return query;

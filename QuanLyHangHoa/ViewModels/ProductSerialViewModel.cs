@@ -433,7 +433,7 @@ namespace QuanLyHangHoa.ViewModels
                 bool isTestEnv = false;
                 try
                 {
-                    isTestEnv = _contextFactory == null || _contextFactory() == null;
+                    isTestEnv = _contextFactory() == null;
                 }
                 catch
                 {
