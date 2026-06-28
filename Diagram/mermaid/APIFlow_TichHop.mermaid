@@ -1,45 +1,22 @@
 sequenceDiagram
-    actor User as Nhân viên
-    participant UI as WPF Client UI
-    participant Svc as App Services (Local)
-    participant DB as SQL Server (Local DB)
-    participant InvoiceAPI as e-Invoice API Gateway
-    participant MfgAPI as Manufacturer API Gateway
-
-    %% Luồng 1: Tích hợp xuất Hóa đơn điện tử
-    Note over User, InvoiceAPI: Luồng 1: Tích hợp xuất Hóa đơn điện tử (e-Invoice)
-    User->>UI: Nhấp "Xuất hóa đơn điện tử"
-    UI->>Svc: IssueInvoice(invoiceId)
-    Svc->>DB: Truy vấn chi tiết SalesInvoice & Lines
-    DB-->>Svc: Dữ liệu hóa đơn bán lẻ
-    Svc->>Svc: Định dạng JSON Payload (MST, Khách hàng, Thuế)
-    
-    Svc->>InvoiceAPI: POST /api/v1/invoice/create (Token + Payload)
-    activate InvoiceAPI
-    InvoiceAPI->>InvoiceAPI: Ký số, Cấp mã cơ quan thuế
-    InvoiceAPI-->>Svc: HTTP 200 OK (InvoiceNo, VerificationCode, PDFLink)
-    deactivate InvoiceAPI
-    
-    Svc->>DB: Cập nhật thông tin hóa đơn (Status = "Issued")
-    DB-->>Svc: Cập nhật thành công
-    Svc-->>UI: Kết quả phát hành hóa đơn
-    UI-->>User: Hiển thị PDF hóa đơn & Trạng thái đã phát hành
-
-    %% Luồng 2: Tích hợp gửi yêu cầu bảo hành lên Hãng
-    Note over User, MfgAPI: Luồng 2: Tích hợp gửi yêu cầu bảo hành lên Hãng
-    User->>UI: Nhấp "Đồng bộ bảo hành lên hãng"
-    UI->>Svc: SyncClaimToManufacturer(claimId)
-    Svc->>DB: Truy vấn WarrantyClaim & Serial
-    DB-->>Svc: Dữ liệu hồ sơ bảo hành
-    Svc->>Svc: Định dạng JSON Payload (Serial, Lỗi kỹ thuật)
-    
-    Svc->>MfgAPI: POST /api/warranty/claims (API Key + Payload)
-    activate MfgAPI
-    MfgAPI->>MfgAPI: Kiểm tra lịch sử & chính sách hãng
-    MfgAPI-->>Svc: HTTP 201 Created (MfgClaimId, Status = "InWarrantyProcess")
-    deactivate MfgAPI
-    
-    Svc->>DB: Cập nhật ManufacturerResult & Status = "SentToManufacturer"
-    DB-->>Svc: Lưu thành công
-    Svc-->>UI: Cập nhật UI: Đã gửi hãng
-    UI-->>User: Hiển thị mã claim của Hãng
+    actor User as Nguoi dung
+    participant UI as OpeningBalanceImportView
+    participant VM as OpeningBalanceImportViewModel
+    participant ImportSvc as OpeningBalanceImportService / DynamicImportService
+    participant Parser as ExcelImportService / CsvImportService
+    participant Posting as InventoryPostingService
+    participant DB as SQL Server
+    User->>UI: Chon file Excel/CSV
+    UI->>VM: ImportCommand(filePath, mapping)
+    VM->>ImportSvc: ImportFile(filePath, userId)
+    ImportSvc->>Parser: Parse rows
+    Parser-->>ImportSvc: ImportResult + RowError
+    alt Du lieu hop le
+        ImportSvc->>DB: Tao/ghep danh muc, san pham, serial, chung tu
+        ImportSvc->>Posting: PostStockIn/PostStockOut neu can ghi so
+        Posting->>DB: Cap nhat StockBalance, ProductSerial, StockLedger, AuditLog
+        ImportSvc-->>VM: Thanh cong + thong ke
+    else Co loi
+        ImportSvc-->>VM: Danh sach loi dong
+        VM-->>UI: Hien thi ImportResultWindow
+    end

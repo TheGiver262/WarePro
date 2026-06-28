@@ -1,53 +1,13 @@
 flowchart TD
-    %% Luồng thu thập dữ liệu giám sát
-    subgraph DataSources["Nguồn thu thập chỉ số (Metrics Sources)"]
-        WPF_App["WPF Client Telemetry<br/>(Exceptions, Load Time)"]
-        SQL_Server["SQL Server Telemetry<br/>(CPU, RAM, Connections, Latency)"]
-        API_Connectors["API Clients Logs<br/>(RTT, Errors, Status)"]
-    end
-
-    subgraph MonitoringStack["Hệ thống giám sát (Monitoring Backend)"]
-        Collector["Metrics Collector Service<br/>(Serilog / Prometheus)"]
-        DB_Metrics[(CSDL Giám sát - InfluxDB)]
-        Collector -->|Lưu trữ dữ liệu| DB_Metrics
-    end
-
-    WPF_App -->|Gửi log qua HTTP| Collector
-    SQL_Server -->|Telegraf Agent| Collector
-    API_Connectors -->|Log events| Collector
-
-    %% Mô phỏng giao diện Dashboard
-    subgraph DashboardUI["Giao diện Bảng Giám sát (Monitoring Dashboard UI)"]
-        direction TB
-        
-        subgraph InfrastructureMetrics["1. Giám sát Hạ tầng Máy chủ"]
-            direction LR
-            M_CPU["💻 CPU Usage: 62%<br/>(Ngưỡng cảnh báo: 85%)"]
-            M_RAM["💾 RAM Usage: 80%<br/>(51.2GB / 64GB)"]
-            M_Disk["💽 Disk Space: 450GB trống<br/>(RAID 10 NVMe)"]
-            M_Conn["🔌 Active Connections: 34"]
-        end
-
-        subgraph APIMetrics["2. Trạng thái Tích hợp Ngoài"]
-            direction LR
-            M_Mfg["🛡️ Manufacturer API<br/>Status: ONLINE | RTT: 120ms"]
-            M_Inv["🧾 e-Invoice API<br/>Status: ONLINE | RTT: 85ms"]
-            M_Mail["✉️ SMTP Mail Gateway<br/>Status: ONLINE | RTT: 45ms"]
-        end
-
-        subgraph PerfMetrics["3. Hiệu năng & Bảo mật Giao dịch"]
-            direction LR
-            M_SQL["⚡ Avg SQL Latency: 18ms<br/>(Tốt)"]
-            M_Tx["🔄 Avg Tx PostTime: 45ms<br/>(Tốt)"]
-            M_Sec["🔑 Failed Logins Rate: 0/min<br/>(An toàn)"]
-        end
-    end
-
-    DB_Metrics -->|Truy vấn vẽ đồ thị| DashboardUI
-
-    style Office_HQ fill:#e6f3ff,stroke:#0066cc,stroke-width:1.5px
-    style MonitoringStack fill:#fff9e6,stroke:#cc9900,stroke-width:1px
-    style DashboardUI fill:#fcfcfc,stroke:#333,stroke-width:2px
-    style InfrastructureMetrics fill:#fff,stroke:#ddd
-    style APIMetrics fill:#fff,stroke:#ddd
-    style PerfMetrics fill:#fff,stroke:#ddd
+    Monitor[Dashboard / ReportView] --> Data[Du lieu chinh]
+    Data --> Product[Product / ProductSerial]
+    Data --> Stock[StockBalance / StockLedger]
+    Data --> Docs[StockIn / StockOut / Transfer / Adjustment]
+    Monitor --> Trace[Truy vet]
+    Trace --> Audit[AuditLog]
+    Trace --> ReportTrace[ReportTraceService]
+    Trace --> Ledger[StockLedger timeline]
+    Monitor --> Warning[Canh bao]
+    Warning --> SerialGap[Serial thieu lien ket]
+    Warning --> NegativeStock[Ton am/le ch so]
+    Warning --> OpenClaim[Claim chua dong]

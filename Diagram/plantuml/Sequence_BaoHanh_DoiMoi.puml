@@ -1,166 +1,42 @@
 @startuml Sequence_BaoHanh_DoiMoi
-actor Technician as "Nhân viên bảo hành"
-actor Manager as "Quản lý"
-participant UI as "WarrantyView"
-participant VM as "WarrantyViewModel"
-participant Warranty as "WarrantyService"
-participant Approval as "ApprovalService"
-participant Inventory as "InventoryService"
-participant StockRepo as "StockOutRepository"
-participant BalanceRepo as "StockBalanceRepository"
-participant CoverageRepo as "WarrantyCoverageRepository"
-participant ClaimRepo as "WarrantyClaimRepository"
-participant SerialRepo as "SerialRepository"
-participant LedgerRepo as "StockLedgerRepository"
-participant AuditRepo as "AuditLogRepository"
-database DB as "SQL Server"
-
-Technician -> UI : Nhập serial và mô tả lỗi
-UI -> VM : OpenWarrantyClaim(request)
-VM -> Warranty : OpenClaim(request)
-Warranty -> CoverageRepo : FindActiveCoverageBySerial()
-CoverageRepo -> DB : SELECT coverage by serial
-DB --> CoverageRepo : Coverage data
-CoverageRepo --> Warranty : Coverage found
-Warranty -> Warranty : CheckWarrantyEligibility()
-Warranty -> ClaimRepo : CheckOpenClaimBySerial()
-ClaimRepo -> DB : SELECT open claim by serial
-DB --> ClaimRepo : Open claim result
-
-alt Đủ điều kiện và chưa có claim đang mở
-    Warranty -> ClaimRepo : Insert claim(status = Checking)
-    ClaimRepo -> DB : INSERT WarrantyClaim
-    DB --> ClaimRepo : Success
-    Warranty -> SerialRepo : Update serial = InWarrantyProcess
-    SerialRepo -> DB : UPDATE ProductSerial
-    DB --> SerialRepo : Success
-
-    alt Sửa nội bộ được
-        Warranty -> ClaimRepo : Update claim = WaitingDecision -> Repairing
-        ClaimRepo -> DB : UPDATE WarrantyClaim
-        DB --> ClaimRepo : Success
-        Warranty -> SerialRepo : Update serial = WarrantyDefective
-        SerialRepo -> DB : UPDATE ProductSerial
-        DB --> SerialRepo : Success
-        Warranty -> ClaimRepo : Update claim = Repaired
-        ClaimRepo -> DB : UPDATE WarrantyClaim
-        DB --> ClaimRepo : Success
-        Warranty -> Warranty : Confirm customer handover
-        Warranty -> ClaimRepo : Update claim = ReturnedToCustomer -> Closed
-        ClaimRepo -> DB : UPDATE WarrantyClaim
-        DB --> ClaimRepo : Success
-        Warranty -> SerialRepo : Update serial = Sold
-        SerialRepo -> DB : UPDATE ProductSerial
-        DB --> SerialRepo : Success
-        Warranty --> VM : Success repaired
-    else Cần gửi hãng
-        Warranty -> ClaimRepo : Update claim = SentToManufacturer
-        ClaimRepo -> DB : UPDATE WarrantyClaim
-        DB --> ClaimRepo : Success
-        Warranty -> SerialRepo : Update serial = WarrantyDefective
-        SerialRepo -> DB : UPDATE ProductSerial
-        DB --> SerialRepo : Success
-        Warranty -> ClaimRepo : Update claim = WaitingManufacturerResult -> WaitingDecision
-        ClaimRepo -> DB : UPDATE WarrantyClaim
-        DB --> ClaimRepo : Success
-
-        alt Hãng sửa được
-            Warranty -> ClaimRepo : Update claim = Repaired
-            ClaimRepo -> DB : UPDATE WarrantyClaim
-            DB --> ClaimRepo : Success
-            Warranty -> Warranty : Confirm handover
-            Warranty -> ClaimRepo : Update claim = ReturnedToCustomer -> Closed
-            ClaimRepo -> DB : UPDATE WarrantyClaim
-            DB --> ClaimRepo : Success
-            Warranty -> SerialRepo : Update serial = Sold
-            SerialRepo -> DB : UPDATE ProductSerial
-            DB --> SerialRepo : Success
-        else Hãng không sửa được, đổi mới
-            Warranty -> ClaimRepo : Record manufacturer result = Replace
-            ClaimRepo -> DB : UPDATE WarrantyClaim
-            DB --> ClaimRepo : Success
-            VM -> Manager : Trình quyết định đổi mới
-            Manager --> VM : Xác nhận phê duyệt
-            VM -> Warranty : RequestReplacementApproval(claimId, managerDecision)
-            Warranty -> Approval : Record replacement approval
-            Approval --> Warranty : Approved
-            
-            Warranty -> DB : BEGIN TRAN
-            Warranty -> ClaimRepo : LockWarrantyClaim()
-            ClaimRepo -> DB : SELECT ... WITH (UPDLOCK)
-            DB --> ClaimRepo : Locked
-            Warranty -> CoverageRepo : LockWarrantyCoverage()
-            CoverageRepo -> DB : SELECT ... WITH (UPDLOCK)
-            DB --> CoverageRepo : Locked
-
-            Warranty -> Inventory : LockProductBalanceForReplacement(order by ProductId asc, warehouseId = default)
-            Inventory -> BalanceRepo : SELECT ... WITH (UPDLOCK)
-            DB --> BalanceRepo : Locked
-            
-            Warranty -> SerialRepo : Lock old and candidate replacement serials(order by ProductSerialId asc)
-            SerialRepo -> DB : SELECT ... WITH (UPDLOCK)
-            DB --> SerialRepo : Locked
-
-            Warranty -> Inventory : CheckAvailableQuantity(warehouseId = default)
-            alt Đủ tồn thay thế
-                Warranty -> SerialRepo : Update old serial = ReturnedToManufacturer
-                SerialRepo -> DB : UPDATE ProductSerial
-                DB --> SerialRepo : Success
-
-                Warranty -> CoverageRepo : Close old coverage = Replaced / Inactive
-                CoverageRepo -> DB : UPDATE WarrantyCoverage
-                DB --> CoverageRepo : Success
-
-                Warranty -> StockRepo : Insert StockOut(Status=Approved, PurposeCode=WarrantyReplacement, WarehouseId=default, ApprovedBy=ManagerId)
-                StockRepo -> DB : INSERT StockOut
-                DB --> StockRepo : Success
-
-                Warranty -> Inventory : PostWarrantyReplacementStockOut(stockOutId, PostedBy=SystemServiceAccount)
-                Inventory -> BalanceRepo : UPDATE StockBalance
-                DB --> BalanceRepo : Success
-                
-                Inventory -> SerialRepo : Update replacement serial = Replaced
-                SerialRepo -> DB : UPDATE ProductSerial
-                DB --> SerialRepo : Success
-
-                Warranty -> CoverageRepo : Create replacement coverage with remaining term
-                CoverageRepo -> DB : INSERT WarrantyCoverage
-                DB --> CoverageRepo : Success
-
-                Warranty -> LedgerRepo : Write warranty replacement ledger
-                LedgerRepo -> DB : INSERT StockLedger
-                DB --> LedgerRepo : Success
-
-                Warranty -> AuditRepo : WriteAuditLog()
-                AuditRepo -> DB : INSERT AuditLog
-                DB --> AuditRepo : Success
-
-                Warranty -> ClaimRepo : Update claim = Replaced + ReplacementSerialId + ReplacementStockOutId
-                ClaimRepo -> DB : UPDATE WarrantyClaim
-                DB --> ClaimRepo : Success
-                
-                Warranty -> DB : COMMIT
-                
-                Warranty -> Warranty : Confirm replacement handover
-                Warranty -> DB : BEGIN TRAN
-                Warranty -> ClaimRepo : Update claim = ReturnedToCustomer -> Closed
-                ClaimRepo -> DB : UPDATE WarrantyClaim
-                DB --> ClaimRepo : Success
-                Warranty -> SerialRepo : Update replacement serial = Sold
-                SerialRepo -> DB : UPDATE ProductSerial
-                DB --> SerialRepo : Success
-                Warranty -> DB : COMMIT
-                Warranty --> VM : Success replaced
-            else Không đủ tồn thay thế
-                Warranty -> DB : ROLLBACK
-                Warranty -> DB : BEGIN TRAN
-                Warranty -> ClaimRepo : Update claim = WaitingDecision + insufficient stock note
-                ClaimRepo -> DB : UPDATE WarrantyClaim
-                DB --> ClaimRepo : Success
-                Warranty -> DB : COMMIT
-                Warranty --> VM : Need replacement stock
-            end
-        end
-    end
+title Warranty and replacement sequence
+actor Technician
+participant UI
+participant VM
+participant WarrantyClaimService
+participant Posting
+database DB
+Technician -> UI : enter_serial_claim_problem
+UI -> VM : CreateWarrantyCommand
+VM -> WarrantyClaimService : CreateClaim
+WarrantyClaimService -> DB : find_serial_and_active_coverage
+WarrantyClaimService -> DB : check_open_claim
+alt invalid
+  WarrantyClaimService --> VM : error
+  VM --> UI : show_error
+else valid
+  WarrantyClaimService -> DB : insert_WarrantyClaim
+  WarrantyClaimService -> DB : update_ProductSerial_InWarrantyProcess
+  WarrantyClaimService -> DB : insert_AuditLog
+  WarrantyClaimService --> VM : claimId
 end
-@endluml
+alt repaired
+  VM -> WarrantyClaimService : CompleteRepair
+  WarrantyClaimService -> DB : close_claim_and_restore_serial
+else replace_from_stock
+  VM -> WarrantyClaimService : ReplaceSerial
+  WarrantyClaimService -> DB : create_StockOut_WarrantyReplacement
+  WarrantyClaimService -> Posting : PostStockOut
+  Posting -> DB : update_balance_ledger_audit
+  WarrantyClaimService -> DB : close_old_coverage_create_new_coverage
+else manufacturer_replaced
+  VM -> WarrantyClaimService : ReceiveFromManufacturerReplaced
+  WarrantyClaimService -> DB : create_StockIn_new_serial
+  WarrantyClaimService -> Posting : PostStockIn
+  WarrantyClaimService -> DB : create_StockOut_to_customer
+  WarrantyClaimService -> Posting : PostStockOut
+  WarrantyClaimService -> DB : close_claim_and_update_coverages
+end
+WarrantyClaimService --> VM : refresh
+VM --> UI : show_result
+@enduml

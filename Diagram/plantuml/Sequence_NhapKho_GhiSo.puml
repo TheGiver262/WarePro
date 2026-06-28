@@ -1,68 +1,26 @@
 @startuml Sequence_NhapKho_GhiSo
-actor Storekeeper as "Nhân viên kho"
-participant UI as "StockInView"
-participant VM as "StockInViewModel"
-participant Approval as "ApprovalService"
-participant Authorization as "AuthorizationService"
-participant Service as "InventoryService"
-participant BalanceRepo as "StockBalanceRepository"
-participant StockRepo as "StockInRepository"
-participant SerialRepo as "SerialRepository"
-participant LedgerRepo as "StockLedgerRepository"
-participant AuditRepo as "AuditLogRepository"
-database DB as "SQL Server"
-
-Storekeeper -> UI : Nhập phiếu nhập
-UI -> VM : SubmitStockIn(request)
-VM -> Service : PostStockIn(request)
-Service -> Approval : ValidateStatusTransition()
-Approval --> Service : OK
-Service -> Authorization : ValidatePostingPermission()
-Authorization --> Service : OK
-Service -> Approval : CheckApproverPosterSeparationIfEnabled()
-Approval --> Service : OK
-
-Service -> Service : ResolveDefaultWarehouse()
-Service -> Service : SortLinesByProductId()
-Service -> DB : BEGIN TRAN
-
-Service -> BalanceRepo : LockProductBalances(order by ProductId asc, warehouseId = default)
-BalanceRepo -> DB : SELECT ... WITH (UPDLOCK)
-DB --> BalanceRepo : Current balance
-BalanceRepo --> Service : Locked
-
-Service -> Service : ConvertToBaseQuantity(lines)
-
-alt Có dòng quản lý serial
-    Service -> SerialRepo : ValidateIncomingSerials(serials)
-    SerialRepo -> DB : SELECT duplicate serials
-    DB --> SerialRepo : Result
-    SerialRepo --> Service : Serial valid
-end
-
-Service -> StockRepo : InsertHeaderAndLines(warehouseId, purposeCode)
-StockRepo -> DB : INSERT StockIn / StockInLine
-DB --> StockRepo : Success
-
-Service -> BalanceRepo : ApplyInboundBalanceChange(warehouseId)
-BalanceRepo -> DB : UPDATE StockBalance
-DB --> BalanceRepo : Success
-
-alt Có dòng quản lý serial
-    Service -> SerialRepo : InsertSerials(InStock, currentWarehouseId = default)
-    SerialRepo -> DB : INSERT ProductSerial
-    DB --> SerialRepo : Success
-end
-
-Service -> LedgerRepo : WriteInboundLedger(warehouseId)
-LedgerRepo -> DB : INSERT StockLedger
-DB --> LedgerRepo : Success
-
-Service -> AuditRepo : WriteAuditLog()
-AuditRepo -> DB : INSERT AuditLog
-DB --> AuditRepo : Success
-
-Service -> DB : COMMIT
-Service --> VM : Success
-VM --> UI : Show success
+title Stock-in posting sequence
+actor Storekeeper
+participant UI
+participant VM
+participant Authz
+participant StockInService
+participant Posting
+participant Uow
+database DB
+Storekeeper -> UI : enter_stock_in
+UI -> VM : Save_Post_Command
+VM -> Authz : CanPerform_PostStockIn
+Authz --> VM : OK
+VM -> StockInService : SaveDraft
+StockInService -> DB : upsert_StockIn_and_lines
+VM -> StockInService : Post
+StockInService -> DB : load_document
+StockInService -> StockInService : validate_status_serials
+StockInService -> Posting : PostStockIn
+Posting -> Uow : apply_entries
+Uow -> DB : update_balance_serial_ledger_audit
+Uow -> DB : mark_document_posted
+StockInService --> VM : success
+VM --> UI : refresh
 @enduml

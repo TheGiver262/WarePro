@@ -1,44 +1,25 @@
 @startsalt Monitoring_Dashboard
-title Thiết kế Giao diện Giám sát Hệ thống (Monitoring Dashboard Console)
-
-mainframe Bảng điều khiển Giám sát Hệ thống (System Monitoring Console)
+title Dashboard van hanh thuc te trong ung dung
 {
-  {
-    **TRẠNG THÁI HẠ TẦNG VÀ HIỆU NĂNG HỆ THỐNG** | [Làm mới (5s)]
-  }
+  { **Theo doi van hanh he thong** | [Tai lai] [Xuat Excel] }
   --
   {
-    === Máy chủ SQL Server (192.168.20.100) ===
-    CPU Usage: [||||||||||||||||||       ] 62%
-    RAM Usage: [|||||||||||||||||||||||| ] 80% (51.2GB/64GB)
-    Disk Queue Length: 0.15 (Tốt)
-    Dung lượng Disk: 450GB trống / 1.2TB
-    Active Connections: 34 kết nối
+    ==== Du lieu chinh ====
+    San pham: Product / ProductSerial
+    Ton kho: StockBalance / StockLedger
+    Chung tu: StockIn / StockOut / Transfer / Adjustment
   } | {
-    === Dịch vụ Tích hợp Ngoài (APIs Uptime) ===
-    Manufacturer API: (O) Online | RTT: 120ms
-    e-Invoice API:    (O) Online | RTT: 85ms
-    SMTP Mail Server: (O) Online | RTT: 45ms
-    --
-    === Cảnh báo Bảo mật (Security Alerts) ===
-    [X] failed logins (>3 lần/phút): 0 tài khoản
-    [X] brute-force locks (15m lock): 0 tài khoản
+    ==== Truy vet ====
+    AuditLog: thay doi danh muc va nghiep vu
+    ReportTraceService: timeline san pham/serial
+    StockLedger: lich su nhap xuat ton
   }
   --
-  **ĐO LƯỜNG HIỆU NĂNG NGHIỆP VỤ (HÔM NAY)**
-  {#
-    Chỉ số đo lường | Giá trị thực tế | Ngưỡng cảnh báo | Trạng thái
-    Thời gian xử lý Query SQL trung bình | 18 ms | > 100 ms | [O] Tốt
-    Tần suất ghi nhận AuditLog / phút | 12 logs/min | > 100 logs/min | [O] Bình thường
-    Số lượng lỗi giao dịch (Exceptions) | 2 lỗi | > 5 lỗi | [O] Bình thường
-    Thời gian hoàn thành PostStock (Transaction) | 45 ms | > 200 ms | [O] Tốt
-  }
-  --
-  **NHẬT KÝ LỖI HỆ THỐNG GẦN NHẤT (EXCEPTION LOGS)**
-  {#
-    Thời gian | Loại lỗi | Chi tiết lỗi | Nguồn phát sinh
-    10:24:12 | SqlException | Deadlock victim on StockBalance update | InventoryPostingService
-    09:15:30 | TimeoutException | Connection timeout to Manufacturer API | WarrantyClaimService
+  {
+    ==== Canh bao kiem tra ====
+    Serial thieu lien ket chung tu
+    Ton am hoac lech so kho
+    Claim bao hanh chua dong
   }
 }
 @endsalt

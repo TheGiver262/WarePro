@@ -1,72 +1,72 @@
 @startuml Component_WPF_MVVM
-title Sơ đồ Thành phần (Component Diagram) hệ thống WPF MVVM
-
-package "Presentation Component (WPF App)" {
-    [Views (XAML Windows/Pages)] as Views
-    [ViewModels (Commands/DataBinding)] as ViewModels
-    [Value Converters & Styles] as Styles
-    
-    Views .right.> ViewModels : Data Context & Binding
-    ViewModels ..> Styles : Uses
+title Real components of QuanLyHangHoa
+package WPF_Client {
+  [MainWindow] as MainWindow
+  [Views_XAML] as Views
+  [ViewModels_RelayCommand] as ViewModels
+  [Styles_Converters_Dialogs] as UiHelpers
+  MainWindow --> Views
+  Views --> ViewModels
+  Views --> UiHelpers
 }
-
-package "Application Services Component" {
-    interface "IAuthService" as IAuth
-    interface "IStockService" as IStock
-    interface "IWarrantyService" as IWarranty
-    interface "ICatalogService" as ICat
-    
-    [Auth & Authorization Service] as AuthService
-    [Inventory & Stock Service] as StockService
-    [Warranty Claim Service] as WarrantyService
-    [Catalog Service] as CatalogService
-    [Inventory Posting Service] as PostingService
-    
-    AuthService -up- IAuth
-    StockService -up- IStock
-    WarrantyService -up- IWarranty
-    CatalogService -up- ICat
-    
-    StockService .down.> PostingService : delegates
-    WarrantyService .down.> PostingService : delegates
+package Services {
+  [AuthenticationService] as Auth
+  [AuthorizationService] as Authz
+  [CatalogServices] as Catalog
+  [StockInService] as StockIn
+  [StockOutService] as StockOut
+  [StockTransferService] as Transfer
+  [StockAdjustmentService] as Adjustment
+  [StockCountService] as StockCount
+  [InvoiceService] as Invoice
+  [WarrantyClaimService] as WarrantyClaim
+  [ProductSerialService] as SerialSvc
+  [ReportTraceService] as Trace
+  [DashboardService] as Dashboard
+  [AuditLogService] as Audit
+  [ImportServices] as Import
 }
-
-package "Infrastructure & Data Component" {
-    interface "IUnitOfWork" as IUOW
-    
-    [EfUnitOfWork & Repositories] as UOW
-    [EF Core 8 AppDbContext] as DbContext
-    [Database Transaction Handler] as TxHandler
-    
-    UOW -up- IUOW
-    UOW .down.> DbContext : manages
-    DbContext .right.> TxHandler : transaction control
+package Inventory_Core {
+  [InventoryPostingService] as Posting
+  [InventoryAdjustmentService] as AdjustPosting
+  [EfInventoryUnitOfWork] as Uow
 }
-
-database "SQL Server" as DB {
-    [Tables & Relationships] as Tables
+package Data_Libraries {
+  [AppDbContext] as Db
+  database SQLServer as Sql
+  [ClosedXML] as ClosedXml
+  [CSV_Parser] as Csv
 }
-
-package "External Integrations" {
-    [Excel/CSV Helper (ClosedXML)] as ExcelHelper
-    [Manufacturer API Connector] as MfgAPI
-}
-
-' Kết nối giữa các thành phần
-ViewModels ..( IAuth : calls
-ViewModels ..( IStock : calls
-ViewModels ..( IWarranty : calls
-ViewModels ..( ICat : calls
-
-AuthService ..( IUOW : database access
-StockService ..( IUOW : database access
-WarrantyService ..( IUOW : database access
-CatalogService ..( IUOW : database access
-PostingService ..( IUOW : writes Ledger/Balances
-
-DbContext ..> DB : ADO.NET SQL Provider
-
-StockService ..> ExcelHelper : uses for Import
-WarrantyService ..> MfgAPI : syncs Claims
-
+ViewModels --> Auth
+ViewModels --> Authz
+ViewModels --> Catalog
+ViewModels --> StockIn
+ViewModels --> StockOut
+ViewModels --> Transfer
+ViewModels --> Adjustment
+ViewModels --> StockCount
+ViewModels --> Invoice
+ViewModels --> WarrantyClaim
+ViewModels --> SerialSvc
+ViewModels --> Trace
+ViewModels --> Dashboard
+ViewModels --> Audit
+ViewModels --> Import
+StockIn --> Posting
+StockOut --> Posting
+Transfer --> Posting
+Adjustment --> AdjustPosting
+WarrantyClaim --> Posting
+Import --> Posting
+Posting --> Uow
+AdjustPosting --> Uow
+Uow --> Db
+Auth --> Db
+Catalog --> Db
+Invoice --> Db
+Trace --> Db
+Audit --> Db
+Db --> Sql
+Import --> ClosedXml
+Import --> Csv
 @enduml

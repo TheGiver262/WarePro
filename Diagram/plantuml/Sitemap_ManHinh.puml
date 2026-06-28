@@ -1,34 +1,42 @@
 @startwbs Sitemap_ManHinh
-title Sơ đồ cấu trúc Màn hình (Sitemap) phần mềm WareHousePro
-
-+ **Trang chủ / Dashboard**
-++ **1. Quản lý Danh mục**
-+++ Sản phẩm (Product)
-+++ Nhóm sản phẩm (Category)
-+++ Thương hiệu (Brand)
-+++ Đơn vị tính (Unit)
-+++ Đối tác (Supplier / Customer)
-+++ Kho hàng (Warehouse)
-++ **2. Quản lý Kho hàng**
-+++ Lập phiếu nhập kho (StockIn)
-+++ Lập phiếu xuất kho (StockOut)
-+++ Phiên kiểm kê kho (StockCountSession)
-+++ Phiếu điều chỉnh tồn kho (StockAdjustment)
-+++ Thẻ kho & Lịch sử kho (StockLedger)
-++ **3. Quản lý Hóa đơn**
-+++ Hóa đơn mua hàng (PurchaseInvoice)
-+++ Hóa đơn bán lẻ (SalesInvoice)
-++ **4. Phân hệ Bảo hành**
-+++ Tiếp nhận claim bảo hành (WarrantyClaim)
-+++ Quyền bảo hành (WarrantyCoverage)
-+++ Tra cứu Serial đã bán (ProductSerial)
-++ **5. Báo cáo Thống kê**
-+++ Báo cáo tồn kho hiện tại
-+++ Báo cáo tổng hợp Nhập-Xuất-Tồn (NXT)
-+++ Báo cáo Doanh thu & Công nợ khách hàng
-+++ Báo cáo tỷ lệ lỗi bảo hành sản phẩm
-++ **6. Cấu hình & Hệ thống**
-+++ Quản lý tài khoản (AppUser)
-+++ Nhật ký hoạt động (AuditLog)
-
+* QuanLyHangHoa WPF
+** Dang nhap
+*** LoginView
+*** ChangePasswordView
+** Tong quan
+*** DashboardView
+** Kho va san pham
+*** ProductView
+*** ProductSerialView
+*** InventoryView
+*** StockInView
+*** StockOutView
+*** StockTransferView
+*** StockAdjustmentView
+*** StockCountView
+*** OpeningBalanceImportView
+** Hoa don
+*** PurchaseInvoiceView
+*** SalesInvoiceView
+** Bao hanh
+*** WarrantyView
+*** WarrantyCoverageView
+*** WarrantyClaimView
+*** WarrantyPrintWindow
+** Danh muc
+*** CategoryView
+*** BrandView
+*** UnitView
+*** SupplierView
+*** CustomerView
+*** ProductUnitView
+** Bao cao va truy vet
+*** ReportView
+*** Bao cao ngay
+*** Nhap xuat ton
+*** StockLedger
+*** Truy vet san pham / serial
+** Quan tri
+*** AppUserView
+*** AuditLogView
 @endwbs

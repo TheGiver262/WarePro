@@ -1,23 +1,17 @@
 @startsalt Permission_Matrix
-title Ma trận Phân quyền chi tiết hệ thống WareHousePro
-{#
-  **Chức năng / Nghiệp vụ** | **ADMIN** | **MANAGER** | **STOREKEEPER** | **SALESMAN** | **TECHNICIAN**
-  Quản trị User (Tạo/Khóa/Reset pass mọi vai trò) | [X] | [ ] | [ ] | [ ] | [ ]
-  Quản lý tài khoản cấp dưới (Kho/Bán hàng/Bảo hành) | [X] | [X] | [ ] | [ ] | [ ]
-  Lập phiếu nhập kho & Nhập đầu kỳ (Draft) | [X] | [X] | [X] | [ ] | [ ]
-  Lập phiếu xuất kho trực tiếp (Draft) | [X] | [X] | [X] | [X] | [ ]
-  Duyệt chứng từ kho (Nhập/Xuất/Kiểm kê) | [X] | [X] | [ ] | [ ] | [ ]
-  Ghi sổ chứng từ kho (Posted - thay đổi tồn kho) | [X] | [X] | [X] | [ ] | [ ]
-  Lập hóa đơn mua hàng từ NCC | [X] | [X] | [X] | [ ] | [ ]
-  Lập hóa đơn bán hàng cho khách | [X] | [X] | [ ] | [X] | [ ]
-  Khởi tạo phiên kiểm kê kho | [X] | [X] | [X] | [ ] | [ ]
-  Duyệt kết quả & Ghi sổ điều chỉnh kiểm kê | [X] | [X] | [ ] | [ ] | [ ]
-  Tiếp nhận bảo hành & Xử lý kỹ thuật (Checking) | [X] | [X] | [ ] | [ ] | [X]
-  Phê duyệt đổi mới / Từ chối bảo hành (Duyệt đặc biệt) | [X] | [X] | [ ] | [ ] | [ ]
-  Xuất máy thay thế trong bảo hành đổi mới | [X] | [X] | [X] | [ ] | [ ]
-  Đóng hồ sơ bảo hành (Closed) | [X] | [X] | [ ] | [ ] | [X]
-  Xem báo cáo tài chính (Doanh thu/Công nợ/Lợi nhuận) | [X] | [X] | [ ] | [ ] | [ ]
-  Xem báo cáo kho (Tồn kho/Lịch sử thẻ kho) | [X] | [X] | [X] | [ ] | [ ]
-  Xem nhật ký hệ thống (Audit Log) | [X] | [X] | [ ] | [ ] | [ ]
+title Ma tran quyen theo AuthorizationService
+{
+  {#
+    Chuc nang | Admin | Manager | Storekeeper | Sales | Technician
+    Quan ly nguoi dung | [X] | [ ] | [ ] | [ ] | [ ]
+    Quan ly AuditLog | [X] | [X] | [ ] | [ ] | [ ]
+    Ghi so nhap kho | [X] | [X] | [X] | [ ] | [ ]
+    Ghi so xuat kho | [X] | [X] | [X] | [X] | [ ]
+    Ghi so dieu chinh | [X] | [X] | [X] | [ ] | [ ]
+    Duyet nghiep vu kho | [X] | [X] | [ ] | [ ] | [ ]
+    Quan ly bao hanh | [X] | [X] | [ ] | [ ] | [X]
+    Xem bao cao va truy vet | [X] | [X] | [X] | [X] | [X]
+    Danh muc san pham/doi tac | [X] | [X] | [X] | [ ] | [ ]
+  }
 }
 @endsalt

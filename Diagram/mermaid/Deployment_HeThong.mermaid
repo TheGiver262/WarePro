@@ -1,48 +1,14 @@
 flowchart TB
-    subgraph LAN_Office["Hạ tầng Mạng Văn phòng Chính (LAN)"]
-        subgraph Client_Office["Client PC (Máy tính văn phòng)"]
-            AppExe["WareHousePro.exe (WPF App)"]
-            NetRuntime[".NET Runtime 8.0"]
-            AppExe -.-> NetRuntime
-        end
-        
-        subgraph DB_Server["DB Server (Máy chủ CSDL)"]
-            MSSQL["SQL Server 2022 Database Engine"]
-            DBName[("Database: QuanLyHangHoa")]
-            MSSQL --> DBName
-        end
-        
-        AppExe -->|ADO.NET Cổng 1433| MSSQL
+    subgraph PC[User PC - Windows]
+        Exe[QuanLyHangHoa.exe]
+        Config[appsettings / connection string]
+        Dlls[.NET dependencies]
     end
-
-    subgraph Remote_Site["Chi nhánh / Làm việc từ xa"]
-        subgraph Client_Remote["Client PC (Chi nhánh / Remote)"]
-            RemoteExe["WareHousePro.exe (WPF App)"]
-        end
+    subgraph DBHost[Database Host]
+        DB[(SQL Server / LocalDB)]
     end
-
-    subgraph Cloud_Backup["Hạ tầng Cloud & Dự phòng"]
-        Backup["Cloud Backup Storage (Azure/AWS)"]
-        BakFile[("Tệp sao lưu .bak")]
-        Backup --> BakFile
-    end
-
-    subgraph External_Mfg["Manufacturer Cloud Server"]
-        MfgAPI["Warranty Sync API Service (HTTPS)"]
-    end
-
-    %% Kết nối từ xa qua VPN
-    RemoteExe -->|VPN SSL Cổng 443| LAN_Office
-    
-    %% Backup định kỳ
-    DB_Server -->|Đồng bộ backup hàng ngày| Cloud_Backup
-    
-    %% Kết nối API hãng
-    AppExe -->|HTTPS Cổng 443| External_Mfg
-    RemoteExe -->|HTTPS Cổng 443| External_Mfg
-
-    style LAN_Office fill:#e6f3ff,stroke:#0066cc,stroke-width:1.5px
-    style DB_Server fill:#fff0f5,stroke:#ff0077,stroke-width:1.2px
-    style Remote_Site fill:#f5f5f5,stroke:#999,stroke-width:1px
-    style Cloud_Backup fill:#fff9e6,stroke:#cc9900,stroke-width:1px
-    style External_Mfg fill:#f2f9f2,stroke:#00aa22,stroke-width:1px
+    Files[Excel/CSV import-export folder]
+    Exe --> Config
+    Exe --> Dlls
+    Exe --> DB
+    Exe --> Files

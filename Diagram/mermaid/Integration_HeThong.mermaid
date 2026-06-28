@@ -1,45 +1,8 @@
 flowchart LR
-    %% Định nghĩa các thành phần nội bộ
-    subgraph LocalSystem["Hệ thống nội bộ WareHousePro"]
-        WPF["WPF Client Application"]
-        DB[(CSDL SQL Server)]
-        Excel["Excel/CSV Import & Export Engine"]
-        
-        WPF <-->|ADO.NET Cổng 1433| DB
-        WPF -->|Thực thi phân tích| Excel
-    end
-
-    %% Định nghĩa tệp tin
-    File[("Tệp dữ liệu (.xlsx / .csv)")]
-
-    %% Định nghĩa các hệ thống ngoài
-    subgraph eInvoiceSystem["Hệ thống Hóa đơn điện tử"]
-        eInvAPI["e-Invoice API Gateway"]
-        Tax["Cổng thông tin Cơ quan Thuế"]
-        eInvAPI --> Tax
-    end
-
-    subgraph Manufacturer["Warranty Portal (Hãng sản xuất)"]
-        MfgAPI["Warranty Claim API"]
-        Logistics["Hạ tầng Logistics & Linh kiện"]
-        MfgAPI --> Logistics
-    end
-
-    subgraph Notification["Dịch vụ Thông báo"]
-        SMTP["SMTP Mail Server"]
-        SMS["SMS Gateway (HTTP)"]
-    end
-
-    %% Tương tác luồng tích hợp
-    File -->|Import tồn đầu kỳ & danh mục| Excel
-    Excel -->|Export báo cáo & biểu đồ| File
-
-    WPF -->|HTTPS Cổng 443: Ký & Phát hành HĐ| eInvAPI
-    WPF -->|HTTPS Cổng 443: Đồng bộ Claim bảo hành| MfgAPI
-    WPF -->|SMTP Cổng 587: Gửi email hoàn tất bảo hành| SMTP
-    WPF -->|HTTP: Gửi SMS thông báo nhận máy| SMS
-
-    style LocalSystem fill:#e6f3ff,stroke:#0066cc,stroke-width:1.5px
-    style eInvoiceSystem fill:#fff0f5,stroke:#ff0077,stroke-width:1px
-    style Manufacturer fill:#f2f9f2,stroke:#00aa22,stroke-width:1px
-    style Notification fill:#fff9e6,stroke:#cc9900,stroke-width:1px
+    WPF[WPF Desktop App] --> Services[Application Services]
+    Services --> DbContext[EF Core AppDbContext]
+    DbContext --> SQL[(SQL Server)]
+    Services --> Excel[ClosedXML Excel import/export]
+    Services --> CSV[CSV import]
+    WPF --> Print[Windows PrintDialog]
+    WPF --> Dialog[Open/Save File Dialog]

@@ -1,86 +1,25 @@
 @startuml Sequence_DangNhap
-actor User as "Người dùng"
-participant UI as "LoginView"
-participant VM as "LoginViewModel"
-participant Auth as "AuthService"
-participant UserRepo as "AppUserRepository"
-participant AuditRepo as "AuditLogRepository"
-database DB as "SQL Server"
-
-User -> UI : Nhập username và password
-UI -> VM : Login(request)
-VM -> VM : Validate required fields
-alt Thiếu username hoặc password
-    VM --> UI : Hiển thị lỗi bắt buộc nhập đủ
-else Đủ dữ liệu
-    VM -> Auth : Login(request)
-    Auth -> UserRepo : FindByUsername(username)
-    UserRepo -> DB : SELECT AppUser by Username
-    DB --> UserRepo : User data hoặc null
-    UserRepo --> Auth : User data
-
-    alt Username không tồn tại
-        Auth -> AuditRepo : WriteAuditLog(LoginFailedUnknownUser, SystemServiceAccount)
-        AuditRepo -> DB : INSERT AuditLog
-        DB --> AuditRepo : Success
-        Auth --> VM : Generic failure
-        VM --> UI : Hiển thị "Sai tài khoản hoặc mật khẩu"
-    else Tài khoản bị vô hiệu hóa (IsActive = false)
-        Auth -> AuditRepo : WriteAuditLog(LoginFailed)
-        AuditRepo -> DB : INSERT AuditLog
-        DB --> AuditRepo : Success
-        Auth --> VM : Generic failure
-        VM --> UI : Hiển thị "Sai tài khoản hoặc mật khẩu"
-    else Tài khoản đang bị khóa (LockoutUntil > Now)
-        Auth --> VM : Locked until LockoutUntil
-        VM --> UI : Hiển thị thông tin thời gian bị khóa
-    else Mật khẩu không đúng
-        Auth -> UserRepo : Increment FailedLoginCount + update LastFailedLoginAt
-        UserRepo -> DB : UPDATE AppUser
-        DB --> UserRepo : Success
-
-        opt FailedLoginCount > 3 và < 5
-            Auth --> VM : Show soft lockout warning
-            VM --> UI : Hiển thị cảnh báo khóa tạm thời nếu tiếp tục sai
-        end
-
-        alt FailedLoginCount >= 10
-            Auth -> UserRepo : Set LockoutUntil = now + 15 minutes
-            UserRepo -> DB : UPDATE AppUser
-            DB --> UserRepo : Success
-            Auth -> AuditRepo : WriteAuditLog(SuspiciousLoginAttempt)
-            AuditRepo -> DB : INSERT AuditLog
-            DB --> AuditRepo : Success
-            Auth --> VM : Locked 15 minutes
-            VM --> UI : Hiển thị thời gian bị khóa
-        else FailedLoginCount >= 5
-            Auth -> UserRepo : Set LockoutUntil = now + 5 minutes
-            UserRepo -> DB : UPDATE AppUser
-            DB --> UserRepo : Success
-            Auth -> AuditRepo : WriteAuditLog(LoginLocked)
-            AuditRepo -> DB : INSERT AuditLog
-            DB --> AuditRepo : Success
-            Auth --> VM : Locked 5 minutes
-            VM --> UI : Hiển thị thời gian bị khóa
-        else Chưa đạt ngưỡng khóa
-            Auth -> AuditRepo : WriteAuditLog(LoginFailed)
-            AuditRepo -> DB : INSERT AuditLog
-            DB --> AuditRepo : Success
-            Auth --> VM : Generic failure
-            VM --> UI : Hiển thị "Sai tài khoản hoặc mật khẩu"
-        end
-    else Đăng nhập thành công
-        Auth -> UserRepo : Reset FailedLoginCount = 0, LockoutUntil = null, update LastLoginAt
-        UserRepo -> DB : UPDATE AppUser
-        DB --> UserRepo : Success
-
-        alt MustChangePassword = true
-            Auth --> VM : Require password change
-            VM --> UI : Chuyển sang màn hình đổi mật khẩu bắt buộc
-        else Đăng nhập bình thường
-            Auth --> VM : Login success
-            VM --> UI : Mở màn hình chính
-        end
-    end
+title Login sequence
+actor User
+participant UI
+participant VM
+participant AuthService
+participant AppDbContext
+database DB
+User -> UI : enter_credentials
+UI -> VM : LoginCommand
+VM -> AuthService : Login
+AuthService -> AppDbContext : find_user
+AppDbContext -> DB : SELECT_AppUser
+DB --> AppDbContext : user_data
+AppDbContext --> AuthService : AppUser
+AuthService -> AuthService : verify_password_and_status
+alt valid
+  AuthService -> AppDbContext : update_last_login
+  AuthService --> VM : success
+  VM --> UI : open_MainWindow
+else invalid
+  AuthService --> VM : failed
+  VM --> UI : show_error
 end
 @enduml

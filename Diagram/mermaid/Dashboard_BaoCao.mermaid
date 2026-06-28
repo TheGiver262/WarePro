@@ -1,83 +1,11 @@
 flowchart TD
-    subgraph Dashboard["Bảng điều khiển Quản trị (Dashboard_BaoCao.xaml)"]
-        direction TB
-
-        %% Thẻ tiêu đề và bộ lọc
-        subgraph Header["Tiêu đề & Bộ lọc thời gian"]
-            Title["📊 BẢNG ĐIỀU KHIỂN BÁO CÁO KINH DOANH & KHO HÀNG"]
-            Filter["Khoảng thời gian: Tháng hiện tại | Nút: Làm mới | Nút: Xuất PDF"]
-        end
-
-        %% Hàng widgets chính
-        subgraph Widgets["Chỉ số hoạt động cốt lõi (KPI Summary)"]
-            direction LR
-            
-            subgraph FinanceStat["💵 Tài chính & Doanh số"]
-                direction TB
-                F_Rev["Doanh thu bán: 450.200.000 đ"]
-                F_Cost["Chi phí mua: 310.500.000 đ"]
-                F_Profit["Lợi nhuận gộp: 139.700.000 đ (31%)"]
-            end
-            
-            subgraph StockStat["📦 Trạng thái Tồn kho"]
-                direction TB
-                S_Qty["Tổng sản phẩm tồn: 1,240 cái"]
-                S_Val["Giá trị tồn kho: 2.450.000.000 đ"]
-                S_Alert["Mã hàng hết hạn BH trong kho: 12"]
-            end
-            
-            subgraph WarrantyStat["🛠️ Hoạt động Bảo hành"]
-                direction TB
-                W_Total["Claim tiếp nhận: 24 hồ sơ"]
-                W_Done["Đã xử lý xong: 18 hồ sơ"]
-                W_Open["Đang xử lý (Open): 6 hồ sơ"]
-            end
-        end
-
-        %% Chi tiết biểu đồ và Top list
-        subgraph Details["Chi tiết Số liệu phân tích"]
-            direction LR
-            
-            subgraph ChartArea["Biểu đồ: Doanh thu theo tuần"]
-                direction TB
-                W1["Tuần 1: [████████░░░░░░] 25M"]
-                W2["Tuần 2: [████████████░░] 38M"]
-                W3["Tuần 3: [████████████████░] 52M"]
-                W4["Tuần 4: [████████████████████] 75M"]
-            end
-            
-            subgraph TopProducts["Top 5 Sản phẩm Bán chạy nhất"]
-                direction TB
-                TP1["1. iPhone 15 Pro Max (120 cái)"]
-                TP2["2. Samsung Galaxy S24 (85 cái)"]
-                TP3["3. Laptop Dell XPS 13 (42 cái)"]
-                TP4["4. Tai nghe AirPods Pro (38 cái)"]
-                TP5["5. Xiaomi Redmi Note 13 (30 cái)"]
-            end
-        end
-
-        %% Bảng công nợ khách hàng
-        subgraph DebtArea["Chi tiết công nợ phải thu (Top khách hàng)"]
-            direction TB
-            D_Header["Mã KH | Tên Khách hàng | Số điện thoại | Hạn thanh toán | Số tiền nợ | Trạng thái"]
-            D_Row1["KH-0021 | Nguyễn Văn B | 0901234567 | 15/07/2026 | 25.000.000 đ | 🔴 QUÁ HẠN"]
-            D_Row2["KH-0082 | Trần Thị C | 0987654321 | 25/07/2026 | 12.500.000 đ | 🟡 CHỜ"]
-            D_Row3["KH-0015 | Công ty TNHH X | 0283992122 | 10/08/2026 | 54.000.000 đ | 🟡 CHỜ"]
-        end
-
-        Header --> Widgets
-        Widgets --> Details
-        Details --> DebtArea
-    end
-
-    %% Định dạng style
-    style Dashboard fill:#f8fafc,stroke:#333,stroke-width:2px
-    style Header fill:#0f172a,stroke:#333,color:#fff
-    style Widgets fill:#f1f5f9,stroke:#e2e8f0
-    style Details fill:#f1f5f9,stroke:#e2e8f0
-    style DebtArea fill:#ffffff,stroke:#e2e8f0
-    style FinanceStat fill:#ffffff,stroke:#22c55e,stroke-width:1.5px
-    style StockStat fill:#ffffff,stroke:#3b82f6,stroke-width:1.5px
-    style WarrantyStat fill:#ffffff,stroke:#ef4444,stroke-width:1.5px
-    style ChartArea fill:#ffffff,stroke:#ddd
-    style TopProducts fill:#ffffff,stroke:#ddd
+    ReportView[ReportView] --> Overview[Tong quan doanh thu / chi phi / loi nhuan]
+    ReportView --> StockReport[Nhap - Xuat - Ton]
+    ReportView --> Ledger[StockLedger theo san pham]
+    ReportView --> Trace[Truy vet san pham / serial]
+    Trace --> Serial[ProductSerial]
+    Trace --> In[StockIn / Supplier]
+    Trace --> Out[StockOut / Customer]
+    Trace --> Invoice[SalesInvoice]
+    Trace --> Warranty[WarrantyCoverage / WarrantyClaim]
+    ReportView --> Export[Xuat Excel]

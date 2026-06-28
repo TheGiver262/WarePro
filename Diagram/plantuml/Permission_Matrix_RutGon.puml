@@ -1,0 +1,30 @@
+@startuml Permission_Matrix_RutGon
+title Simplified permission matrix
+left to right direction
+actor Admin
+actor Manager
+actor Storekeeper
+actor Sales
+actor Technician
+usecase QuanTriAudit as U1
+usecase GhiSoKho as U2
+usecase HoaDon as U3
+usecase BaoHanh as U4
+usecase BaoCaoTruyVet as U5
+Admin --> U1
+Admin --> U2
+Admin --> U3
+Admin --> U4
+Admin --> U5
+Manager --> U1
+Manager --> U2
+Manager --> U3
+Manager --> U4
+Manager --> U5
+Storekeeper --> U2
+Storekeeper --> U5
+Sales --> U3
+Sales --> U5
+Technician --> U4
+Technician --> U5
+@enduml

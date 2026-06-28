@@ -1,74 +1,21 @@
 stateDiagram-v2
-    [*] --> LoginWindow : Mở ứng dụng
-
-    state LoginWindow {
-        [*] --> LoginForm
-        LoginForm --> ChangePasswordForm : Đăng nhập lần đầu / Yêu cầu đổi pass
-        ChangePasswordForm --> LoginForm : Đổi pass thành công
-    }
-
-    LoginWindow --> MainWindow : Xác thực thành công (Khởi tạo UserContext)
-
-    state MainWindow {
-        [*] --> MainDashboard : Tải mặc định
-        
-        state CatalogSub {
-            [*] --> ProductList
-            ProductList --> ProductDetail : Click Thêm mới/Chi tiết
-            ProductList --> PartnerList : Chọn tab Đối tác
-            ProductList --> WarehouseList : Chọn tab Kho
-        }
-        
-        state StockSub {
-            [*] --> StockInList
-            StockInList --> StockInDetail : Click Lập phiếu nhập
-            StockInDetail --> SerialInputPopup : Click Quét Serial (Sản phẩm Serial)
-            SerialInputPopup --> StockInDetail : Xác nhận Serial
-            
-            StockInList --> StockOutList : Chọn tab Xuất kho
-            StockOutList --> StockOutDetail : Click Lập phiếu xuất
-            StockOutDetail --> SerialSelectPopup : Click Chọn Serial
-            SerialSelectPopup --> StockOutDetail : Xác nhận Serial
-            
-            StockInList --> StockCountList : Chọn tab Kiểm kê
-            StockCountList --> StockCountDetail : Click Khởi tạo kiểm kê
-            StockCountDetail --> StockAdjustmentDetail : Click Cân đối kho
-        }
-        
-        state InvoiceSub {
-            [*] --> PurchaseInvoiceList
-            PurchaseInvoiceList --> SalesInvoiceList : Chọn tab Hóa đơn bán
-            SalesInvoiceList --> SalesInvoiceDetail : Click Chi tiết
-            SalesInvoiceDetail --> PrintPreviewWindow : Click In hóa đơn
-        }
-        
-        state WarrantySub {
-            [*] --> WarrantyClaimList
-            WarrantyClaimList --> WarrantyClaimCreate : Click Tiếp nhận bảo hành
-            WarrantyClaimCreate --> WarrantyClaimDetail : Bấm Tạo hồ sơ thành công
-            WarrantyClaimDetail --> ReplacementSerialPopup : Click Đổi mới (Chọn Serial máy mới)
-            ReplacementSerialPopup --> WarrantyClaimDetail : Xác nhận Serial máy mới
-            WarrantyClaimDetail --> PrintPreviewWindow : Click In phiếu bảo hành
-        }
-        
-        state ReportSub {
-            [*] --> StockReport
-            StockReport --> FinancialReport : Chọn tab Doanh thu & Công nợ
-            StockReport --> WarrantyReport : Chọn tab Báo cáo Bảo hành
-        }
-        
-        state SystemSub {
-            [*] --> AppUserList
-            AppUserList --> AuditLogList : Chọn tab Audit Log
-        }
-        
-        MainDashboard --> CatalogSub : Click Sidebar Danh mục
-        MainDashboard --> StockSub : Click Sidebar Quản lý Kho
-        MainDashboard --> InvoiceSub : Click Sidebar Hóa đơn
-        MainDashboard --> WarrantySub : Click Sidebar Bảo hành
-        MainDashboard --> ReportSub : Click Sidebar Báo cáo
-        MainDashboard --> SystemSub : Click Sidebar Hệ thống (Admin/Manager)
-    }
-
-    MainWindow --> LoginWindow : Click Đăng xuất
-    MainWindow --> [*] : Đóng ứng dụng
+    [*] --> LoginView
+    LoginView --> MainWindow: dang nhap thanh cong
+    LoginView --> ChangePasswordView: doi mat khau
+    ChangePasswordView --> MainWindow
+    MainWindow --> DashboardView
+    DashboardView --> ProductView
+    DashboardView --> StockInView
+    DashboardView --> StockOutView
+    DashboardView --> StockTransferView
+    DashboardView --> StockAdjustmentView
+    DashboardView --> StockCountView
+    DashboardView --> PurchaseInvoiceView
+    DashboardView --> SalesInvoiceView
+    DashboardView --> WarrantyView
+    DashboardView --> ReportView
+    DashboardView --> ProductSerialView
+    DashboardView --> OpeningBalanceImportView
+    DashboardView --> AppUserView
+    DashboardView --> AuditLogView
+    MainWindow --> LoginView: dang xuat

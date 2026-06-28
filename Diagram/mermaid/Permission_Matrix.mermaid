@@ -1,89 +1,16 @@
 flowchart TD
-    %% Định nghĩa các vai trò
-    subgraph Roles["Vai trò hệ thống"]
-        AdminNode["ADMIN<br/>(Quản trị viên)"]
-        ManagerNode["MANAGER<br/>(Quản lý)"]
-        StoreNode["STOREKEEPER<br/>(Thủ kho)"]
-        SalesNode["SALESMAN<br/>(Bán hàng)"]
-        TechNode["TECHNICIAN<br/>(Kỹ thuật viên)"]
-    end
-
-    %% Định nghĩa các nhóm chức năng
-    subgraph FuncSys["Quản trị & Hệ thống"]
-        F_User["Quản lý User & Cấp quyền"]
-        F_SubUser["Quản lý User Cấp dưới"]
-        F_Audit["Xem Audit Log"]
-    end
-
-    subgraph FuncStock["Nghiệp vụ Kho"]
-        F_Inbound["Lập & Ghi sổ Phiếu nhập"]
-        F_Outbound["Lập Phiếu xuất kho"]
-        F_PostStock["Ghi sổ xuất kho (Posted)"]
-        F_Count["Khởi tạo kiểm kê"]
-        F_Adj["Duyệt & Ghi sổ điều chỉnh"]
-        F_ViewStock["Xem tồn kho & Thẻ kho"]
-    end
-
-    subgraph FuncFinance["Hóa đơn & Thương mại"]
-        F_PInv["Lập Hóa đơn mua"]
-        F_SInv["Lập Hóa đơn bán"]
-        F_FinRep["Báo cáo Tài chính"]
-    end
-
-    subgraph FuncWarranty["Nghiệp vụ Bảo hành"]
-        F_Claim["Tiếp nhận & Sửa chữa"]
-        F_ApproveWarranty["Duyệt đặc biệt (Đổi mới/Từ chối)"]
-        F_IssueReplacement["Xuất máy thay thế"]
-    end
-
-    %% Kết nối quyền hạn
-    AdminNode -->|Full quyền| F_User
-    AdminNode -->|Full quyền| F_SubUser
-    AdminNode -->|Full quyền| F_Audit
-    AdminNode -->|Full quyền| F_Inbound
-    AdminNode -->|Full quyền| F_Outbound
-    AdminNode -->|Full quyền| F_PostStock
-    AdminNode -->|Full quyền| F_Count
-    AdminNode -->|Full quyền| F_Adj
-    AdminNode -->|Full quyền| F_ViewStock
-    AdminNode -->|Full quyền| F_PInv
-    AdminNode -->|Full quyền| F_SInv
-    AdminNode -->|Full quyền| F_FinRep
-    AdminNode -->|Full quyền| F_Claim
-    AdminNode -->|Full quyền| F_ApproveWarranty
-    AdminNode -->|Full quyền| F_IssueReplacement
-
-    ManagerNode -->|Quyền hạn| F_SubUser
-    ManagerNode -->|Quyền hạn| F_Audit
-    ManagerNode -->|Quyền hạn| F_Inbound
-    ManagerNode -->|Quyền hạn| F_Outbound
-    ManagerNode -->|Quyền hạn| F_PostStock
-    ManagerNode -->|Quyền hạn| F_Count
-    ManagerNode -->|Quyền hạn| F_Adj
-    ManagerNode -->|Quyền hạn| F_ViewStock
-    ManagerNode -->|Quyền hạn| F_PInv
-    ManagerNode -->|Quyền hạn| F_SInv
-    ManagerNode -->|Quyền hạn| F_FinRep
-    ManagerNode -->|Quyền hạn| F_Claim
-    ManagerNode -->|Quyền hạn| F_ApproveWarranty
-    ManagerNode -->|Quyền hạn| F_IssueReplacement
-
-    StoreNode -->|Quyền hạn| F_Inbound
-    StoreNode -->|Quyền hạn| F_Outbound
-    StoreNode -->|Quyền hạn| F_PostStock
-    StoreNode -->|Quyền hạn| F_Count
-    StoreNode -->|Quyền hạn| F_ViewStock
-    StoreNode -->|Quyền hạn| F_PInv
-    StoreNode -->|Quyền hạn| F_IssueReplacement
-
-    SalesNode -->|Quyền hạn| F_Outbound
-    SalesNode -->|Quyền hạn| F_SInv
-
-    TechNode -->|Quyền hạn| F_Claim
-
-    %% Style các vai trò
-    style AdminNode fill:#ffcccc,stroke:#ff0000,stroke-width:1.5px
-    style ManagerNode fill:#ffe5cc,stroke:#ff8000,stroke-width:1.2px
-    style StoreNode fill:#e5f2ff,stroke:#0066cc,stroke-width:1px
-    style SalesNode fill:#f2e5ff,stroke:#6600cc,stroke-width:1px
-    style TechNode fill:#e5ffe5,stroke:#009900,stroke-width:1px
+    Admin[Admin] --> Users[Quan ly nguoi dung]
+    Admin --> Audit[Quan ly AuditLog]
+    Admin --> Post[Ghi so kho]
+    Admin --> Warranty[Quan ly bao hanh]
+    Admin --> Report[Bao cao va truy vet]
+    Manager[Manager] --> Audit
+    Manager --> Post
+    Manager --> Warranty
+    Manager --> Report
+    Storekeeper[Storekeeper] --> Post
+    Storekeeper --> Report
+    Sales[Sales] --> SalesInvoice[Hoa don ban]
+    Sales --> Report
+    Technician[Technician] --> Warranty
+    Technician --> Report

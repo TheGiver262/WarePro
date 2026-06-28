@@ -1,63 +1,69 @@
 @startuml Architecture_MVVM_WPF_SQLServer
-title Kiến trúc WPF / MVVM / SQL Server
-
-package "Presentation" {
-    [Views\nWPF XAML] as View
-    [ViewModels\nCommands + Validation UI] as VM
+title Real architecture WPF MVVM EFCore SQLServer
+package Presentation_WPF {
+  [Views_XAML] as Views
+  [ViewModels_MVVM] as VMs
+  [Themes_Converters] as UIInfra
 }
-
-package "Application" {
-    [AuthService] as Auth
-    [AuthorizationService] as Authz
-    [ApprovalService] as Approval
-    [Catalog Service] as Catalog
-    [Inventory Service] as Inventory
-    [Sales Service] as Sales
-    [Warranty Service] as Warranty
-    [Reporting Service] as Report
+package Application_Services {
+  [AuthenticationService] as Auth
+  [AuthorizationService] as Authz
+  [CatalogServices] as Catalog
+  [StockServices] as StockServices
+  [InvoiceService] as Invoice
+  [WarrantyClaimService] as Warranty
+  [ReportTraceService_DashboardService] as Report
+  [AuditLogService] as AuditSvc
+  [DataImportServices] as ImportSvc
 }
-
-package "Domain" {
-    [Entities\nAppUser, Warehouse, Product,\nStockBalance, ProductSerial,\nWarrantyCoverage, WarrantyClaim] as Entities
-    [Business Rules\nPosting, Approval,\nStock Locking,\nWarranty Eligibility] as Rules
+package Inventory_Domain {
+  [InventoryPostingService] as Posting
+  [InventoryAdjustmentService] as AdjustmentPosting
+  [StockDocumentLifecycleService] as Lifecycle
+  [EfInventoryUnitOfWork] as Uow
 }
-
-package "Infrastructure" {
-    [Repositories] as Repo
-    [Transactions + Row Locking] as Tx
-    [AuditLog + StockLedger] as Audit
-    database "SQL Server" as DB
+package Data_Model {
+  [Product_ProductSerial_StockBalance] as CoreEntities
+  [StockDocuments] as StockDocs
+  [Invoices] as InvoiceEntities
+  [WarrantyCoverage_Claim] as WarrantyEntities
+  [AuditLog_StockLedger] as TraceEntities
 }
-
-View --> VM
-VM --> Auth
-VM --> Authz
-VM --> Approval
-VM --> Catalog
-VM --> Inventory
-VM --> Sales
-VM --> Warranty
-VM --> Report
-
-Auth --> Entities
-Authz --> Rules
-Approval --> Rules
-Catalog --> Entities
-Inventory --> Entities
-Sales --> Entities
-Warranty --> Entities
-Entities --> Rules
-
-Auth --> Repo
-Authz --> Repo
-Approval --> Repo
-Catalog --> Repo
-Inventory --> Repo
-Sales --> Repo
-Warranty --> Repo
-Report --> Repo
-Repo --> Tx
-Tx --> Audit
-Audit --> DB
-
+package Infrastructure {
+  [AppDbContext_EFCore8] as Db
+  [ClosedXML_CSV] as FileLib
+  database SQLServer as Sql
+}
+Views --> VMs
+Views --> UIInfra
+VMs --> Auth
+VMs --> Authz
+VMs --> Catalog
+VMs --> StockServices
+VMs --> Invoice
+VMs --> Warranty
+VMs --> Report
+VMs --> AuditSvc
+VMs --> ImportSvc
+StockServices --> Posting
+StockServices --> AdjustmentPosting
+StockServices --> Lifecycle
+Warranty --> Posting
+ImportSvc --> Posting
+Posting --> Uow
+AdjustmentPosting --> Uow
+Uow --> Db
+Catalog --> Db
+Invoice --> Db
+Warranty --> Db
+Report --> Db
+AuditSvc --> Db
+ImportSvc --> Db
+Db --> CoreEntities
+Db --> StockDocs
+Db --> InvoiceEntities
+Db --> WarrantyEntities
+Db --> TraceEntities
+Db --> Sql
+ImportSvc --> FileLib
 @enduml

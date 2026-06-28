@@ -1,55 +1,24 @@
 @startuml APIFlow_TichHop
-title Sơ đồ luồng gọi API tích hợp (API Flow Diagram)
-
-actor "Nhân viên" as User
-participant "WPF Client UI" as UI
-participant "App Services\n(Local Svc)" as Svc
-database "SQL Server\n(Local DB)" as DB
-participant "e-Invoice API Gateway\n(Hóa đơn điện tử)" as InvoiceAPI
-participant "Manufacturer API Gateway\n(Hãng sản xuất)" as MfgAPI
-
-== Luồng 1: Tích hợp xuất Hóa đơn điện tử ==
-User -> UI: Nhấp "Xuất hóa đơn điện tử"
-UI -> Svc: IssueInvoice(invoiceId)
-Svc -> DB: Truy vấn chi tiết SalesInvoice & Lines
-DB --> Svc: Thông tin hóa đơn (SubTotal, Tax, GrandTotal)
-Svc -> Svc: Chuẩn hóa dữ liệu sang JSON payload
-
-Svc -> InvoiceAPI: POST /api/v1/invoice/create (Auth Token, JSON Payload)
-note over Svc, InvoiceAPI
-Gửi MST, Thông tin khách hàng,
-Dòng hàng, Thuế suất, Tổng tiền
-end note
-activate InvoiceAPI
-InvoiceAPI -> InvoiceAPI: Xác thực chữ ký số & Cấp mã cơ quan thuế
-InvoiceAPI --> Svc: HTTP 200 OK (InvoiceNo, VerificationCode, PDFLink)
-deactivate InvoiceAPI
-
-Svc -> DB: Cập nhật VerificationCode, InvoiceNo, InvoiceDate & Status = "Issued"
-DB --> Svc: Thành công
-Svc --> UI: Trả về kết quả phát hành hóa đơn
-UI --> User: Hiển thị liên kết xem PDF hóa đơn & trạng thái thành công
-
-== Luồng 2: Tích hợp gửi yêu cầu bảo hành lên Hãng ==
-User -> UI: Nhấp "Đồng bộ bảo hành lên hãng"
-UI -> Svc: SyncClaimToManufacturer(claimId)
-Svc -> DB: Truy vấn thông tin WarrantyClaim & Serial
-DB --> Svc: Thông tin claim và Serial thiết bị lỗi
-Svc -> Svc: Tạo payload đăng ký bảo hành hãng
-
-Svc -> MfgAPI: POST /api/warranty/claims (API Key, JSON Payload)
-note over Svc, MfgAPI
-Gửi ProductSerial, ModelCode,
-ProblemDescription, ReceivedDate
-end note
-activate MfgAPI
-MfgAPI -> MfgAPI: Kiểm tra thời hạn bảo hành gốc & Lịch sử
-MfgAPI --> Svc: HTTP 201 Created (ManufacturerClaimId, Status = "InWarrantyProcess")
-deactivate MfgAPI
-
-Svc -> DB: Cập nhật ManufacturerResult & Status = "SentToManufacturer"
-DB --> Svc: Thành công
-Svc --> UI: Cập nhật UI: Đã đồng bộ với hãng
-UI --> User: Hiển thị thông tin mã Claim của Hãng
-
+title Real integration flow - Excel CSV EFCore SQLServer
+actor User
+participant UI
+participant VM
+participant ImportSvc
+participant Parser
+participant Posting
+database DB
+User -> UI : choose_file
+UI -> VM : ImportCommand
+VM -> ImportSvc : ImportFile
+ImportSvc -> Parser : ParseRows
+Parser --> ImportSvc : ImportResult
+alt valid_data
+  ImportSvc -> DB : create_catalog_product_serial_documents
+  ImportSvc -> Posting : PostStockIn_or_PostStockOut
+  Posting -> DB : update_balance_serial_ledger_audit
+  ImportSvc --> VM : success_summary
+else invalid_data
+  ImportSvc --> VM : row_errors
+  VM --> UI : show_errors
+end
 @enduml

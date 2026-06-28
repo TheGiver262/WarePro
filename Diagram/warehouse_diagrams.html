@@ -421,64 +421,59 @@
         
         <div class="diagram mermaid" data-engine-pane="mermaid">
 flowchart LR
-    subgraph Presentation[&quot;Presentation&quot;]
-        View[&quot;Views&lt;br/&gt;WPF XAML&quot;]
-        VM[&quot;ViewModels&lt;br/&gt;Commands + Validation UI&quot;]
+    subgraph Presentation[Presentation]
+        View[Views WPF XAML]
+        VM[ViewModels Commands + Binding]
     end
 
-    subgraph Application[&quot;Application&quot;]
-        Auth[&quot;AuthService&quot;]
-        Authorization[&quot;AuthorizationService&quot;]
-        Approval[&quot;ApprovalService&quot;]
-        Catalog[&quot;Catalog Service&quot;]
-        Inventory[&quot;Inventory Service&quot;]
-        Sales[&quot;Sales Service&quot;]
-        Warranty[&quot;Warranty Service&quot;]
-        Report[&quot;Reporting Service&quot;]
+    subgraph Application[Application Services]
+        Auth[AuthenticationService]
+        Authorization[AuthorizationService]
+        Catalog[Catalog Services]
+        Inventory[Stock Services]
+        Sales[InvoiceService]
+        Warranty[WarrantyClaimService]
+        Report[ReportTraceService + DashboardService]
+        Import[DataImport Services]
     end
 
-    subgraph Domain[&quot;Domain&quot;]
-        Entities[&quot;Entities&lt;br/&gt;AppUser, Warehouse, Product,&lt;br/&gt;StockBalance, ProductSerial,&lt;br/&gt;WarrantyCoverage, WarrantyClaim&quot;]
-        Rules[&quot;Business Rules&lt;br/&gt;Posting, Approval,&lt;br/&gt;Stock Locking,&lt;br/&gt;Warranty Eligibility&quot;]
+    subgraph InventoryCore[Inventory Core]
+        Posting[InventoryPostingService]
+        Adjustment[InventoryAdjustmentService]
+        Uow[EfInventoryUnitOfWork]
     end
 
-    subgraph Infrastructure[&quot;Infrastructure&quot;]
-        Repo[&quot;Repositories&quot;]
-        Tx[&quot;Transactions + Row Locking&quot;]
-        Audit[&quot;AuditLog + StockLedger&quot;]
-        DB[(&quot;SQL Server&quot;)]
+    subgraph Infrastructure[Infrastructure]
+        Db[AppDbContext / EF Core]
+        FileLib[ClosedXML / CSV]
+        Audit[AuditLog + StockLedger]
+        DB[(SQL Server)]
     end
 
     View --&gt; VM
     VM --&gt; Auth
     VM --&gt; Authorization
-    VM --&gt; Approval
     VM --&gt; Catalog
     VM --&gt; Inventory
     VM --&gt; Sales
     VM --&gt; Warranty
     VM --&gt; Report
-
-    Auth --&gt; Entities
-    Authorization --&gt; Rules
-    Approval --&gt; Rules
-    Catalog --&gt; Entities
-    Inventory --&gt; Entities
-    Sales --&gt; Entities
-    Warranty --&gt; Entities
-    Entities --&gt; Rules
-
-    Auth --&gt; Repo
-    Authorization --&gt; Repo
-    Approval --&gt; Repo
-    Catalog --&gt; Repo
-    Inventory --&gt; Repo
-    Sales --&gt; Repo
-    Warranty --&gt; Repo
-    Report --&gt; Repo
-    Repo --&gt; Tx
-    Tx --&gt; Audit
-    Audit --&gt; DB
+    VM --&gt; Import
+    Inventory --&gt; Posting
+    Inventory --&gt; Adjustment
+    Warranty --&gt; Posting
+    Import --&gt; Posting
+    Posting --&gt; Uow
+    Adjustment --&gt; Uow
+    Uow --&gt; Db
+    Auth --&gt; Db
+    Authorization --&gt; Db
+    Catalog --&gt; Db
+    Sales --&gt; Db
+    Report --&gt; Db
+    Import --&gt; FileLib
+    Db --&gt; Audit
+    Db --&gt; DB
         </div>
         <div class="diagram plantuml-pane" data-engine-pane="plantuml">
           <img src="plantuml-svg/Architecture_MVVM_WPF_SQLServer.svg" alt="Kiến tr&#250;c WPF / MVVM / SQL Server">
@@ -661,7 +656,7 @@ flowchart LR
         UC7([&quot;Tra cứu coverage,&lt;br/&gt;claim v&#224; lịch sử bảo h&#224;nh&quot;])
         UC8([&quot;Xem audit log v&#224;&lt;br/&gt;nhật k&#253; thay đổi&quot;])
         UC9([&quot;Tạo b&#225;o c&#225;o tồn kho&lt;br/&gt;v&#224; nhập xuất tồn&quot;])
-        UC10([&quot;Tạo b&#225;o c&#225;o doanh thu,&lt;br/&gt;c&#244;ng nợ, bảo h&#224;nh&quot;])
+        UC10([&quot;Tạo b&#225;o c&#225;o doanh thu,&lt;br/&gt;nhập xuất tồn v&#224; truy vết serial&quot;])
     end
 
     subgraph RightActors[&quot; &quot;]
@@ -902,38 +897,25 @@ flowchart LR
         
         <div class="diagram mermaid" data-engine-pane="mermaid">
 flowchart TD
-    A([Bắt đầu]) --&gt; B[Lập phiếu nhập kho ở trạng th&#225;i Draft]
-    B --&gt; B1[Chọn PurposeCode = Purchase hoặc OpeningBalance]
-    B1 --&gt; C[Nhập nh&#224; cung cấp nếu l&#224; Purchase,&lt;br/&gt;sản phẩm, đơn vị, số lượng, đơn gi&#225;]
-    C --&gt; C1[G&#225;n WarehouseId = kho mặc định&lt;br/&gt;đang bị ẩn tr&#234;n UI phase n&#224;y]
-    C1 --&gt; D[Kiểm tra dữ liệu bắt buộc]
-    D --&gt; E{Dữ liệu hợp lệ?}
-    E -- Kh&#244;ng --&gt; Z1[Hiển thị lỗi dữ liệu nhập] --&gt; END([Kết th&#250;c])
-    E -- C&#243; --&gt; F[Gửi duyệt phiếu nhập]
-    F --&gt; G[Chuyển trạng th&#225;i = PendingApproval]
-    G --&gt; H[Quản l&#253; duyệt phiếu]
-    H --&gt; I{Được duyệt?}
-    I -- Kh&#244;ng --&gt; J[Trả phiếu về Draft để chỉnh sửa] --&gt; END
-    I -- C&#243; --&gt; K[Bắt đầu transaction]
-    K --&gt; K1[Sắp xếp d&#242;ng theo ProductId tăng dần&lt;br/&gt;để giữ thứ tự kh&#243;a cố định, giảm nguy cơ deadlock]
-    K1 --&gt; L[Kh&#243;a StockBalance theo đ&#250;ng thứ tự ProductId&lt;br/&gt;trong Warehouse mặc định]
-    L --&gt; M[Quy đổi số lượng về đơn vị cơ sở]
-    M --&gt; N{C&#243; d&#242;ng h&#224;ng quản l&#253; serial?}
-    N -- C&#243; --&gt; O[Qu&#233;t / nhập danh s&#225;ch serial cho c&#225;c d&#242;ng c&#243; serial]
-    O --&gt; P[Kiểm tra serial kh&#244;ng tr&#249;ng v&#224; chưa tồn tại]
-    P --&gt; Q{Serial hợp lệ?}
-    Q -- Kh&#244;ng --&gt; R[Rollback transaction] --&gt; S[Giữ trạng th&#225;i = Approved v&#224; b&#225;o lỗi] --&gt; END
-    Q -- C&#243; --&gt; T[Lưu phiếu nhập v&#224; chi tiết]
-    N -- Kh&#244;ng --&gt; T
-    T --&gt; U[&#193;p dụng biến động nhập tại Warehouse mặc định:&lt;br/&gt;tăng OnHandQuantity v&#224; AvailableQuantity]
-    U --&gt; V{C&#243; d&#242;ng h&#224;ng quản l&#253; serial?}
-    V -- C&#243; --&gt; W[Tạo ProductSerial trạng th&#225;i InStock&lt;br/&gt;v&#224; g&#225;n CurrentWarehouseId]
-    V -- Kh&#244;ng --&gt; X[Ghi StockLedger v&#224; AuditLog]
-    W --&gt; X
-    X --&gt; Y[Cập nhật trạng th&#225;i phiếu = Posted]
-    Y --&gt; Z[Commit transaction]
-    Z --&gt; AA[Th&#244;ng b&#225;o th&#224;nh c&#244;ng]
-    AA --&gt; END
+    A([Bắt đầu]) --&gt; B[Lập phiếu nhập kho Draft]
+    B --&gt; C[Nhập sản phẩm, đơn vị, số lượng, đơn gi&#225;]
+    C --&gt; D[Kiểm tra t&#237;nh hợp lệ dữ liệu]
+    D --&gt; E{Hợp lệ?}
+    E -- Kh&#244;ng --&gt; F[Th&#244;ng b&#225;o lỗi nhập liệu] --&gt; END([Kết th&#250;c])
+    E -- C&#243; --&gt; G{Quản l&#253; Serial?}
+    G -- C&#243; --&gt; H[Nhập danh s&#225;ch số Serial]
+    H --&gt; I{Serial hợp lệ?}
+    I -- Kh&#244;ng --&gt; J[B&#225;o lỗi Serial tr&#249;ng lặp/tồn tại] --&gt; END
+    I -- C&#243; --&gt; K[Lưu th&#244;ng tin Phiếu nhập kho]
+    G -- Kh&#244;ng --&gt; K
+    K --&gt; L[Cập nhật tăng tồn kho khả dụng]
+    L --&gt; M{C&#243; Serial?}
+    M -- C&#243; --&gt; N[Tạo Serial mới trạng th&#225;i InStock]
+    M -- Kh&#244;ng --&gt; O[Ghi thẻ kho v&#224; nhật k&#253; hệ thống]
+    N --&gt; O
+    O --&gt; P[Đổi trạng th&#225;i phiếu sang Posted]
+    P --&gt; Q[Th&#244;ng b&#225;o nhập kho th&#224;nh c&#244;ng]
+    Q --&gt; END
         </div>
         <div class="diagram plantuml-pane" data-engine-pane="plantuml">
           <img src="plantuml-svg/Activity_NhapKho_GhiSo.svg" alt="Activity ghi sổ phiếu nhập">
@@ -949,23 +931,20 @@ flowchart TD
         
         <div class="diagram mermaid" data-engine-pane="mermaid">
 flowchart TD
-    A([Bắt đầu]) --&gt; B[Chọn file Excel/CSV theo template tồn đầu kỳ]
-    B --&gt; C[Đọc file v&#224; map dữ liệu import]
-    C --&gt; D[Kiểm tra ProductCode, UnitCode,&lt;br/&gt;Quantity v&#224; SerialNumber]
-    D --&gt; E{Dữ liệu hợp lệ?}
-    E -- Kh&#244;ng --&gt; F[Hiển thị preview lỗi theo d&#242;ng&lt;br/&gt;v&#224; y&#234;u cầu sửa file] --&gt; END([Kết th&#250;c])
-    E -- C&#243; --&gt; G[G&#225;n WarehouseId = kho mặc định]
-    G --&gt; H[Bắt đầu transaction]
-    H --&gt; I[Sinh StockIn loại OpeningBalance]
-    I --&gt; J[Sinh StockInLine theo từng d&#242;ng sản phẩm]
-    J --&gt; K{C&#243; d&#242;ng quản l&#253; serial?}
-    K -- C&#243; --&gt; L[Tạo ProductSerial trạng th&#225;i InStock&lt;br/&gt;v&#224; g&#225;n CurrentWarehouseId]
-    K -- Kh&#244;ng --&gt; M[Cập nhật StockBalance theo ProductId + WarehouseId]
-    L --&gt; M
-    M --&gt; N[Ghi StockLedger v&#224; AuditLog]
-    N --&gt; O[Commit transaction]
-    O --&gt; P[Th&#244;ng b&#225;o import th&#224;nh c&#244;ng]
-    P --&gt; END
+    A([Bắt đầu]) --&gt; B[Chọn file Excel/CSV tồn đầu kỳ]
+    B --&gt; C[Đọc file v&#224; kiểm tra định dạng dữ liệu]
+    C --&gt; D{Dữ liệu hợp lệ?}
+    D -- Kh&#244;ng --&gt; E[Hiển thị danh s&#225;ch lỗi d&#242;ng Excel] --&gt; END([Kết th&#250;c])
+    D -- C&#243; --&gt; F[Khởi tạo chứng từ StockIn OpeningBalance]
+    F --&gt; G[Tạo c&#225;c d&#242;ng StockInLine]
+    G --&gt; H{Sản phẩm quản l&#253; Serial?}
+    H -- C&#243; --&gt; I[Tạo mới số Serial ở trạng th&#225;i InStock]
+    H -- Kh&#244;ng --&gt; J[Cập nhật tăng số lượng tồn kho]
+    I --&gt; J
+    J --&gt; K[Ghi thẻ kho v&#224; nhật k&#253; kiểm to&#225;n]
+    K --&gt; L[Chuyển trạng th&#225;i chứng từ sang Posted]
+    L --&gt; M[Th&#244;ng b&#225;o import th&#224;nh c&#244;ng]
+    M --&gt; END
         </div>
         <div class="diagram plantuml-pane" data-engine-pane="plantuml">
           <img src="plantuml-svg/Activity_ImportTonDauKy_ExcelCsv.svg" alt="Activity nhập tồn đầu kỳ từ Excel/CSV">
@@ -981,46 +960,28 @@ flowchart TD
         
         <div class="diagram mermaid" data-engine-pane="mermaid">
 flowchart TD
-    A([Bắt đầu]) --&gt; B[Lập phiếu xuất kho ở trạng th&#225;i Draft]
-    B --&gt; C[Nhập PurposeCode, kh&#225;ch h&#224;ng,&lt;br/&gt;sản phẩm, đơn vị, số lượng, đơn gi&#225;]
-    C --&gt; C1[G&#225;n WarehouseId = kho mặc định&lt;br/&gt;đang bị ẩn tr&#234;n UI phase n&#224;y]
-    C1 --&gt; D[Kiểm tra dữ liệu bắt buộc]
-    D --&gt; E{Dữ liệu hợp lệ?}
-    E -- Kh&#244;ng --&gt; Z1[Hiển thị lỗi dữ liệu nhập] --&gt; END([Kết th&#250;c])
-    E -- C&#243; --&gt; F[Gửi duyệt phiếu xuất]
-    F --&gt; G[Chuyển trạng th&#225;i = PendingApproval]
-    G --&gt; H[Quản l&#253; duyệt phiếu]
-    H --&gt; I{Được duyệt?}
-    I -- Kh&#244;ng --&gt; J[Trả phiếu về Draft để chỉnh sửa] --&gt; END
-    I -- C&#243; --&gt; K[Bắt đầu transaction]
-    K --&gt; K1[Sắp xếp d&#242;ng theo ProductId tăng dần&lt;br/&gt;để giữ thứ tự kh&#243;a cố định, giảm nguy cơ deadlock]
-    K1 --&gt; L[Kh&#243;a StockBalance theo đ&#250;ng thứ tự ProductId&lt;br/&gt;trong Warehouse mặc định]
-    L --&gt; M[Quy đổi số lượng về đơn vị cơ sở]
-    M --&gt; N{C&#243; d&#242;ng h&#224;ng quản l&#253; serial?}
-    N -- C&#243; --&gt; O[Kh&#243;a v&#224; chọn serial trạng th&#225;i InStock&lt;br/&gt;theo thứ tự ProductSerialId tăng dần để giảm nguy cơ deadlock]
-    O --&gt; P[Kiểm tra số serial khớp số lượng quy đổi]
-    P --&gt; Q{Serial hợp lệ?}
-    Q -- Kh&#244;ng --&gt; R[Rollback transaction] --&gt; S[Giữ trạng th&#225;i = Approved v&#224; b&#225;o lỗi] --&gt; END
-    Q -- C&#243; --&gt; T[Kiểm tra tồn khả dụng hiện tại&lt;br/&gt;trong Warehouse mặc định]
-    N -- Kh&#244;ng --&gt; T
-    T --&gt; U{Đủ tồn?}
-    U -- Kh&#244;ng --&gt; V[Rollback transaction] --&gt; W[Giữ trạng th&#225;i = Approved v&#224; b&#225;o lỗi kh&#244;ng đủ tồn] --&gt; END
-    U -- C&#243; --&gt; X[Lưu phiếu xuất v&#224; chi tiết]
-    X --&gt; Y[&#193;p dụng biến động xuất: giảm OnHandQuantity v&#224; AvailableQuantity]
-    Y --&gt; Z{C&#243; d&#242;ng h&#224;ng quản l&#253; serial?}
-    Z -- C&#243; --&gt; AA{PurposeCode = Sale?}
-    AA -- C&#243; --&gt; AA1[Cập nhật ProductSerial = Sold đối với phiếu xuất b&#225;n]
-    AA1 --&gt; AA2{C&#243; WarrantyPeriodMonths &gt; 0?}
-    AA2 -- C&#243; --&gt; AA3[Tạo WarrantyCoverage = Active&lt;br/&gt;StartDate = PostedAt&lt;br/&gt;EndDate = PostedAt + WarrantyPeriodMonths&lt;br/&gt;gắn CustomerId v&#224; SalesInvoiceId nếu c&#243;]
-    AA3 --&gt; AB[Ghi StockLedger v&#224; AuditLog]
-    AA2 -- Kh&#244;ng --&gt; AB[Ghi StockLedger v&#224; AuditLog]
-    AA -- Kh&#244;ng --&gt; AA4[Kh&#244;ng cập nhật serial theo luồng xuất b&#225;n chung;&lt;br/&gt;WarrantyReplacement xử l&#253; ri&#234;ng ở AC-04 / SEQ-03]
-    AA4 --&gt; AB
-    Z -- Kh&#244;ng --&gt; AB[Ghi StockLedger v&#224; AuditLog]
-    AB --&gt; AC[Cập nhật trạng th&#225;i phiếu = Posted]
-    AC --&gt; AD[Commit transaction]
-    AD --&gt; AE[Th&#244;ng b&#225;o th&#224;nh c&#244;ng]
-    AE --&gt; END
+    A([Bắt đầu]) --&gt; B[Lập phiếu xuất kho Draft]
+    B --&gt; C[Nhập kh&#225;ch h&#224;ng, sản phẩm, số lượng, đơn gi&#225;]
+    C --&gt; D[Kiểm tra t&#237;nh hợp lệ dữ liệu]
+    D --&gt; E{Hợp lệ?}
+    E -- Kh&#244;ng --&gt; F[Th&#244;ng b&#225;o lỗi nhập liệu] --&gt; END([Kết th&#250;c])
+    E -- C&#243; --&gt; G{C&#243; Serial?}
+    G -- C&#243; --&gt; H[Chọn danh s&#225;ch số Serial trong kho]
+    H --&gt; I{Serial hợp lệ?}
+    I -- Kh&#244;ng --&gt; J[B&#225;o lỗi Serial kh&#244;ng khớp/kh&#244;ng trong kho] --&gt; END
+    I -- C&#243; --&gt; K[Kiểm tra tồn kho khả dụng]
+    G -- Kh&#244;ng --&gt; K
+    K --&gt; L{Đủ tồn kho?}
+    L -- Kh&#244;ng --&gt; M[B&#225;o lỗi kh&#244;ng đủ h&#224;ng khả dụng] --&gt; END
+    L -- C&#243; --&gt; N[Lưu th&#244;ng tin Phiếu xuất kho]
+    N --&gt; O[Cập nhật giảm số lượng tồn kho]
+    O --&gt; P{C&#243; Serial?}
+    P -- C&#243; --&gt; Q[Cập nhật Serial sang trạng th&#225;i Sold]
+    P -- Kh&#244;ng --&gt; R[Ghi thẻ kho v&#224; nhật k&#253; hệ thống]
+    Q --&gt; R
+    R --&gt; S[Đổi trạng th&#225;i phiếu sang Posted]
+    S --&gt; T[Th&#244;ng b&#225;o xuất kho th&#224;nh c&#244;ng]
+    T --&gt; END
         </div>
         <div class="diagram plantuml-pane" data-engine-pane="plantuml">
           <img src="plantuml-svg/Activity_XuatKho_GhiSo.svg" alt="Activity ghi sổ phiếu xuất">
@@ -1037,30 +998,22 @@ flowchart TD
         <div class="diagram mermaid" data-engine-pane="mermaid">
 flowchart TD
     A([Bắt đầu]) --&gt; B[Khởi tạo phi&#234;n kiểm k&#234;]
-    B --&gt; B1[G&#225;n WarehouseId = kho mặc định]
-    B1 --&gt; C[Chọn phạm vi kiểm k&#234; theo sản phẩm / nh&#243;m h&#224;ng / serial]
-    C --&gt; D[Nhập số lượng hệ thống v&#224; số lượng đếm thực tế]
-    D --&gt; E[T&#237;nh ch&#234;nh lệch]
-    E --&gt; F{C&#243; ch&#234;nh lệch?}
-    F -- Kh&#244;ng --&gt; G[Đ&#243;ng phi&#234;n kiểm k&#234; kh&#244;ng ph&#225;t sinh điều chỉnh] --&gt; END([Kết th&#250;c])
-    F -- C&#243; --&gt; H[Lập chứng từ điều chỉnh hoặc đảo nghiệp vụ]
-    H --&gt; I[Ghi r&#245; chứng từ nguồn v&#224; l&#253; do điều chỉnh]
-    I --&gt; J[Gửi duyệt chứng từ điều chỉnh]
-    J --&gt; K[Quản l&#253; duyệt]
-    K --&gt; L{Được duyệt?}
-    L -- Kh&#244;ng --&gt; M[Trả chứng từ về Draft để chỉnh sửa] --&gt; END
-    L -- C&#243; --&gt; N[Bắt đầu transaction]
-    N --&gt; N1[Sắp xếp d&#242;ng theo ProductId tăng dần&lt;br/&gt;để giữ thứ tự kh&#243;a cố định, giảm nguy cơ deadlock]
-    N1 --&gt; O[Kh&#243;a StockBalance theo đ&#250;ng thứ tự ProductId&lt;br/&gt;trong Warehouse mặc định]
-    O --&gt; P[Cập nhật StockBalance tăng hoặc giảm theo ch&#234;nh lệch]
-    P --&gt; Q{Chứng từ điều chỉnh c&#243; y&#234;u cầu cập nhật serial?}
-    Q -- C&#243; --&gt; R[Cập nhật ProductSerial theo trạng th&#225;i nghiệp vụ mới]
-    Q -- Kh&#244;ng --&gt; S[Ghi StockLedger v&#224; AuditLog]
-    R --&gt; S
-    S --&gt; T[Cập nhật trạng th&#225;i chứng từ = Posted]
-    T --&gt; U[Commit transaction]
-    U --&gt; V[Th&#244;ng b&#225;o th&#224;nh c&#244;ng]
-    V --&gt; END
+    B --&gt; C[Nhập số lượng đếm thực tế]
+    C --&gt; D[T&#237;nh ch&#234;nh lệch so với số lượng hệ thống]
+    D --&gt; E{C&#243; ch&#234;nh lệch?}
+    E -- Kh&#244;ng --&gt; F[Đ&#243;ng phi&#234;n kiểm k&#234;] --&gt; END([Kết th&#250;c])
+    E -- C&#243; --&gt; G[Lập chứng từ điều chỉnh kho]
+    G --&gt; H[Người quản l&#253; duyệt chứng từ]
+    H --&gt; I{Duyệt?}
+    I -- Kh&#244;ng --&gt; J[Trả lại trạng th&#225;i Draft để sửa] --&gt; END
+    I -- C&#243; --&gt; K[Cập nhật lại số lượng tồn kho thực tế]
+    K --&gt; L{Sản phẩm c&#243; Serial?}
+    L -- C&#243; --&gt; M[Cập nhật trạng th&#225;i Serial tương ứng]
+    L -- Kh&#244;ng --&gt; N[Ghi lịch sử kho v&#224; nhật k&#253; kiểm to&#225;n]
+    M --&gt; N
+    N --&gt; O[Chuyển chứng từ điều chỉnh sang Posted]
+    O --&gt; P[Th&#244;ng b&#225;o điều chỉnh th&#224;nh c&#244;ng]
+    P --&gt; END
         </div>
         <div class="diagram plantuml-pane" data-engine-pane="plantuml">
           <img src="plantuml-svg/Activity_KiemKe_DieuChinh.svg" alt="Activity kiểm k&#234; v&#224; điều chỉnh tồn">
@@ -1076,86 +1029,33 @@ flowchart TD
         
         <div class="diagram mermaid" data-engine-pane="mermaid">
 flowchart TD
-    A([Bắt đầu]) --&gt; B[Tiếp nhận sản phẩm bảo h&#224;nh]
-    B --&gt; C[Nhập serial v&#224; m&#244; tả lỗi]
-    C --&gt; D[Tra cứu serial đ&#227; b&#225;n]
-    D --&gt; E{T&#236;m thấy serial hợp lệ?}
-    E -- Kh&#244;ng --&gt; F[Th&#244;ng b&#225;o kh&#244;ng t&#236;m thấy serial đ&#227; b&#225;n] --&gt; END([Kết th&#250;c])
-    E -- C&#243; --&gt; G[Kiểm tra quyền bảo h&#224;nh c&#242;n hiệu lực]
-    G --&gt; H{C&#242;n hạn bảo h&#224;nh?}
-    H -- Kh&#244;ng --&gt; I[Th&#244;ng b&#225;o ngo&#224;i bảo h&#224;nh v&#224; trả lại m&#225;y] --&gt; END
-    H -- C&#243; --&gt; J[Kiểm tra serial chưa c&#243; WarrantyClaim đang mở]
-    J --&gt; J1{Đ&#227; c&#243; claim đang mở?}
-    J1 -- C&#243; --&gt; J2[Th&#244;ng b&#225;o claim đang mở v&#224; dừng tạo hồ sơ] --&gt; END
-    J1 -- Kh&#244;ng --&gt; K[Tạo WarrantyClaim v&#224; chuyển trạng th&#225;i = Checking]
-    K --&gt; K1[Cập nhật ProductSerial = InWarrantyProcess]
-    K1 --&gt; L[Ghi nhận kết quả kiểm tra kỹ thuật]
-    L --&gt; M{Quyết định xử l&#253; ban đầu?}
-    M -- Sửa nội bộ được --&gt; L1[Cập nhật trạng th&#225;i = WaitingDecision]
-    L1 --&gt; N[Cập nhật trạng th&#225;i = Repairing&lt;br/&gt;v&#224; ProductSerial = WarrantyDefective]
-    N --&gt; O[Ho&#224;n tất sửa v&#224; cập nhật = Repaired]
-    O --&gt; P[Trả kh&#225;ch]
-    P --&gt; P1[Cập nhật WarrantyClaim = ReturnedToCustomer]
-    P1 --&gt; P2[Cập nhật ProductSerial = Sold]
-    P2 --&gt; Q[Cập nhật WarrantyClaim = Closed]
-    Q --&gt; END
-    M -- Cần gửi h&#227;ng --&gt; R[Gửi h&#227;ng v&#224; cập nhật = SentToManufacturer&lt;br/&gt;v&#224; ProductSerial = WarrantyDefective]
-    R --&gt; R1[Cập nhật trạng th&#225;i = WaitingManufacturerResult]
-    R1 --&gt; S[Nhận kết quả từ h&#227;ng]
-    S --&gt; S1[Cập nhật trạng th&#225;i = WaitingDecision]
-    S1 --&gt; T{Kết luận từ h&#227;ng / quyết định nghiệp vụ?}
-    T -- H&#227;ng sửa được --&gt; U[Nhận m&#225;y đ&#227; sửa từ h&#227;ng&lt;br/&gt;v&#224; cập nhật = Repaired]
-    U --&gt; V[Trả kh&#225;ch]
-    V --&gt; W[Cập nhật WarrantyClaim = ReturnedToCustomer]
-    W --&gt; W1[Cập nhật ProductSerial = Sold]
-    W1 --&gt; X[Cập nhật WarrantyClaim = Closed]
-    X --&gt; END
-    T -- H&#227;ng kh&#244;ng sửa được, đổi mới --&gt; Y[Ghi nhận kết luận kh&#244;ng sửa được&lt;br/&gt;v&#224; h&#227;ng chấp nhận đổi mới cho doanh nghiệp]
-    Y --&gt; Z[Quản l&#253; ph&#234; duyệt đổi mới cho kh&#225;ch]
-    Z --&gt; AA[Bắt đầu transaction]
-    AA --&gt; AB[Kh&#243;a WarrantyClaim, WarrantyCoverage,&lt;br/&gt;StockBalance v&#224; serial li&#234;n quan&lt;br/&gt;theo ProductId rồi ProductSerialId tăng dần để giảm nguy cơ deadlock]
-    AB --&gt; AC[Kiểm tra tồn khả dụng cho serial thay thế&lt;br/&gt;trong Warehouse mặc định]
-    AC --&gt; AD{Đủ serial thay thế?}
-    AD -- Kh&#244;ng --&gt; AE[Rollback transaction đổi mới]
-    AE --&gt; AF[BEGIN transaction nhỏ cập nhật claim]
-    AF --&gt; AF1[Cập nhật claim = WaitingDecision&lt;br/&gt;v&#224; ghi ch&#250; thiếu h&#224;ng thay thế]
-    AF1 --&gt; AF2[COMMIT transaction nhỏ cập nhật claim]
-    AF2 --&gt; AG_NOTE[Hồ sơ vẫn mở để chờ nhập th&#234;m h&#224;ng&lt;br/&gt;hoặc quyết định nghiệp vụ kh&#225;c]
-    AG_NOTE --&gt; END
-    AD -- C&#243; --&gt; AG[Cập nhật serial cũ = ReturnedToManufacturer&lt;br/&gt;v&#224; ghi nhận gửi h&#227;ng đổi mới]
-    AG --&gt; AH[Đ&#243;ng WarrantyCoverage cũ&lt;br/&gt;CoverageStatus = Replaced hoặc Inactive]
-    AH --&gt; AI[Sinh StockOut WarrantyReplacement&lt;br/&gt;ở trạng th&#225;i Approved&lt;br/&gt;WarehouseId = kho mặc định&lt;br/&gt;ApprovedBy = Manager]
-    AI --&gt; AJ[Ghi sổ StockOut WarrantyReplacement&lt;br/&gt;PostedBy = SystemServiceAccount]
-    AJ --&gt; AJ1[Note: ngoại lệ hợp lệ của rule&lt;br/&gt;t&#225;ch approver/poster]
-    AJ1 --&gt; AK[Cập nhật serial mới = Replaced]
-    AK --&gt; AL[Tạo hoặc cập nhật WarrantyCoverage&lt;br/&gt;cho serial mới theo thời hạn c&#242;n lại]
-    AL --&gt; AM[Ghi StockLedger v&#224; AuditLog]
-    AM --&gt; AN[Cập nhật WarrantyClaim = Replaced&lt;br/&gt;v&#224; lưu ReplacementSerialId + ReplacementStockOutId]
-    AN --&gt; AO[Commit transaction đổi mới]
-    AO --&gt; AP_CLOSE[Trả serial thay thế cho kh&#225;ch]
-    AP_CLOSE --&gt; AQ_TX[BEGIN transaction nhỏ x&#225;c nhận giao nhận]
-    AQ_TX --&gt; AQ1[Cập nhật WarrantyClaim = ReturnedToCustomer]
-    AQ1 --&gt; AQ2[Cập nhật serial thay thế = Sold]
-    AQ2 --&gt; AQ3[Cập nhật WarrantyClaim = Closed]
-    AQ3 --&gt; AQ4[COMMIT transaction nhỏ x&#225;c nhận giao nhận]
-    AQ4 --&gt; AQ_CLOSE[Đ&#243;ng hồ sơ]
-    AQ_CLOSE --&gt; END
-    T -- Từ chối --&gt; AO_REJECT[Quản l&#253; ph&#234; duyệt từ chối]
-    M -- Từ chối --&gt; AO_WAIT[Cập nhật trạng th&#225;i = WaitingDecision]
-    AO_WAIT --&gt; AO_REJECT
-    AO_REJECT --&gt; AP_REJECT[Cập nhật trạng th&#225;i = Rejected]
-    AP_REJECT --&gt; AQ_REJECT[Lưu l&#253; do từ chối]
-    AQ_REJECT --&gt; AR_REJECT[Trả lại m&#225;y cho kh&#225;ch]
-    AR_REJECT --&gt; AS_REJECT[Cập nhật WarrantyClaim = ReturnedToCustomer]
-    AS_REJECT --&gt; AT_REJECT[Cập nhật ProductSerial = Sold]
-    AT_REJECT --&gt; AU_REJECT[Cập nhật WarrantyClaim = Closed]
-    AU_REJECT --&gt; AV_REJECT[Đ&#243;ng hồ sơ]
-    AV_REJECT --&gt; END
+    A([Bắt đầu]) --&gt; B[Tiếp nhận sản phẩm v&#224; qu&#233;t Serial]
+    B --&gt; C{Serial đ&#227; b&#225;n &amp; c&#242;n hạn bảo h&#224;nh?}
+    C -- Kh&#244;ng --&gt; D[Từ chối tiếp nhận bảo h&#224;nh] --&gt; END([Kết th&#250;c])
+    C -- C&#243; --&gt; E[Tạo hồ sơ WarrantyClaim v&#224; g&#225;n InWarrantyProcess]
+    E --&gt; F[Kiểm tra kỹ thuật lỗi sản phẩm]
+    F --&gt; G{Quyết định xử l&#253;?}
+    G -- Sửa chữa được --&gt; H[Thực hiện sửa nội bộ hoặc gửi h&#227;ng sửa]
+    H --&gt; I[Cập nhật Claim th&#224;nh Repaired]
+    I --&gt; J[Giao trả lại m&#225;y cũ cho kh&#225;ch]
+    J --&gt; K[Đổi Serial sang Sold v&#224; đ&#243;ng hồ sơ Closed] --&gt; END
+    G -- Đổi mới --&gt; L{C&#243; sẵn Serial thay thế trong kho?}
+    L -- Kh&#244;ng --&gt; M[Chuyển trạng th&#225;i chờ h&#224;ng thay thế] --&gt; END
+    L -- C&#243; --&gt; N[Cập nhật Serial cũ th&#224;nh Replaced]
+    N --&gt; O[Đ&#243;ng WarrantyCoverage cũ Inactive]
+    O --&gt; P[Tạo WarrantyCoverage mới cho Serial thay thế kế thừa hạn bảo h&#224;nh]
+    P --&gt; Q[Tạo v&#224; ghi sổ phiếu xuất kho đổi mới]
+    Q --&gt; R[Cập nhật Serial thay thế th&#224;nh Sold]
+    R --&gt; S[Giao trả Serial mới cho kh&#225;ch &amp; đ&#243;ng hồ sơ Closed] --&gt; END
+    G -- Từ chối --&gt; T[Cập nhật hồ sơ th&#224;nh Rejected]
+    T --&gt; U[Giao trả lại m&#225;y lỗi cho kh&#225;ch]
+    U --&gt; V[Đổi Serial cũ sang Sold v&#224; đ&#243;ng hồ sơ Closed] --&gt; END
         </div>
         <div class="diagram plantuml-pane" data-engine-pane="plantuml">
           <img src="plantuml-svg/Activity_BaoHanh_DoiMoi.svg" alt="Activity xử l&#253; bảo h&#224;nh v&#224; đổi mới">
         </div>
-        <div class="content"><p>---</p></div>
+        <div class="content"><p>```</p>
+<p>---</p></div>
       </article>
     </section>
     <div id="sequence" class="section-title">Sequence</div>
@@ -1173,87 +1073,23 @@ sequenceDiagram
     participant UI as LoginView
     participant VM as LoginViewModel
     participant Auth as AuthService
-    participant UserRepo as AppUserRepository
-    participant AuditRepo as AuditLogRepository
     participant DB as SQL Server
 
-    User-&gt;&gt;UI: Nhập username v&#224; password
-    UI-&gt;&gt;VM: Login(request)
-    VM-&gt;&gt;VM: Validate required fields
+    User-&gt;&gt;UI: Nhập Username &amp; Password
+    UI-&gt;&gt;VM: Thực hiện đăng nhập
+    VM-&gt;&gt;Auth: X&#225;c thực t&#224;i khoản
+    Auth-&gt;&gt;DB: Truy vấn th&#244;ng tin người d&#249;ng
+    DB--&gt;&gt;Auth: Trả về th&#244;ng tin t&#224;i khoản
 
-    alt Thiếu username hoặc password
-        VM--&gt;&gt;UI: Hiển thị lỗi bắt buộc nhập đủ 2 trường
-    else Đủ dữ liệu
-        VM-&gt;&gt;Auth: Login(request)
-        Auth-&gt;&gt;UserRepo: FindByUsername(username)
-        UserRepo-&gt;&gt;DB: SELECT AppUser by Username
-        DB--&gt;&gt;UserRepo: User or null
-        UserRepo--&gt;&gt;Auth: User data
-
-        alt Username kh&#244;ng tồn tại
-            Auth-&gt;&gt;AuditRepo: WriteAuditLog(LoginFailedUnknownUser, performedBy = SystemServiceAccount)
-            AuditRepo-&gt;&gt;DB: INSERT AuditLog
-            DB--&gt;&gt;AuditRepo: Success
-            Auth--&gt;&gt;VM: Generic failure
-            VM--&gt;&gt;UI: Hiển thị &quot;Sai t&#224;i khoản hoặc mật khẩu&quot;
-        else T&#224;i khoản bị v&#244; hiệu h&#243;a
-            Auth-&gt;&gt;AuditRepo: WriteAuditLog(LoginFailed)
-            AuditRepo-&gt;&gt;DB: INSERT AuditLog
-            DB--&gt;&gt;AuditRepo: Success
-            Auth--&gt;&gt;VM: Generic failure
-            VM--&gt;&gt;UI: Hiển thị &quot;Sai t&#224;i khoản hoặc mật khẩu&quot;
-        else T&#224;i khoản đang bị kh&#243;a
-            Auth--&gt;&gt;VM: Locked until LockoutUntil
-            VM--&gt;&gt;UI: Hiển thị thời gian c&#242;n bị kh&#243;a
-        else Mật khẩu kh&#244;ng đ&#250;ng
-            Auth-&gt;&gt;UserRepo: Increment FailedLoginCount + update LastFailedLoginAt
-            UserRepo-&gt;&gt;DB: UPDATE AppUser
-            DB--&gt;&gt;UserRepo: Success
-
-            opt FailedLoginCount &gt; 3 v&#224; &lt; 5
-                Auth--&gt;&gt;VM: Show soft lockout warning
-                VM--&gt;&gt;UI: Hiển thị cảnh b&#225;o nhỏ &quot;Nhập sai t&#234;n đăng nhập/mật khẩu li&#234;n tiếp sẽ bị kh&#243;a t&#224;i khoản tạm thời&quot;
-            end
-
-            alt FailedLoginCount &gt;= 10
-                Auth-&gt;&gt;UserRepo: Set LockoutUntil = now + 15 minutes
-                UserRepo-&gt;&gt;DB: UPDATE AppUser
-                DB--&gt;&gt;UserRepo: Success
-                Auth-&gt;&gt;AuditRepo: WriteAuditLog(SuspiciousLoginAttempt)
-                AuditRepo-&gt;&gt;DB: INSERT AuditLog
-                DB--&gt;&gt;AuditRepo: Success
-                Note over Auth,AuditRepo: Quản trị vi&#234;n xem cảnh b&#225;o qua AuditLog hoặc audit viewer
-                Auth--&gt;&gt;VM: Locked 15 minutes
-                VM--&gt;&gt;UI: Hiển thị thời gian bị kh&#243;a
-            else FailedLoginCount &gt;= 5
-                Auth-&gt;&gt;UserRepo: Set LockoutUntil = now + 5 minutes
-                UserRepo-&gt;&gt;DB: UPDATE AppUser
-                DB--&gt;&gt;UserRepo: Success
-                Auth-&gt;&gt;AuditRepo: WriteAuditLog(LoginLocked)
-                AuditRepo-&gt;&gt;DB: INSERT AuditLog
-                DB--&gt;&gt;AuditRepo: Success
-                Auth--&gt;&gt;VM: Locked 5 minutes
-                VM--&gt;&gt;UI: Hiển thị thời gian bị kh&#243;a
-            else Chưa đạt ngưỡng kh&#243;a
-                Auth-&gt;&gt;AuditRepo: WriteAuditLog(LoginFailed)
-                AuditRepo-&gt;&gt;DB: INSERT AuditLog
-                DB--&gt;&gt;AuditRepo: Success
-                Auth--&gt;&gt;VM: Generic failure
-                VM--&gt;&gt;UI: Hiển thị &quot;Sai t&#224;i khoản hoặc mật khẩu&quot;
-            end
-        else Đăng nhập th&#224;nh c&#244;ng
-            Auth-&gt;&gt;UserRepo: Reset FailedLoginCount = 0, LockoutUntil = null, update LastLoginAt
-            UserRepo-&gt;&gt;DB: UPDATE AppUser
-            DB--&gt;&gt;UserRepo: Success
-
-            alt MustChangePassword = true
-                Auth--&gt;&gt;VM: Require password change
-                VM--&gt;&gt;UI: Chuyển sang m&#224;n h&#236;nh đổi mật khẩu bắt buộc
-            else Đăng nhập b&#236;nh thường
-                Auth--&gt;&gt;VM: Login success
-                VM--&gt;&gt;UI: Mở m&#224;n h&#236;nh ch&#237;nh
-            end
-        end
+    alt Sai th&#244;ng tin t&#224;i khoản
+        Auth--&gt;&gt;VM: Kết quả thất bại
+        VM--&gt;&gt;UI: Hiển thị &quot;T&#234;n t&#224;i khoản hoặc mật khẩu kh&#244;ng đ&#250;ng&quot;
+    else T&#224;i khoản bị kh&#243;a (Lockout)
+        Auth--&gt;&gt;VM: B&#225;o trạng th&#225;i tạm kh&#243;a (LockedOut)
+        VM--&gt;&gt;UI: Hiển thị &quot;T&#234;n t&#224;i khoản hoặc mật khẩu kh&#244;ng đ&#250;ng hoặc t&#224;i khoản đang tạm kh&#243;a!&quot;
+    else Đăng nhập th&#224;nh c&#244;ng
+        Auth--&gt;&gt;VM: Trả về đối tượng AppUser hợp lệ
+        VM--&gt;&gt;UI: Mở cửa sổ l&#224;m việc ch&#237;nh (MainWindow)
     end
         </div>
         <div class="diagram plantuml-pane" data-engine-pane="plantuml">
@@ -1273,70 +1109,20 @@ sequenceDiagram
     actor Storekeeper as Nh&#226;n vi&#234;n kho
     participant UI as StockInView
     participant VM as StockInViewModel
-    participant Approval as ApprovalService
-    participant Authorization as AuthorizationService
-    participant Service as InventoryService
-    participant BalanceRepo as StockBalanceRepository
-    participant StockRepo as StockInRepository
-    participant SerialRepo as SerialRepository
-    participant CoverageRepo as WarrantyCoverageRepository
-    participant LedgerRepo as StockLedgerRepository
-    participant AuditRepo as AuditLogRepository
+    participant Service as StockInService
+    participant Post as InventoryPostingService
     participant DB as SQL Server
 
-    Storekeeper-&gt;&gt;UI: Nhập phiếu nhập
-    UI-&gt;&gt;VM: SubmitStockIn(request)
-    VM-&gt;&gt;Service: PostStockIn(request)
-    Service-&gt;&gt;Approval: ValidateStatusTransition()
-    Approval--&gt;&gt;Service: OK
-    Service-&gt;&gt;Authorization: ValidatePostingPermission()
-    Authorization--&gt;&gt;Service: OK
-    Service-&gt;&gt;Approval: CheckApproverPosterSeparationIfEnabled()
-    Approval--&gt;&gt;Service: OK
-    Note over Service,Approval: Nếu validation hoặc policy fail th&#236; dừng trước BEGIN TRAN v&#224; trả lỗi nghiệp vụ cho UI
-    Service-&gt;&gt;Service: ResolveDefaultWarehouse()
-    Service-&gt;&gt;Service: SortLinesByProductId()
-    Service-&gt;&gt;DB: BEGIN TRAN
-    Service-&gt;&gt;BalanceRepo: LockProductBalances(order by ProductId asc, warehouseId = default)
-    Note over Service,BalanceRepo: Giữ thứ tự kh&#243;a ProductId tăng dần trong c&#249;ng Warehouse để giảm nguy cơ deadlock khi nhiều transaction ghi sổ đồng thời
-    BalanceRepo-&gt;&gt;DB: SELECT ... WITH (UPDLOCK)
-    DB--&gt;&gt;BalanceRepo: Current balance
-    BalanceRepo--&gt;&gt;Service: Locked
-    Service-&gt;&gt;Service: ConvertToBaseQuantity(lines)
-
-    alt C&#243; d&#242;ng quản l&#253; serial
-        Service-&gt;&gt;SerialRepo: ValidateIncomingSerials(serials)
-        SerialRepo-&gt;&gt;DB: SELECT duplicate serials
-        DB--&gt;&gt;SerialRepo: Result
-        SerialRepo--&gt;&gt;Service: Serial valid
-    end
-
-    Service-&gt;&gt;StockRepo: InsertHeaderAndLines(warehouseId, purposeCode)
-    StockRepo-&gt;&gt;DB: INSERT StockIn / StockInLine
-    DB--&gt;&gt;StockRepo: Success
-
-    Service-&gt;&gt;BalanceRepo: ApplyInboundBalanceChange(warehouseId)
-    BalanceRepo-&gt;&gt;DB: UPDATE StockBalance
-    DB--&gt;&gt;BalanceRepo: Success
-
-    alt C&#243; d&#242;ng quản l&#253; serial
-        Service-&gt;&gt;SerialRepo: InsertSerials(InStock, currentWarehouseId = default)
-        SerialRepo-&gt;&gt;DB: INSERT ProductSerial
-        DB--&gt;&gt;SerialRepo: Success
-    end
-
-    Service-&gt;&gt;LedgerRepo: WriteInboundLedger(warehouseId)
-    LedgerRepo-&gt;&gt;DB: INSERT StockLedger
-    DB--&gt;&gt;LedgerRepo: Success
-
-    Service-&gt;&gt;AuditRepo: WriteAuditLog()
-    AuditRepo-&gt;&gt;DB: INSERT AuditLog
-    DB--&gt;&gt;AuditRepo: Success
-
-    Service-&gt;&gt;DB: COMMIT
-    Service--&gt;&gt;VM: Success
-    VM--&gt;&gt;UI: Show success
-    Note over Service,DB: On any exception -&gt; ROLLBACK transaction
+    Storekeeper-&gt;&gt;UI: Nhập th&#244;ng tin &amp; nhấn Ghi sổ
+    UI-&gt;&gt;VM: Xử l&#253; Ghi sổ
+    VM-&gt;&gt;Service: Post(stockInId)
+    Service-&gt;&gt;Service: Kiểm tra t&#237;nh hợp lệ dữ liệu &amp; Serial
+    Service-&gt;&gt;Post: Thực hiện PostStockIn (trong Transaction)
+    Post-&gt;&gt;DB: Cập nhật tăng tồn kho, ghi Serial mới, ghi thẻ kho &amp; AuditLog
+    DB--&gt;&gt;Post: Th&#224;nh c&#244;ng
+    Service-&gt;&gt;DB: Commit Transaction
+    Service--&gt;&gt;VM: Trả về kết quả Th&#224;nh c&#244;ng
+    VM--&gt;&gt;UI: Th&#244;ng b&#225;o ghi sổ th&#224;nh c&#244;ng &amp; cập nhật giao diện
         </div>
         <div class="diagram plantuml-pane" data-engine-pane="plantuml">
           <img src="plantuml-svg/Sequence_NhapKho_GhiSo.svg" alt="Sequence ghi sổ phiếu nhập">
@@ -1355,49 +1141,23 @@ sequenceDiagram
     actor Storekeeper as Nh&#226;n vi&#234;n kho
     participant UI as OpeningBalanceImportView
     participant VM as OpeningBalanceImportViewModel
-    participant Import as InitialStockImportService
-    participant StockRepo as StockInRepository
-    participant BalanceRepo as StockBalanceRepository
-    participant SerialRepo as SerialRepository
-    participant LedgerRepo as StockLedgerRepository
-    participant AuditRepo as AuditLogRepository
+    participant Import as OpeningBalanceImportService
     participant DB as SQL Server
 
-    Storekeeper-&gt;&gt;UI: Chọn file Excel/CSV
-    UI-&gt;&gt;VM: ImportOpeningBalance(file)
-    VM-&gt;&gt;Import: ParseAndValidate(file)
-    Import-&gt;&gt;Import: Validate ProductCode, UnitCode, Quantity, SerialNumber
+    Storekeeper-&gt;&gt;UI: Chọn file dữ liệu Excel/CSV
+    UI-&gt;&gt;VM: K&#237;ch hoạt Import
+    VM-&gt;&gt;Import: ImportRows(dữ liệu import)
+    Import-&gt;&gt;Import: Kiểm tra định dạng dữ liệu &amp; ProductCode
+    
     alt Dữ liệu kh&#244;ng hợp lệ
-        Import--&gt;&gt;VM: Validation errors by row
-        VM--&gt;&gt;UI: Show preview errors
+        Import--&gt;&gt;VM: Danh s&#225;ch lỗi theo d&#242;ng
+        VM--&gt;&gt;UI: Hiển thị preview lỗi
     else Dữ liệu hợp lệ
-        Import-&gt;&gt;Import: ResolveDefaultWarehouse()
-        Import-&gt;&gt;DB: BEGIN TRAN
-        Import-&gt;&gt;StockRepo: Insert StockIn(warehouseId, purposeCode = OpeningBalance, status = Posted)
-        StockRepo-&gt;&gt;DB: INSERT StockIn
-        DB--&gt;&gt;StockRepo: stockInId
-        Import-&gt;&gt;StockRepo: Insert StockInLine(stockInId, rows)
-        StockRepo-&gt;&gt;DB: INSERT StockInLine
-        DB--&gt;&gt;StockRepo: Success
-        alt C&#243; d&#242;ng quản l&#253; serial
-            Import-&gt;&gt;SerialRepo: InsertSerials(InStock, currentWarehouseId = default)
-            SerialRepo-&gt;&gt;DB: INSERT ProductSerial
-            DB--&gt;&gt;SerialRepo: Success
-        end
-        Import-&gt;&gt;BalanceRepo: ApplyInboundBalanceChange(warehouseId)
-        BalanceRepo-&gt;&gt;DB: UPDATE StockBalance
-        DB--&gt;&gt;BalanceRepo: Success
-        Import-&gt;&gt;LedgerRepo: WriteOpeningBalanceLedger(warehouseId)
-        LedgerRepo-&gt;&gt;DB: INSERT StockLedger
-        DB--&gt;&gt;LedgerRepo: Success
-        Import-&gt;&gt;AuditRepo: WriteAuditLog()
-        AuditRepo-&gt;&gt;DB: INSERT AuditLog
-        DB--&gt;&gt;AuditRepo: Success
-        Import-&gt;&gt;DB: COMMIT
-        Import--&gt;&gt;VM: Import success
-        VM--&gt;&gt;UI: Show success
+        Import-&gt;&gt;DB: Tạo chứng từ StockIn, StockInLine &amp; ghi Serial mới, cập nhật tồn kho &amp; AuditLog
+        DB--&gt;&gt;Import: Th&#224;nh c&#244;ng
+        Import--&gt;&gt;VM: Trả về số lượng import th&#224;nh c&#244;ng
+        VM--&gt;&gt;UI: Th&#244;ng b&#225;o import th&#224;nh c&#244;ng
     end
-    Note over Import,DB: On any exception -&gt; ROLLBACK transaction
         </div>
         <div class="diagram plantuml-pane" data-engine-pane="plantuml">
           <img src="plantuml-svg/Sequence_ImportTonDauKy_ExcelCsv.svg" alt="Sequence nhập tồn đầu kỳ từ Excel/CSV">
@@ -1416,89 +1176,20 @@ sequenceDiagram
     actor Storekeeper as Nh&#226;n vi&#234;n kho
     participant UI as StockOutView
     participant VM as StockOutViewModel
-    participant Approval as ApprovalService
-    participant Authorization as AuthorizationService
-    participant Service as InventoryService
-    participant BalanceRepo as StockBalanceRepository
-    participant StockRepo as StockOutRepository
-    participant SerialRepo as SerialRepository
-    participant CoverageRepo as WarrantyCoverageRepository
-    participant LedgerRepo as StockLedgerRepository
-    participant AuditRepo as AuditLogRepository
+    participant Service as StockOutService
+    participant Post as InventoryPostingService
     participant DB as SQL Server
 
-    Storekeeper-&gt;&gt;UI: Nhập phiếu xuất
-    UI-&gt;&gt;VM: SubmitStockOut(request)
-    VM-&gt;&gt;Service: PostStockOut(request)
-    Service-&gt;&gt;Approval: ValidateStatusTransition()
-    Approval--&gt;&gt;Service: OK
-    Service-&gt;&gt;Authorization: ValidatePostingPermission()
-    Authorization--&gt;&gt;Service: OK
-    Service-&gt;&gt;Approval: CheckApproverPosterSeparationIfEnabled()
-    Approval--&gt;&gt;Service: OK
-    Note over Service,Approval: Nếu validation hoặc policy fail th&#236; dừng trước BEGIN TRAN v&#224; trả lỗi nghiệp vụ cho UI
-    Service-&gt;&gt;Service: ResolveDefaultWarehouse()
-    Service-&gt;&gt;Service: SortLinesByProductId()
-    Service-&gt;&gt;DB: BEGIN TRAN
-    Service-&gt;&gt;BalanceRepo: LockProductBalances(order by ProductId asc, warehouseId = default)
-    Note over Service,BalanceRepo: Lu&#244;n kh&#243;a StockBalance theo ProductId tăng dần trong c&#249;ng Warehouse để giữ thứ tự cố định giữa c&#225;c transaction
-    BalanceRepo-&gt;&gt;DB: SELECT ... WITH (UPDLOCK)
-    DB--&gt;&gt;BalanceRepo: Current balance
-    BalanceRepo--&gt;&gt;Service: Locked
-    Service-&gt;&gt;Service: ConvertToBaseQuantity(lines)
-
-    alt C&#243; d&#242;ng quản l&#253; serial
-        Service-&gt;&gt;SerialRepo: LockAndValidateSelectedSerials(order by ProductSerialId asc)
-        Note over Service,SerialRepo: Với serial, tiếp tục kh&#243;a theo ProductSerialId tăng dần để tr&#225;nh deadlock khi nhiều người xuất c&#249;ng l&#250;c
-        SerialRepo-&gt;&gt;DB: SELECT serials WHERE status = InStock
-        DB--&gt;&gt;SerialRepo: Valid serials
-        SerialRepo--&gt;&gt;Service: Serial valid
-    end
-
-    Service-&gt;&gt;Service: CheckAvailableQuantity(warehouseId)
-
-    alt Đủ tồn
-        Service-&gt;&gt;StockRepo: InsertHeaderAndLines(warehouseId, purposeCode)
-        StockRepo-&gt;&gt;DB: INSERT StockOut / StockOutLine
-        DB--&gt;&gt;StockRepo: Success
-
-        Service-&gt;&gt;BalanceRepo: ApplyOutboundBalanceChange(warehouseId)
-        BalanceRepo-&gt;&gt;DB: UPDATE StockBalance
-        DB--&gt;&gt;BalanceRepo: Success
-
-        alt C&#243; d&#242;ng quản l&#253; serial
-            alt PurposeCode = Sale
-                Service-&gt;&gt;SerialRepo: UpdateSerialStatus(Sold)
-                SerialRepo-&gt;&gt;DB: UPDATE ProductSerial
-                DB--&gt;&gt;SerialRepo: Success
-
-                opt WarrantyPeriodMonths &gt; 0
-                    Service-&gt;&gt;CoverageRepo: CreateCoverageForSoldSerials(start = PostedAt, end = PostedAt + WarrantyPeriodMonths, status = Active, salesInvoiceId nullable)
-                    CoverageRepo-&gt;&gt;DB: INSERT WarrantyCoverage
-                    DB--&gt;&gt;CoverageRepo: Success
-                end
-            else WarrantyReplacement hoặc purpose kh&#225;c
-                Note over Service,SerialRepo: WarrantyReplacement xử l&#253; ở SEQ-03
-            end
-        end
-
-        Service-&gt;&gt;LedgerRepo: WriteOutboundLedger(warehouseId)
-        LedgerRepo-&gt;&gt;DB: INSERT StockLedger
-        DB--&gt;&gt;LedgerRepo: Success
-
-        Service-&gt;&gt;AuditRepo: WriteAuditLog()
-        AuditRepo-&gt;&gt;DB: INSERT AuditLog
-        DB--&gt;&gt;AuditRepo: Success
-
-        Service-&gt;&gt;DB: COMMIT
-        Service--&gt;&gt;VM: Success
-        VM--&gt;&gt;UI: Show success
-    else Kh&#244;ng đủ tồn
-        Service-&gt;&gt;DB: ROLLBACK
-        Service--&gt;&gt;VM: Error not enough stock
-        VM--&gt;&gt;UI: Show error
-    end
-    Note over Service,DB: On any exception -&gt; ROLLBACK transaction
+    Storekeeper-&gt;&gt;UI: Nhập th&#244;ng tin &amp; nhấn Ghi sổ
+    UI-&gt;&gt;VM: Xử l&#253; Ghi sổ
+    VM-&gt;&gt;Service: Post(stockOutId)
+    Service-&gt;&gt;Service: Kiểm tra tồn kho khả dụng &amp; trạng th&#225;i Serial
+    Service-&gt;&gt;Post: Thực hiện PostStockOut (trong Transaction)
+    Post-&gt;&gt;DB: Cập nhật giảm tồn kho, đổi Serial sang Sold, ghi thẻ kho &amp; AuditLog
+    DB--&gt;&gt;Post: Th&#224;nh c&#244;ng
+    Service-&gt;&gt;DB: Commit Transaction
+    Service--&gt;&gt;VM: Trả về kết quả Th&#224;nh c&#244;ng
+    VM--&gt;&gt;UI: Th&#244;ng b&#225;o ghi sổ th&#224;nh c&#244;ng &amp; cập nhật giao diện
         </div>
         <div class="diagram plantuml-pane" data-engine-pane="plantuml">
           <img src="plantuml-svg/Sequence_XuatKho_GhiSo.svg" alt="Sequence ghi sổ phiếu xuất">
@@ -1515,227 +1206,38 @@ sequenceDiagram
         <div class="diagram mermaid" data-engine-pane="mermaid">
 sequenceDiagram
     actor Technician as Nh&#226;n vi&#234;n bảo h&#224;nh
-    actor Manager as Quản l&#253;
     participant UI as WarrantyView
     participant VM as WarrantyViewModel
-    participant Warranty as WarrantyService
-    participant Approval as ApprovalService
-    participant Inventory as InventoryService
-    participant StockRepo as StockOutRepository
-    participant BalanceRepo as StockBalanceRepository
-    participant CoverageRepo as WarrantyCoverageRepository
-    participant ClaimRepo as WarrantyClaimRepository
-    participant SerialRepo as SerialRepository
-    participant LedgerRepo as StockLedgerRepository
-    participant AuditRepo as AuditLogRepository
+    participant Service as WarrantyClaimService
     participant DB as SQL Server
 
-    Technician-&gt;&gt;UI: Nhập serial v&#224; m&#244; tả lỗi
-    UI-&gt;&gt;VM: OpenWarrantyClaim(request)
-    VM-&gt;&gt;Warranty: OpenClaim(request)
-    Warranty-&gt;&gt;CoverageRepo: FindActiveCoverageBySerial()
-    CoverageRepo-&gt;&gt;DB: SELECT coverage by serial
-    DB--&gt;&gt;CoverageRepo: Coverage data
-    CoverageRepo--&gt;&gt;Warranty: Coverage found
-    Warranty-&gt;&gt;Warranty: CheckWarrantyEligibility()
-    Warranty-&gt;&gt;ClaimRepo: CheckOpenClaimBySerial()
-    ClaimRepo-&gt;&gt;DB: SELECT open claim by serial
-    DB--&gt;&gt;ClaimRepo: Open claim result
+    Technician-&gt;&gt;UI: Nhập Serial &amp; m&#244; tả lỗi
+    UI-&gt;&gt;VM: Gửi y&#234;u cầu tiếp nhận bảo h&#224;nh
+    VM-&gt;&gt;Service: CreateClaim(claimCode, serialNo)
+    Service-&gt;&gt;DB: Kiểm tra quyền bảo h&#224;nh c&#242;n hạn
+    DB--&gt;&gt;Service: Th&#244;ng tin hợp lệ
+    Service-&gt;&gt;DB: Tạo claim mới &amp; cập nhật Serial sang InWarrantyProcess
+    DB--&gt;&gt;Service: Th&#224;nh c&#244;ng
+    Service--&gt;&gt;VM: Trả về ClaimId
 
-    alt Đủ điều kiện bảo h&#224;nh
-        alt Chưa c&#243; claim đang mở
-                Warranty-&gt;&gt;ClaimRepo: Insert claim(status = Checking)
-                ClaimRepo-&gt;&gt;DB: INSERT WarrantyClaim
-                DB--&gt;&gt;ClaimRepo: Success
-                Warranty-&gt;&gt;SerialRepo: Update serial = InWarrantyProcess
-                SerialRepo-&gt;&gt;DB: UPDATE ProductSerial
-                DB--&gt;&gt;SerialRepo: Success
-
-            alt Sửa nội bộ được
-                Warranty-&gt;&gt;ClaimRepo: Update claim = WaitingDecision
-                ClaimRepo-&gt;&gt;DB: UPDATE WarrantyClaim
-                DB--&gt;&gt;ClaimRepo: Success
-                Warranty-&gt;&gt;ClaimRepo: Update claim = Repairing
-                ClaimRepo-&gt;&gt;DB: UPDATE WarrantyClaim
-                DB--&gt;&gt;ClaimRepo: Success
-                Warranty-&gt;&gt;SerialRepo: Update serial = WarrantyDefective
-                SerialRepo-&gt;&gt;DB: UPDATE ProductSerial
-                DB--&gt;&gt;SerialRepo: Success
-                Warranty-&gt;&gt;ClaimRepo: Update claim = Repaired
-                ClaimRepo-&gt;&gt;DB: UPDATE WarrantyClaim
-                DB--&gt;&gt;ClaimRepo: Success
-                Warranty-&gt;&gt;Warranty: Confirm customer handover
-                Warranty-&gt;&gt;ClaimRepo: Update claim = ReturnedToCustomer
-                ClaimRepo-&gt;&gt;DB: UPDATE WarrantyClaim
-                DB--&gt;&gt;ClaimRepo: Success
-                Warranty-&gt;&gt;SerialRepo: Update serial = Sold
-                SerialRepo-&gt;&gt;DB: UPDATE ProductSerial
-                DB--&gt;&gt;SerialRepo: Success
-                Warranty-&gt;&gt;ClaimRepo: Update claim = Closed
-                ClaimRepo-&gt;&gt;DB: UPDATE WarrantyClaim
-                DB--&gt;&gt;ClaimRepo: Success
-                Warranty--&gt;&gt;VM: Success repaired
-            else Cần gửi h&#227;ng
-                Warranty-&gt;&gt;ClaimRepo: Update claim = SentToManufacturer
-                ClaimRepo-&gt;&gt;DB: UPDATE WarrantyClaim
-                DB--&gt;&gt;ClaimRepo: Success
-                Warranty-&gt;&gt;SerialRepo: Update serial = WarrantyDefective
-                SerialRepo-&gt;&gt;DB: UPDATE ProductSerial
-                DB--&gt;&gt;SerialRepo: Success
-                Warranty-&gt;&gt;ClaimRepo: Update claim = WaitingManufacturerResult
-                ClaimRepo-&gt;&gt;DB: UPDATE WarrantyClaim
-                DB--&gt;&gt;ClaimRepo: Success
-                Warranty-&gt;&gt;ClaimRepo: Save manufacturer result + update claim = WaitingDecision
-                ClaimRepo-&gt;&gt;DB: UPDATE WarrantyClaim
-                DB--&gt;&gt;ClaimRepo: Success
-
-                alt H&#227;ng sửa được
-                    Warranty-&gt;&gt;ClaimRepo: Update claim = Repaired
-                    ClaimRepo-&gt;&gt;DB: UPDATE WarrantyClaim
-                    DB--&gt;&gt;ClaimRepo: Success
-                    Warranty-&gt;&gt;Warranty: Confirm customer handover
-                    Warranty-&gt;&gt;ClaimRepo: Update claim = ReturnedToCustomer
-                    ClaimRepo-&gt;&gt;DB: UPDATE WarrantyClaim
-                    DB--&gt;&gt;ClaimRepo: Success
-                    Warranty-&gt;&gt;SerialRepo: Update serial = Sold
-                    SerialRepo-&gt;&gt;DB: UPDATE ProductSerial
-                    DB--&gt;&gt;SerialRepo: Success
-                    Warranty-&gt;&gt;ClaimRepo: Update claim = Closed
-                    ClaimRepo-&gt;&gt;DB: UPDATE WarrantyClaim
-                    DB--&gt;&gt;ClaimRepo: Success
-                    Warranty--&gt;&gt;VM: Success repaired by manufacturer
-                else H&#227;ng kh&#244;ng sửa được, đổi mới
-                    Warranty-&gt;&gt;ClaimRepo: Record manufacturer result = Replace
-                    ClaimRepo-&gt;&gt;DB: UPDATE WarrantyClaim
-                    DB--&gt;&gt;ClaimRepo: Success
-                    VM-&gt;&gt;Manager: Tr&#236;nh quyết định đổi mới
-                    Manager--&gt;&gt;VM: X&#225;c nhận ph&#234; duyệt
-                    VM-&gt;&gt;Warranty: RequestReplacementApproval(claimId, managerDecision)
-                    Warranty-&gt;&gt;Approval: Record replacement approval
-                    Approval--&gt;&gt;Warranty: Approved
-                    Warranty-&gt;&gt;DB: BEGIN TRAN
-                    Warranty-&gt;&gt;ClaimRepo: LockWarrantyClaim()
-                    ClaimRepo-&gt;&gt;DB: SELECT ... WITH (UPDLOCK)
-                    DB--&gt;&gt;ClaimRepo: Locked
-                    Warranty-&gt;&gt;CoverageRepo: LockWarrantyCoverage()
-                    CoverageRepo-&gt;&gt;DB: SELECT ... WITH (UPDLOCK)
-                    DB--&gt;&gt;CoverageRepo: Locked
-
-                    Warranty-&gt;&gt;Inventory: LockProductBalanceForReplacement(order by ProductId asc, warehouseId = default)
-                    Inventory-&gt;&gt;BalanceRepo: SELECT ... WITH (UPDLOCK)
-                    DB--&gt;&gt;BalanceRepo: Current balance
-                    BalanceRepo--&gt;&gt;Inventory: Locked
-
-                    Warranty-&gt;&gt;SerialRepo: Lock old serial and candidate replacement serials(order by ProductSerialId asc)
-                    Note over Warranty,SerialRepo: Luồng đổi mới cũng giữ thứ tự kh&#243;a ProductId rồi ProductSerialId tăng dần để giảm nguy cơ deadlock
-                    SerialRepo-&gt;&gt;DB: SELECT ... WITH (UPDLOCK)
-                    DB--&gt;&gt;SerialRepo: Locked
-
-                    Warranty-&gt;&gt;Inventory: CheckAvailableQuantity(warehouseId = default)
-                    alt Đủ tồn thay thế
-                        Warranty-&gt;&gt;SerialRepo: Update old serial = ReturnedToManufacturer
-                        SerialRepo-&gt;&gt;DB: UPDATE ProductSerial old
-                        DB--&gt;&gt;SerialRepo: Success
-
-                        Warranty-&gt;&gt;CoverageRepo: Close old coverage = Replaced / Inactive
-                        CoverageRepo-&gt;&gt;DB: UPDATE WarrantyCoverage old
-                        DB--&gt;&gt;CoverageRepo: Success
-
-                        Warranty-&gt;&gt;ClaimRepo: Mark manufacturer replacement accepted
-                        ClaimRepo-&gt;&gt;DB: UPDATE WarrantyClaim
-                        DB--&gt;&gt;ClaimRepo: Success
-
-                        Warranty-&gt;&gt;StockRepo: Insert StockOut(Status=Approved, PurposeCode=WarrantyReplacement, WarehouseId=default, ApprovedBy=ManagerId)
-                        StockRepo-&gt;&gt;DB: INSERT StockOut / StockOutLine
-                        DB--&gt;&gt;StockRepo: Success
-
-                        Warranty-&gt;&gt;Inventory: PostWarrantyReplacementStockOut(stockOutId, PostedBy=SystemServiceAccount)
-                        Inventory-&gt;&gt;BalanceRepo: UPDATE StockBalance
-                        BalanceRepo-&gt;&gt;DB: UPDATE StockBalance
-                        DB--&gt;&gt;BalanceRepo: Success
-                        Note over StockRepo,Inventory: WarrantyReplacement l&#224; ngoại lệ hợp lệ của policy t&#225;ch approver/poster
-                        Inventory-&gt;&gt;SerialRepo: Update replacement serial = Replaced
-                        SerialRepo-&gt;&gt;DB: UPDATE ProductSerial replacement
-                        DB--&gt;&gt;SerialRepo: Success
-
-                        Warranty-&gt;&gt;CoverageRepo: Create replacement coverage with remaining term
-                        CoverageRepo-&gt;&gt;DB: INSERT WarrantyCoverage replacement
-                        DB--&gt;&gt;CoverageRepo: Success
-
-                        Warranty-&gt;&gt;LedgerRepo: Write warranty replacement ledger
-                        LedgerRepo-&gt;&gt;DB: INSERT StockLedger
-                        DB--&gt;&gt;LedgerRepo: Success
-
-                        Warranty-&gt;&gt;AuditRepo: WriteAuditLog()
-                        AuditRepo-&gt;&gt;DB: INSERT AuditLog
-                        DB--&gt;&gt;AuditRepo: Success
-
-                        Warranty-&gt;&gt;ClaimRepo: Update claim = Replaced + ReplacementSerialId
-                        ClaimRepo-&gt;&gt;DB: UPDATE WarrantyClaim
-                        DB--&gt;&gt;ClaimRepo: Success
-                        Warranty-&gt;&gt;ClaimRepo: Update claim = ReplacementStockOutId = stockOutId
-                        ClaimRepo-&gt;&gt;DB: UPDATE WarrantyClaim
-                        DB--&gt;&gt;ClaimRepo: Success
-                        Warranty-&gt;&gt;DB: COMMIT
-                        Warranty-&gt;&gt;Warranty: Confirm replacement handover
-                        Warranty-&gt;&gt;DB: BEGIN TRAN
-                        Warranty-&gt;&gt;ClaimRepo: Update claim = ReturnedToCustomer
-                        ClaimRepo-&gt;&gt;DB: UPDATE WarrantyClaim
-                        DB--&gt;&gt;ClaimRepo: Success
-                        Warranty-&gt;&gt;SerialRepo: Update replacement serial = Sold
-                        SerialRepo-&gt;&gt;DB: UPDATE ProductSerial replacement
-                        DB--&gt;&gt;SerialRepo: Success
-                        Warranty-&gt;&gt;ClaimRepo: Update claim = Closed
-                        ClaimRepo-&gt;&gt;DB: UPDATE WarrantyClaim
-                        DB--&gt;&gt;ClaimRepo: Success
-                        Warranty-&gt;&gt;DB: COMMIT
-                        Warranty--&gt;&gt;VM: Success replaced
-                    else Kh&#244;ng đủ tồn thay thế
-                        Warranty-&gt;&gt;DB: ROLLBACK
-                        Note over Warranty,DB: Transaction đổi mới đ&#227; kết th&#250;c
-                        Warranty-&gt;&gt;DB: BEGIN TRAN
-                        Warranty-&gt;&gt;ClaimRepo: Update claim = WaitingDecision + insufficient replacement stock note
-                        ClaimRepo-&gt;&gt;DB: UPDATE WarrantyClaim
-                        DB--&gt;&gt;ClaimRepo: Success
-                        Warranty-&gt;&gt;DB: COMMIT
-                        Warranty--&gt;&gt;VM: Need replacement stock before customer exchange
-                    end
-                end
-            else Từ chối
-                Warranty-&gt;&gt;ClaimRepo: Update claim = WaitingDecision
-                ClaimRepo-&gt;&gt;DB: UPDATE WarrantyClaim
-                DB--&gt;&gt;ClaimRepo: Success
-                VM-&gt;&gt;Manager: Tr&#236;nh quyết định từ chối
-                Manager--&gt;&gt;VM: X&#225;c nhận ph&#234; duyệt
-                VM-&gt;&gt;Warranty: RequestRejectionApproval(claimId, managerDecision)
-                Warranty-&gt;&gt;Approval: Record rejection approval
-                Approval--&gt;&gt;Warranty: Approved
-                Warranty-&gt;&gt;ClaimRepo: Update claim = Rejected + RejectionReason
-                ClaimRepo-&gt;&gt;DB: UPDATE WarrantyClaim
-                DB--&gt;&gt;ClaimRepo: Success
-                Warranty-&gt;&gt;Warranty: Confirm customer handover
-                Warranty-&gt;&gt;ClaimRepo: Update claim = ReturnedToCustomer
-                ClaimRepo-&gt;&gt;DB: UPDATE WarrantyClaim
-                DB--&gt;&gt;ClaimRepo: Success
-                Warranty-&gt;&gt;SerialRepo: Update serial = Sold
-                SerialRepo-&gt;&gt;DB: UPDATE ProductSerial
-                DB--&gt;&gt;SerialRepo: Success
-                Warranty-&gt;&gt;ClaimRepo: Update claim = Closed
-                ClaimRepo-&gt;&gt;DB: UPDATE WarrantyClaim
-                DB--&gt;&gt;ClaimRepo: Success
-                Warranty--&gt;&gt;VM: Success rejected
-            end
-        else Đ&#227; c&#243; claim đang mở
-            Warranty--&gt;&gt;VM: Reject because claim is already open
-        end
-    else Kh&#244;ng đủ điều kiện
-        Warranty--&gt;&gt;VM: Reject by eligibility
+    opt Đổi mới sản phẩm (Từ kho hoặc nhận đổi từ H&#227;ng)
+        Technician-&gt;&gt;UI: X&#225;c nhận đổi mới &amp; chọn Serial thay thế
+        UI-&gt;&gt;VM: Xử l&#253; đổi mới
+        VM-&gt;&gt;Service: ReplaceSerial / ReceiveFromManufacturerReplaced
+        Service-&gt;&gt;DB: BEGIN TRANSACTION
+        Service-&gt;&gt;DB: Đ&#243;ng bảo h&#224;nh cũ (Inactive), tạo bảo h&#224;nh mới kế thừa thời gian bảo h&#224;nh c&#242;n lại
+        Service-&gt;&gt;DB: Tạo chứng từ xuất kho đổi mới, cập nhật giảm tồn kho, đổi Serial thay thế sang Sold
+        DB--&gt;&gt;Service: Th&#224;nh c&#244;ng
+        Service-&gt;&gt;DB: COMMIT TRANSACTION
+        Service--&gt;&gt;VM: Th&#224;nh c&#244;ng
+        VM--&gt;&gt;UI: Th&#244;ng b&#225;o đổi mới &amp; giao trả m&#225;y mới th&#224;nh c&#244;ng cho kh&#225;ch h&#224;ng
     end
         </div>
         <div class="diagram plantuml-pane" data-engine-pane="plantuml">
           <img src="plantuml-svg/Sequence_BaoHanh_DoiMoi.svg" alt="Sequence bảo h&#224;nh đổi mới">
         </div>
-        <div class="content"><p>---</p></div>
+        <div class="content"><p>```</p>
+<p>---</p></div>
       </article>
     </section>
     <div id="state" class="section-title">State</div>
@@ -1750,25 +1252,17 @@ sequenceDiagram
         <div class="diagram mermaid" data-engine-pane="mermaid">
 stateDiagram-v2
     [*] --&gt; Draft
-    Draft --&gt; PendingApproval: Gửi duyệt
+    Draft --&gt; Posted: Ghi sổ
     Draft --&gt; Cancelled: Hủy nh&#225;p
-
-    PendingApproval --&gt; Draft: Từ chối / y&#234;u cầu chỉnh sửa
-    PendingApproval --&gt; Approved: Duyệt
-
-    Approved --&gt; Posted: Ghi sổ
-    Approved --&gt; Cancelled: Hủy trước khi ghi sổ
-
-    Posted --&gt; Locked: Kh&#243;a chứng từ
-    Locked --&gt; [*]
+    Posted --&gt; [*]
     Cancelled --&gt; [*]
         </div>
         <div class="diagram plantuml-pane" data-engine-pane="plantuml">
           <img src="plantuml-svg/State_VongDoi_ChungTuKho.svg" alt="State v&#242;ng đời chứng từ kho">
         </div>
-        <div class="content"><p>| Transition | Người thực hiện | | --- | --- | | `Draft -&gt; PendingApproval` | Người lập chứng từ | | `Draft -&gt; Cancelled` | Người lập hoặc quản l&#253; | | `PendingApproval -&gt; Draft` | Quản l&#253; | | `PendingApproval -&gt; Approved` | Quản l&#253; | | `Approved -&gt; Posted` | Nh&#226;n vi&#234;n kho hoặc người ghi sổ được ủy quyền | | `Approved -&gt; Cancelled` | Quản l&#253; hoặc vai tr&#242; kho được ph&#233;p hủy trước khi ghi sổ | | `Posted -&gt; Locked` | Quản l&#253; hoặc hệ thống chốt kỳ |</p>
+        <div class="content"><p>| Transition | Người thực hiện | | --- | --- | | `Draft -&gt; Posted` | Người lập chứng từ hoặc nh&#226;n vi&#234;n kho | | `Draft -&gt; Cancelled` | Người lập hoặc quản l&#253; |</p>
 <p>Ghi ch&#250;:</p>
-<ul class="flat"><li>Người lập v&#224; người duyệt c&#243; thể l&#224; c&#249;ng một người nếu quy tr&#236;nh doanh nghiệp cho ph&#233;p.</li><li>Nếu doanh nghiệp bật kiểm so&#225;t nội bộ th&#236; người duyệt v&#224; người ghi sổ kh&#244;ng được l&#224; c&#249;ng một người.</li></ul>
+<ul class="flat"><li>Người lập chứng từ c&#243; quyền ghi sổ trực tiếp m&#224; kh&#244;ng cần qua bước ph&#234; duyệt trung gian trong phase n&#224;y.</li></ul>
 <p>---</p></div>
       </article>
       <article class="card state-wide">

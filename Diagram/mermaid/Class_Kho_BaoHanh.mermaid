@@ -1,127 +1,30 @@
 classDiagram
-    class Product {
-        +int Id
-        +string ProductCode
-        +string DisplayName
-        +int WarrantyPeriodMonths
-        +bool IsSerialTracked
-        +bool IsActive
-    }
-    
-    class ProductSerial {
-        +int Id
-        +int ProductId
-        +string SerialNumber
-        +string CurrentStatus
-        +int? CurrentWarehouseId
-        +int LastStockInLineId
-        +int? LastStockOutLineId
-    }
-    
-    class StockBalance {
-        +int Id
-        +int WarehouseId
-        +int ProductId
-        +decimal OnHandQuantity
-        +decimal AvailableQuantity
-        +decimal ReservedQuantity
-    }
-    
-    class WarrantyCoverage {
-        +int Id
-        +int ProductSerialId
-        +int CustomerId
-        +int? SalesInvoiceId
-        +DateTime StartDate
-        +DateTime EndDate
-        +string CoverageStatus
-        +bool IsActive
-    }
-    
-    class WarrantyClaim {
-        +int Id
-        +string ClaimCode
-        +int WarrantyCoverageId
-        +int ProductSerialId
-        +int? ReplacementSerialId
-        +int? ReplacementStockOutId
-        +string Status
-        +string ResolutionType
-        +DateTime ReceivedDate
-        +string ProblemDescription
-        +string TechnicalConclusion
-    }
-
-    class AppDbContext {
-        +DbSet Products
-        +DbSet ProductSerials
-        +DbSet StockBalances
-        +DbSet WarrantyCoverages
-        +DbSet WarrantyClaims
-        +SaveChanges()
-    }
-    
-    class EfUnitOfWork {
-        -AppDbContext _context
-        +IRepository GetRepository()
-        +SaveChanges()
-        +BeginTransaction()
-        +Commit()
-        +Rollback()
-    }
-
-    class StockInService {
-        -AppDbContext _context
-        -InventoryPostingService _posting
-        +Post(stockInId, userId) Task
-    }
-    
-    class StockOutService {
-        -AppDbContext _context
-        -InventoryPostingService _posting
-        +Post(stockOutId, userId) Task
-    }
-    
-    class InventoryPostingService {
-        -AppDbContext _context
-        +PostStockIn(stockInId) void
-        +PostStockOut(stockOutId) void
-    }
-    
-    class WarrantyClaimService {
-        -AppDbContext _context
-        -StockOutService _stockOut
-        +CreateClaim(serialNo, problem) Task
-        +ReplaceSerial(claimId, newSerial) Task
-    }
-
-    class StockInViewModel {
-        -StockInService _stockService
-        +ObservableCollection Lines
-        +RelayCommand ConfirmAndPostCommand
-        +Post()
-    }
-    
-    class WarrantyClaimViewModel {
-        -WarrantyClaimService _warrantyService
-        +WarrantyClaim CurrentClaim
-        +RelayCommand ReplaceSerialCommand
-        +ReplaceSerial()
-    }
-
-    Product "1" *-- "0..*" ProductSerial : has
-    ProductSerial "1" *-- "0..*" WarrantyCoverage : has
-    WarrantyCoverage "1" *-- "0..*" WarrantyClaim : has
-    Product "1" *-- "0..*" StockBalance : has
-
-    StockInService --> AppDbContext : dependency
-    StockInService --> InventoryPostingService : dependency
-    StockOutService --> AppDbContext : dependency
-    StockOutService --> InventoryPostingService : dependency
-    WarrantyClaimService --> AppDbContext : dependency
-    WarrantyClaimService --> StockOutService : dependency
-
-    EfUnitOfWork --> AppDbContext : manages
-
-    StockInViewModel --> StockInService : calls
-    WarrantyClaimViewModel --> WarrantyClaimService : calls
+    class Product
+    class ProductSerial
+    class StockBalance
+    class StockLedger
+    class StockIn
+    class StockOut
+    class StockTransfer
+    class StockAdjustment
+    class SalesInvoice
+    class WarrantyCoverage
+    class WarrantyClaim
+    class AuditLog
+    class InventoryPostingService
+    class ReportTraceService
+    class AppDbContext
+    Product  1 --> 0..* ProductSerial
+    Product 1 --> 0..* StockBalance
+    Product 1 --> 0..* StockLedger
+    StockIn 1 --> 0..* ProductSerial : LastStockInLine
+    StockOut 1 --> 0..* ProductSerial : LastStockOutLine
+    StockTransfer --> StockLedger
+    StockAdjustment --> StockLedger
+    SalesInvoice 1 --> 0..* WarrantyCoverage
+    ProductSerial 1 --> 0..* WarrantyCoverage
+    WarrantyCoverage 1 --> 0..* WarrantyClaim
+    WarrantyClaim --> ProductSerial : ReplacementSerial
+    InventoryPostingService --> AppDbContext
+    ReportTraceService --> AppDbContext
+    AuditLog --> AppDbContext

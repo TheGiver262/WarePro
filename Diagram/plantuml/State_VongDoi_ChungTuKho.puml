@@ -1,17 +1,19 @@
 @startuml State_VongDoi_ChungTuKho
-title Vòng đời chứng từ kho
-
-[*] --> Draft
-Draft --> PendingApproval: Gửi duyệt [Người lập]
-Draft --> Cancelled: Hủy nháp [Người lập/Quản lý]
-
-PendingApproval --> Draft: Từ chối / Yêu cầu sửa [Quản lý]
-PendingApproval --> Approved: Duyệt [Quản lý]
-
-Approved --> Posted: Ghi sổ [Nhân viên kho]
-Approved --> Cancelled: Hủy trước ghi sổ [Quản lý]
-
-Posted --> Locked: Khóa kỳ [Quản lý/Hệ thống]
+title Vong doi chung tu kho thuc te
+[*] --> Draft : tao phieu
+Draft --> Draft : sua dong hang / serial
+Draft --> Posted : ghi so truc tiep
+Draft --> Cancelled : huy phieu nhap
+Posted --> Locked : khoa sau khi doi soat
+Posted --> ReversalCreated : tao phieu dao nghiep vu
+ReversalCreated --> Posted : ghi so phieu dao
 Locked --> [*]
 Cancelled --> [*]
+note right of Posted
+  Khi ghi so, InventoryPostingService cap nhat:
+  - StockBalance
+  - ProductSerial
+  - StockLedger
+  - AuditLog
+end note
 @enduml

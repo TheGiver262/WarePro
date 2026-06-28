@@ -1,4 +1,4 @@
-# Bộ diagram quản lý hàng hóa và bảo hành
+﻿# Bộ diagram quản lý hàng hóa và bảo hành
 
 Tài liệu này là phiên bản Mermaid đồng bộ với file PlantUML và nội dung trong `Thiết kế phần mềm.txt`.
 
@@ -11,7 +11,7 @@ Các quyết định đã khóa trong bản này:
 - Tách rõ `WarrantyCoverage` và `WarrantyClaim`.
 - Serial thay thế trong bảo hành kế thừa thời hạn bảo hành còn lại của serial cũ.
 - Khi đổi mới thành công, `WarrantyCoverage` của serial cũ phải bị đóng hiệu lực trong cùng transaction trước khi tạo coverage cho serial mới.
-- Activity diagram bản Mermaid giữ ở mức business-flow gọn; bản PlantUML là bản có swimlane để soi rõ trách nhiệm giữa actor, UI, service và repository.
+- Activity diagram bản Mermaid giữ ở mức business-flow gọn; bản PlantUML là bản có swimlane để soi rõ trách nhiệm giữa actor, UI, ViewModel, service, EF Core và database.
 
 ---
 
@@ -19,64 +19,59 @@ Các quyết định đã khóa trong bản này:
 
 ```mermaid
 flowchart LR
-    subgraph Presentation["Presentation"]
-        View["Views<br/>WPF XAML"]
-        VM["ViewModels<br/>Commands + Validation UI"]
+    subgraph Presentation[Presentation]
+        View[Views WPF XAML]
+        VM[ViewModels Commands + Binding]
     end
 
-    subgraph Application["Application"]
-        Auth["AuthService"]
-        Authorization["AuthorizationService"]
-        Approval["ApprovalService"]
-        Catalog["Catalog Service"]
-        Inventory["Inventory Service"]
-        Sales["Sales Service"]
-        Warranty["Warranty Service"]
-        Report["Reporting Service"]
+    subgraph Application[Application Services]
+        Auth[AuthenticationService]
+        Authorization[AuthorizationService]
+        Catalog[Catalog Services]
+        Inventory[Stock Services]
+        Sales[InvoiceService]
+        Warranty[WarrantyClaimService]
+        Report[ReportTraceService + DashboardService]
+        Import[DataImport Services]
     end
 
-    subgraph Domain["Domain"]
-        Entities["Entities<br/>AppUser, Warehouse, Product,<br/>StockBalance, ProductSerial,<br/>WarrantyCoverage, WarrantyClaim"]
-        Rules["Business Rules<br/>Posting, Approval,<br/>Stock Locking,<br/>Warranty Eligibility"]
+    subgraph InventoryCore[Inventory Core]
+        Posting[InventoryPostingService]
+        Adjustment[InventoryAdjustmentService]
+        Uow[EfInventoryUnitOfWork]
     end
 
-    subgraph Infrastructure["Infrastructure"]
-        Repo["Repositories"]
-        Tx["Transactions + Row Locking"]
-        Audit["AuditLog + StockLedger"]
-        DB[("SQL Server")]
+    subgraph Infrastructure[Infrastructure]
+        Db[AppDbContext / EF Core]
+        FileLib[ClosedXML / CSV]
+        Audit[AuditLog + StockLedger]
+        DB[(SQL Server)]
     end
 
     View --> VM
     VM --> Auth
     VM --> Authorization
-    VM --> Approval
     VM --> Catalog
     VM --> Inventory
     VM --> Sales
     VM --> Warranty
     VM --> Report
-
-    Auth --> Entities
-    Authorization --> Rules
-    Approval --> Rules
-    Catalog --> Entities
-    Inventory --> Entities
-    Sales --> Entities
-    Warranty --> Entities
-    Entities --> Rules
-
-    Auth --> Repo
-    Authorization --> Repo
-    Approval --> Repo
-    Catalog --> Repo
-    Inventory --> Repo
-    Sales --> Repo
-    Warranty --> Repo
-    Report --> Repo
-    Repo --> Tx
-    Tx --> Audit
-    Audit --> DB
+    VM --> Import
+    Inventory --> Posting
+    Inventory --> Adjustment
+    Warranty --> Posting
+    Import --> Posting
+    Posting --> Uow
+    Adjustment --> Uow
+    Uow --> Db
+    Auth --> Db
+    Authorization --> Db
+    Catalog --> Db
+    Sales --> Db
+    Report --> Db
+    Import --> FileLib
+    Db --> Audit
+    Db --> DB
 ```
 
 ---
@@ -237,7 +232,7 @@ flowchart LR
         UC7(["Tra cứu coverage,<br/>claim và lịch sử bảo hành"])
         UC8(["Xem audit log và<br/>nhật ký thay đổi"])
         UC9(["Tạo báo cáo tồn kho<br/>và nhập xuất tồn"])
-        UC10(["Tạo báo cáo doanh thu,<br/>công nợ, bảo hành"])
+        UC10(["Tạo báo cáo doanh thu,<br/>nhập xuất tồn và truy vết serial"])
     end
 
     subgraph RightActors[" "]
@@ -353,7 +348,7 @@ Ghi chú:
 
 ---
 
-## 6. Use case kiểm kê, điều chỉnh tồn và đảo nghiệp vụ
+## 5. Use case kiểm kê, điều chỉnh tồn và đảo nghiệp vụ
 
 ```mermaid
 flowchart LR
@@ -395,7 +390,7 @@ flowchart LR
 
 ---
 
-## 7. Use case bảo hành
+## 6. Use case bảo hành
 
 ```mermaid
 flowchart LR
@@ -450,7 +445,7 @@ Ghi chú:
 
 ---
 
-## 8. Activity ghi sổ phiếu nhập
+## 7. Activity ghi sổ phiếu nhập
 
 ```mermaid
 flowchart TD
@@ -477,7 +472,7 @@ flowchart TD
 
 ---
 
-## 8A. Activity nhập tồn đầu kỳ từ Excel/CSV
+## 7A. Activity nhập tồn đầu kỳ từ Excel/CSV
 
 ```mermaid
 flowchart TD
@@ -499,7 +494,7 @@ flowchart TD
 
 ---
 
-## 9. Activity ghi sổ phiếu xuất
+## 8. Activity ghi sổ phiếu xuất
 
 ```mermaid
 flowchart TD
@@ -529,7 +524,7 @@ flowchart TD
 
 ---
 
-## 10. Activity kiểm kê và điều chỉnh tồn
+## 9. Activity kiểm kê và điều chỉnh tồn
 
 ```mermaid
 flowchart TD
@@ -554,7 +549,7 @@ flowchart TD
 
 ---
 
-## 11. Activity xử lý bảo hành và đổi mới
+## 10. Activity xử lý bảo hành và đổi mới
 
 ```mermaid
 flowchart TD
@@ -584,7 +579,7 @@ flowchart TD
 
 ---
 
-## 12. Sequence đăng nhập
+## 11. Sequence đăng nhập
 
 ```mermaid
 sequenceDiagram
@@ -614,7 +609,7 @@ sequenceDiagram
 
 ---
 
-## 13. Sequence ghi sổ phiếu nhập
+## 12. Sequence ghi sổ phiếu nhập
 
 ```mermaid
 sequenceDiagram
@@ -639,7 +634,7 @@ sequenceDiagram
 
 ---
 
-## 13A. Sequence nhập tồn đầu kỳ từ Excel/CSV
+## 12A. Sequence nhập tồn đầu kỳ từ Excel/CSV
 
 ```mermaid
 sequenceDiagram
@@ -667,7 +662,7 @@ sequenceDiagram
 
 ---
 
-## 14. Sequence ghi sổ phiếu xuất
+## 13. Sequence ghi sổ phiếu xuất
 
 ```mermaid
 sequenceDiagram
@@ -692,7 +687,7 @@ sequenceDiagram
 
 ---
 
-## 15. Sequence bảo hành đổi mới
+## 14. Sequence bảo hành đổi mới
 
 ```mermaid
 sequenceDiagram
@@ -728,7 +723,7 @@ sequenceDiagram
 
 ---
 
-## 16. State vòng đời chứng từ kho
+## 15. State vòng đời chứng từ kho
 
 ```mermaid
 stateDiagram-v2
@@ -750,7 +745,7 @@ Ghi chú:
 
 ---
 
-## 17. State vòng đời hồ sơ bảo hành
+## 16. State vòng đời hồ sơ bảo hành
 
 ```mermaid
 stateDiagram-v2
@@ -778,7 +773,7 @@ Ghi chú:
 
 ---
 
-## 18. ERD chi tiết đầy đủ mọi bảng và tất cả liên kết
+## 17. ERD chi tiết đầy đủ mọi bảng và tất cả liên kết
 
 ```mermaid
 erDiagram

@@ -1,47 +1,25 @@
 @startuml Sequence_ImportTonDauKy_ExcelCsv
-actor Storekeeper as "Nhân viên kho"
-participant UI as "OpeningBalanceImportView"
-participant VM as "OpeningBalanceImportViewModel"
-participant Import as "InitialStockImportService"
-participant StockRepo as "StockInRepository"
-participant BalanceRepo as "StockBalanceRepository"
-participant SerialRepo as "SerialRepository"
-participant LedgerRepo as "StockLedgerRepository"
-participant AuditRepo as "AuditLogRepository"
-database DB as "SQL Server"
-
-Storekeeper -> UI : Chọn file Excel/CSV
-UI -> VM : ImportOpeningBalance(file)
-VM -> Import : ParseAndValidate(file)
-Import -> Import : Validate ProductCode, UnitCode, Quantity, SerialNumber
-alt Dữ liệu không hợp lệ
-    Import --> VM : Validation errors by row
-    VM --> UI : Show preview errors
-else Dữ liệu hợp lệ
-    Import -> Import : ResolveDefaultWarehouse()
-    Import -> DB : BEGIN TRAN
-    Import -> StockRepo : Insert StockIn(warehouseId, purposeCode = OpeningBalance, status = Posted)
-    StockRepo -> DB : INSERT StockIn
-    DB --> StockRepo : stockInId
-    Import -> StockRepo : Insert StockInLine(stockInId, rows)
-    StockRepo -> DB : INSERT StockInLine
-    DB --> StockRepo : Success
-    alt Có dòng quản lý serial
-        Import -> SerialRepo : InsertSerials(InStock, currentWarehouseId = default)
-        SerialRepo -> DB : INSERT ProductSerial
-        DB --> SerialRepo : Success
-    end
-    Import -> BalanceRepo : ApplyInboundBalanceChange(warehouseId)
-    BalanceRepo -> DB : UPDATE StockBalance
-    DB --> BalanceRepo : Success
-    Import -> LedgerRepo : WriteOpeningBalanceLedger(warehouseId)
-    LedgerRepo -> DB : INSERT StockLedger
-    DB --> LedgerRepo : Success
-    Import -> AuditRepo : WriteAuditLog()
-    AuditRepo -> DB : INSERT AuditLog
-    DB --> AuditRepo : Success
-    Import -> DB : COMMIT
-    Import --> VM : Import success
-    VM --> UI : Show success
+title Opening balance import sequence
+actor User
+participant UI
+participant VM
+participant ImportService
+participant Parser
+participant Posting
+database DB
+User -> UI : choose_excel_csv
+UI -> VM : ImportCommand
+VM -> ImportService : ImportFile
+ImportService -> Parser : ParseRows
+Parser --> ImportService : rows_or_errors
+alt errors
+  ImportService --> VM : ImportResult_errors
+  VM --> UI : show_ImportResultWindow
+else valid
+  ImportService -> DB : create_StockIn_and_lines
+  ImportService -> Posting : PostStockIn_OpeningBalance
+  Posting -> DB : update_balance_serial_ledger_audit
+  ImportService --> VM : ImportResult_success
+  VM --> UI : refresh
 end
 @enduml

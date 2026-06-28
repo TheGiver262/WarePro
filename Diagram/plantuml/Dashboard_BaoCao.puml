@@ -1,53 +1,37 @@
 @startsalt Dashboard_BaoCao
-title Thiết kế Giao diện Dashboard Báo cáo Tổng hợp (Executive Dashboard)
-
-mainframe Báo cáo Quản trị Tổng hợp (Management Dashboard)
+title View Bao cao thong ke va truy vet san pham
+mainframe ReportView
 {
+  { **BAO CAO THONG KE** | [Tu ngay] [Den ngay] [Tai du lieu] [Xuat Excel] }
+  --
   {
-    **DASHBOARD BÁO CÁO KINH DOANH & HOẠT ĐỘNG KHO** | [Tháng này ^] [Lọc dữ liệu]
+    ==== Tong quan ====
+    Doanh thu ban hang
+    Chi phi nhap hang
+    Loi nhuan uoc tinh
+    So phieu nhap/xuat
+  } | {
+    ==== Nhap - Xuat - Ton ====
+    StockBalance hien tai
+    StockLedger theo thoi gian
+    Nhap xuat ton theo san pham
+  } | {
+    ==== Truy vet san pham/serial ====
+    Tim theo ma, ten, serial
+    Timeline nhap - xuat - ban - bao hanh
+    Khach hang, nha cung cap, chung tu lien quan
   }
   --
   {
-    ==== Doanh số & Tài chính ====
-    Tổng doanh thu bán:  **450.200.000 đ**
-    Tổng chi phí mua:   **310.500.000 đ**
-    Lợi nhuận gộp:      **139.700.000 đ**
-    Tỷ lệ lợi nhuận:    **31%**
-  } | {
-    ==== Trạng thái Kho hàng ====
-    Tổng sản phẩm tồn:  **1,240 cái**
-    Giá trị tồn kho:     **2.450.000.000 đ**
-    Mã hàng hết hạn BH: **12 mã**
-    Phiếu xuất hôm nay:  **15 phiếu**
-  } | {
-    ==== Hoạt động Bảo hành ====
-    Claim tiếp nhận:    **24 hồ sơ**
-    Đã xử lý xong:      **18 hồ sơ**
-    Đang xử lý (Open):  **6 hồ sơ**
-    Tỷ lệ đổi mới:      **25% (6 máy)**
-  }
-  --
-  {
-    === Top 5 Sản phẩm Bán chạy ===
-    1. iPhone 15 Pro Max (120 cái)
-    2. Samsung Galaxy S24 (85 cái)
-    3. Laptop Dell XPS 13 (42 cái)
-    4. Tai nghe AirPods Pro (38 cái)
-    5. Xiaomi Redmi Note 13 (30 cái)
-  } | {
-    === Biểu đồ: Doanh thu theo tuần (Mô phỏng) ===
-    T1: [||||||||||||||                     ] 25M
-    T2: [||||||||||||||||||||               ] 38M
-    T3: [||||||||||||||||||||||||||         ] 52M
-    T4: [|||||||||||||||||||||||||||||||||| ] 75M
-  }
-  --
-  **CHI TIẾT CÔNG NỢ PHẢI THU (TOP 5 KHÁCH HÀNG)**
-  {#
-    Mã KH | Tên Khách hàng | Số điện thoại | Hạn thanh toán | Số tiền nợ | Trạng thái công nợ
-    KH-0021 | Nguyễn Văn B | 0901234567 | 15/07/2026 | 25.000.000 đ | [X] Quá hạn (Overdue)
-    KH-0082 | Trần Thị C | 0987654321 | 25/07/2026 | 12.500.000 đ | [ ] Chưa quá hạn (Pending)
-    KH-0015 | Công ty TNHH X | 0283992122 | 10/08/2026 | 54.000.000 đ | [ ] Chưa quá hạn (Pending)
+    {#
+      Cot | Du lieu
+      Serial | ProductSerial.SerialNumber
+      San pham | Product.DisplayName
+      Nhap kho | StockIn.DocumentCode / PostedAt
+      Xuat kho | StockOut.DocumentCode / PostedAt
+      Hoa don ban | SalesInvoice.InvoiceCode
+      Bao hanh | WarrantyCoverage / WarrantyClaim
+    }
   }
 }
 @endsalt
