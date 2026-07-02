@@ -5,6 +5,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using QuanLyHangHoa.Data;
+using QuanLyHangHoa.Services;
 
 namespace QuanLyHangHoa
 {
@@ -89,7 +90,14 @@ namespace QuanLyHangHoa
                 string excelPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Database", "warepro_database_seed.xlsx");
                 
 
-                if (File.Exists(excelPath))
+                var seedFileExists = File.Exists(excelPath);
+                var hasAnyUsers = db.AppUsers.Any();
+                var shouldSeed = StartupSeedPolicy.ShouldSeed(
+                    seedFileExists,
+                    hasAnyUsers,
+                    StartupSeedPolicy.IsForceSeedEnabled());
+
+                if (shouldSeed)
                 {
                     try
                     {
