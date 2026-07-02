@@ -143,3 +143,16 @@ Các file dưới đây được bổ sung để lấp các khoảng trống c�
 5. Đọc 07_hoa_don_dashboard_bao_cao.md để nắm hóa đơn, bảo hành tự sinh và báo cáo.
 6. Đọc 08_audit_import_testing.md để nắm audit, import và kiểm thử.
 7. Đọc 09_so_tay_bao_ve_hoi_dong.md cuối cùng để luyện trả lời câu hỏi.
+
+---
+
+## Bổ sung: giải thích các phần code dài, khó, theo cách dễ hiểu
+
+Các file dưới đây được thêm để đọc sau bộ 01-09. Mục tiêu là bóc nhỏ những file code dài, nhiều nghiệp vụ, dễ gây rối cho người mới:
+
+| File | Nên đọc khi | Nội dung |
+|---|---|---|
+| [10_stockin_stockout_posting_de_hieu.md](./10_stockin_stockout_posting_de_hieu.md) | Muốn hiểu ghi sổ nhập/xuất kho | `StockInService`, `StockOutService`, `InventoryPostingService`, serial, transaction, ledger |
+| [11_warranty_claim_doi_serial_de_hieu.md](./11_warranty_claim_doi_serial_de_hieu.md) | Muốn hiểu bảo hành đổi/trả serial | `WarrantyClaimService`, đổi serial từ kho, nhận serial mới từ hãng, cập nhật bảo hành |
+| [12_report_audit_import_de_hieu.md](./12_report_audit_import_de_hieu.md) | Muốn hiểu báo cáo, audit, import | `ReportTraceService`, `AuditLogViewModel`, `DynamicImportService`, `DataImportManager` |
+| [13_startup_dbcontext_mapping_de_hieu.md](./13_startup_dbcontext_mapping_de_hieu.md) | Muốn hiểu app khởi động và DB map thế nào | `App.xaml.cs`, `AppDbContext`, `DbSet`, `OnModelCreating`, seed data |
