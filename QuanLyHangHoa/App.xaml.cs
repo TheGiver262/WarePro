@@ -88,12 +88,7 @@ namespace QuanLyHangHoa
                 // Seed database if empty
                 string excelPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Database", "warepro_database_seed.xlsx");
                 
-                // Fallback for development (absolute path if needed)
-                if (!File.Exists(excelPath))
-                {
-                    excelPath = @"C:\WarePro\Database\warepro_database_seed.xlsx";
-                }
-                
+
                 if (File.Exists(excelPath))
                 {
                     try
