@@ -5,13 +5,41 @@ using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
 using QuanLyHangHoa.Services;
 using SkiaSharp;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace QuanLyHangHoa.ViewModels
 {
+    public class InventoryLegendItem
+    {
+        public string CategoryName { get; set; } = string.Empty;
+        public System.Windows.Media.Brush ColorBrush { get; set; } = System.Windows.Media.Brushes.Transparent;
+        public decimal TotalValue { get; set; }
+    }
+
     public partial class DashboardViewModel : ObservableObject
     {
+        private static readonly SKColor[] InventoryPalette =
+        {
+            new(37, 99, 235),
+            new(16, 185, 129),
+            new(245, 158, 11),
+            new(239, 68, 68),
+            new(20, 184, 166),
+            new(14, 165, 233),
+            new(132, 204, 22),
+            new(249, 115, 22),
+            new(100, 116, 139),
+            new(234, 179, 8),
+            new(5, 150, 105),
+            new(2, 132, 199),
+            new(71, 85, 105),
+            new(220, 38, 38),
+            new(13, 148, 136),
+            new(77, 124, 15)
+        };
+
         private readonly DashboardService _dashboardService;
         private readonly MainViewModel _mainViewModel;
 
@@ -35,6 +63,9 @@ namespace QuanLyHangHoa.ViewModels
 
         [ObservableProperty]
         private ISeries[] _inventoryPieSeries = System.Array.Empty<ISeries>();
+
+        [ObservableProperty]
+        private ObservableCollection<InventoryLegendItem> _inventoryLegendItems = new();
 
         [ObservableProperty]
         private ISeries[] _topProductsSeries = System.Array.Empty<ISeries>();
@@ -127,13 +158,31 @@ namespace QuanLyHangHoa.ViewModels
             // 3. Biểu đồ cơ cấu tồn kho theo danh mục (Pie/Doughnut Chart)
             if (Stats.InventoryStructureChart != null && Stats.InventoryStructureChart.Any())
             {
-                InventoryPieSeries = Stats.InventoryStructureChart.Select(x => new PieSeries<double>
+                var inventoryItems = Stats.InventoryStructureChart.ToArray();
+                InventoryPieSeries = inventoryItems.Select((x, index) =>
                 {
-                    Name = x.CategoryName,
-                    Values = new double[] { (double)x.TotalValue },
-                    InnerRadius = 45, // Tạo hiệu ứng Doughnut
-                    OuterRadiusOffset = 0
+                    var color = InventoryPalette[index % InventoryPalette.Length];
+                    return new PieSeries<double>
+                    {
+                        Name = x.CategoryName,
+                        Values = new double[] { (double)x.TotalValue },
+                        Fill = new SolidColorPaint(color),
+                        InnerRadius = 45,
+                        OuterRadiusOffset = 0
+                    };
                 }).Cast<ISeries>().ToArray();
+
+                InventoryLegendItems = new ObservableCollection<InventoryLegendItem>(
+                    inventoryItems.Select((x, index) =>
+                    {
+                        var color = InventoryPalette[index % InventoryPalette.Length];
+                        return new InventoryLegendItem
+                        {
+                            CategoryName = x.CategoryName,
+                            ColorBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(color.Red, color.Green, color.Blue)),
+                            TotalValue = x.TotalValue
+                        };
+                    }));
             }
 
             // 4. Biểu đồ top 5 sản phẩm bán chạy (Horizontal Bar / Row Chart)

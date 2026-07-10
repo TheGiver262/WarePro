@@ -120,12 +120,38 @@
                                 
                                 <!-- Cột 2: Cơ cấu giá trị tồn kho -->
                                 <materialDesign:Card Grid.Column="1" Margin="8,0,0,0" Padding="16">
-                                    <StackPanel>
-                                        <TextBlock Text="Cơ cấu tồn kho theo danh mục" Style="{DynamicResource TypographyH2}" Margin="0,0,0,12"/>
-                                        <Grid Height="280">
-                                            <lvc:PieChart Series="{Binding InventoryPieSeries}" LegendPosition="Right"/>
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+                                        <TextBlock Text="C&#x01A1; c&#x1EA5;u t&#x1ED3;n kho theo danh m&#x1EE5;c" Style="{DynamicResource TypographyH2}" Margin="0,0,0,12"/>
+                                        <Grid Grid.Row="1" Height="280">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="190"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <lvc:PieChart Grid.Column="0" Series="{Binding InventoryPieSeries}" LegendPosition="Hidden"/>
+                                            <Border Grid.Column="1" Margin="12,0,0,0" Padding="0,0,4,0">
+                                                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                                    <ItemsControl ItemsSource="{Binding InventoryLegendItems}">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Grid Margin="0,0,0,10">
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="Auto"/>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <Ellipse Width="12" Height="12" Fill="{Binding ColorBrush}" VerticalAlignment="Top" Margin="0,3,10,0"/>
+                                                                    <TextBlock Grid.Column="1" Text="{Binding CategoryName}" FontSize="13" Foreground="{StaticResource TextPrimaryBrush}" TextWrapping="Wrap"/>
+                                                                </Grid>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </ScrollViewer>
+                                            </Border>
                                         </Grid>
-                                    </StackPanel>
+                                    </Grid>
                                 </materialDesign:Card>
                             </Grid>
 
