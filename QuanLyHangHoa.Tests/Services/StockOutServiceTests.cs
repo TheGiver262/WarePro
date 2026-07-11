@@ -52,6 +52,11 @@ public class StockOutServiceTests
 
         service.Create(stockOut, lines, 1);
 
+        var stats = service.GetStockOutStats(string.Empty, string.Empty, null, null, null, string.Empty);
+        Assert.Equal(1, stats.TotalCount);
+        Assert.Equal(0, stats.DraftCount);
+        Assert.Equal(1, stats.PostedCount);
+
         using var assertContext = DatabaseHelper.CreateContext(connection);
         var savedStockOut = assertContext.StockOuts.Include(s => s.Lines).Single();
         Assert.Equal("SO-001", savedStockOut.DocumentCode);
@@ -144,6 +149,7 @@ public class StockOutServiceTests
         using (var db = DatabaseHelper.CreateContext(connection))
         {
             var postedA = db.StockOuts.Find(stockOutA.Id);
+            Assert.NotNull(postedA);
             Assert.Equal(DocumentStatus.Posted, postedA.Status);
             var serial = db.ProductSerials.Single(ps => ps.SerialNumber == "SN-101");
             Assert.Equal("Sold", serial.CurrentStatus);

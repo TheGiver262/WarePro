@@ -1,6 +1,8 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using QuanLyHangHoa.Models;
@@ -16,6 +18,7 @@ namespace QuanLyHangHoa.ViewModels
         private readonly AppUserService _userService;
         private readonly DataImportManager _importManager = new();
         private readonly AppUser? _currentUser;
+        private CancellationTokenSource? _filterDebounceCts;
 
         [ObservableProperty]
         private ObservableCollection<AppUser> _users = [];
@@ -221,11 +224,31 @@ namespace QuanLyHangHoa.ViewModels
         {
             // Do nothing automatically to avoid popups when just clicking rows
         }
-        partial void OnSearchFullNameChanged(string value) => LoadData();
-        partial void OnSearchUsernameChanged(string value) => LoadData();
-        partial void OnSearchRoleChanged(string value) => LoadData();
-        partial void OnSearchStatusChanged(string? value) => LoadData();
-        partial void OnSearchDateChanged(DateTime? value) => LoadData();
+        partial void OnSearchFullNameChanged(string value) => ScheduleFilterReload();
+        partial void OnSearchUsernameChanged(string value) => ScheduleFilterReload();
+        partial void OnSearchRoleChanged(string value) => ScheduleFilterReload();
+        partial void OnSearchStatusChanged(string? value) => ScheduleFilterReload();
+        partial void OnSearchDateChanged(DateTime? value) => ScheduleFilterReload();
+
+        private void ScheduleFilterReload()
+        {
+            _filterDebounceCts?.Cancel();
+            _filterDebounceCts?.Dispose();
+            _filterDebounceCts = new CancellationTokenSource();
+            _ = ReloadAfterDelayAsync(_filterDebounceCts.Token);
+        }
+
+        private async Task ReloadAfterDelayAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                await Task.Delay(300, cancellationToken);
+                LoadData();
+            }
+            catch (OperationCanceledException)
+            {
+            }
+        }
 
         [RelayCommand]
         private void ExportToExcel()

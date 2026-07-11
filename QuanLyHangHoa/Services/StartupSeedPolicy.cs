@@ -14,6 +14,15 @@ public static class StartupSeedPolicy
         return forceSeed || !hasAnyUsers;
     }
 
+    public static bool CanSkipInitialization(
+        int schemaVersion,
+        int requiredSchemaVersion,
+        bool hasAnyUsers,
+        bool forceSeed)
+    {
+        return schemaVersion >= requiredSchemaVersion && hasAnyUsers && !forceSeed;
+    }
+
     public static bool IsForceSeedEnabled()
     {
         var value = Environment.GetEnvironmentVariable("WAREPRO_FORCE_SEED");

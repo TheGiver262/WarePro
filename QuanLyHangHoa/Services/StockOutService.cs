@@ -60,7 +60,7 @@ namespace QuanLyHangHoa.Services
                 .ToList();
         }
 
-        public int GetStockOutCount(
+        public DocumentListStats GetStockOutStats(
             string code,
             string customerName,
             DateTime? startDate,
@@ -69,9 +69,26 @@ namespace QuanLyHangHoa.Services
             string status)
         {
             using var db = _contextFactory();
-            var query = db.StockOuts.AsNoTracking().AsQueryable();
-            query = ApplyStockOutFilters(query, code, customerName, startDate, endDate, warehouseId, status);
-            return query.Count();
+            var query = ApplyStockOutFilters(
+                db.StockOuts.AsNoTracking(),
+                code,
+                customerName,
+                startDate,
+                endDate,
+                warehouseId,
+                status);
+
+            return query
+                .GroupBy(_ => 1)
+                .Select(group => new DocumentListStats
+                {
+                    TotalCount = group.Count(),
+                    DraftCount = group.Count(stockOut =>
+                        stockOut.Status == DocumentStatus.Draft || stockOut.Status == "nháp"),
+                    PostedCount = group.Count(stockOut =>
+                        stockOut.Status == DocumentStatus.Posted || stockOut.Status == "đã ghi sổ")
+                })
+                .SingleOrDefault() ?? new DocumentListStats();
         }
 
         private IQueryable<StockOut> ApplyStockOutFilters(

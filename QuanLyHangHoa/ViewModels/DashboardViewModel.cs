@@ -42,6 +42,7 @@ namespace QuanLyHangHoa.ViewModels
 
         private readonly DashboardService _dashboardService;
         private readonly MainViewModel _mainViewModel;
+        private Task? _initialLoadTask;
 
         [ObservableProperty]
         private DashboardStats _stats = new();
@@ -77,16 +78,27 @@ namespace QuanLyHangHoa.ViewModels
         {
             _dashboardService = dashboardService;
             _mainViewModel = mainViewModel;
-            _ = LoadStatsAsync();
+            IsLoading = true;
+        }
+
+        public Task EnsureLoadedAsync()
+        {
+            return _initialLoadTask ??= LoadStatsAsync();
         }
 
         [RelayCommand]
         public async Task LoadStatsAsync()
         {
             IsLoading = true;
-            Stats = await _dashboardService.GetStatsAsync();
-            UpdateCharts();
-            IsLoading = false;
+            try
+            {
+                Stats = await _dashboardService.GetStatsAsync();
+                UpdateCharts();
+            }
+            finally
+            {
+                IsLoading = false;
+            }
         }
 
         private void UpdateCharts()
@@ -197,7 +209,7 @@ namespace QuanLyHangHoa.ViewModels
                     {
                         Name = "Số lượng đã bán",
                         Values = solds,
-                        Fill = new SolidColorPaint(SKColors.MediumPurple)
+                        Fill = new SolidColorPaint(new SKColor(37, 99, 235))
                     }
                 };
                 TopProductsYAxes = new Axis[]

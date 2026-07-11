@@ -2,6 +2,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -23,6 +24,9 @@ namespace QuanLyHangHoa.ViewModels
         private const int PageSize = 100;
         private bool _isLoading = false;
         private bool _isInitialized = false;
+        private bool _isUpdatingFilters;
+        private bool _reloadRequested;
+        private CancellationTokenSource? _filterDebounceCts;
         [ObservableProperty] private bool _canManage;
         [ObservableProperty] private ObservableCollection<Product> _products = new();
         [ObservableProperty] private Product? _selectedProduct;
@@ -45,15 +49,15 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void ToggleAdvancedFilter() => IsAdvancedFilterOpen = !IsAdvancedFilterOpen;
 
-        partial void OnSearchCodeChanged(string value) { if (_isInitialized) ApplyFilters(); }
-        partial void OnSearchNameChanged(string value) { if (_isInitialized) ApplyFilters(); }
-        partial void OnSearchStatusChanged(string value) { if (_isInitialized) ApplyFilters(); }
-        partial void OnSearchSerialChanged(string value) { if (_isInitialized) ApplyFilters(); }
-        partial void OnSearchWarrantyChanged(string value) { if (_isInitialized) ApplyFilters(); }
-        partial void OnSelectedCategoryFilterChanged(Category? value) { if (_isInitialized) ApplyFilters(); }
-        partial void OnSelectedBrandFilterChanged(Brand? value) { if (_isInitialized) ApplyFilters(); }
-        partial void OnSearchPriceMinChanged(string value) { if (_isInitialized) ApplyFilters(); }
-        partial void OnSearchPriceMaxChanged(string value) { if (_isInitialized) ApplyFilters(); }
+        partial void OnSearchCodeChanged(string value) => ScheduleFilterReload();
+        partial void OnSearchNameChanged(string value) => ScheduleFilterReload();
+        partial void OnSearchStatusChanged(string value) => ScheduleFilterReload();
+        partial void OnSearchSerialChanged(string value) => ScheduleFilterReload();
+        partial void OnSearchWarrantyChanged(string value) => ScheduleFilterReload();
+        partial void OnSelectedCategoryFilterChanged(Category? value) => ScheduleFilterReload();
+        partial void OnSelectedBrandFilterChanged(Brand? value) => ScheduleFilterReload();
+        partial void OnSearchPriceMinChanged(string value) => ScheduleFilterReload();
+        partial void OnSearchPriceMaxChanged(string value) => ScheduleFilterReload();
 
         public ObservableCollection<string> StatusOptions { get; } = ["Tất cả", "Hoạt động", "Dừng"];
         public ObservableCollection<string> SerialOptions { get; } = ["Tất cả", "Có serial", "Không serial"];
@@ -74,21 +78,35 @@ namespace QuanLyHangHoa.ViewModels
             
             CanManage = AuthorizationService.CanPerform(_currentUser, PermissionAction.ManageMasterData);
 
-            var allCategories = _refDataService.GetAllCategories(false);
-            Categories = new ObservableCollection<Category>(allCategories);
-            Categories.Insert(0, new Category { Id = 0, DisplayName = "Tất cả danh mục" });
+            _ = InitializeAsync();
+        }
 
-            var allBrands = _refDataService.GetAllBrands();
-            Brands = new ObservableCollection<Brand>(allBrands);
-            Brands.Insert(0, new Brand { Id = 0, DisplayName = "Tất cả thương hiệu" });
-            
-            Units = new ObservableCollection<Unit>(_refDataService.GetAllUnits());
+        private async Task InitializeAsync()
+        {
+            try
+            {
+                var categoriesTask = Task.Run(() => _refDataService.GetAllCategories(false));
+                var brandsTask = Task.Run(() => _refDataService.GetAllBrands());
+                var unitsTask = Task.Run(() => _refDataService.GetAllUnits());
 
-            SelectedCategoryFilter = Categories.FirstOrDefault();
-            SelectedBrandFilter = Brands.FirstOrDefault();
-            
-            LoadData();
-            _isInitialized = true;
+                await Task.WhenAll(categoriesTask, brandsTask, unitsTask);
+
+                Categories = new ObservableCollection<Category>(await categoriesTask);
+                Categories.Insert(0, new Category { Id = 0, DisplayName = "Tất cả danh mục" });
+
+                Brands = new ObservableCollection<Brand>(await brandsTask);
+                Brands.Insert(0, new Brand { Id = 0, DisplayName = "Tất cả thương hiệu" });
+                Units = new ObservableCollection<Unit>(await unitsTask);
+
+                SelectedCategoryFilter = Categories.FirstOrDefault();
+                SelectedBrandFilter = Brands.FirstOrDefault();
+                LoadData();
+                _isInitialized = true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Không thể tải dữ liệu sản phẩm: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         public void LoadCounts()
@@ -126,7 +144,38 @@ namespace QuanLyHangHoa.ViewModels
 
         private void ApplyFilters()
         {
+            if (_isLoading)
+            {
+                _reloadRequested = true;
+                return;
+            }
+
             _ = ApplyFiltersAsync(true);
+        }
+
+        private void ScheduleFilterReload()
+        {
+            if (!_isInitialized || _isUpdatingFilters)
+            {
+                return;
+            }
+
+            _filterDebounceCts?.Cancel();
+            _filterDebounceCts?.Dispose();
+            _filterDebounceCts = new CancellationTokenSource();
+            _ = ReloadAfterDelayAsync(_filterDebounceCts.Token);
+        }
+
+        private async Task ReloadAfterDelayAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                await Task.Delay(300, cancellationToken);
+                ApplyFilters();
+            }
+            catch (OperationCanceledException)
+            {
+            }
         }
 
         private async Task ApplyFiltersAsync(bool reset)
@@ -141,14 +190,19 @@ namespace QuanLyHangHoa.ViewModels
                     Products.Clear();
                 }
 
-                int? catId = SelectedCategoryFilter?.Id > 0 ? SelectedCategoryFilter.Id : null;
-                int? brId = SelectedBrandFilter?.Id > 0 ? SelectedBrandFilter.Id : null;
+                var searchCode = SearchCode;
+                var searchName = SearchName;
+                var searchStatus = SearchStatus;
+                var searchSerial = SearchSerial;
+                int? categoryId = SelectedCategoryFilter?.Id > 0 ? SelectedCategoryFilter.Id : null;
+                int? brandId = SelectedBrandFilter?.Id > 0 ? SelectedBrandFilter.Id : null;
                 decimal? priceMin = decimal.TryParse(SearchPriceMin, out decimal min) ? min : null;
                 decimal? priceMax = decimal.TryParse(SearchPriceMax, out decimal max) ? max : null;
                 int? warranty = int.TryParse(SearchWarranty, out int war) ? war : null;
+                var skip = _skip;
 
                 var list = await Task.Run(() => _service.GetProductsPaged(
-                    SearchCode, SearchName, SearchStatus, SearchSerial, catId, brId, priceMin, priceMax, warranty, _skip, PageSize));
+                    searchCode, searchName, searchStatus, searchSerial, categoryId, brandId, priceMin, priceMax, warranty, skip, PageSize));
 
                 foreach (var p in list)
                 {
@@ -156,22 +210,12 @@ namespace QuanLyHangHoa.ViewModels
                 }
                 _skip += list.Count;
 
-                // Thống kê đếm bất đồng bộ từ database dựa trên các sản phẩm đã lọc
-                await Task.Run(() =>
-                {
-                    using var db = _contextFactory();
-                    var currentList = Products.ToList();
-                    var lowStock = currentList.Count(p => p.StockBalances.Sum(sb => sb.OnHandQuantity) > 0 && p.StockBalances.Sum(sb => sb.OnHandQuantity) <= 5);
-                    var outStock = currentList.Count(p => p.StockBalances.Sum(sb => sb.OnHandQuantity) <= 0);
-                    var outStockActive = currentList.Count(p => p.IsActive && p.StockBalances.Sum(sb => sb.OnHandQuantity) <= 0);
-
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        LowStockCount = lowStock;
-                        OutOfStockCount = outStock;
-                        OutOfStockActiveCount = outStockActive;
-                    });
-                });
+                LowStockCount = Products.Count(product =>
+                    product.StockBalances.Sum(balance => balance.OnHandQuantity) is > 0 and <= 5);
+                OutOfStockCount = Products.Count(product =>
+                    product.StockBalances.Sum(balance => balance.OnHandQuantity) <= 0);
+                OutOfStockActiveCount = Products.Count(product =>
+                    product.IsActive && product.StockBalances.Sum(balance => balance.OnHandQuantity) <= 0);
             }
             catch (Exception)
             {
@@ -180,6 +224,11 @@ namespace QuanLyHangHoa.ViewModels
             finally
             {
                 _isLoading = false;
+                if (_reloadRequested)
+                {
+                    _reloadRequested = false;
+                    ApplyFilters();
+                }
             }
         }
 
@@ -194,15 +243,24 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void Refresh()
         {
-            SearchCode = string.Empty;
-            SearchName = string.Empty;
-            SearchStatus = "Tất cả";
-            SearchSerial = "Tất cả";
-            SearchWarranty = string.Empty;
-            SearchPriceMin = string.Empty;
-            SearchPriceMax = string.Empty;
-            SelectedCategoryFilter = Categories.FirstOrDefault();
-            SelectedBrandFilter = Brands.FirstOrDefault();
+            _isUpdatingFilters = true;
+            try
+            {
+                SearchCode = string.Empty;
+                SearchName = string.Empty;
+                SearchStatus = "Tất cả";
+                SearchSerial = "Tất cả";
+                SearchWarranty = string.Empty;
+                SearchPriceMin = string.Empty;
+                SearchPriceMax = string.Empty;
+                SelectedCategoryFilter = Categories.FirstOrDefault();
+                SelectedBrandFilter = Brands.FirstOrDefault();
+            }
+            finally
+            {
+                _isUpdatingFilters = false;
+            }
+
             LoadData();
         }
 

@@ -51,6 +51,11 @@ public class StockInServiceTests
         service.SaveDraft(stockIn, lines, 1);
         service.Post(stockIn.Id, 1);
 
+        var stats = service.GetStockInStats(string.Empty, string.Empty, null, null, null, string.Empty);
+        Assert.Equal(1, stats.TotalCount);
+        Assert.Equal(0, stats.DraftCount);
+        Assert.Equal(1, stats.PostedCount);
+
         using var assertContext = CreateContext(connection);
         var savedStockIn = assertContext.StockIns.Include(s => s.Lines).Single();
         Assert.Equal("SI-001", savedStockIn.DocumentCode);
@@ -132,6 +137,7 @@ public class StockInServiceTests
         using (var db = CreateContext(connection))
         {
             var postedA = db.StockIns.Find(stockInA.Id);
+            Assert.NotNull(postedA);
             Assert.Equal(DocumentStatus.Posted, postedA.Status);
             Assert.True(db.ProductSerials.Any(ps => ps.SerialNumber == "SN-001"));
         }

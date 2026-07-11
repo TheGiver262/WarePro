@@ -27,4 +27,25 @@ public class StartupSeedPolicyTests
     {
         Assert.False(StartupSeedPolicy.ShouldSeed(seedFileExists: false, hasAnyUsers: false, forceSeed: true));
     }
+
+    [Theory]
+    [InlineData(2, 2, true, false, true)]
+    [InlineData(1, 2, true, false, false)]
+    [InlineData(2, 2, false, false, false)]
+    [InlineData(2, 2, true, true, false)]
+    public void CanSkipInitialization_requires_current_seeded_database(
+        int schemaVersion,
+        int requiredSchemaVersion,
+        bool hasAnyUsers,
+        bool forceSeed,
+        bool expected)
+    {
+        Assert.Equal(
+            expected,
+            StartupSeedPolicy.CanSkipInitialization(
+                schemaVersion,
+                requiredSchemaVersion,
+                hasAnyUsers,
+                forceSeed));
+    }
 }

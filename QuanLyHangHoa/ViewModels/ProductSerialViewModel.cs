@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -25,6 +26,7 @@ namespace QuanLyHangHoa.ViewModels
         private int _skip = 0;
         private const int PageSize = 100;
         private bool _isLoading;
+        private CancellationTokenSource? _filterDebounceCts;
 
         private bool _isUpdatingFilters;
 
@@ -42,13 +44,13 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private DateTime? _searchToDate;
         [ObservableProperty] private string _searchNote = string.Empty;
 
-        partial void OnSearchSerialChanged(string value) { if (_isInitialized && !_isUpdatingFilters) LoadSerials(); }
-        partial void OnSearchProductChanged(string value) { if (_isInitialized && !_isUpdatingFilters) LoadSerials(); }
-        partial void OnSearchBrandChanged(string value) { if (_isInitialized && !_isUpdatingFilters) LoadSerials(); }
-        partial void OnSelectedStatusChanged(string value) { if (_isInitialized && !_isUpdatingFilters) LoadSerials(); }
-        partial void OnSearchFromDateChanged(DateTime? value) { if (_isInitialized && !_isUpdatingFilters) LoadSerials(); }
-        partial void OnSearchToDateChanged(DateTime? value) { if (_isInitialized && !_isUpdatingFilters) LoadSerials(); }
-        partial void OnSearchNoteChanged(string value) { if (_isInitialized && !_isUpdatingFilters) LoadSerials(); }
+        partial void OnSearchSerialChanged(string value) => ScheduleFilterReload();
+        partial void OnSearchProductChanged(string value) => ScheduleFilterReload();
+        partial void OnSearchBrandChanged(string value) => ScheduleFilterReload();
+        partial void OnSelectedStatusChanged(string value) => ScheduleFilterReload();
+        partial void OnSearchFromDateChanged(DateTime? value) => ScheduleFilterReload();
+        partial void OnSearchToDateChanged(DateTime? value) => ScheduleFilterReload();
+        partial void OnSearchNoteChanged(string value) => ScheduleFilterReload();
 
         [ObservableProperty] private ProductSerial? _selectedSerial;
         [ObservableProperty] private string _statusMessage = string.Empty;
@@ -114,12 +116,6 @@ namespace QuanLyHangHoa.ViewModels
             LoadCounts();
             LoadSerials();
             _isInitialized = true;
-            
-            // Tự động nạp dữ liệu nếu bảng trống
-            if (Serials.Count == 0)
-            {
-                _ = Import(); 
-            }
         }
 
         [RelayCommand]
@@ -374,7 +370,32 @@ namespace QuanLyHangHoa.ViewModels
             });
         }
 
-        private System.Threading.CancellationTokenSource? _cts;
+        private CancellationTokenSource? _cts;
+
+        private void ScheduleFilterReload()
+        {
+            if (!_isInitialized || _isUpdatingFilters)
+            {
+                return;
+            }
+
+            _filterDebounceCts?.Cancel();
+            _filterDebounceCts?.Dispose();
+            _filterDebounceCts = new CancellationTokenSource();
+            _ = ReloadAfterDelayAsync(_filterDebounceCts.Token);
+        }
+
+        private async Task ReloadAfterDelayAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                await Task.Delay(300, cancellationToken);
+                LoadSerials();
+            }
+            catch (OperationCanceledException)
+            {
+            }
+        }
 
         private void LoadSerials()
         {
@@ -389,7 +410,7 @@ namespace QuanLyHangHoa.ViewModels
                 _cts = new System.Threading.CancellationTokenSource();
             }
 
-            var token = _cts?.Token ?? System.Threading.CancellationToken.None;
+            var token = _cts?.Token ?? CancellationToken.None;
 
             if (_isLoading && !reset)
             {
@@ -420,14 +441,20 @@ namespace QuanLyHangHoa.ViewModels
                     _ => "All"
                 };
 
-                var data = await Task.Run(() => 
+                var searchSerial = SearchSerial;
+                var searchProduct = SearchProduct;
+                var searchBrand = SearchBrand;
+                var searchFromDate = SearchFromDate;
+                var searchToDate = SearchToDate;
+                var searchNote = SearchNote;
+                var skip = _skip;
+
+                var dataTask = Task.Run(() =>
                 {
                     token.ThrowIfCancellationRequested();
                     return _serialPagedLoader(
-                        SearchSerial, SearchProduct, SearchBrand, dbStatus, SearchFromDate, SearchToDate, SearchNote, _skip, PageSize);
+                        searchSerial, searchProduct, searchBrand, dbStatus, searchFromDate, searchToDate, searchNote, skip, PageSize);
                 }, token);
-
-                token.ThrowIfCancellationRequested();
 
                 int totalFilteredCount = 0;
                 bool isTestEnv = false;
@@ -440,18 +467,27 @@ namespace QuanLyHangHoa.ViewModels
                     isTestEnv = true;
                 }
 
+                Task<int>? countTask = null;
+                if (!isTestEnv)
+                {
+                    countTask = Task.Run(() =>
+                    {
+                        token.ThrowIfCancellationRequested();
+                        return new ProductSerialService(_contextFactory).GetSerialsCount(
+                            searchSerial, searchProduct, searchBrand, dbStatus, searchFromDate, searchToDate, searchNote);
+                    }, token);
+                }
+
+                var data = await dataTask;
+                token.ThrowIfCancellationRequested();
+
                 if (isTestEnv)
                 {
                     totalFilteredCount = data.Count;
                 }
                 else
                 {
-                    totalFilteredCount = await Task.Run(() => 
-                    {
-                        token.ThrowIfCancellationRequested();
-                        return new ProductSerialService(_contextFactory).GetSerialsCount(
-                            SearchSerial, SearchProduct, SearchBrand, dbStatus, SearchFromDate, SearchToDate, SearchNote);
-                    }, token);
+                    totalFilteredCount = await countTask!;
                 }
 
                 token.ThrowIfCancellationRequested();
@@ -460,7 +496,6 @@ namespace QuanLyHangHoa.ViewModels
                 {
                     token.ThrowIfCancellationRequested();
                     Serials.Add(item);
-                    await Task.Yield();
                 }
                 _skip += data.Count;
 

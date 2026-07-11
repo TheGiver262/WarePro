@@ -8,6 +8,8 @@ using QuanLyHangHoa.Data;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 
 namespace QuanLyHangHoa.ViewModels
@@ -18,6 +20,8 @@ namespace QuanLyHangHoa.ViewModels
         private readonly Action<string, string> _showMessage;
         private readonly AppUser _currentUser;
         private readonly Func<AppDbContext> _contextFactory;
+        private CancellationTokenSource? _filterDebounceCts;
+        private CancellationTokenSource? _loadCts;
 
         // Create Claim fields
         [ObservableProperty] private string _claimCode = string.Empty;
@@ -114,77 +118,128 @@ namespace QuanLyHangHoa.ViewModels
             SearchToDate = null;
         }
 
-        partial void OnSearchSerialChanged(string value) => LoadData();
-        partial void OnSearchCustomerChanged(string value) => LoadData();
-        partial void OnSearchClaimCodeChanged(string value) => LoadData();
-        partial void OnSelectedStatusFilterChanged(string value) => LoadData();
-        partial void OnSearchFromDateChanged(DateTime? value) => LoadData();
-        partial void OnSearchToDateChanged(DateTime? value) => LoadData();
+        partial void OnSearchSerialChanged(string value) => ScheduleFilterReload();
+        partial void OnSearchCustomerChanged(string value) => ScheduleFilterReload();
+        partial void OnSearchClaimCodeChanged(string value) => ScheduleFilterReload();
+        partial void OnSelectedStatusFilterChanged(string value) => ScheduleFilterReload();
+        partial void OnSearchFromDateChanged(DateTime? value) => ScheduleFilterReload();
+        partial void OnSearchToDateChanged(DateTime? value) => ScheduleFilterReload();
+
+        private void ScheduleFilterReload()
+        {
+            _filterDebounceCts?.Cancel();
+            _filterDebounceCts?.Dispose();
+            _filterDebounceCts = new CancellationTokenSource();
+            _ = ReloadAfterDelayAsync(_filterDebounceCts.Token);
+        }
+
+        private async Task ReloadAfterDelayAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                await Task.Delay(300, cancellationToken);
+                await LoadData();
+            }
+            catch (OperationCanceledException)
+            {
+            }
+        }
 
         [RelayCommand]
-        public void LoadData()
+        public async Task LoadData()
         {
-            using var db = _contextFactory();
-            
-            // Lấy tất cả các phiếu không lọc trước để tính toán các con số tổng quan cho stat cards và footer
-            var baseQuery = db.WarrantyClaims.AsQueryable();
-            var allClaimsForStats = baseQuery.ToList();
+            _loadCts?.Cancel();
+            _loadCts?.Dispose();
+            _loadCts = new CancellationTokenSource();
+            var cancellationToken = _loadCts.Token;
 
-            // Tính toán stats cho cards và footer từ dữ liệu gốc
-            TotalWarrantyCount = allClaimsForStats.Count;
-            RepairingCount = allClaimsForStats.Count(c => c.Status == "Open" || c.Status == "ManufacturerWait");
-            CompletedCount = allClaimsForStats.Count(c => c.Status == "Ready");
-            OverdueCount = allClaimsForStats.Count(c => c.ExpectedReturnDate.HasValue && c.ExpectedReturnDate.Value.Date < DateTime.Today && c.Status != "Closed" && c.Status != "Rejected");
-
-            OpenCount = allClaimsForStats.Count(c => c.Status == "Open");
-            ManufacturerWaitCount = allClaimsForStats.Count(c => c.Status == "ManufacturerWait");
-            ReadyCount = allClaimsForStats.Count(c => c.Status == "Ready");
-            ClosedCount = allClaimsForStats.Count(c => c.Status == "Closed");
-            RejectedCount = allClaimsForStats.Count(c => c.Status == "Rejected");
-
-            // Áp dụng bộ lọc cho danh sách hiển thị
-            var query = db.WarrantyClaims
-                .Include(c => c.ProductSerial)
-                .ThenInclude(s => s.Product)
-                .Include(c => c.WarrantyCoverage)
-                .ThenInclude(wc => wc.Customer)
-                .AsQueryable();
-
-            if (!string.IsNullOrWhiteSpace(SearchClaimCode))
+            try
             {
-                var term = SearchClaimCode.ToLower();
-                query = query.Where(c => c.ClaimCode != null && c.ClaimCode.ToLower().Contains(term));
-            }
+                using var db = _contextFactory();
+                var today = DateTime.Today;
 
-            if (!string.IsNullOrWhiteSpace(SearchSerial))
+                var stats = await db.WarrantyClaims
+                    .AsNoTracking()
+                    .GroupBy(_ => 1)
+                    .Select(group => new
+                    {
+                        Total = group.Count(),
+                        Repairing = group.Count(claim => claim.Status == "Open" || claim.Status == "ManufacturerWait"),
+                        Completed = group.Count(claim => claim.Status == "Ready"),
+                        Overdue = group.Count(claim => claim.ExpectedReturnDate.HasValue
+                            && claim.ExpectedReturnDate.Value < today
+                            && claim.Status != "Closed"
+                            && claim.Status != "Rejected"),
+                        Open = group.Count(claim => claim.Status == "Open"),
+                        ManufacturerWait = group.Count(claim => claim.Status == "ManufacturerWait"),
+                        Ready = group.Count(claim => claim.Status == "Ready"),
+                        Closed = group.Count(claim => claim.Status == "Closed"),
+                        Rejected = group.Count(claim => claim.Status == "Rejected")
+                    })
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                var query = db.WarrantyClaims
+                    .AsNoTracking()
+                    .Include(claim => claim.ProductSerial)
+                    .ThenInclude(serial => serial.Product)
+                    .Include(claim => claim.WarrantyCoverage)
+                    .ThenInclude(coverage => coverage.Customer)
+                    .AsQueryable();
+
+                if (!string.IsNullOrWhiteSpace(SearchClaimCode))
+                {
+                    var term = SearchClaimCode.ToLower();
+                    query = query.Where(claim => claim.ClaimCode != null && claim.ClaimCode.ToLower().Contains(term));
+                }
+
+                if (!string.IsNullOrWhiteSpace(SearchSerial))
+                {
+                    var term = SearchSerial.ToLower();
+                    query = query.Where(claim => claim.ProductSerial != null
+                        && claim.ProductSerial.SerialNumber.ToLower().Contains(term));
+                }
+
+                if (!string.IsNullOrWhiteSpace(SearchCustomer))
+                {
+                    var term = SearchCustomer.ToLower();
+                    query = query.Where(claim => claim.WarrantyCoverage != null
+                        && claim.WarrantyCoverage.Customer != null
+                        && claim.WarrantyCoverage.Customer.DisplayName.ToLower().Contains(term));
+                }
+
+                if (SelectedStatusFilter != "Tất cả")
+                {
+                    query = query.Where(claim => claim.Status == SelectedStatusFilter);
+                }
+
+                if (SearchFromDate.HasValue)
+                {
+                    query = query.Where(claim => claim.ReceivedDate >= SearchFromDate.Value);
+                }
+
+                if (SearchToDate.HasValue)
+                {
+                    query = query.Where(claim => claim.ReceivedDate <= SearchToDate.Value);
+                }
+
+                var claims = await query
+                    .OrderByDescending(claim => claim.ReceivedDate)
+                    .ToListAsync(cancellationToken);
+
+                TotalWarrantyCount = stats?.Total ?? 0;
+                RepairingCount = stats?.Repairing ?? 0;
+                CompletedCount = stats?.Completed ?? 0;
+                OverdueCount = stats?.Overdue ?? 0;
+                OpenCount = stats?.Open ?? 0;
+                ManufacturerWaitCount = stats?.ManufacturerWait ?? 0;
+                ReadyCount = stats?.Ready ?? 0;
+                ClosedCount = stats?.Closed ?? 0;
+                RejectedCount = stats?.Rejected ?? 0;
+                Warranties = new ObservableCollection<WarrantyClaim>(claims);
+            }
+            catch (OperationCanceledException)
             {
-                var term = SearchSerial.ToLower();
-                query = query.Where(c => c.ProductSerial != null && c.ProductSerial.SerialNumber != null && c.ProductSerial.SerialNumber.ToLower().Contains(term));
             }
-
-            if (!string.IsNullOrWhiteSpace(SearchCustomer))
-            {
-                var term = SearchCustomer.ToLower();
-                query = query.Where(c => c.WarrantyCoverage != null && c.WarrantyCoverage.Customer != null && c.WarrantyCoverage.Customer.DisplayName != null && c.WarrantyCoverage.Customer.DisplayName.ToLower().Contains(term));
-            }
-
-            if (SelectedStatusFilter != "Tất cả")
-            {
-                query = query.Where(c => c.Status == SelectedStatusFilter);
-            }
-
-            if (SearchFromDate.HasValue)
-            {
-                query = query.Where(c => c.ReceivedDate >= SearchFromDate.Value);
-            }
-
-            if (SearchToDate.HasValue)
-            {
-                query = query.Where(c => c.ReceivedDate <= SearchToDate.Value);
-            }
-
-            var allClaims = query.OrderByDescending(c => c.ReceivedDate).ToList();
-            Warranties = new ObservableCollection<WarrantyClaim>(allClaims);
         }
 
         [RelayCommand]
@@ -230,7 +285,7 @@ namespace QuanLyHangHoa.ViewModels
                 StatusMessage = $"Đã tạo phiếu bảo hành #{claimId}.";
                 _showMessage(StatusMessage, "Thông báo");
                 ResetForm();
-                LoadData();
+                _ = LoadData();
 
                 if (parameter is Window window)
                 {
@@ -242,6 +297,11 @@ namespace QuanLyHangHoa.ViewModels
                 StatusMessage = ex.Message;
                 _showMessage(ex.Message, "Lỗi bảo hành");
             }
+            catch (Exception ex)
+            {
+                StatusMessage = "Không thể tạo phiếu bảo hành.";
+                _showMessage($"{StatusMessage} {ex.Message}", "Lỗi bảo hành");
+            }
         }
 
         [RelayCommand]
@@ -252,7 +312,7 @@ namespace QuanLyHangHoa.ViewModels
             {
                 _warrantyService.UpdateClaim(SelectedWarranty);
                 _showMessage("Cập nhật phiếu bảo hành thành công!", "Thông báo");
-                LoadData();
+                _ = LoadData();
             }
             catch (Exception ex)
             {
@@ -270,7 +330,7 @@ namespace QuanLyHangHoa.ViewModels
                 {
                     _warrantyService.DeleteClaim(SelectedWarranty.Id);
                     _showMessage("Đã xóa phiếu bảo hành.", "Thông báo");
-                    LoadData();
+                    _ = LoadData();
                 }
                 catch (Exception ex)
                 {
@@ -456,7 +516,7 @@ namespace QuanLyHangHoa.ViewModels
                 action();
                 StatusMessage = successMessage;
                 _showMessage(StatusMessage, "Thông báo");
-                LoadData();
+                _ = LoadData();
                 IsDetailPanelOpen = false;
             }
             catch (Exception ex)
@@ -473,7 +533,7 @@ namespace QuanLyHangHoa.ViewModels
 
         public void RefreshData()
         {
-            LoadData();
+            _ = LoadData();
         }
     }
 }

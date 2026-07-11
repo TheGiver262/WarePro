@@ -84,6 +84,10 @@
                                  BorderBrush="{StaticResource AppBorderBrush}"/>
                 </StackPanel>
 
+                <TextBlock Grid.Row="3" Text="{Binding StartupMessage}" Foreground="{StaticResource AppSecondaryBrush}"
+                           FontSize="12" HorizontalAlignment="Center" Margin="{StaticResource Spacing.sm}"
+                           Visibility="{Binding StartupMessage, Converter={StaticResource StringToVisibilityConverter}}"/>
+
                 <!-- Error Message -->
                 <TextBlock Grid.Row="3" Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerTextBrush}" FontSize="12" FontWeight="SemiBold"
                            HorizontalAlignment="Center" Margin="{StaticResource Spacing.sm}" TextWrapping="Wrap" TextAlignment="Center"
@@ -92,7 +96,7 @@
                 <!-- Actions -->
                 <StackPanel Grid.Row="4" Margin="{StaticResource Margin.Top.md}">
                     <Button Content="ĐĂNG NHẬP" Style="{StaticResource PrimaryButton}"
-                            Command="{Binding LoginCommand}" 
+                            Command="{Binding LoginCommand}" IsEnabled="{Binding IsDatabaseReady}" 
                             CommandParameter="{Binding ElementName=LoginWindow}"/>
                     
                     <TextBlock Text="Quên mật khẩu? Liên hệ quản trị viên" 

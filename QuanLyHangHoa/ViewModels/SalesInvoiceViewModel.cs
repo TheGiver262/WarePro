@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -44,6 +45,9 @@ namespace QuanLyHangHoa.ViewModels
         private const int PageSize = 100;
         private bool _isLoading = false;
         private bool _isInitialized = false;
+        private bool _referenceDataLoaded;
+        private bool _reloadRequested;
+        private readonly DebouncedAction _filterReload = new();
 
         [ObservableProperty] private ObservableCollection<SalesInvoice> _invoices = new();
         [ObservableProperty] private SalesInvoice? _selectedInvoice;
@@ -101,14 +105,14 @@ namespace QuanLyHangHoa.ViewModels
             LoadData();
         }
 
-        partial void OnSearchInvoiceCodeChanged(string value) { if (_isInitialized) LoadData(); }
-        partial void OnSearchCustomerNameChanged(string value) { if (_isInitialized) LoadData(); }
-        partial void OnFilterStartDateChanged(DateTime? value) { if (_isInitialized) LoadData(); }
-        partial void OnFilterEndDateChanged(DateTime? value) { if (_isInitialized) LoadData(); }
-        partial void OnSelectedFilterPaymentStatusChanged(string? value) { if (_isInitialized) LoadData(); }
-        partial void OnFilterLinkDocCodeChanged(string? value) { if (_isInitialized) LoadData(); }
-        partial void OnFilterMinTotalChanged(decimal? value) { if (_isInitialized) LoadData(); }
-        partial void OnFilterMaxTotalChanged(decimal? value) { if (_isInitialized) LoadData(); }
+        partial void OnSearchInvoiceCodeChanged(string value) => ScheduleFilterReload();
+        partial void OnSearchCustomerNameChanged(string value) => ScheduleFilterReload();
+        partial void OnFilterStartDateChanged(DateTime? value) => ScheduleFilterReload();
+        partial void OnFilterEndDateChanged(DateTime? value) => ScheduleFilterReload();
+        partial void OnSelectedFilterPaymentStatusChanged(string? value) => ScheduleFilterReload();
+        partial void OnFilterLinkDocCodeChanged(string? value) => ScheduleFilterReload();
+        partial void OnFilterMinTotalChanged(decimal? value) => ScheduleFilterReload();
+        partial void OnFilterMaxTotalChanged(decimal? value) => ScheduleFilterReload();
 
         [ObservableProperty] [NotifyPropertyChangedFor(nameof(FormRemainingAmount))] private decimal _formTotalAmount;
         [ObservableProperty] private decimal _formSubTotal;
@@ -169,7 +173,21 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         public void LoadData()
         {
+            if (_isLoading)
+            {
+                _reloadRequested = true;
+                return;
+            }
+
             _ = LoadDataAsync(true);
+        }
+
+        private void ScheduleFilterReload()
+        {
+            if (_isInitialized)
+            {
+                _filterReload.Schedule(LoadData);
+            }
         }
 
         private async Task LoadDataAsync(bool reset)
@@ -184,31 +202,29 @@ namespace QuanLyHangHoa.ViewModels
                     Invoices.Clear();
                 }
 
-                if (reset)
+                if (reset && !_referenceDataLoaded)
                 {
-                    var products = await Task.Run(() => _productService.GetAllProducts());
-                    var customers = await Task.Run(() => _refDataService.GetAllCustomers());
-                    List<StockOut> stockOuts;
-                    using (var context = _mainViewModel?.ContextFactory?.Invoke() ?? new AppDbContext())
+                    var productsTask = Task.Run(() => _productService.GetAllProducts());
+                    var customersTask = Task.Run(() => _refDataService.GetAllCustomers());
+                    var stockOutsTask = Task.Run(() =>
                     {
-                        var tempStockOuts = await Task.Run(() => context.StockOuts
+                        using var context = _mainViewModel?.ContextFactory?.Invoke() ?? new AppDbContext();
+                        return context.StockOuts
                             .AsNoTracking()
-                            .Select(s => new { s.Id, s.DocumentCode })
-                            .ToList());
-                        
-                        stockOuts = tempStockOuts.Select(t => new StockOut 
-                        { 
-                            Id = t.Id, 
-                            DocumentCode = t.DocumentCode 
-                        }).ToList();
-                    }
-
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        AvailableProducts = new ObservableCollection<Product>(products);
-                        AvailableCustomers = new ObservableCollection<Customer>(customers);
-                        AvailableStockOuts = new ObservableCollection<StockOut>(stockOuts);
+                            .Select(stockOut => new StockOut
+                            {
+                                Id = stockOut.Id,
+                                DocumentCode = stockOut.DocumentCode
+                            })
+                            .ToList();
                     });
+
+                    await Task.WhenAll(productsTask, customersTask, stockOutsTask);
+
+                    AvailableProducts = new ObservableCollection<Product>(await productsTask);
+                    AvailableCustomers = new ObservableCollection<Customer>(await customersTask);
+                    AvailableStockOuts = new ObservableCollection<StockOut>(await stockOutsTask);
+                    _referenceDataLoaded = true;
                 }
 
                 var paymentStatus = SelectedFilterPaymentStatus != "Tất cả" && !string.IsNullOrEmpty(SelectedFilterPaymentStatus)
@@ -260,6 +276,11 @@ namespace QuanLyHangHoa.ViewModels
             finally
             {
                 _isLoading = false;
+                if (_reloadRequested)
+                {
+                    _reloadRequested = false;
+                    LoadData();
+                }
             }
         }
 

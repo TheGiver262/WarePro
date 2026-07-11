@@ -5,6 +5,7 @@ using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Views;
 using QuanLyHangHoa.Services;
 using System.Windows.Controls;
+using System.Threading.Tasks;
 
 namespace QuanLyHangHoa.ViewModels
 {
@@ -39,6 +40,13 @@ namespace QuanLyHangHoa.ViewModels
             _dashboardService = new DashboardService(ContextFactory);
             
             OpenDashboard();
+        }
+
+        public Task LoadInitialViewAsync()
+        {
+            return CurrentView?.DataContext is DashboardViewModel dashboard
+                ? dashboard.EnsureLoadedAsync()
+                : Task.CompletedTask;
         }
 
         private void NavigateToView<TView>(string cacheKey, Func<TView> viewFactory, string title, string subtitle) where TView : UserControl
@@ -121,11 +129,23 @@ namespace QuanLyHangHoa.ViewModels
             NavigateToView("Warranty", () => 
             {
                 var vm = new WarrantyViewModel(CurrentUser, ContextFactory);
-                vm.LoadData();
+                _ = vm.LoadData();
                 return new WarrantyView { DataContext = vm };
             }, "BẢO HÀNH", "Quản lý phiếu bảo hành và sửa chữa");
         }
 
+        [RelayCommand]
+        private void OpenWarrantyCoverageView()
+        {
+            NavigateToView(
+                "WarrantyCoverage",
+                () => new WarrantyCoverageView
+                {
+                    DataContext = new WarrantyCoverageViewModel(ContextFactory)
+                },
+                "QUYỀN BẢO HÀNH",
+                "Quản lý thời hạn và trạng thái bảo hành");
+        }
         // ── Reference Data ─────────────────────────────────────────────────────
         [RelayCommand]
         private void OpenCategoryView()

@@ -120,6 +120,27 @@ public class WarrantyClaimServiceTests
     }
 
     [Fact]
+    public void CreateClaim_wraps_database_constraint_errors()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+
+        using (var seedContext = CreateContext(connection))
+        {
+            DatabaseHelper.SeedBasicData(seedContext);
+            SeedOpenClaim(seedContext, "WARRANTY-DUP-CODE", "WC-DUP");
+        }
+
+        var service = new WarrantyClaimService(() => CreateContext(connection));
+
+        var exception = Assert.Throws<InvalidOperationException>(
+            () => service.CreateClaim("WC-DUP", "WARRANTY-DUP-CODE", "Duplicate code", userId: 4));
+
+        Assert.Contains("Không thể tạo phiếu bảo hành", exception.Message);
+        Assert.IsType<DbUpdateException>(exception.InnerException);
+    }
+
+    [Fact]
     public void DeleteClaim_rejects_when_has_related_stockout_or_stockin()
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
@@ -188,6 +209,7 @@ public class WarrantyClaimServiceTests
         using (var assertContext = CreateContext(connection))
         {
             var serial = assertContext.ProductSerials.Find(serialId);
+            Assert.NotNull(serial);
             Assert.Equal("InWarrantyProcess", serial.CurrentStatus);
 
             var claim2 = assertContext.WarrantyClaims.First();
@@ -198,6 +220,7 @@ public class WarrantyClaimServiceTests
         using (var assertContext2 = CreateContext(connection))
         {
             var serial = assertContext2.ProductSerials.Find(serialId);
+            Assert.NotNull(serial);
             Assert.Equal("Sold", serial.CurrentStatus);
         }
     }

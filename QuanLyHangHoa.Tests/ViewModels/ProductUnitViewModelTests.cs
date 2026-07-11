@@ -14,9 +14,9 @@ public class ProductUnitViewModelTests
     public void SaveCommand_AddsNewProductUnit_WhenSelectedProductUnitIsNull()
     {
         // Arrange
-        var mockProductUnitService = new Mock<ProductUnitService>(new object[] { null });
-        var mockProductService = new Mock<ProductService>(new object[] { null });
-        var mockRefDataService = new Mock<ReferenceDataService>(new object[] { null });
+        var mockProductUnitService = new Mock<ProductUnitService>(new object[] { null! });
+        var mockProductService = new Mock<ProductService>(new object[] { null! });
+        var mockRefDataService = new Mock<ReferenceDataService>(new object[] { null! });
 
         var products = new List<Product> { new() { Id = 10, DisplayName = "May in" } };
         var units = new List<Unit> { new() { Id = 20, DisplayName = "Thung" } };
@@ -45,9 +45,9 @@ public class ProductUnitViewModelTests
     public void SaveCommand_RejectsMissingProductOrUnit()
     {
         // Arrange
-        var mockProductUnitService = new Mock<ProductUnitService>(new object[] { null });
-        var mockProductService = new Mock<ProductService>(new object[] { null });
-        var mockRefDataService = new Mock<ReferenceDataService>(new object[] { null });
+        var mockProductUnitService = new Mock<ProductUnitService>(new object[] { null! });
+        var mockProductService = new Mock<ProductService>(new object[] { null! });
+        var mockRefDataService = new Mock<ReferenceDataService>(new object[] { null! });
 
         var viewModel = new ProductUnitViewModel(mockProductUnitService.Object, mockProductService.Object, mockRefDataService.Object);
 

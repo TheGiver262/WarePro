@@ -91,7 +91,17 @@ namespace QuanLyHangHoa.Services
             }
 
             db.WarrantyClaims.Add(claim);
-            db.SaveChanges();
+            try
+            {
+                db.SaveChanges();
+            }
+            catch (DbUpdateException ex)
+            {
+                throw new InvalidOperationException(
+                    "Không thể tạo phiếu bảo hành. Vui lòng kiểm tra mã phiếu và dữ liệu bảo hành đã tồn tại.",
+                    ex);
+            }
+
             return claim.Id;
         }
 
@@ -197,19 +207,9 @@ namespace QuanLyHangHoa.Services
             var product = defectiveSerial.Product;
             var customerId = claim.WarrantyCoverage.CustomerId;
 
-            // Get default warehouse
-            var warehouseId = db.Warehouses
-                .Where(w => w.IsDefault && w.IsActive)
-                .Select(w => w.Id)
-                .FirstOrDefault();
-            if (warehouseId == 0) warehouseId = 1;
+            var warehouseId = GetDefaultWarehouseId(db);
 
-            // Get the product's default unit
-            var unitId = db.ProductUnits
-                .Where(pu => pu.ProductId == product.Id && pu.IsBaseUnit)
-                .Select(pu => pu.UnitId)
-                .FirstOrDefault();
-            if (unitId == 0) unitId = product.DefaultUnitId;
+            var unitId = GetBaseUnitId(db, product);
 
             // 1. Mark defective serial as Replaced
             defectiveSerial.CurrentStatus = "Replaced";
@@ -243,10 +243,7 @@ namespace QuanLyHangHoa.Services
             db.SaveChanges();
 
             // Post inventory for StockIn
-            var postingService = new InventoryPostingService(
-                new EfInventoryUnitOfWork(db),
-                new DbDefaultWarehouseProvider(db),
-                new SystemClock());
+            var postingService = CreatePostingService(db);
 
             postingService.PostStockIn(new PostStockInCommand(
                 stockIn.Id,
@@ -302,26 +299,7 @@ namespace QuanLyHangHoa.Services
                 userId));
 
             // 4. Update Warranty Coverage
-            var oldCoverage = claim.WarrantyCoverage;
-            if (oldCoverage != null && oldCoverage.CoverageStatus == "Active")
-            {
-                oldCoverage.CoverageStatus = "Inactive";
-
-                var remainingDays = (oldCoverage.WarrantyEndDate - DateTime.Now).TotalDays;
-                if (remainingDays > 0)
-                {
-                    var newCoverage = new WarrantyCoverage
-                    {
-                        ProductSerialId = newSerial.Id,
-                        CustomerId = oldCoverage.CustomerId,
-                        SalesInvoiceId = oldCoverage.SalesInvoiceId,
-                        WarrantyStartDate = DateTime.Now,
-                        WarrantyEndDate = DateTime.Now.AddDays(remainingDays),
-                        CoverageStatus = "Active"
-                    };
-                    db.WarrantyCoverages.Add(newCoverage);
-                }
-            }
+            TransferRemainingCoverage(db, claim.WarrantyCoverage, newSerial.Id);
 
             // 5. Update claim
             claim.TechnicalConclusion = conclusion;
@@ -374,12 +352,7 @@ namespace QuanLyHangHoa.Services
             var product = defectiveSerial.Product;
             var customerId = claim.WarrantyCoverage.CustomerId;
 
-            // Get default warehouse
-            var warehouseId = db.Warehouses
-                .Where(w => w.IsDefault && w.IsActive)
-                .Select(w => w.Id)
-                .FirstOrDefault();
-            if (warehouseId == 0) warehouseId = 1;
+            var warehouseId = GetDefaultWarehouseId(db);
 
             // Validate replacement serial exists and is in stock
             var newSerial = db.ProductSerials
@@ -391,12 +364,7 @@ namespace QuanLyHangHoa.Services
             if (newSerial.ProductId != product.Id)
                 throw new InvalidOperationException($"Serial {replacementSerial} không thuộc sản phẩm {product.DisplayName}.");
 
-            // Get the product's default unit
-            var unitId = db.ProductUnits
-                .Where(pu => pu.ProductId == product.Id && pu.IsBaseUnit)
-                .Select(pu => pu.UnitId)
-                .FirstOrDefault();
-            if (unitId == 0) unitId = product.DefaultUnitId;
+            var unitId = GetBaseUnitId(db, product);
 
             // Mark defective serial as Replaced
             defectiveSerial.CurrentStatus = "Replaced";
@@ -431,10 +399,7 @@ namespace QuanLyHangHoa.Services
             db.StockOuts.Add(stockOut);
             db.SaveChanges();
 
-            var postingService = new InventoryPostingService(
-                new EfInventoryUnitOfWork(db),
-                new DbDefaultWarehouseProvider(db),
-                new SystemClock());
+            var postingService = CreatePostingService(db);
 
             postingService.PostStockOut(new PostStockOutCommand(
                 stockOut.Id,
@@ -447,26 +412,7 @@ namespace QuanLyHangHoa.Services
                 userId));
 
             // Update Warranty Coverage
-            var oldCoverage = claim.WarrantyCoverage;
-            if (oldCoverage != null && oldCoverage.CoverageStatus == "Active")
-            {
-                oldCoverage.CoverageStatus = "Inactive";
-
-                var remainingDays = (oldCoverage.WarrantyEndDate - DateTime.Now).TotalDays;
-                if (remainingDays > 0)
-                {
-                    var newCoverage = new WarrantyCoverage
-                    {
-                        ProductSerialId = newSerial.Id,
-                        CustomerId = oldCoverage.CustomerId,
-                        SalesInvoiceId = oldCoverage.SalesInvoiceId,
-                        WarrantyStartDate = DateTime.Now,
-                        WarrantyEndDate = DateTime.Now.AddDays(remainingDays),
-                        CoverageStatus = "Active"
-                    };
-                    db.WarrantyCoverages.Add(newCoverage);
-                }
-            }
+            TransferRemainingCoverage(db, claim.WarrantyCoverage, newSerial.Id);
 
             // Update claim
             claim.ReplacementSerialId = newSerial.Id;
@@ -503,6 +449,57 @@ namespace QuanLyHangHoa.Services
             // Khôi phục serial nếu không còn phiếu bảo hành mở nào khác
             UpdateSerialStatusOnClaimClosure(db, serialId, claimId);
             db.SaveChanges();
+        }
+
+        private static int GetDefaultWarehouseId(AppDbContext db)
+        {
+            return new DbDefaultWarehouseProvider(db).GetDefaultWarehouseId();
+        }
+
+        private static int GetBaseUnitId(AppDbContext db, Product product)
+        {
+            var unitId = db.ProductUnits
+                .Where(productUnit => productUnit.ProductId == product.Id && productUnit.IsBaseUnit)
+                .Select(productUnit => productUnit.UnitId)
+                .FirstOrDefault();
+            return unitId == 0 ? product.DefaultUnitId : unitId;
+        }
+
+        private static InventoryPostingService CreatePostingService(AppDbContext db)
+        {
+            return new InventoryPostingService(
+                new EfInventoryUnitOfWork(db),
+                new DbDefaultWarehouseProvider(db),
+                new SystemClock());
+        }
+
+        private static void TransferRemainingCoverage(
+            AppDbContext db,
+            WarrantyCoverage? oldCoverage,
+            int newSerialId)
+        {
+            if (oldCoverage == null || oldCoverage.CoverageStatus != "Active")
+            {
+                return;
+            }
+
+            oldCoverage.CoverageStatus = "Inactive";
+            var now = DateTime.Now;
+            var remainingDays = (oldCoverage.WarrantyEndDate - now).TotalDays;
+            if (remainingDays <= 0)
+            {
+                return;
+            }
+
+            db.WarrantyCoverages.Add(new WarrantyCoverage
+            {
+                ProductSerialId = newSerialId,
+                CustomerId = oldCoverage.CustomerId,
+                SalesInvoiceId = oldCoverage.SalesInvoiceId,
+                WarrantyStartDate = now,
+                WarrantyEndDate = now.AddDays(remainingDays),
+                CoverageStatus = "Active"
+            });
         }
 
         private void UpdateSerialStatusOnClaimClosure(AppDbContext db, int productSerialId, int currentClaimId)

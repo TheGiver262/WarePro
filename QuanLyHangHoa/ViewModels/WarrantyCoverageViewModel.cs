@@ -1,6 +1,8 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -13,6 +15,8 @@ namespace QuanLyHangHoa.ViewModels
     public partial class WarrantyCoverageViewModel : ObservableObject
     {
         private readonly Func<AppDbContext> _contextFactory;
+        private CancellationTokenSource? _filterDebounceCts;
+        private CancellationTokenSource? _loadCts;
 
         [ObservableProperty] private ObservableCollection<WarrantyCoverage> _coverages = new();
         [ObservableProperty] private WarrantyCoverage? _selectedCoverage;
@@ -41,13 +45,13 @@ namespace QuanLyHangHoa.ViewModels
         public WarrantyCoverageViewModel(Func<AppDbContext> contextFactory)
         {
             _contextFactory = contextFactory;
-            LoadData();
+            _ = LoadData();
         }
 
-        partial void OnSearchSerialChanged(string value) => LoadData();
-        partial void OnSearchCustomerChanged(string value) => LoadData();
-        partial void OnSearchProductChanged(string value) => LoadData();
-        partial void OnSelectedStatusFilterChanged(string value) => LoadData();
+        partial void OnSearchSerialChanged(string value) => ScheduleFilterReload();
+        partial void OnSearchCustomerChanged(string value) => ScheduleFilterReload();
+        partial void OnSearchProductChanged(string value) => ScheduleFilterReload();
+        partial void OnSelectedStatusFilterChanged(string value) => ScheduleFilterReload();
 
         [RelayCommand]
         public void ResetFilters()
@@ -56,54 +60,100 @@ namespace QuanLyHangHoa.ViewModels
             SearchCustomer = string.Empty;
             SearchProduct = string.Empty;
             SelectedStatusFilter = "Tất cả";
-            LoadData();
+            ScheduleFilterReload();
+        }
+
+        private void ScheduleFilterReload()
+        {
+            _filterDebounceCts?.Cancel();
+            _filterDebounceCts?.Dispose();
+            _filterDebounceCts = new CancellationTokenSource();
+            _ = ReloadAfterDelayAsync(_filterDebounceCts.Token);
+        }
+
+        private async Task ReloadAfterDelayAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                await Task.Delay(300, cancellationToken);
+                await LoadData();
+            }
+            catch (OperationCanceledException)
+            {
+            }
         }
 
         [RelayCommand]
-        public void LoadData()
+        public async Task LoadData()
         {
-            using var db = _contextFactory();
-            
-            // Tính toán stats cho footer từ dữ liệu gốc không lọc
-            var baseQuery = db.WarrantyCoverages.AsQueryable();
-            var allCoveragesForStats = baseQuery.ToList();
+            _loadCts?.Cancel();
+            _loadCts?.Dispose();
+            _loadCts = new CancellationTokenSource();
+            var cancellationToken = _loadCts.Token;
 
-            TotalCount = allCoveragesForStats.Count;
-            ActiveCount = allCoveragesForStats.Count(c => c.CoverageStatus == "Active");
-            ExpiredCount = allCoveragesForStats.Count(c => c.CoverageStatus == "Expired");
-            VoidedCount = allCoveragesForStats.Count(c => c.CoverageStatus == "Voided");
-
-            // Áp dụng bộ lọc
-            var query = db.WarrantyCoverages
-                .Include(c => c.ProductSerial!)
-                .ThenInclude(p => p.Product!)
-                .Include(c => c.Customer!)
-                .AsQueryable();
-
-            if (!string.IsNullOrWhiteSpace(SearchSerial))
+            try
             {
-                var term = SearchSerial.Trim();
-                query = query.Where(c => c.ProductSerial != null && c.ProductSerial.SerialNumber.Contains(term));
-            }
+                using var db = _contextFactory();
 
-            if (!string.IsNullOrWhiteSpace(SearchCustomer))
+                var stats = await db.WarrantyCoverages
+                    .AsNoTracking()
+                    .GroupBy(_ => 1)
+                    .Select(group => new
+                    {
+                        Total = group.Count(),
+                        Active = group.Count(coverage => coverage.CoverageStatus == "Active"),
+                        Expired = group.Count(coverage => coverage.CoverageStatus == "Expired"),
+                        Voided = group.Count(coverage => coverage.CoverageStatus == "Voided")
+                    })
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                var query = db.WarrantyCoverages
+                    .AsNoTracking()
+                    .Include(coverage => coverage.ProductSerial!)
+                    .ThenInclude(serial => serial.Product!)
+                    .Include(coverage => coverage.Customer!)
+                    .AsQueryable();
+
+                if (!string.IsNullOrWhiteSpace(SearchSerial))
+                {
+                    var term = SearchSerial.Trim();
+                    query = query.Where(coverage => coverage.ProductSerial != null
+                        && coverage.ProductSerial.SerialNumber.Contains(term));
+                }
+
+                if (!string.IsNullOrWhiteSpace(SearchCustomer))
+                {
+                    var term = SearchCustomer.Trim();
+                    query = query.Where(coverage => coverage.Customer != null
+                        && coverage.Customer.DisplayName.Contains(term));
+                }
+
+                if (!string.IsNullOrWhiteSpace(SearchProduct))
+                {
+                    var term = SearchProduct.Trim();
+                    query = query.Where(coverage => coverage.ProductSerial != null
+                        && coverage.ProductSerial.Product != null
+                        && coverage.ProductSerial.Product.DisplayName.Contains(term));
+                }
+
+                if (!string.IsNullOrWhiteSpace(SelectedStatusFilter) && SelectedStatusFilter != "Tất cả")
+                {
+                    query = query.Where(coverage => coverage.CoverageStatus == SelectedStatusFilter);
+                }
+
+                var coverages = await query
+                    .OrderBy(coverage => coverage.ProductSerial.SerialNumber)
+                    .ToListAsync(cancellationToken);
+
+                TotalCount = stats?.Total ?? 0;
+                ActiveCount = stats?.Active ?? 0;
+                ExpiredCount = stats?.Expired ?? 0;
+                VoidedCount = stats?.Voided ?? 0;
+                Coverages = new ObservableCollection<WarrantyCoverage>(coverages);
+            }
+            catch (OperationCanceledException)
             {
-                var term = SearchCustomer.Trim();
-                query = query.Where(c => c.Customer != null && c.Customer.DisplayName.Contains(term));
             }
-
-            if (!string.IsNullOrWhiteSpace(SearchProduct))
-            {
-                var term = SearchProduct.Trim();
-                query = query.Where(c => c.ProductSerial != null && c.ProductSerial.Product != null && c.ProductSerial.Product.DisplayName.Contains(term));
-            }
-
-            if (!string.IsNullOrWhiteSpace(SelectedStatusFilter) && SelectedStatusFilter != "Tất cả")
-            {
-                query = query.Where(c => c.CoverageStatus == SelectedStatusFilter);
-            }
-
-            Coverages = new ObservableCollection<WarrantyCoverage>(query.OrderBy(c => c.ProductSerial.SerialNumber).ToList());
         }
 
         [RelayCommand]
@@ -140,7 +190,7 @@ namespace QuanLyHangHoa.ViewModels
                 db.SaveChanges();
                 MessageBox.Show("Cập nhật thông tin bảo hành thành công!", "Thông báo");
                 IsDetailPanelOpen = false;
-                LoadData();
+                _ = LoadData();
             }
             catch (Exception ex)
             {
@@ -160,7 +210,7 @@ namespace QuanLyHangHoa.ViewModels
                     db.WarrantyCoverages.Remove(coverage);
                     db.SaveChanges();
                     IsDetailPanelOpen = false;
-                    LoadData();
+                    _ = LoadData();
                 }
                 catch (Exception ex)
                 {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using QuanLyHangHoa.Data;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -10,7 +11,6 @@ using CommunityToolkit.Mvvm.Input;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
 using QuanLyHangHoa.Inventory;
-using Microsoft.EntityFrameworkCore;
 
 namespace QuanLyHangHoa.ViewModels
 {
@@ -100,11 +100,12 @@ namespace QuanLyHangHoa.ViewModels
         private readonly StockInService _stockInService;
         private readonly ProductUnitService _productUnitService;
         private readonly AppUser _currentUser;
-        private readonly Func<AppDbContext> _contextFactory;
         private int _skip = 0;
         private const int PageSize = 100;
         private bool _isLoading = false;
         private bool _isInitialized = false;
+        private bool _reloadRequested;
+        private readonly DebouncedAction _filterReload = new();
 
         [ObservableProperty] private ObservableCollection<Product> _availableProducts = new();
         [ObservableProperty] private ObservableCollection<Supplier> _availableSuppliers = new();
@@ -141,12 +142,12 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _selectedStatusFilter = "Tất cả";
         public ObservableCollection<string> StatusOptions { get; } = new() { "Tất cả", "Phiếu nháp", "Đã ghi sổ" };
 
-        partial void OnSearchDocumentCodeChanged(string value) { if (_isInitialized) LoadData(); }
-        partial void OnSearchSupplierNameChanged(string value) { if (_isInitialized) LoadData(); }
-        partial void OnFilterFromDateChanged(DateTime? value) { if (_isInitialized) LoadData(); }
-        partial void OnFilterToDateChanged(DateTime? value) { if (_isInitialized) LoadData(); }
-        partial void OnSelectedWarehouseFilterChanged(Warehouse? value) { if (_isInitialized) LoadData(); }
-        partial void OnSelectedStatusFilterChanged(string value) { if (_isInitialized) LoadData(); }
+        partial void OnSearchDocumentCodeChanged(string value) => ScheduleFilterReload();
+        partial void OnSearchSupplierNameChanged(string value) => ScheduleFilterReload();
+        partial void OnFilterFromDateChanged(DateTime? value) => ScheduleFilterReload();
+        partial void OnFilterToDateChanged(DateTime? value) => ScheduleFilterReload();
+        partial void OnSelectedWarehouseFilterChanged(Warehouse? value) => ScheduleFilterReload();
+        partial void OnSelectedStatusFilterChanged(string value) => ScheduleFilterReload();
 
         // Footer stats
         [ObservableProperty] private int _totalCount;
@@ -163,18 +164,10 @@ namespace QuanLyHangHoa.ViewModels
         {
             _currentUser = currentUser ?? new AppUser { Id = 1, Username = "System", RoleCode = "Quản trị viên" };
             var factory = contextFactory ?? (() => new QuanLyHangHoa.Data.AppDbContext());
-            _contextFactory = factory;
             _productService = new ProductService(factory);
             _stockInService = new StockInService(factory);
             _productUnitService = new ProductUnitService(factory);
             var refDataService = new ReferenceDataService(factory);
-
-            AvailableProducts = new ObservableCollection<Product>(_productService.GetAllProducts());
-            AvailableSuppliers = new ObservableCollection<Supplier>(refDataService.GetAllSuppliers());
-            AvailableWarehouses = new ObservableCollection<Warehouse>(refDataService.GetAllWarehouses());
-            
-            SelectedWarehouse = AvailableWarehouses.FirstOrDefault(w => w.IsDefault) ?? AvailableWarehouses.FirstOrDefault();
-            DocumentCode = $"IN-{DateTime.Now:yyyyMMddHHmmss}";
 
             Lines.CollectionChanged += (s, e) => 
             {
@@ -194,9 +187,33 @@ namespace QuanLyHangHoa.ViewModels
                 }
                 OnPropertyChanged(nameof(TotalAmount));
             };
-            
-            LoadData();
-            _isInitialized = true;
+
+            _ = InitializeAsync(refDataService);
+        }
+
+        private async Task InitializeAsync(ReferenceDataService refDataService)
+        {
+            try
+            {
+                var productsTask = Task.Run(() => _productService.GetAllProducts());
+                var suppliersTask = Task.Run(() => refDataService.GetAllSuppliers());
+                var warehousesTask = Task.Run(() => refDataService.GetAllWarehouses());
+
+                await Task.WhenAll(productsTask, suppliersTask, warehousesTask);
+
+                AvailableProducts = new ObservableCollection<Product>(await productsTask);
+                AvailableSuppliers = new ObservableCollection<Supplier>(await suppliersTask);
+                AvailableWarehouses = new ObservableCollection<Warehouse>(await warehousesTask);
+                SelectedWarehouse = AvailableWarehouses.FirstOrDefault(warehouse => warehouse.IsDefault)
+                    ?? AvailableWarehouses.FirstOrDefault();
+                DocumentCode = $"IN-{DateTime.Now:yyyyMMddHHmmss}";
+                LoadData();
+                _isInitialized = true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Không thể tải dữ liệu nhập kho: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void Line_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -207,9 +224,22 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
-        [RelayCommand]
+        private void ScheduleFilterReload()
+        {
+            if (_isInitialized)
+            {
+                _filterReload.Schedule(LoadData);
+            }
+        }
+
         private void LoadData()
         {
+            if (_isLoading)
+            {
+                _reloadRequested = true;
+                return;
+            }
+
             _ = LoadDataAsync(true);
         }
 
@@ -225,10 +255,22 @@ namespace QuanLyHangHoa.ViewModels
                     StockInList.Clear();
                 }
 
-                int? warehouseIdFilter = SelectedWarehouseFilter?.Id > 0 ? SelectedWarehouseFilter.Id : null;
+                var code = SearchDocumentCode;
+                var supplierName = SearchSupplierName;
+                var fromDate = FilterFromDate;
+                var toDate = FilterToDate;
+                int? warehouseId = SelectedWarehouseFilter?.Id > 0 ? SelectedWarehouseFilter.Id : null;
+                var status = SelectedStatusFilter;
+                var skip = _skip;
 
-                var data = await Task.Run(() => _stockInService.GetStockInPaged(
-                    SearchDocumentCode, SearchSupplierName, FilterFromDate, FilterToDate, warehouseIdFilter, SelectedStatusFilter, _skip, PageSize));
+                var dataTask = Task.Run(() => _stockInService.GetStockInPaged(
+                    code, supplierName, fromDate, toDate, warehouseId, status, skip, PageSize));
+                var statsTask = Task.Run(() => _stockInService.GetStockInStats(
+                    code, supplierName, fromDate, toDate, warehouseId, status));
+
+                await Task.WhenAll(dataTask, statsTask);
+                var data = await dataTask;
+                var stats = await statsTask;
 
                 foreach (var item in data)
                 {
@@ -236,24 +278,9 @@ namespace QuanLyHangHoa.ViewModels
                 }
                 _skip += data.Count;
 
-                // Thống kê đếm bất đồng bộ từ database
-                await Task.Run(() =>
-                {
-                    var count = _stockInService.GetStockInCount(SearchDocumentCode, SearchSupplierName, FilterFromDate, FilterToDate, warehouseIdFilter, SelectedStatusFilter);
-                    using var db = _contextFactory();
-                    var query = db.StockIns.AsNoTracking().AsQueryable();
-                    query = ApplyStockInFiltersStatic(query, SearchDocumentCode, SearchSupplierName, FilterFromDate, FilterToDate, warehouseIdFilter, SelectedStatusFilter);
-
-                    var draft = query.Count(s => s.Status == DocumentStatus.Draft || s.Status == "nháp");
-                    var posted = query.Count(s => s.Status == DocumentStatus.Posted || s.Status == "đã ghi sổ");
-
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        TotalCount = count;
-                        DraftCount = draft;
-                        PostedCount = posted;
-                    });
-                });
+                TotalCount = stats.TotalCount;
+                DraftCount = stats.DraftCount;
+                PostedCount = stats.PostedCount;
             }
             catch (Exception)
             {
@@ -261,6 +288,11 @@ namespace QuanLyHangHoa.ViewModels
             finally
             {
                 _isLoading = false;
+                if (_reloadRequested)
+                {
+                    _reloadRequested = false;
+                    LoadData();
+                }
             }
         }
 
@@ -268,52 +300,6 @@ namespace QuanLyHangHoa.ViewModels
         private async Task LoadMore()
         {
             await LoadDataAsync(false);
-        }
-
-        private static IQueryable<StockIn> ApplyStockInFiltersStatic(
-            IQueryable<StockIn> query,
-            string code,
-            string supplierName,
-            DateTime? startDate,
-            DateTime? endDate,
-            int? warehouseId,
-            string status)
-        {
-            if (!string.IsNullOrWhiteSpace(code))
-            {
-                var term = code.Trim().ToLower();
-                query = query.Where(s => s.DocumentCode.ToLower().Contains(term));
-            }
-
-            if (!string.IsNullOrWhiteSpace(supplierName))
-            {
-                var term = supplierName.Trim().ToLower();
-                query = query.Where(s => s.Supplier != null && s.Supplier.DisplayName.ToLower().Contains(term));
-            }
-
-            if (startDate.HasValue)
-            {
-                query = query.Where(s => s.ImportDate >= startDate.Value.Date);
-            }
-
-            if (endDate.HasValue)
-            {
-                var endOfDay = endDate.Value.Date.AddDays(1).AddTicks(-1);
-                query = query.Where(s => s.ImportDate <= endOfDay);
-            }
-
-            if (warehouseId.HasValue && warehouseId.Value > 0)
-            {
-                query = query.Where(s => s.WarehouseId == warehouseId.Value);
-            }
-
-            if (!string.IsNullOrEmpty(status) && status != "Tất cả")
-            {
-                string targetStatus = status == "Đã ghi sổ" ? DocumentStatus.Posted : DocumentStatus.Draft;
-                query = query.Where(s => s.Status == targetStatus || (targetStatus == DocumentStatus.Draft && s.Status == "nháp") || (targetStatus == DocumentStatus.Posted && s.Status == "đã ghi sổ"));
-            }
-
-            return query;
         }
 
         [RelayCommand]
@@ -380,7 +366,7 @@ namespace QuanLyHangHoa.ViewModels
             FilterToDate = null;
             SelectedWarehouseFilter = null;
             SelectedStatusFilter = "Tất cả";
-            LoadData();
+            ScheduleFilterReload();
         }
 
         [RelayCommand]
@@ -723,4 +709,3 @@ namespace QuanLyHangHoa.ViewModels
         }
     }
 }
-

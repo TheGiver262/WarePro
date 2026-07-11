@@ -2,6 +2,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -19,6 +20,9 @@ namespace QuanLyHangHoa.ViewModels
         private const int PageSize = 100;
         private bool _isLoading = false;
         private bool _isInitialized = false;
+        private bool _isUpdatingFilters;
+        private bool _reloadRequested;
+        private CancellationTokenSource? _filterDebounceCts;
 
         [ObservableProperty] private ObservableCollection<Product> _inventoryItems = new();
         [ObservableProperty] private string _searchCode = string.Empty;
@@ -53,10 +57,10 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void ToggleAdvancedFilter() => IsAdvancedFilterOpen = !IsAdvancedFilterOpen;
 
-        partial void OnSearchCodeChanged(string value) { if (_isInitialized) ApplyFilters(); }
-        partial void OnSearchNameChanged(string value) { if (_isInitialized) ApplyFilters(); }
-        partial void OnSearchStatusChanged(string value) { if (_isInitialized) ApplyFilters(); }
-        partial void OnSelectedCategoryFilterChanged(Category? value) { if (_isInitialized) ApplyFilters(); }
+        partial void OnSearchCodeChanged(string value) => ScheduleFilterReload();
+        partial void OnSearchNameChanged(string value) => ScheduleFilterReload();
+        partial void OnSearchStatusChanged(string value) => ScheduleFilterReload();
+        partial void OnSelectedCategoryFilterChanged(Category? value) => ScheduleFilterReload();
 
         private void LoadData()
         {
@@ -65,7 +69,38 @@ namespace QuanLyHangHoa.ViewModels
 
         private void ApplyFilters()
         {
+            if (_isLoading)
+            {
+                _reloadRequested = true;
+                return;
+            }
+
             _ = ApplyFiltersAsync(true);
+        }
+
+        private void ScheduleFilterReload()
+        {
+            if (!_isInitialized || _isUpdatingFilters)
+            {
+                return;
+            }
+
+            _filterDebounceCts?.Cancel();
+            _filterDebounceCts?.Dispose();
+            _filterDebounceCts = new CancellationTokenSource();
+            _ = ReloadAfterDelayAsync(_filterDebounceCts.Token);
+        }
+
+        private async Task ReloadAfterDelayAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                await Task.Delay(300, cancellationToken);
+                ApplyFilters();
+            }
+            catch (OperationCanceledException)
+            {
+            }
         }
 
         private async Task ApplyFiltersAsync(bool reset)
@@ -80,10 +115,20 @@ namespace QuanLyHangHoa.ViewModels
                     InventoryItems.Clear();
                 }
 
-                int? catId = SelectedCategoryFilter?.Id > 0 ? SelectedCategoryFilter.Id : null;
+                var searchCode = SearchCode;
+                var searchName = SearchName;
+                int? categoryId = SelectedCategoryFilter?.Id > 0 ? SelectedCategoryFilter.Id : null;
+                var searchStatus = SearchStatus;
+                var skip = _skip;
 
-                var list = await Task.Run(() => _productService.GetInventoryProductsPaged(
-                    SearchCode, SearchName, catId, SearchStatus, _skip, PageSize));
+                var listTask = Task.Run(() => _productService.GetInventoryProductsPaged(
+                    searchCode, searchName, categoryId, searchStatus, skip, PageSize));
+                var statsTask = Task.Run(() => _productService.GetInventoryStats(
+                    searchCode, searchName, categoryId, searchStatus));
+
+                await Task.WhenAll(listTask, statsTask);
+                var list = await listTask;
+                var stats = await statsTask;
 
                 foreach (var p in list)
                 {
@@ -91,17 +136,8 @@ namespace QuanLyHangHoa.ViewModels
                 }
                 _skip += list.Count;
 
-                // Tính toán thống kê động ngầm qua task chạy nền
-                await Task.Run(() =>
-                {
-                    var stats = _productService.GetInventoryStats(
-                        SearchCode, SearchName, catId, SearchStatus);
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        LowStockCount = stats.lowStockCount;
-                        TotalInventoryValue = stats.totalValue;
-                    });
-                });
+                LowStockCount = stats.lowStockCount;
+                TotalInventoryValue = stats.totalValue;
             }
             catch (Exception)
             {
@@ -110,6 +146,11 @@ namespace QuanLyHangHoa.ViewModels
             finally
             {
                 _isLoading = false;
+                if (_reloadRequested)
+                {
+                    _reloadRequested = false;
+                    ApplyFilters();
+                }
             }
         }
 
@@ -128,10 +169,19 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void Refresh()
         {
-            SearchCode = string.Empty;
-            SearchName = string.Empty;
-            SearchStatus = "Tất cả";
-            SelectedCategoryFilter = Categories.FirstOrDefault();
+            _isUpdatingFilters = true;
+            try
+            {
+                SearchCode = string.Empty;
+                SearchName = string.Empty;
+                SearchStatus = "Tất cả";
+                SelectedCategoryFilter = Categories.FirstOrDefault();
+            }
+            finally
+            {
+                _isUpdatingFilters = false;
+            }
+
             ApplyFilters();
         }
 

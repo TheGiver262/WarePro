@@ -3,6 +3,7 @@ using QuanLyHangHoa.Data;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -106,10 +107,12 @@ namespace QuanLyHangHoa.ViewModels
         private const int PageSize = 100;
         private bool _isLoading = false;
         private bool _isInitialized = false;
+        private bool _reloadRequested;
+        private readonly DebouncedAction _filterReload = new();
 
         [ObservableProperty] private ObservableCollection<StockOut> _stockOutList = new();
-        [ObservableProperty] private ObservableCollection<Product> _availableProducts;
-        [ObservableProperty] private ObservableCollection<Customer> _availableCustomers;
+        [ObservableProperty] private ObservableCollection<Product> _availableProducts = new();
+        [ObservableProperty] private ObservableCollection<Customer> _availableCustomers = new();
         [ObservableProperty] private ObservableCollection<StockOutLineEditor> _lines = new();
         
         [ObservableProperty] private bool _isListViewVisible = true;
@@ -124,12 +127,12 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private ObservableCollection<Warehouse> _availableWarehouses = new();
         public ObservableCollection<string> StatusOptions { get; } = new() { "Tất cả", "Phiếu nháp", "Đã ghi sổ" };
 
-        partial void OnSearchDocumentCodeChanged(string value) { if (_isInitialized) LoadData(); }
-        partial void OnSearchCustomerNameChanged(string value) { if (_isInitialized) LoadData(); }
-        partial void OnFilterFromDateChanged(DateTime? value) { if (_isInitialized) LoadData(); }
-        partial void OnFilterToDateChanged(DateTime? value) { if (_isInitialized) LoadData(); }
-        partial void OnSelectedWarehouseFilterChanged(Warehouse? value) { if (_isInitialized) LoadData(); }
-        partial void OnSelectedStatusFilterChanged(string value) { if (_isInitialized) LoadData(); }
+        partial void OnSearchDocumentCodeChanged(string value) => ScheduleFilterReload();
+        partial void OnSearchCustomerNameChanged(string value) => ScheduleFilterReload();
+        partial void OnFilterFromDateChanged(DateTime? value) => ScheduleFilterReload();
+        partial void OnFilterToDateChanged(DateTime? value) => ScheduleFilterReload();
+        partial void OnSelectedWarehouseFilterChanged(Warehouse? value) => ScheduleFilterReload();
+        partial void OnSelectedStatusFilterChanged(string value) => ScheduleFilterReload();
         
         // Footer Stats
         [ObservableProperty] private int _totalCount;
@@ -172,15 +175,6 @@ namespace QuanLyHangHoa.ViewModels
             _stockOutService = new StockOutService(_contextFactory);
             _customerService = new CustomerService(_contextFactory);
             _productUnitService = new ProductUnitService(_contextFactory);
-
-
-            AvailableProducts = new ObservableCollection<Product>(_productService.GetAllProducts());
-            AvailableCustomers = new ObservableCollection<Customer>(_customerService.GetAll());
-            
-            using (var db = _contextFactory())
-            {
-                AvailableWarehouses = new ObservableCollection<Warehouse>(db.Warehouses.ToList());
-            }
             
             Lines.CollectionChanged += (s, e) => 
             {
@@ -200,8 +194,34 @@ namespace QuanLyHangHoa.ViewModels
                 }
                 RecalculateTotal();
             };
-            LoadData();
-            _isInitialized = true;
+
+            _ = InitializeAsync();
+        }
+
+        private async Task InitializeAsync()
+        {
+            try
+            {
+                var productsTask = Task.Run(() => _productService.GetAllProducts());
+                var customersTask = Task.Run(() => _customerService.GetAll());
+                var warehousesTask = Task.Run(() =>
+                {
+                    using var db = _contextFactory();
+                    return db.Warehouses.AsNoTracking().ToList();
+                });
+
+                await Task.WhenAll(productsTask, customersTask, warehousesTask);
+
+                AvailableProducts = new ObservableCollection<Product>(await productsTask);
+                AvailableCustomers = new ObservableCollection<Customer>(await customersTask);
+                AvailableWarehouses = new ObservableCollection<Warehouse>(await warehousesTask);
+                LoadData();
+                _isInitialized = true;
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Không thể tải dữ liệu xuất kho: {ex.Message}";
+            }
         }
 
         private void Line_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -212,9 +232,22 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
-        [RelayCommand]
+        private void ScheduleFilterReload()
+        {
+            if (_isInitialized)
+            {
+                _filterReload.Schedule(LoadData);
+            }
+        }
+
         private void LoadData()
         {
+            if (_isLoading)
+            {
+                _reloadRequested = true;
+                return;
+            }
+
             _ = LoadDataAsync(true);
         }
 
@@ -230,10 +263,22 @@ namespace QuanLyHangHoa.ViewModels
                     StockOutList.Clear();
                 }
 
-                int? warehouseIdFilter = SelectedWarehouseFilter?.Id > 0 ? SelectedWarehouseFilter.Id : null;
+                var code = SearchDocumentCode;
+                var customerName = SearchCustomerName;
+                var fromDate = FilterFromDate;
+                var toDate = FilterToDate;
+                int? warehouseId = SelectedWarehouseFilter?.Id > 0 ? SelectedWarehouseFilter.Id : null;
+                var status = SelectedStatusFilter;
+                var skip = _skip;
 
-                var data = await Task.Run(() => _stockOutService.GetStockOutPaged(
-                    SearchDocumentCode, SearchCustomerName, FilterFromDate, FilterToDate, warehouseIdFilter, SelectedStatusFilter, _skip, PageSize));
+                var dataTask = Task.Run(() => _stockOutService.GetStockOutPaged(
+                    code, customerName, fromDate, toDate, warehouseId, status, skip, PageSize));
+                var statsTask = Task.Run(() => _stockOutService.GetStockOutStats(
+                    code, customerName, fromDate, toDate, warehouseId, status));
+
+                await Task.WhenAll(dataTask, statsTask);
+                var data = await dataTask;
+                var stats = await statsTask;
 
                 foreach (var item in data)
                 {
@@ -241,24 +286,9 @@ namespace QuanLyHangHoa.ViewModels
                 }
                 _skip += data.Count;
 
-                // Thống kê đếm bất đồng bộ từ database
-                await Task.Run(() =>
-                {
-                    var count = _stockOutService.GetStockOutCount(SearchDocumentCode, SearchCustomerName, FilterFromDate, FilterToDate, warehouseIdFilter, SelectedStatusFilter);
-                    using var db = _contextFactory();
-                    var query = db.StockOuts.AsNoTracking().AsQueryable();
-                    query = ApplyStockOutFiltersStatic(query, SearchDocumentCode, SearchCustomerName, FilterFromDate, FilterToDate, warehouseIdFilter, SelectedStatusFilter);
-
-                    var draft = query.Count(s => s.Status == DocumentStatus.Draft || s.Status == "nháp");
-                    var posted = query.Count(s => s.Status == DocumentStatus.Posted || s.Status == "đã ghi sổ");
-
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        TotalCount = count;
-                        DraftCount = draft;
-                        PostedCount = posted;
-                    });
-                });
+                TotalCount = stats.TotalCount;
+                DraftCount = stats.DraftCount;
+                PostedCount = stats.PostedCount;
             }
             catch (Exception)
             {
@@ -266,6 +296,11 @@ namespace QuanLyHangHoa.ViewModels
             finally
             {
                 _isLoading = false;
+                if (_reloadRequested)
+                {
+                    _reloadRequested = false;
+                    LoadData();
+                }
             }
         }
 
@@ -273,52 +308,6 @@ namespace QuanLyHangHoa.ViewModels
         private async Task LoadMore()
         {
             await LoadDataAsync(false);
-        }
-
-        private static IQueryable<StockOut> ApplyStockOutFiltersStatic(
-            IQueryable<StockOut> query,
-            string code,
-            string customerName,
-            DateTime? startDate,
-            DateTime? endDate,
-            int? warehouseId,
-            string status)
-        {
-            if (!string.IsNullOrWhiteSpace(code))
-            {
-                var term = code.Trim().ToLower();
-                query = query.Where(s => s.DocumentCode.ToLower().Contains(term));
-            }
-
-            if (!string.IsNullOrWhiteSpace(customerName))
-            {
-                var term = customerName.Trim().ToLower();
-                query = query.Where(s => s.Customer != null && s.Customer.DisplayName.ToLower().Contains(term));
-            }
-
-            if (startDate.HasValue)
-            {
-                query = query.Where(s => s.ExportDate >= startDate.Value.Date);
-            }
-
-            if (endDate.HasValue)
-            {
-                var endOfDay = endDate.Value.Date.AddDays(1).AddTicks(-1);
-                query = query.Where(s => s.ExportDate <= endOfDay);
-            }
-
-            if (warehouseId.HasValue && warehouseId.Value > 0)
-            {
-                query = query.Where(s => s.WarehouseId == warehouseId.Value);
-            }
-
-            if (!string.IsNullOrEmpty(status) && status != "Tất cả")
-            {
-                string dbStatus = status == "Đã ghi sổ" ? DocumentStatus.Posted : DocumentStatus.Draft;
-                query = query.Where(s => s.Status == dbStatus || (dbStatus == DocumentStatus.Draft && s.Status == "nháp") || (dbStatus == DocumentStatus.Posted && s.Status == "đã ghi sổ"));
-            }
-
-            return query;
         }
 
         [RelayCommand]
@@ -330,7 +319,7 @@ namespace QuanLyHangHoa.ViewModels
             FilterToDate = null;
             SelectedWarehouseFilter = null;
             SelectedStatusFilter = "Tất cả";
-            LoadData();
+            ScheduleFilterReload();
         }
 
         [RelayCommand]

@@ -16,13 +16,17 @@ public partial class AppDbContext : DbContext
     {
     }
 
+    public static string GetConnectionString()
+    {
+        return Environment.GetEnvironmentVariable("WAREPRO_CONNECTION_STRING")
+            ?? "Server=.\\SQLEXPRESS;Database=ProductManagementDb;Trusted_Connection=True;TrustServerCertificate=True;";
+    }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
         {
-            var connectionString = Environment.GetEnvironmentVariable("WAREPRO_CONNECTION_STRING")
-                ?? "Server=.\\SQLEXPRESS;Database=ProductManagementDb;Trusted_Connection=True;TrustServerCertificate=True;";
-            optionsBuilder.UseSqlServer(connectionString);
+            optionsBuilder.UseSqlServer(GetConnectionString());
         }
     }
 
@@ -222,6 +226,9 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => e.SerialNumber, "UX_ProductSerial_SerialNumber").IsUnique();
             entity.HasIndex(e => e.CurrentStatus, "IX_ProductSerial_CurrentStatus");
             entity.HasIndex(e => e.ProductId, "IX_ProductSerial_ProductId");
+            entity.HasIndex(
+                e => new { e.ProductId, e.CurrentWarehouseId, e.CurrentStatus },
+                "IX_ProductSerial_Product_Warehouse_Status");
 
             entity.Property(e => e.CurrentStatus).HasMaxLength(50);
             entity.Property(e => e.Note).IsRequired(false);
@@ -283,6 +290,9 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.InvoiceCode, "UX_PurchaseInvoice_InvoiceCode").IsUnique();
             entity.HasIndex(e => e.InvoiceDate, "IX_PurchaseInvoice_InvoiceDate");
+            entity.HasIndex(
+                e => new { e.PaymentStatus, e.InvoiceDate },
+                "IX_PurchaseInvoice_PaymentStatus_InvoiceDate");
 
             entity.Property(e => e.GrandTotal).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.CreatedAt).HasPrecision(0);
@@ -353,6 +363,9 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.InvoiceCode, "UX_SalesInvoice_InvoiceCode").IsUnique();
             entity.HasIndex(e => e.InvoiceDate, "IX_SalesInvoice_InvoiceDate");
+            entity.HasIndex(
+                e => new { e.PaymentStatus, e.InvoiceDate },
+                "IX_SalesInvoice_PaymentStatus_InvoiceDate");
 
             entity.Property(e => e.GrandTotal).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.CreatedAt).HasPrecision(0);
@@ -567,6 +580,8 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.DocumentCode, "UX_StockIn_DocumentCode").IsUnique();
             entity.HasIndex(e => e.ImportDate, "IX_StockIn_ImportDate");
+            entity.HasIndex(e => e.CreatedAt, "IX_StockIn_CreatedAt");
+            entity.HasIndex(e => new { e.Status, e.ImportDate }, "IX_StockIn_Status_ImportDate");
 
             entity.Property(e => e.ApprovedAt).HasPrecision(0);
             entity.Property(e => e.CreatedAt)
@@ -680,6 +695,8 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.DocumentCode, "UX_StockOut_DocumentCode").IsUnique();
             entity.HasIndex(e => e.ExportDate, "IX_StockOut_ExportDate");
+            entity.HasIndex(e => e.CreatedAt, "IX_StockOut_CreatedAt");
+            entity.HasIndex(e => new { e.Status, e.ExportDate }, "IX_StockOut_Status_ExportDate");
 
             entity.Property(e => e.ApprovedAt).HasPrecision(0);
             entity.Property(e => e.CreatedAt)
@@ -863,7 +880,8 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.ClaimCode, "UX_WarrantyClaim_ClaimCode").IsUnique();
 
-            entity.HasIndex(e => e.ProductSerialId, "UX_WarrantyClaim_OpenClaim_PerSerial");
+            entity.HasIndex(e => e.ProductSerialId, "IX_WarrantyClaim_ProductSerialId");
+            entity.HasIndex(e => e.Status, "IX_WarrantyClaim_Status");
 
             entity.Property(e => e.ClaimCode).HasMaxLength(50);
             entity.Property(e => e.ClosedDate).HasPrecision(0);

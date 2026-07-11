@@ -70,62 +70,82 @@ namespace QuanLyHangHoa.Services
 
         public async Task<DashboardStats> GetStatsAsync()
         {
-            using var context = _contextFactory();
             var now = DateTime.Now;
             var startOfMonth = new DateTime(now.Year, now.Month, 1);
             var startOfYear = new DateTime(now.Year, 1, 1);
 
+            var revenueExpenseTask = GetRevenueAndExpenseChartDataAsync(6);
+            var inventoryStructureTask = GetInventoryStructureChartDataAsync();
+            var topSellingTask = GetTopSellingProductsAsync(5);
+            var stockMovementTask = GetStockMovementTrendAsync(7);
+
+            using var context = _contextFactory();
             var stats = new DashboardStats();
 
             // Inventory
-            stats.TotalInventoryCount = (int)await context.StockBalances.SumAsync(sb => sb.OnHandQuantity);
+            stats.TotalInventoryCount = (int)(await context.StockBalances
+                .AsNoTracking()
+                .SumAsync(sb => (decimal?)sb.OnHandQuantity) ?? 0);
 
             // Stock In
-            stats.StockInMonthCount = await context.StockIns.CountAsync(s => s.CreatedAt >= startOfMonth);
+            stats.StockInMonthCount = await context.StockIns
+                .AsNoTracking()
+                .CountAsync(s => s.CreatedAt >= startOfMonth);
 
             // Stock Out
-            stats.StockOutMonthCount = await context.StockOuts.CountAsync(s => s.CreatedAt >= startOfMonth);
+            stats.StockOutMonthCount = await context.StockOuts
+                .AsNoTracking()
+                .CountAsync(s => s.CreatedAt >= startOfMonth);
 
             // Sales & Revenue
-            var salesYear = await context.SalesInvoices
+            var salesSummary = await context.SalesInvoices
+                .AsNoTracking()
                 .Where(s => s.InvoiceDate >= startOfYear)
-                .Select(s => new { s.InvoiceDate, s.GrandTotal })
-                .ToListAsync();
+                .GroupBy(_ => 1)
+                .Select(group => new
+                {
+                    YearCount = group.Count(),
+                    YearRevenue = group.Sum(invoice => invoice.GrandTotal),
+                    MonthCount = group.Count(invoice => invoice.InvoiceDate >= startOfMonth),
+                    MonthRevenue = group
+                        .Where(invoice => invoice.InvoiceDate >= startOfMonth)
+                        .Sum(invoice => (decimal?)invoice.GrandTotal) ?? 0
+                })
+                .SingleOrDefaultAsync();
 
-            stats.SalesInvoiceYearCount = salesYear.Count;
-            stats.RevenueYear = salesYear.Sum(s => s.GrandTotal);
-
-            var salesMonth = salesYear.Where(s => s.InvoiceDate >= startOfMonth).ToList();
-            stats.SalesInvoiceMonthCount = salesMonth.Count;
-            stats.RevenueMonth = salesMonth.Sum(s => s.GrandTotal);
+            if (salesSummary != null)
+            {
+                stats.SalesInvoiceYearCount = salesSummary.YearCount;
+                stats.RevenueYear = salesSummary.YearRevenue;
+                stats.SalesInvoiceMonthCount = salesSummary.MonthCount;
+                stats.RevenueMonth = salesSummary.MonthRevenue;
+            }
 
             // Unpaid Invoices
             stats.UnpaidSalesInvoiceCount = await context.SalesInvoices
+                .AsNoTracking()
                 .CountAsync(s => s.PaymentStatus == "Unpaid" || s.PaymentStatus == "Partial" || s.PaymentStatus == "Overdue");
             stats.UnpaidPurchaseInvoiceCount = await context.PurchaseInvoices
+                .AsNoTracking()
                 .CountAsync(p => p.PaymentStatus == "Unpaid" || p.PaymentStatus == "Partial" || p.PaymentStatus == "Overdue");
 
             // Warranty
             stats.WarrantyActiveCount = await context.WarrantyClaims
+                .AsNoTracking()
                 .CountAsync(w => w.Status == "Active" || w.Status == "Processing");
 
             // Recent Activity
-            var rawStockIns = await context.StockIns
-                .OrderByDescending(s => s.CreatedAt)
-                .Take(5)
+            var combinedActivities = await context.StockIns
+                .AsNoTracking()
                 .Select(s => new { Type = "In", s.DocumentCode, s.CreatedAt })
-                .ToListAsync();
-
-            var rawStockOuts = await context.StockOuts
-                .OrderByDescending(s => s.CreatedAt)
-                .Take(5)
-                .Select(s => new { Type = "Out", s.DocumentCode, s.CreatedAt })
-                .ToListAsync();
-
-            var combinedActivities = rawStockIns
-                .Concat(rawStockOuts)
+                .Concat(context.StockOuts
+                    .AsNoTracking()
+                    .Select(s => new { Type = "Out", s.DocumentCode, s.CreatedAt }))
                 .OrderByDescending(a => a.CreatedAt)
                 .Take(5)
+                .ToListAsync();
+
+            var activities = combinedActivities
                 .Select(a => new RecentActivity
                 {
                     Title = (a.Type == "In" ? "Nhập kho: " : "Xuất kho: ") + a.DocumentCode,
@@ -135,13 +155,7 @@ namespace QuanLyHangHoa.Services
                 })
                 .ToList();
 
-            stats.Activities = combinedActivities;
-
-            // Load chart data concurrently
-            var revenueExpenseTask = GetRevenueAndExpenseChartDataAsync(6); // 6 months
-            var inventoryStructureTask = GetInventoryStructureChartDataAsync();
-            var topSellingTask = GetTopSellingProductsAsync(5); // Top 5
-            var stockMovementTask = GetStockMovementTrendAsync(7); // 7 days
+            stats.Activities = activities;
 
             await Task.WhenAll(revenueExpenseTask, inventoryStructureTask, topSellingTask, stockMovementTask);
 
@@ -160,27 +174,46 @@ namespace QuanLyHangHoa.Services
             var startDate = new DateTime(now.Year, now.Month, 1).AddMonths(-months + 1);
 
             var sales = await context.SalesInvoices
+                .AsNoTracking()
                 .Where(s => s.InvoiceDate >= startDate)
-                .Select(s => new { s.InvoiceDate.Year, s.InvoiceDate.Month, s.GrandTotal })
+                .GroupBy(s => new { s.InvoiceDate.Year, s.InvoiceDate.Month })
+                .Select(group => new
+                {
+                    group.Key.Year,
+                    group.Key.Month,
+                    Total = group.Sum(invoice => invoice.GrandTotal)
+                })
                 .ToListAsync();
 
             var purchases = await context.PurchaseInvoices
+                .AsNoTracking()
                 .Where(p => p.InvoiceDate >= startDate)
-                .Select(p => new { p.InvoiceDate.Year, p.InvoiceDate.Month, p.GrandTotal })
+                .GroupBy(p => new { p.InvoiceDate.Year, p.InvoiceDate.Month })
+                .Select(group => new
+                {
+                    group.Key.Year,
+                    group.Key.Month,
+                    Total = group.Sum(invoice => invoice.GrandTotal)
+                })
                 .ToListAsync();
 
-            var result = new System.Collections.Generic.List<RevenueExpenseData>();
+            var salesByMonth = sales.ToDictionary(
+                item => (item.Year, item.Month),
+                item => item.Total);
+            var purchasesByMonth = purchases.ToDictionary(
+                item => (item.Year, item.Month),
+                item => item.Total);
+
+            var result = new System.Collections.Generic.List<RevenueExpenseData>(months);
             for (int i = 0; i < months; i++)
             {
                 var date = startDate.AddMonths(i);
-                var monthStr = date.ToString("MM/yyyy");
-
-                var monthlySales = sales.Where(s => s.Year == date.Year && s.Month == date.Month).Sum(s => s.GrandTotal);
-                var monthlyPurchases = purchases.Where(p => p.Year == date.Year && p.Month == date.Month).Sum(p => p.GrandTotal);
+                salesByMonth.TryGetValue((date.Year, date.Month), out var monthlySales);
+                purchasesByMonth.TryGetValue((date.Year, date.Month), out var monthlyPurchases);
 
                 result.Add(new RevenueExpenseData
                 {
-                    Month = monthStr,
+                    Month = date.ToString("MM/yyyy"),
                     Revenue = monthlySales,
                     Expense = monthlyPurchases
                 });
@@ -192,29 +225,24 @@ namespace QuanLyHangHoa.Services
         public async Task<System.Collections.Generic.List<InventoryStructureData>> GetInventoryStructureChartDataAsync()
         {
             using var context = _contextFactory();
-            var balances = await context.StockBalances
-                .Include(sb => sb.Product)
-                    .ThenInclude(p => p.Category)
-                .ToListAsync();
-
-            var grouped = balances
-                .GroupBy(sb => sb.Product.CategoryName)
-                .Select(g => new InventoryStructureData
+            return await context.StockBalances
+                .AsNoTracking()
+                .GroupBy(balance => balance.Product.Category.DisplayName)
+                .Select(group => new InventoryStructureData
                 {
-                    CategoryName = g.Key,
-                    TotalValue = g.Sum(sb => sb.OnHandQuantity * (sb.Product.CostPrice ?? sb.Product.DefaultPrice))
+                    CategoryName = group.Key,
+                    TotalValue = group.Sum(balance =>
+                        balance.OnHandQuantity * (balance.Product.CostPrice ?? balance.Product.DefaultPrice))
                 })
-                .OrderByDescending(x => x.TotalValue)
-                .ToList();
-
-            return grouped;
+                .OrderByDescending(item => item.TotalValue)
+                .ToListAsync();
         }
 
         public async Task<System.Collections.Generic.List<TopSellingProductData>> GetTopSellingProductsAsync(int limit)
         {
             using var context = _contextFactory();
             var grouped = await context.SalesInvoiceLines
-                .Include(l => l.Product)
+                .AsNoTracking()
                 .GroupBy(l => l.Product.DisplayName)
                 .Select(g => new TopSellingProductData
                 {
@@ -234,26 +262,34 @@ namespace QuanLyHangHoa.Services
             var startDate = DateTime.Today.AddDays(-days + 1);
 
             var stockIns = await context.StockIns
+                .AsNoTracking()
                 .Where(s => s.CreatedAt >= startDate)
-                .Select(s => s.CreatedAt.Date)
+                .GroupBy(s => s.CreatedAt.Date)
+                .Select(group => new { Date = group.Key, Count = group.Count() })
                 .ToListAsync();
 
             var stockOuts = await context.StockOuts
+                .AsNoTracking()
                 .Where(s => s.CreatedAt >= startDate)
-                .Select(s => s.CreatedAt.Date)
+                .GroupBy(s => s.CreatedAt.Date)
+                .Select(group => new { Date = group.Key, Count = group.Count() })
                 .ToListAsync();
 
-            var result = new System.Collections.Generic.List<StockMovementData>();
+            var stockInsByDate = stockIns.ToDictionary(item => item.Date, item => item.Count);
+            var stockOutsByDate = stockOuts.ToDictionary(item => item.Date, item => item.Count);
+
+            var result = new System.Collections.Generic.List<StockMovementData>(days);
             for (int i = 0; i < days; i++)
             {
                 var date = startDate.AddDays(i);
-                var dateStr = date.ToString("dd/MM");
+                stockInsByDate.TryGetValue(date, out var stockInCount);
+                stockOutsByDate.TryGetValue(date, out var stockOutCount);
 
                 result.Add(new StockMovementData
                 {
-                    Date = dateStr,
-                    StockInCount = stockIns.Count(d => d == date),
-                    StockOutCount = stockOuts.Count(d => d == date)
+                    Date = date.ToString("dd/MM"),
+                    StockInCount = stockInCount,
+                    StockOutCount = stockOutCount
                 });
             }
 

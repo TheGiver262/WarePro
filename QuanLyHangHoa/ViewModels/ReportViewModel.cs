@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -19,6 +21,9 @@ namespace QuanLyHangHoa.ViewModels
     {
         private readonly Func<AppDbContext> _contextFactory;
         private readonly ReportTraceService _traceService;
+        private CancellationTokenSource? _refreshCts;
+        private CancellationTokenSource? _searchDebounceCts;
+        private bool _isInitialized;
         // --- CHUNG ---
         [ObservableProperty] private DateTime _fromDate = DateTime.Today.AddDays(-30);
         [ObservableProperty] private DateTime _toDate = DateTime.Today;
@@ -62,36 +67,78 @@ namespace QuanLyHangHoa.ViewModels
         {
             _contextFactory = contextFactory;
             _traceService = new ReportTraceService(contextFactory);
-            LoadFilterData();
-            Refresh();
+            _ = InitializeAsync();
         }
 
-        // Tự động tải lại dữ liệu khi người dùng chuyển Tab
+        private async Task InitializeAsync()
+        {
+            await LoadFilterDataAsync();
+            _isInitialized = true;
+            await Refresh();
+        }
+
         partial void OnActiveTabIndexChanged(int value)
         {
-            Refresh();
+            if (_isInitialized)
+            {
+                _ = Refresh();
+            }
         }
 
-        partial void OnSelectedCategoryChanged(Category? value) => Refresh();
-        partial void OnSearchProductTextChanged(string value) => Refresh();
+        partial void OnSelectedCategoryChanged(Category? value)
+        {
+            if (_isInitialized)
+            {
+                _ = Refresh();
+            }
+        }
 
-        // Tải danh sách bộ lọc ban đầu (Sản phẩm & Danh mục)
-        private void LoadFilterData()
+        partial void OnSearchProductTextChanged(string value)
+        {
+            if (!_isInitialized)
+            {
+                return;
+            }
+
+            _searchDebounceCts?.Cancel();
+            _searchDebounceCts?.Dispose();
+            _searchDebounceCts = new CancellationTokenSource();
+            _ = RefreshAfterDelayAsync(_searchDebounceCts.Token);
+        }
+
+        private async Task RefreshAfterDelayAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                await Task.Delay(300, cancellationToken);
+                await Refresh();
+            }
+            catch (OperationCanceledException)
+            {
+            }
+        }
+
+        private async Task LoadFilterDataAsync()
         {
             try
             {
                 using var db = _contextFactory();
-                var activeCategories = db.Categories.Where(c => c.IsActive).OrderBy(c => c.DisplayName).ToList();
+                var activeCategories = await db.Categories
+                    .AsNoTracking()
+                    .Where(category => category.IsActive)
+                    .OrderBy(category => category.DisplayName)
+                    .ToListAsync();
                 Categories = new ObservableCollection<Category>(activeCategories);
                 Categories.Insert(0, new Category { Id = 0, DisplayName = "Tất cả danh mục" });
                 SelectedCategory = Categories.FirstOrDefault();
 
-                var activeProducts = db.Products.Where(p => p.IsActive).OrderBy(p => p.DisplayName).ToList();
+                var activeProducts = await db.Products
+                    .AsNoTracking()
+                    .Where(product => product.IsActive)
+                    .OrderBy(product => product.DisplayName)
+                    .ToListAsync();
                 Products = new ObservableCollection<Product>(activeProducts);
-                if (activeProducts.Any())
-                {
-                    SelectedProduct = activeProducts.First();
-                }
+                SelectedProduct = activeProducts.FirstOrDefault();
             }
             catch (Exception ex)
             {
@@ -100,27 +147,38 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
-        public void Refresh()
+        public async Task Refresh()
         {
-            switch (ActiveTabIndex)
+            _refreshCts?.Cancel();
+            _refreshCts?.Dispose();
+            _refreshCts = new CancellationTokenSource();
+            var cancellationToken = _refreshCts.Token;
+
+            try
             {
-                case 0:
-                    RefreshRevenueReport();
-                    break;
-                case 1:
-                    RefreshStockInOutTonReport();
-                    break;
-                case 2:
-                    RefreshStockLedgerReport();
-                    break;
-                case 3:
-                    RefreshSerialTraceReport();
-                    break;
+                switch (ActiveTabIndex)
+                {
+                    case 0:
+                        await RefreshRevenueReport(cancellationToken);
+                        break;
+                    case 1:
+                        await RefreshStockInOutTonReport(cancellationToken);
+                        break;
+                    case 2:
+                        await RefreshStockLedgerReport(cancellationToken);
+                        break;
+                    case 3:
+                        await RefreshSerialTraceReport(cancellationToken);
+                        break;
+                }
+            }
+            catch (OperationCanceledException)
+            {
             }
         }
 
         // --- TAB 1: DOANH THU & LỢI NHUẬN ---
-        private void RefreshRevenueReport()
+        private async Task RefreshRevenueReport(CancellationToken cancellationToken)
         {
             try
             {
@@ -128,15 +186,15 @@ namespace QuanLyHangHoa.ViewModels
                 var startDate = FromDate.Date;
                 var endDate = ToDate.Date.AddDays(1).AddTicks(-1);
 
-                var sales = db.SalesInvoices
+                var sales = await db.SalesInvoices
                     .Where(s => s.InvoiceDate >= startDate && s.InvoiceDate <= endDate)
                     .Select(s => new { s.InvoiceDate, s.GrandTotal })
-                    .ToList();
+                    .ToListAsync(cancellationToken);
 
-                var purchases = db.PurchaseInvoices
+                var purchases = await db.PurchaseInvoices
                     .Where(p => p.InvoiceDate >= startDate && p.InvoiceDate <= endDate)
                     .Select(p => new { p.InvoiceDate, p.GrandTotal })
-                    .ToList();
+                    .ToListAsync(cancellationToken);
 
                 TotalRevenue = sales.Sum(s => s.GrandTotal);
                 TotalCost = purchases.Sum(p => p.GrandTotal);
@@ -214,7 +272,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         // --- TAB 2: XUẤT NHẬP TỒN TỔNG HỢP ---
-        private void RefreshStockInOutTonReport()
+        private async Task RefreshStockInOutTonReport(CancellationToken cancellationToken)
         {
             try
             {
@@ -222,70 +280,75 @@ namespace QuanLyHangHoa.ViewModels
                 var startDate = FromDate.Date;
                 var endDate = ToDate.Date.AddDays(1).AddTicks(-1);
 
-                // Lấy danh sách sản phẩm theo bộ lọc danh mục và từ khóa (bao gồm cả sản phẩm Inactive có số dư/phát sinh)
-                var prodQuery = db.Products.Include(p => p.Category).AsQueryable();
+                var productQuery = db.Products
+                    .AsNoTracking()
+                    .Include(product => product.Category)
+                    .AsQueryable();
+
                 if (SelectedCategory != null && SelectedCategory.Id > 0)
                 {
-                    prodQuery = prodQuery.Where(p => p.CategoryId == SelectedCategory.Id);
+                    productQuery = productQuery.Where(product => product.CategoryId == SelectedCategory.Id);
                 }
+
                 if (!string.IsNullOrWhiteSpace(SearchProductText))
                 {
-                    var kw = SearchProductText.ToLower();
-                    prodQuery = prodQuery.Where(p => p.DisplayName.ToLower().Contains(kw) || p.ProductCode.ToLower().Contains(kw));
+                    var keyword = SearchProductText.ToLower();
+                    productQuery = productQuery.Where(product =>
+                        product.DisplayName.ToLower().Contains(keyword)
+                        || product.ProductCode.ToLower().Contains(keyword));
                 }
-                var targetProducts = prodQuery.ToList();
 
-                // Lấy toàn bộ giao dịch kho liên quan đến các sản phẩm này
-                var targetProductIds = targetProducts.Select(p => p.Id).ToList();
-                var ledgers = db.StockLedgers
-                    .Where(l => targetProductIds.Contains(l.ProductId) && l.PostedAt <= endDate)
-                    .ToList();
+                var products = await productQuery.ToListAsync(cancellationToken);
+                var productIds = products.Select(product => product.Id).ToList();
 
-                var reportList = new List<StockInOutTonReportItem>();
-
-                foreach (var p in targetProducts)
-                {
-                    var pLedgers = ledgers.Where(l => l.ProductId == p.Id).ToList();
-                    
-                    // Đơn giá tính giá trị kho (Giá vốn, nếu null lấy Giá bán lẻ)
-                    decimal unitPrice = p.CostPrice ?? p.DefaultPrice;
-
-                    // Tồn đầu kỳ (Giao dịch trước ngày startDate)
-                    var dauKyLedgers = pLedgers.Where(l => l.PostedAt < startDate).ToList();
-                    decimal dauKyQty = dauKyLedgers.Sum(l => l.MovementType == "In" ? l.Quantity : -l.Quantity);
-                    decimal dauKyVal = dauKyQty * unitPrice;
-
-                    // Nhập trong kỳ
-                    var trongKyNhapLedgers = pLedgers.Where(l => l.PostedAt >= startDate && l.PostedAt <= endDate && l.MovementType == "In").ToList();
-                    decimal nhapQty = trongKyNhapLedgers.Sum(l => l.Quantity);
-                    decimal nhapVal = nhapQty * unitPrice;
-
-                    // Xuất trong kỳ
-                    var trongKyXuatLedgers = pLedgers.Where(l => l.PostedAt >= startDate && l.PostedAt <= endDate && l.MovementType == "Out").ToList();
-                    decimal xuatQty = trongKyXuatLedgers.Sum(l => l.Quantity);
-                    decimal xuatVal = xuatQty * unitPrice;
-
-                    // Tồn cuối kỳ
-                    decimal cuoiKyQty = dauKyQty + nhapQty - xuatQty;
-                    decimal cuoiKyVal = cuoiKyQty * unitPrice;
-
-                    reportList.Add(new StockInOutTonReportItem
+                var totals = await db.StockLedgers
+                    .AsNoTracking()
+                    .Where(ledger => productIds.Contains(ledger.ProductId) && ledger.PostedAt <= endDate)
+                    .GroupBy(ledger => ledger.ProductId)
+                    .Select(group => new
                     {
-                        ProductCode = p.ProductCode,
-                        ProductName = p.DisplayName,
-                        UnitName = "Cái", // Đơn vị tính mặc định
-                        DauKyQty = dauKyQty,
-                        DauKyValue = dauKyVal,
-                        NhapQty = nhapQty,
-                        NhapValue = nhapVal,
-                        XuatQty = xuatQty,
-                        XuatValue = xuatVal,
-                        CuoiKyQty = cuoiKyQty,
-                        CuoiKyValue = cuoiKyVal
-                    });
-                }
+                        ProductId = group.Key,
+                        StartQuantity = group.Sum(ledger => ledger.PostedAt < startDate
+                            ? (ledger.MovementType == "In" ? ledger.Quantity : -ledger.Quantity)
+                            : 0),
+                        InQuantity = group.Sum(ledger => ledger.PostedAt >= startDate
+                            && ledger.MovementType == "In" ? ledger.Quantity : 0),
+                        OutQuantity = group.Sum(ledger => ledger.PostedAt >= startDate
+                            && ledger.MovementType == "Out" ? ledger.Quantity : 0)
+                    })
+                    .ToDictionaryAsync(item => item.ProductId, cancellationToken);
 
-                StockInOutTonReports = new ObservableCollection<StockInOutTonReportItem>(reportList.OrderBy(r => r.ProductName));
+                var reports = products.Select(product =>
+                {
+                    totals.TryGetValue(product.Id, out var total);
+                    var startQuantity = total?.StartQuantity ?? 0;
+                    var inQuantity = total?.InQuantity ?? 0;
+                    var outQuantity = total?.OutQuantity ?? 0;
+                    var endQuantity = startQuantity + inQuantity - outQuantity;
+                    var unitPrice = product.CostPrice ?? product.DefaultPrice;
+
+                    return new StockInOutTonReportItem
+                    {
+                        ProductCode = product.ProductCode,
+                        ProductName = product.DisplayName,
+                        UnitName = "Cái",
+                        DauKyQty = startQuantity,
+                        DauKyValue = startQuantity * unitPrice,
+                        NhapQty = inQuantity,
+                        NhapValue = inQuantity * unitPrice,
+                        XuatQty = outQuantity,
+                        XuatValue = outQuantity * unitPrice,
+                        CuoiKyQty = endQuantity,
+                        CuoiKyValue = endQuantity * unitPrice
+                    };
+                });
+
+                StockInOutTonReports = new ObservableCollection<StockInOutTonReportItem>(
+                    reports.OrderBy(report => report.ProductName));
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -294,7 +357,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         // --- TAB 3: SỔ KHO / THẺ KHO CHI TIẾT ---
-        private void RefreshStockLedgerReport()
+        private async Task RefreshStockLedgerReport(CancellationToken cancellationToken)
         {
             try
             {
@@ -306,7 +369,9 @@ namespace QuanLyHangHoa.ViewModels
                     return;
                 }
 
-                var result = _traceService.GetProductTimeline(SelectedProduct.Id, FromDate, ToDate);
+                var result = await Task.Run(() =>
+                    _traceService.GetProductTimeline(SelectedProduct.Id, FromDate, ToDate),
+                    cancellationToken);
                 LedgerStartQty = result.StartQuantity;
                 LedgerEndQty = result.EndQuantity;
                 LedgerReports = new ObservableCollection<StockLedgerReportItem>(
@@ -335,11 +400,11 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         // --- TAB 4: TRUY VẾT SERIAL ---
-        private void RefreshSerialTraceReport()
+        private async Task RefreshSerialTraceReport(CancellationToken cancellationToken)
         {
             try
             {
-                var result = _traceService.SearchSerialTrace(new SerialTraceFilter
+                var result = await Task.Run(() => _traceService.SearchSerialTrace(new SerialTraceFilter
                 {
                     SearchText = SearchSerialText,
                     ProductText = SerialProductText,
@@ -348,7 +413,7 @@ namespace QuanLyHangHoa.ViewModels
                     Status = SelectedSerialStatus,
                     FromDate = FromDate,
                     ToDate = ToDate
-                });
+                }), cancellationToken);
 
                 SerialTraceReports = new ObservableCollection<SerialTraceReportItem>(
                     result.Select(r => new SerialTraceReportItem

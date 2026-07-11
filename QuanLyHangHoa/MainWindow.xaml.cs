@@ -10,7 +10,25 @@ namespace QuanLyHangHoa
         public MainWindow(AppUser user, Func<Data.AppDbContext> contextFactory)
         {
             InitializeComponent();
-            this.DataContext = new MainViewModel(user, contextFactory);
+            DataContext = new MainViewModel(user, contextFactory);
+            ContentRendered += OnContentRendered;
+        }
+
+        private async void OnContentRendered(object? sender, EventArgs e)
+        {
+            ContentRendered -= OnContentRendered;
+
+            try
+            {
+                if (DataContext is MainViewModel viewModel)
+                {
+                    await viewModel.LoadInitialViewAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Dashboard load failed: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
     }
 }
