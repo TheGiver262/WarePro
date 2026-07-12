@@ -27,7 +27,7 @@
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <materialDesign:PackIcon Kind="SwapVerticalBold" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
                     <StackPanel Margin="16,0,0,0">
-                        <TextBlock Text="ĐIỀU CHỈNH KHO" Style="{StaticResource TypographyH1}" Foreground="{StaticResource AppTertiaryBrush}"/>
+                        <TextBlock Text="ĐIỀU CHỈNH KHO" Style="{StaticResource TypographyH1}"/>
                         <TextBlock Text="Quản lý phiếu điều chỉnh số lượng và xử lý chênh lệch tồn kho" Style="{StaticResource TypographyCaption}" Opacity="0.7"/>
                     </StackPanel>
                 </StackPanel>

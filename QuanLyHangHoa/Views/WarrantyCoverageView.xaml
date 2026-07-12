@@ -20,7 +20,7 @@
 
     <Grid Background="{StaticResource AppBackgroundBrush}">
         <!-- Main Content -->
-        <Grid Margin="{StaticResource PagePadding}" MaxWidth="1600" HorizontalAlignment="Stretch">
+        <Grid Margin="{StaticResource PagePadding}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/> <!-- Row 0: Header -->
                 <RowDefinition Height="Auto"/> <!-- Row 1: Search -->
@@ -117,7 +117,7 @@
                                 </DataGridTemplateColumn.Header>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <TextBlock Text="{Binding ProductSerial.SerialNumber}" VerticalAlignment="Center" Margin="12,0" FontWeight="SemiBold" Style="{StaticResource TypographyDataMono}"/>
+                                        <TextBlock Text="{Binding ProductSerial.SerialNumber}" VerticalAlignment="Center" Margin="12,0"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>

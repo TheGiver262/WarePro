@@ -19,7 +19,7 @@
             </Grid.RowDefinitions>
 
             <!-- Row 0: Header Section -->
-            <Grid Grid.Row="0" Margin="0,0,0,24">
+            <Grid Grid.Row="0" Margin="{StaticResource SectionBottomMargin}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
@@ -28,7 +28,7 @@
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <materialDesign:PackIcon Kind="Tune" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
                     <StackPanel Margin="16,0,0,0">
-                        <TextBlock Text="ĐIỀU CHỈNH TỒN KHO" Style="{StaticResource TypographyH1}" Foreground="{StaticResource AppTertiaryBrush}"/>
+                        <TextBlock Text="ĐIỀU CHỈNH TỒN KHO" Style="{StaticResource TypographyH1}"/>
                         <TextBlock Text="Cập nhật số lượng thực tế và xử lý chênh lệch hàng hóa" Style="{StaticResource TypographyCaption}" Opacity="0.7"/>
                     </StackPanel>
                 </StackPanel>

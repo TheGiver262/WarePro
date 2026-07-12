@@ -13,7 +13,7 @@ namespace QuanLyHangHoa.Services;
 
 public sealed class DatabaseInitializer
 {
-    private const int CurrentSchemaVersion = 3;
+    private const int CurrentSchemaVersion = 4;
 
     private const string SchemaVersion1Sql = """
         IF COL_LENGTH('Product', 'Description') IS NULL ALTER TABLE Product ADD Description NVARCHAR(MAX);
@@ -72,6 +72,17 @@ public sealed class DatabaseInitializer
         IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_WarrantyClaim_ProductSerialId' AND object_id = OBJECT_ID('WarrantyClaim'))
             CREATE INDEX IX_WarrantyClaim_ProductSerialId ON WarrantyClaim (ProductSerialId);
         """;
+    private const string SchemaVersion4Sql = """
+        IF COL_LENGTH('StockIn', 'ApprovedAt') IS NULL ALTER TABLE StockIn ADD ApprovedAt DATETIME2(0) NULL;
+        IF COL_LENGTH('StockIn', 'PostedAt') IS NULL ALTER TABLE StockIn ADD PostedAt DATETIME2(0) NULL;
+        IF COL_LENGTH('StockOut', 'ApprovedAt') IS NULL ALTER TABLE StockOut ADD ApprovedAt DATETIME2(0) NULL;
+        IF COL_LENGTH('StockOut', 'PostedAt') IS NULL ALTER TABLE StockOut ADD PostedAt DATETIME2(0) NULL;
+        IF COL_LENGTH('StockAdjustment', 'ApprovedAt') IS NULL ALTER TABLE StockAdjustment ADD ApprovedAt DATETIME2(0) NULL;
+        IF COL_LENGTH('StockAdjustment', 'PostedAt') IS NULL ALTER TABLE StockAdjustment ADD PostedAt DATETIME2(0) NULL;
+        IF COL_LENGTH('StockTransfer', 'ApprovedAt') IS NULL ALTER TABLE StockTransfer ADD ApprovedAt DATETIME2(0) NULL;
+        IF COL_LENGTH('StockTransfer', 'PostedAt') IS NULL ALTER TABLE StockTransfer ADD PostedAt DATETIME2(0) NULL;
+        """;
+
     private readonly Func<AppDbContext> _contextFactory;
     private readonly string _baseDirectory;
 
@@ -184,6 +195,10 @@ public sealed class DatabaseInitializer
             IF @CurrentVersion < 3
             BEGIN
                 {{SchemaVersion3Sql}}
+            END;
+            IF @CurrentVersion < 4
+            BEGIN
+                {{SchemaVersion4Sql}}
             END;
             UPDATE [dbo].[__WareProSchemaVersion]
             SET [Version] = {{CurrentSchemaVersion}}, [UpdatedAt] = SYSUTCDATETIME()

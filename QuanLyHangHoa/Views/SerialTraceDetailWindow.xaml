@@ -1,0 +1,83 @@
+<Window x:Class="QuanLyHangHoa.Views.SerialTraceDetailWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="Chi tiết truy vết serial" Width="900" Height="650"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        Background="{StaticResource AppBackgroundBrush}">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Padding="24,18" Background="{StaticResource AppSurfaceBrush}"
+                BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1">
+            <StackPanel Orientation="Horizontal">
+                <materialDesign:PackIcon Kind="BarcodeScan" Width="28" Height="28"
+                                         Foreground="{StaticResource AppSecondaryBrush}" VerticalAlignment="Center"/>
+                <StackPanel Margin="14,0,0,0">
+                    <TextBlock Text="CHI TIẾT TRUY VẾT SERIAL" Style="{StaticResource TypographyH2}"/>
+                    <TextBlock Text="{Binding SerialNumber}" Style="{StaticResource TypographyCaption}"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <Border Padding="24">
+            <StackPanel>
+                <TextBlock Text="TỔNG QUAN" Style="{StaticResource TypographyH3}" Margin="0,0,0,12"/>
+                <Grid Margin="0,0,0,24">
+                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                        <TextBlock Text="SẢN PHẨM" Style="{StaticResource TypographyLabel}"/>
+                        <TextBlock Text="{Binding ProductName}" Margin="0,4,0,12"/>
+                        <TextBlock Text="MÃ SẢN PHẨM" Style="{StaticResource TypographyLabel}"/>
+                        <TextBlock Text="{Binding ProductCode}" Margin="0,4,0,0"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Text="TRẠNG THÁI" Style="{StaticResource TypographyLabel}"/>
+                        <TextBlock Text="{Binding CurrentStatus}" Margin="0,4,0,12"/>
+                        <TextBlock Text="KHO HIỆN TẠI" Style="{StaticResource TypographyLabel}"/>
+                        <TextBlock Text="{Binding CurrentWarehouseName, TargetNullValue=-}" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Grid>
+
+                <Separator/>
+                <TextBlock Text="THÔNG TIN NHẬP" Style="{StaticResource TypographyH3}" Margin="0,20,0,12"/>
+                <Grid Margin="0,0,0,20">
+                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0"><TextBlock Text="PHIẾU NHẬP" Style="{StaticResource TypographyLabel}"/><TextBlock Text="{Binding ImportDocCode, TargetNullValue=-}" Margin="0,4,0,0"/></StackPanel>
+                    <StackPanel Grid.Column="1"><TextBlock Text="NGÀY NHẬP" Style="{StaticResource TypographyLabel}"/><TextBlock Text="{Binding ImportDate, StringFormat=dd/MM/yyyy, TargetNullValue=-}" Margin="0,4,0,0"/></StackPanel>
+                    <StackPanel Grid.Column="2"><TextBlock Text="NHÀ CUNG CẤP / KHO NHẬP" Style="{StaticResource TypographyLabel}"/><TextBlock Text="{Binding SupplierName, TargetNullValue=-}" Margin="0,4,0,2"/><TextBlock Text="{Binding ImportWarehouseName, TargetNullValue=-}" Foreground="{StaticResource TextSecondaryBrush}"/></StackPanel>
+                </Grid>
+
+                <Separator/>
+                <TextBlock Text="THÔNG TIN XUẤT" Style="{StaticResource TypographyH3}" Margin="0,20,0,12"/>
+                <Grid Margin="0,0,0,20">
+                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0"><TextBlock Text="PHIẾU XUẤT / HÓA ĐƠN" Style="{StaticResource TypographyLabel}"/><TextBlock Text="{Binding ExportDocCode, TargetNullValue=-}" Margin="0,4,0,2"/><TextBlock Text="{Binding SalesInvoiceCode, TargetNullValue=-}" Foreground="{StaticResource TextSecondaryBrush}"/></StackPanel>
+                    <StackPanel Grid.Column="1"><TextBlock Text="NGÀY XUẤT / GIÁ BÁN" Style="{StaticResource TypographyLabel}"/><TextBlock Text="{Binding ExportDate, StringFormat=dd/MM/yyyy, TargetNullValue=-}" Margin="0,4,0,2"/><TextBlock Text="{Binding SellPrice, StringFormat=N0, TargetNullValue=-}"/></StackPanel>
+                    <StackPanel Grid.Column="2"><TextBlock Text="KHÁCH HÀNG / KHO XUẤT" Style="{StaticResource TypographyLabel}"/><TextBlock Text="{Binding CustomerName, TargetNullValue=-}" Margin="0,4,0,2"/><TextBlock Text="{Binding ExportWarehouseName, TargetNullValue=-}" Foreground="{StaticResource TextSecondaryBrush}"/></StackPanel>
+                </Grid>
+
+                <Separator/>
+                <TextBlock Text="THÔNG TIN BẢO HÀNH" Style="{StaticResource TypographyH3}" Margin="0,20,0,12"/>
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0"><TextBlock Text="TRẠNG THÁI" Style="{StaticResource TypographyLabel}"/><TextBlock Text="{Binding WarrantyStatus, TargetNullValue=-}" Margin="0,4,0,0"/></StackPanel>
+                    <StackPanel Grid.Column="1"><TextBlock Text="THỜI HẠN" Style="{StaticResource TypographyLabel}"/><TextBlock Text="{Binding WarrantyStartDate, StringFormat=dd/MM/yyyy, TargetNullValue=-}" Margin="0,4,0,2"/><TextBlock Text="{Binding WarrantyEndDate, StringFormat=dd/MM/yyyy, TargetNullValue=-}"/></StackPanel>
+                    <StackPanel Grid.Column="2"><TextBlock Text="KHÁCH BẢO HÀNH" Style="{StaticResource TypographyLabel}"/><TextBlock Text="{Binding WarrantyCustomerName, TargetNullValue=-}" Margin="0,4,0,0"/></StackPanel>
+                </Grid>
+            </StackPanel>
+            </Border>
+        </ScrollViewer>
+
+        <Border Grid.Row="2" Padding="24,14" Background="{StaticResource AppSurfaceBrush}"
+                BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,1,0,0">
+            <Button Content="ĐÓNG" Style="{StaticResource SecondaryButton}" Width="110" Height="34"
+                    HorizontalAlignment="Right" IsCancel="True" Click="Close_Click"/>
+        </Border>
+    </Grid>
+</Window>

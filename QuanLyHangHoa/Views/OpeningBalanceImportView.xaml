@@ -17,7 +17,7 @@
             </Grid.RowDefinitions>
 
             <!-- Row 0: Header Section -->
-            <Grid Grid.Row="0" Margin="0,0,0,16">
+            <Grid Grid.Row="0" Margin="{StaticResource SectionBottomMargin}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
@@ -25,9 +25,12 @@
 
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                     <materialDesign:PackIcon Kind="DatabaseImport" Width="32" Height="32" 
-                                            Foreground="{StaticResource AppPrimaryBrush}" VerticalAlignment="Center"/>
-                    <TextBlock Text="NHẬP TỒN ĐẦU KỲ" Style="{StaticResource TypographyH1}" 
-                              Margin="16,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
+                                            Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
+                    <StackPanel Margin="16,0,0,0">
+                        <TextBlock Text="NHẬP TỒN ĐẦU KỲ" Style="{StaticResource TypographyH1}"/>
+                        <TextBlock Text="Khởi tạo số lượng tồn kho ban đầu từ tệp dữ liệu"
+                                   Style="{StaticResource TypographyCaption}" Opacity="0.7"/>
+                    </StackPanel>
                 </StackPanel>
 
                 <Button Grid.Column="1" Style="{StaticResource PrimaryButton}" 

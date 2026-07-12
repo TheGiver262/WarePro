@@ -73,24 +73,33 @@
                         <RadioButton Content="Quản lý Serial" Tag="BarcodeScan" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenProductSerialViewCommand}"/>
 
                         <TextBlock Text="KHO" Style="{StaticResource SidebarSectionHeader}"/>
-                        <RadioButton Content="Nhập kho" Tag="ArrowDownBold" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockInViewCommand}"/>
-                        <RadioButton Content="Xuất kho" Tag="ArrowUpBold" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockOutViewCommand}"/>
+                        <RadioButton Content="Nhập kho" Tag="ArrowDownBold" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockInViewCommand}"
+                                     Visibility="{Binding CanAccessStockIn, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                        <RadioButton Content="Xuất kho" Tag="ArrowUpBold" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockOutViewCommand}"
+                                     Visibility="{Binding CanAccessStockOut, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                         <!-- <RadioButton Content="Chuyển kho" Tag="SwapHorizontal" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockTransferViewCommand}"/> -->
                         <RadioButton Content="Tồn kho" Tag="ChartBar" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenInventoryViewCommand}"/>
-                        <RadioButton Content="Nhập tồn đầu kỳ" Tag="DatabaseImport" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenOpeningBalanceImportViewCommand}"/>
+                        <RadioButton Content="Nhập tồn đầu kỳ" Tag="DatabaseImport" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenOpeningBalanceImportViewCommand}"
+                                     Visibility="{Binding CanAccessStockAdjustment, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                         <!-- <RadioButton Content="Điều chỉnh kho" Tag="Tune" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockAdjustmentViewCommand}"/> -->
-                        <RadioButton Content="Kiểm kê" Tag="ClipboardCheckOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockCountViewCommand}"/>
+                        <RadioButton Content="Kiểm kê" Tag="ClipboardCheckOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenStockCountViewCommand}"
+                                     Visibility="{Binding CanAccessStockAdjustment, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
                         <TextBlock Text="HÓA ĐƠN" Style="{StaticResource SidebarSectionHeader}"/>
-                        <RadioButton Content="Hóa đơn mua" Tag="CartOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenPurchaseInvoiceViewCommand}"/>
-                        <RadioButton Content="Hóa đơn bán" Tag="FileDocumentOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenSalesInvoiceViewCommand}"/>
+                        <RadioButton Content="Hóa đơn mua" Tag="CartOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenPurchaseInvoiceViewCommand}"
+                                     Visibility="{Binding CanAccessPurchaseInvoices, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                        <RadioButton Content="Hóa đơn bán" Tag="FileDocumentOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenSalesInvoiceViewCommand}"
+                                     Visibility="{Binding CanAccessSalesInvoices, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
                         <TextBlock Text="BẢO HÀNH" Style="{StaticResource SidebarSectionHeader}"/>
-                        <RadioButton Content="Quyền bảo hành" Tag="ShieldCheckOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenWarrantyCoverageViewCommand}"/>
-                        <RadioButton Content="Yêu cầu bảo hành" Tag="WrenchOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenWarrantyViewCommand}"/>
+                        <RadioButton Content="Quyền bảo hành" Tag="ShieldCheckOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenWarrantyCoverageViewCommand}"
+                                     Visibility="{Binding CanAccessWarranty, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                        <RadioButton Content="Quản lý bảo hành" Tag="WrenchOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenWarrantyViewCommand}"
+                                     Visibility="{Binding CanAccessWarranty, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
                         <TextBlock Text="HỆ THỐNG" Style="{StaticResource SidebarSectionHeader}"/>
-                        <RadioButton Content="Báo cáo" Tag="ChartBoxOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenReportViewCommand}"/>
+                        <RadioButton Content="Báo cáo" Tag="ChartBoxOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenReportViewCommand}"
+                                     Visibility="{Binding CanAccessReports, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                         <RadioButton Content="Người dùng" Tag="AccountMultipleOutline" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenAppUserViewCommand}"
                                      Visibility="{Binding IsAdmin, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                         <RadioButton Content="Nhật ký hệ thống" Tag="ShieldCheck" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenAuditLogViewCommand}"

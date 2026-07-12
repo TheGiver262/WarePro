@@ -13,7 +13,7 @@
         <helpers:BindingProxy x:Key="Proxy" Data="{Binding}"/>
     </UserControl.Resources>
     <Grid Background="{StaticResource AppBackgroundBrush}">
-        <Grid Margin="{StaticResource PagePadding}" MaxWidth="1600" HorizontalAlignment="Stretch">
+        <Grid Margin="{StaticResource PagePadding}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/> <!-- Header -->
                 <RowDefinition Height="Auto"/> <!-- Search -->
@@ -83,9 +83,16 @@
                         <Button Style="{StaticResource AppRefreshButton}" 
                                 Command="{Binding RefreshCommand}"
                                 ToolTip="Làm mới bộ lọc"
-                                Margin="0,0,8,0"/>
+                                Margin="0,0,8,0">
+                            <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18"/>
+                        </Button>
                         <Button Style="{StaticResource AppExcelButton}" 
-                                Command="{Binding ExportToExcelCommand}"/>
+                                Command="{Binding ExportToExcelCommand}">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="FileExcelOutline" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
                 </Grid>
             </materialDesign:Card>

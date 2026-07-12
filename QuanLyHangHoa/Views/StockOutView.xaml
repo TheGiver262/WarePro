@@ -38,7 +38,7 @@
                     <materialDesign:PackIcon Kind="ArrowUpBold" Width="32" Height="32" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
                     <StackPanel Margin="16,0,0,0">
                         <TextBlock Text="QUẢN LÝ XUẤT KHO" Style="{StaticResource TypographyH1}"/>
-                        <TextBlock Text="Danh sách tất cả phiếu xuất kho trong hệ thống" Style="{StaticResource TypographyCaption}" Opacity="0.6"/>
+                        <TextBlock Text="Danh sách tất cả phiếu xuất kho trong hệ thống" Style="{StaticResource TypographyCaption}" Opacity="0.7"/>
                     </StackPanel>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">

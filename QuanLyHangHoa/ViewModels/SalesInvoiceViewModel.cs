@@ -41,6 +41,7 @@ namespace QuanLyHangHoa.ViewModels
         private readonly InvoiceService _invoiceService;
         private readonly ProductService _productService;
         private readonly ReferenceDataService _refDataService;
+        private readonly Func<AppDbContext> _contextFactory;
         private int _skip = 0;
         private const int PageSize = 100;
         private bool _isLoading = false;
@@ -126,10 +127,10 @@ namespace QuanLyHangHoa.ViewModels
         public SalesInvoiceViewModel(MainViewModel? mainViewModel)
         {
             _mainViewModel = mainViewModel;
-            var factory = _mainViewModel?.ContextFactory ?? (() => new QuanLyHangHoa.Data.AppDbContext());
-            _invoiceService = new InvoiceService(factory);
-            _productService = new ProductService(factory);
-            _refDataService = new ReferenceDataService(factory);
+            _contextFactory = _mainViewModel?.ContextFactory ?? (() => new AppDbContext());
+            _invoiceService = new InvoiceService(_contextFactory);
+            _productService = new ProductService(_contextFactory);
+            _refDataService = new ReferenceDataService(_contextFactory);
 
             Lines.CollectionChanged += (s, e) => 
             {
@@ -523,6 +524,53 @@ namespace QuanLyHangHoa.ViewModels
             OnPropertyChanged(nameof(FormTotalAmount));
         }
 
+
+        [RelayCommand]
+        private void ExportToExcel()
+        {
+            try
+            {
+                var dialog = new Microsoft.Win32.SaveFileDialog
+                {
+                    Filter = "Excel Workbook (*.xlsx)|*.xlsx",
+                    FileName = "HoaDonBan_" + DateTime.Now.ToString("yyyyMMdd_HHmm")
+                };
+                if (dialog.ShowDialog() != true) return;
+                using var workbook = new ClosedXML.Excel.XLWorkbook();
+                var worksheet = workbook.Worksheets.Add("HoaDonBan");
+                var headers = new[] { "Số hóa đơn", "Ngày", "Khách hàng", "Trước thuế", "Thuế", "Tổng tiền", "Đã trả", "Trạng thái" };
+                for (var column = 0; column < headers.Length; column++)
+                {
+                    var cell = worksheet.Cell(1, column + 1);
+                    cell.Value = headers[column];
+                    cell.Style.Font.Bold = true;
+                    cell.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.LightBlue;
+                }
+                for (var index = 0; index < Invoices.Count; index++)
+                {
+                    var invoice = Invoices[index];
+                    var row = index + 2;
+                    worksheet.Cell(row, 1).Value = invoice.InvoiceCode;
+                    worksheet.Cell(row, 2).Value = invoice.InvoiceDate;
+                    worksheet.Cell(row, 2).Style.DateFormat.Format = "dd/MM/yyyy";
+                    worksheet.Cell(row, 3).Value = invoice.Customer?.DisplayName ?? string.Empty;
+                    worksheet.Cell(row, 4).Value = invoice.SubTotal;
+                    worksheet.Cell(row, 5).Value = invoice.TaxAmount;
+                    worksheet.Cell(row, 6).Value = invoice.GrandTotal;
+                    worksheet.Cell(row, 7).Value = invoice.PaidAmount;
+                    worksheet.Cell(row, 8).Value = invoice.PaymentStatus;
+                }
+                worksheet.Range(2, 4, Math.Max(2, Invoices.Count + 1), 7).Style.NumberFormat.Format = "#,##0";
+                worksheet.Columns().AdjustToContents();
+                workbook.SaveAs(dialog.FileName);
+                MessageBox.Show("Xuất file Excel thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi khi xuất Excel: " + ex.Message, "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         [RelayCommand]
         public void ResetForm()
         {
@@ -531,10 +579,26 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        private void CreateFromStockOut()
+        {
+            InitializeForm();
+            SelectedTabIndex = 1;
+        }
+
+        [RelayCommand]
         private void PrintInvoice(SalesInvoice? invoice)
         {
             if (invoice == null) return;
-            MessageBox.Show($"In hoá đơn {invoice.InvoiceCode} (Chức năng đang phát triển)", "Thông báo");
+            try
+            {
+                var model = new DocumentPrintService(_contextFactory).LoadSalesInvoice(invoice.Id);
+                new Views.DocumentPrintWindow(model).ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Không thể mở bản in hóa đơn: {ex.Message}", "Lỗi",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
     }
 }

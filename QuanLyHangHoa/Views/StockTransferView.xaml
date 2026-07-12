@@ -75,12 +75,16 @@
                         <Button Command="{Binding LoadDataCommand}" 
                                 Style="{StaticResource AppRefreshButton}" 
                                 Height="40" Margin="0,0,8,0"
-                                ToolTip="Tải dữ liệu"/>
+                                ToolTip="Tải dữ liệu">
+                            <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18"/>
+                        </Button>
                         <Button Style="{StaticResource AppRefreshButton}" 
                                 Command="{Binding ResetFilterCommand}"
                                 Height="40"
                                 Margin="0,0,8,0"
-                                ToolTip="Làm mới bộ lọc"/>
+                                ToolTip="Làm mới bộ lọc">
+                            <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18"/>
+                        </Button>
                         <Button Style="{StaticResource AppExcelButton}" 
                                 Command="{Binding ExportExcelCommand}">
                             <StackPanel Orientation="Horizontal">

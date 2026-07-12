@@ -25,11 +25,36 @@ public class AuthorizationServiceTests
         Assert.False(AuthorizationService.CanPerform(staff, PermissionAction.ManageUsers));
     }
 
+    [Theory]
+    [InlineData("Nhân viên bán hàng", PermissionAction.CreateSalesInvoice)]
+    [InlineData("Nhân viên kho", PermissionAction.PostStockIn)]
+    [InlineData("Nhân viên kho", PermissionAction.PostStockOut)]
+    [InlineData("Nhân viên bảo hành", PermissionAction.CreateWarrantyClaim)]
+    public void Staff_role_can_only_access_its_workflow(string role, PermissionAction allowedAction)
+    {
+        var user = new AppUser { RoleCode = role, IsActive = true };
+
+        Assert.True(AuthorizationService.CanPerform(user, allowedAction));
+        Assert.False(AuthorizationService.CanPerform(user, PermissionAction.ManageUsers));
+        Assert.False(AuthorizationService.CanPerform(user, PermissionAction.ManageMasterData));
+    }
+
     [Fact]
     public void Inactive_user_cannot_perform_any_action()
     {
         var inactiveAdmin = new AppUser { RoleCode = "Quản trị viên", IsActive = false };
 
         Assert.False(AuthorizationService.CanPerform(inactiveAdmin, PermissionAction.ManageUsers));
+    }
+
+    [Fact]
+    public void Manager_can_access_business_workflows_but_cannot_manage_users()
+    {
+        var manager = new AppUser { RoleCode = "Quản lý", IsActive = true };
+
+        Assert.False(AuthorizationService.CanPerform(manager, PermissionAction.ManageUsers));
+        Assert.All(
+            Enum.GetValues<PermissionAction>().Where(action => action != PermissionAction.ManageUsers),
+            action => Assert.True(AuthorizationService.CanPerform(manager, action)));
     }
 }

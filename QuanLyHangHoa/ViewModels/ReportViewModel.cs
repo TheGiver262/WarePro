@@ -445,6 +445,17 @@ namespace QuanLyHangHoa.ViewModels
                 System.Diagnostics.Debug.WriteLine(ex.Message);
             }
         }
+
+        [RelayCommand]
+        private static void ViewSerialTraceDetail(SerialTraceReportItem? item)
+        {
+            if (item == null) return;
+            var window = new QuanLyHangHoa.Views.SerialTraceDetailWindow(item)
+            {
+                Owner = System.Windows.Application.Current?.MainWindow
+            };
+            window.ShowDialog();
+        }
     }
 
     // --- CÁC LỚP ĐỐI TƯỢNG BÁO CÁO (DTOs) ---
@@ -524,5 +535,6 @@ namespace QuanLyHangHoa.ViewModels
         public DateTime? WarrantyStartDate { get; set; }
         public DateTime? WarrantyEndDate { get; set; }
         public string WarrantyCustomerName { get; set; } = string.Empty;
+        public string DisplayCustomerName => string.IsNullOrWhiteSpace(WarrantyCustomerName) ? CustomerName : WarrantyCustomerName;
     }
 }

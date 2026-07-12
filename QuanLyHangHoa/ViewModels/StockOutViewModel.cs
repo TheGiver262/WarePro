@@ -743,9 +743,19 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
-        private void Print()
+        private void Print(StockOut? stockOut)
         {
-            MessageBox.Show("Tính năng in đang được phát triển.", "Thông báo");
+            if (stockOut == null) return;
+            try
+            {
+                var model = new DocumentPrintService(_contextFactory).LoadStockOut(stockOut.Id);
+                new Views.DocumentPrintWindow(model).ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Không thể mở bản in phiếu xuất: {ex.Message}", "Lỗi",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
 

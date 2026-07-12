@@ -13,7 +13,7 @@
 
     
     <Grid Background="{StaticResource AppBackgroundBrush}">
-        <Grid Margin="{StaticResource PagePadding}" MaxWidth="1600" HorizontalAlignment="Stretch">
+        <Grid Margin="{StaticResource PagePadding}">
             <Grid.RowDefinitions>
                 <!-- Row 0: Header Section -->
                 <RowDefinition Height="Auto"/>
@@ -33,7 +33,7 @@
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                     <materialDesign:PackIcon Kind="ChartBar" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
                     <StackPanel Margin="16,0,0,0">
-                        <TextBlock Text="BÁO CÁO TỒN KHO" Style="{StaticResource TypographyH1}" Foreground="{StaticResource AppTertiaryBrush}"/>
+                        <TextBlock Text="BÁO CÁO TỒN KHO" Style="{StaticResource TypographyH1}"/>
                         <TextBlock Text="Theo dõi số lượng và giá trị hàng hóa hiện có trong kho" Style="{StaticResource TypographyCaption}" Opacity="0.7"/>
                     </StackPanel>
                 </StackPanel>

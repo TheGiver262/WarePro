@@ -20,7 +20,7 @@
     
     <Grid Background="{StaticResource AppBackgroundBrush}">
         <!-- Main Content (List, Search & Stats) -->
-        <Grid Margin="{StaticResource PagePadding}" MaxWidth="1600" HorizontalAlignment="Stretch">
+        <Grid Margin="{StaticResource PagePadding}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -218,7 +218,7 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTextColumn Width="*" Binding="{Binding CustomerName}">
+                            <DataGridTextColumn Width="*" Binding="{Binding CustomerName}" ElementStyle="{DynamicResource AppDataGridText}">
                                 <DataGridTextColumn.Header>
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
@@ -246,7 +246,7 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTextColumn Width="120" Binding="{Binding ReceivedDate, StringFormat=dd/MM/yyyy}">
+                            <DataGridTextColumn Width="120" Binding="{Binding ReceivedDate, StringFormat=dd/MM/yyyy}" ElementStyle="{DynamicResource AppDataGridTextCenter}">
                                 <DataGridTextColumn.Header>
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
@@ -255,7 +255,7 @@
                                 </DataGridTextColumn.Header>
                             </DataGridTextColumn>
 
-                            <DataGridTextColumn Width="120" Binding="{Binding ExpectedReturnDate, StringFormat=dd/MM/yyyy}">
+                            <DataGridTextColumn Width="120" Binding="{Binding ExpectedReturnDate, StringFormat=dd/MM/yyyy}" ElementStyle="{DynamicResource AppDataGridTextCenter}">
                                 <DataGridTextColumn.Header>
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
@@ -325,7 +325,7 @@
         </Grid>
 
         <!-- ========================================== -->
-        <!-- SLIDING OVERLAY PANEL (DRAWER)             -->
+        <!-- CENTERED WARRANTY PROCESSING MODAL         -->
         <!-- ========================================== -->
         <Grid Visibility="{Binding IsDetailPanelOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
             <!-- Semi-transparent Backdrop with Click-to-Close -->
@@ -335,11 +335,13 @@
                 </Border.InputBindings>
             </Border>
 
-            <!-- Drawer Container -->
-            <Border HorizontalAlignment="Right" Width="480" Margin="0"
+            <!-- Modal Container -->
+            <Border HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Width="760" MaxHeight="820" Margin="{StaticResource PagePadding}"
+                    CornerRadius="{StaticResource Radius.md}"
                     Background="{StaticResource AppSurfaceBrush}" 
                     BorderBrush="{StaticResource AppBorderBrush}" 
-                    BorderThickness="1,0,0,0">
+                    BorderThickness="1">
                 <Border.Effect>
                     <DropShadowEffect BlurRadius="20" Color="#20000000" ShadowDepth="0" Direction="0" Opacity="0.3"/>
                 </Border.Effect>
@@ -350,8 +352,8 @@
                         <RowDefinition Height="*"/>    <!-- Content (Scrollable) -->
                     </Grid.RowDefinitions>
 
-                    <!-- Drawer Header -->
-                    <Border Grid.Row="0" Padding="20,16" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1" Background="{StaticResource SurfaceMutedBrush}">
+                    <!-- Modal Header -->
+                    <Border Grid.Row="0" Padding="24,18" BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="0,0,0,1" Background="{StaticResource SurfaceMutedBrush}">
                         <Grid>
                             <!-- Resolution Mode Title -->
                             <StackPanel Orientation="Horizontal">
@@ -367,7 +369,8 @@
                     </Border>
 
                     <!-- Scrollable Form Content -->
-                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="20">
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <Border Padding="24">
                         <StackPanel>
                             
                             <!-- Resolution Mode UI -->
@@ -594,6 +597,7 @@
                                 </Border>
                             </StackPanel>
                         </StackPanel>
+                        </Border>
                     </ScrollViewer>
                 </Grid>
             </Border>

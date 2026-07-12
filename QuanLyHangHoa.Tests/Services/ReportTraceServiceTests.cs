@@ -79,7 +79,7 @@ public class ReportTraceServiceTests
         Assert.Equal("General Customer", item.CustomerName);
         Assert.Equal("SINV-001", item.SalesInvoiceCode);
         Assert.Equal(new DateTime(2026, 1, 10, 10, 0, 0), item.SalesInvoiceDate);
-        Assert.Equal("Con bao hanh", item.WarrantyStatus);
+        Assert.Equal("Còn bảo hành", item.WarrantyStatus);
         Assert.Equal(new DateTime(2027, 1, 10), item.WarrantyEndDate);
     }
 

@@ -100,6 +100,7 @@ namespace QuanLyHangHoa.ViewModels
         private readonly StockInService _stockInService;
         private readonly ProductUnitService _productUnitService;
         private readonly AppUser _currentUser;
+        private readonly Func<AppDbContext> _contextFactory;
         private int _skip = 0;
         private const int PageSize = 100;
         private bool _isLoading = false;
@@ -163,11 +164,11 @@ namespace QuanLyHangHoa.ViewModels
         public StockInViewModel(AppUser? currentUser = null, Func<AppDbContext>? contextFactory = null)
         {
             _currentUser = currentUser ?? new AppUser { Id = 1, Username = "System", RoleCode = "Quản trị viên" };
-            var factory = contextFactory ?? (() => new QuanLyHangHoa.Data.AppDbContext());
-            _productService = new ProductService(factory);
-            _stockInService = new StockInService(factory);
-            _productUnitService = new ProductUnitService(factory);
-            var refDataService = new ReferenceDataService(factory);
+            _contextFactory = contextFactory ?? (() => new AppDbContext());
+            _productService = new ProductService(_contextFactory);
+            _stockInService = new StockInService(_contextFactory);
+            _productUnitService = new ProductUnitService(_contextFactory);
+            var refDataService = new ReferenceDataService(_contextFactory);
 
             Lines.CollectionChanged += (s, e) => 
             {
@@ -423,9 +424,19 @@ namespace QuanLyHangHoa.ViewModels
 
 
         [RelayCommand]
-        private void Print(StockIn si)
+        private void Print(StockIn? si)
         {
-            MessageBox.Show($"Tính năng In phiếu {si?.DocumentCode} đang được phát triển.", "Thông báo");
+            if (si == null) return;
+            try
+            {
+                var model = new DocumentPrintService(_contextFactory).LoadStockIn(si.Id);
+                new Views.DocumentPrintWindow(model).ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Không thể mở bản in phiếu nhập: {ex.Message}", "Lỗi",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void LoadFromModel(StockIn si)

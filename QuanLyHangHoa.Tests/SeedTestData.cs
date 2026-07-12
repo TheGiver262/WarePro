@@ -38,6 +38,12 @@ namespace QuanLyHangHoa.Tests
             var oldCoverages = db.WarrantyCoverages
                 .Where(c => oldSerials.Select(s => s.Id).Contains(c.ProductSerialId) || oldSalesInvoices.Select(i => i.Id).Contains(c.SalesInvoiceId.GetValueOrDefault()))
                 .ToList();
+            var oldCoverageIds = oldCoverages.Select(c => c.Id).ToList();
+            var oldSerialIds = oldSerials.Select(s => s.Id).ToList();
+            var oldWarrantyClaims = db.WarrantyClaims
+                .Where(c => oldCoverageIds.Contains(c.WarrantyCoverageId) || oldSerialIds.Contains(c.ProductSerialId))
+                .ToList();
+            if (oldWarrantyClaims.Any()) db.WarrantyClaims.RemoveRange(oldWarrantyClaims);
             if (oldCoverages.Any()) db.WarrantyCoverages.RemoveRange(oldCoverages);
 
             // Xóa StockLedgers liên quan

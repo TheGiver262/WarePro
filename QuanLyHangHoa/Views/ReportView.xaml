@@ -16,17 +16,17 @@
             </Grid.RowDefinitions>
 
             <!-- ROW 0: HEADER & GENERAL FILTER SECTION -->
-            <Grid Grid.Row="0" Margin="0,0,0,16">
+            <Grid Grid.Row="0" Margin="{StaticResource SectionBottomMargin}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <materialDesign:PackIcon Kind="ChartBoxOutline" Width="36" Height="36" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
+                    <materialDesign:PackIcon Kind="ChartBoxOutline" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
                     <StackPanel Margin="16,0,0,0">
                         <TextBlock Text="BÁO CÁO PHÂN TÍCH KHO &amp; TÀI CHÍNH" Style="{StaticResource TypographyH1}"/>
-                        <TextBlock Text="Hệ thống báo cáo đa chiều: Doanh số, Xuất-Nhập-Tồn, Sổ kho chi tiết và Truy vết sản phẩm" Style="{StaticResource TypographyCaption}"/>
+                        <TextBlock Text="Hệ thống báo cáo đa chiều: Doanh số, Xuất-Nhập-Tồn, Sổ kho chi tiết và Truy vết sản phẩm" Style="{StaticResource TypographyCaption}" Opacity="0.7"/>
                     </StackPanel>
                 </StackPanel>
                 
@@ -216,7 +216,7 @@
                 </TabItem>
 
                 <!-- TAB 3: THẺ KHO / SỔ KHO CHI TIẾT -->
-                <TabItem Header="NHẬT KÝ SỔ KHO / THẺ KHO" FontSize="13" FontWeight="SemiBold">
+                <TabItem Header="NHẬT KÝ KHO" FontSize="13" FontWeight="SemiBold">
                     <Grid Margin="0,16,0,0">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/> <!-- Selector & Summary Info -->
@@ -339,44 +339,22 @@
                             <DataGrid ItemsSource="{Binding SerialTraceReports}" AutoGenerateColumns="False" 
                                       CanUserAddRows="False" IsReadOnly="True" BorderThickness="0" RowHeight="42" Background="Transparent">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="SỐ SERIAL" Binding="{Binding SerialNumber}" Width="1.5*">
-                                        <DataGridTextColumn.ElementStyle>
-                                            <Style TargetType="TextBlock" BasedOn="{StaticResource MaterialDesignDataGridTextColumnElementStyle}">
-                                                <Setter Property="FontWeight" Value="Bold"/>
-                                            </Style>
-                                        </DataGridTextColumn.ElementStyle>
-                                    </DataGridTextColumn>
-                                    <DataGridTextColumn Header="MA SP" Binding="{Binding ProductCode}" Width="1.2*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                                    <DataGridTextColumn Header="TÊN SẢN PHẨM" Binding="{Binding ProductName}" Width="2.5*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                                    <DataGridTextColumn Header="TRANG THAI" Binding="{Binding CurrentStatus}" Width="1.2*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                                    <DataGridTextColumn Header="KHO HIEN TAI" Binding="{Binding CurrentWarehouseName}" Width="1.6*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                                    
-                                    <!-- Nhập -->
-                                    <DataGridTextColumn Header="PHIẾU NHẬP" Binding="{Binding ImportDocCode}" Width="1.5*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                                    <DataGridTextColumn Header="NGÀY NHẬP" Binding="{Binding ImportDate, StringFormat=dd/MM/yyyy}" Width="1.2*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                                    <DataGridTextColumn Header="NCC CUNG CẤP" Binding="{Binding SupplierName}" Width="2*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                                    <DataGridTextColumn Header="KHO NHAP" Binding="{Binding ImportWarehouseName}" Width="1.5*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                                    
-                                    <!-- Xuất -->
-                                    <DataGridTextColumn Header="PHIẾU XUẤT" Binding="{Binding ExportDocCode}" Width="1.5*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                                    <DataGridTextColumn Header="NGÀY XUẤT" Binding="{Binding ExportDate, StringFormat=dd/MM/yyyy}" Width="1.2*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                                    <DataGridTextColumn Header="KHÁCH HÀNG" Binding="{Binding CustomerName}" Width="2*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                                    <DataGridTextColumn Header="KHO XUAT" Binding="{Binding ExportWarehouseName}" Width="1.5*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                                    <DataGridTextColumn Header="GIÁ BÁN" Binding="{Binding SellPrice, StringFormat=N0}" Width="1.5*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnRightElementStyle}"/>
-                                    <DataGridTextColumn Header="HOA DON" Binding="{Binding SalesInvoiceCode}" Width="1.5*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                                    <DataGridTextColumn Header="NGAY HOA DON" Binding="{Binding SalesInvoiceDate, StringFormat=dd/MM/yyyy}" Width="1.3*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                                    
-                                    <!-- Bảo hành -->
-                                    <DataGridTextColumn Header="TRẠNG THÁI BẢO HÀNH" Binding="{Binding WarrantyStatus}" Width="1.8*">
-                                        <DataGridTextColumn.ElementStyle>
-                                            <Style TargetType="TextBlock" BasedOn="{StaticResource MaterialDesignDataGridTextColumnElementStyle}">
-                                                <Setter Property="FontWeight" Value="SemiBold"/>
-                                            </Style>
-                                        </DataGridTextColumn.ElementStyle>
-                                    </DataGridTextColumn>
-                                    <DataGridTextColumn Header="HẠN BẢO HÀNH" Binding="{Binding WarrantyEndDate, StringFormat=dd/MM/yyyy}" Width="1.3*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                                    <DataGridTextColumn Header="BAT DAU BH" Binding="{Binding WarrantyStartDate, StringFormat=dd/MM/yyyy}" Width="1.3*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                                    <DataGridTextColumn Header="KHACH BH" Binding="{Binding WarrantyCustomerName}" Width="1.6*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+                                    <DataGridTextColumn Header="SERIAL / IMEI" Binding="{Binding SerialNumber}" Width="200" ElementStyle="{DynamicResource AppDataGridText}"/>
+                                    <DataGridTextColumn Header="SẢN PHẨM" Binding="{Binding ProductName}" Width="*" ElementStyle="{DynamicResource AppDataGridText}"/>
+                                    <DataGridTextColumn Header="TRẠNG THÁI" Binding="{Binding CurrentStatus}" Width="140" ElementStyle="{DynamicResource AppDataGridTextCenter}"/>
+                                    <DataGridTextColumn Header="KHO HIỆN TẠI" Binding="{Binding CurrentWarehouseName}" Width="180" ElementStyle="{DynamicResource AppDataGridText}"/>
+                                    <DataGridTextColumn Header="KHÁCH HÀNG" Binding="{Binding DisplayCustomerName}" Width="200" ElementStyle="{DynamicResource AppDataGridText}"/>
+                                    <DataGridTemplateColumn Header="THAO TÁC" Width="80">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Button Style="{StaticResource ProMaxIconButtonStyle}"
+                                                        Command="{Binding DataContext.ViewSerialTraceDetailCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+                                                        CommandParameter="{Binding}" ToolTip="Xem chi tiết">
+                                                    <materialDesign:PackIcon Kind="EyeOutline" Width="18" Height="18" Foreground="{StaticResource AppSecondaryBrush}"/>
+                                                </Button>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
                                 </DataGrid.Columns>
                             </DataGrid>
                         </materialDesign:Card>

@@ -25,7 +25,7 @@
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                     <materialDesign:PackIcon Kind="ClipboardCheckOutline" Width="32" Height="32" VerticalAlignment="Center" Foreground="{StaticResource AppTertiaryBrush}"/>
                     <StackPanel Margin="16,0,0,0">
-                        <TextBlock Text="KIỂM KÊ KHO" Style="{StaticResource TypographyH1}" Foreground="{StaticResource AppTertiaryBrush}"/>
+                        <TextBlock Text="KIỂM KÊ KHO" Style="{StaticResource TypographyH1}"/>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="Đối soát số lượng thực tế tại kho và cập nhật hệ thống" Style="{StaticResource TypographyCaption}" Opacity="0.7" VerticalAlignment="Center"/>
                             <ContentControl Content="{Binding}" ContentTemplate="{StaticResource InventoryStatusBadgeTemplate}" VerticalAlignment="Center" Margin="12,0,0,0"

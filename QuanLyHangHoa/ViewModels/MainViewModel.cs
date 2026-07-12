@@ -28,6 +28,13 @@ namespace QuanLyHangHoa.ViewModels
 
         public bool IsAdmin => AuthorizationService.CanPerform(CurrentUser, PermissionAction.ManageUsers);
         public bool CanViewLogs => AuthorizationService.CanPerform(CurrentUser, PermissionAction.ManageAuditLogs);
+        public bool CanAccessStockIn => AuthorizationService.CanPerform(CurrentUser, PermissionAction.PostStockIn);
+        public bool CanAccessStockOut => AuthorizationService.CanPerform(CurrentUser, PermissionAction.PostStockOut);
+        public bool CanAccessStockAdjustment => AuthorizationService.CanPerform(CurrentUser, PermissionAction.PostStockAdjustment);
+        public bool CanAccessPurchaseInvoices => AuthorizationService.CanPerform(CurrentUser, PermissionAction.CreatePurchaseInvoice);
+        public bool CanAccessSalesInvoices => AuthorizationService.CanPerform(CurrentUser, PermissionAction.CreateSalesInvoice);
+        public bool CanAccessWarranty => AuthorizationService.CanPerform(CurrentUser, PermissionAction.CreateWarrantyClaim);
+        public bool CanAccessReports => AuthorizationService.CanPerform(CurrentUser, PermissionAction.ViewReports);
 
         public Func<Data.AppDbContext> ContextFactory { get; }
         private readonly DashboardService _dashboardService;
@@ -81,49 +88,49 @@ namespace QuanLyHangHoa.ViewModels
             NavigateToView("Product", () => new ProductView { DataContext = new ProductViewModel(ContextFactory, CurrentUser) }, "KHO HÀNG", "Quản lý danh mục sản phẩm và tồn kho");
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanAccessStockOut))]
         private void OpenStockOutView()
         {
             NavigateToView("StockOut", () => new StockOutView { DataContext = new StockOutViewModel(CurrentUser, ContextFactory) }, "XUẤT KHO", "Lập phiếu xuất kho và quản lý hàng xuất");
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanAccessStockIn))]
         private void OpenStockInView()
         {
             NavigateToView("StockIn", () => new StockInView { DataContext = new StockInViewModel(CurrentUser, ContextFactory) }, "NHẬP KHO", "Lập phiếu nhập kho và quản lý hàng nhập");
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanAccessStockAdjustment))]
         private void OpenStockTransferView()
         {
             NavigateToView("StockTransfer", () => new StockTransferView { DataContext = new StockTransferViewModel(CurrentUser, ContextFactory) }, "CHUYỂN KHO", "Điều chuyển hàng hóa giữa các kho nội bộ");
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanAccessStockAdjustment))]
         private void OpenStockAdjustmentView()
         {
             NavigateToView("StockAdjustment", () => new StockAdjustmentView { DataContext = new StockAdjustmentViewModel(CurrentUser, ContextFactory) }, "ĐIỀU CHỈNH", "Điều chỉnh số lượng tồn kho thực tế");
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanAccessStockAdjustment))]
         private void OpenStockCountView()
         {
             NavigateToView("StockCount", () => new StockCountView { DataContext = new StockCountViewModel(CurrentUser, ContextFactory) }, "KIỂM KÊ", "Kiểm kê định kỳ và đối soát hàng hóa");
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanAccessPurchaseInvoices))]
         private void OpenPurchaseInvoiceView()
         {
             NavigateToView("PurchaseInvoice", () => new PurchaseInvoiceView { DataContext = new PurchaseInvoiceViewModel(this) }, "HÓA ĐƠN MUA", "Quản lý hóa đơn nhập hàng từ NCC");
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanAccessSalesInvoices))]
         private void OpenSalesInvoiceView()
         {
             NavigateToView("SalesInvoice", () => new SalesInvoiceView { DataContext = new SalesInvoiceViewModel(this) }, "HÓA ĐƠN BÁN", "Quản lý hóa đơn bán lẻ cho khách hàng");
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanAccessWarranty))]
         private void OpenWarrantyView()
         {
             NavigateToView("Warranty", () => 
@@ -134,7 +141,7 @@ namespace QuanLyHangHoa.ViewModels
             }, "BẢO HÀNH", "Quản lý phiếu bảo hành và sửa chữa");
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanAccessWarranty))]
         private void OpenWarrantyCoverageView()
         {
             NavigateToView(
@@ -189,13 +196,13 @@ namespace QuanLyHangHoa.ViewModels
             NavigateToView("ProductSerial", () => new ProductSerialView { DataContext = new ProductSerialViewModel(ContextFactory, CurrentUser) }, "QUẢN LÝ SERIAL", "Quản lý số Serial và IMEI sản phẩm");
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanAccessStockAdjustment))]
         private void OpenOpeningBalanceImportView()
         {
             NavigateToView("OpeningBalanceImport", () => new OpeningBalanceImportView { DataContext = new OpeningBalanceImportViewModel(CurrentUser.Id, ContextFactory) }, "NHẬP TỒN ĐẦU KỲ", "Import số dư đầu kỳ từ file Excel/CSV");
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanAccessReports))]
         private void OpenReportView()
         {
             NavigateToView("Report", () => new ReportView { DataContext = new ReportViewModel() }, "BÁO CÁO", "Phân tích hiệu quả kinh doanh và tài chính");

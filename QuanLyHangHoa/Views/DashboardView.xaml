@@ -30,9 +30,14 @@
             </Grid.RowDefinitions>
             
             <!-- Tiêu đề trang -->
-            <StackPanel Grid.Row="0" Margin="0,0,0,16">
-                <TextBlock Text="Dashboard" Style="{DynamicResource TypographyH1}"/>
-                <TextBlock Text="Phân tích số liệu và quản trị kho hàng thời gian thực" Style="{DynamicResource TypographyCaption}"/>
+            <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center"
+                        Margin="{StaticResource SectionBottomMargin}">
+                <materialDesign:PackIcon Kind="ViewDashboardOutline" Width="32" Height="32" VerticalAlignment="Center"
+                                         Foreground="{StaticResource AppTertiaryBrush}"/>
+                <StackPanel Margin="16,0,0,0">
+                    <TextBlock Text="DASHBOARD" Style="{DynamicResource TypographyH1}"/>
+                    <TextBlock Text="Phân tích số liệu và quản trị kho hàng thời gian thực" Style="{DynamicResource TypographyCaption}" Opacity="0.7"/>
+                </StackPanel>
             </StackPanel>
             
             <!-- Hệ thống Tab Phân Vai (Kinh doanh vs Vận hành) -->

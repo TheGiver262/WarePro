@@ -500,7 +500,7 @@ public sealed class ReportTraceService
         
         {
         
-            return "Chua ban";
+            return "Chưa bán";
             
         }
         
@@ -510,7 +510,7 @@ public sealed class ReportTraceService
         
         {
         
-            return "Khong co bao hanh";
+            return "Không có bảo hành";
             
         }
         
@@ -518,9 +518,9 @@ public sealed class ReportTraceService
 
         return warranty.CoverageStatus == "Active" && warranty.WarrantyEndDate.Date >= DateTime.Today
         
-            ? "Con bao hanh"
+            ? "Còn bảo hành"
             
-            : "Het han bao hanh";
+            : "Hết hạn bảo hành";
             
     }
     

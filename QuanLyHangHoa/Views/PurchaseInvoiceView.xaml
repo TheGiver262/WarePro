@@ -12,7 +12,7 @@
              d:DesignHeight="900" d:DesignWidth="1200"
              Background="{StaticResource AppBackgroundBrush}">
 
-    <Grid Margin="24">
+    <Grid Margin="{StaticResource PagePadding}">
         <TabControl materialDesign:ColorZoneAssist.Mode="Standard"
                     SelectedIndex="{Binding SelectedTabIndex}">
             <TabControl.ItemContainerStyle>
@@ -31,16 +31,20 @@
                     </Grid.RowDefinitions>
 
                     <!-- ROW 1: HEADER -->
-                    <Grid Grid.Row="0" Margin="0,0,0,24">
-                        <StackPanel>
-                            <TextBlock Text="HÓA ĐƠN NHẬP HÀNG" 
-                                       Style="{StaticResource TypographyH1}" />
-                            <TextBlock Text="Quản lý và theo dõi các hóa đơn nhập hàng" 
-                                       Style="{StaticResource TypographyCaption}" Opacity="0.7" />
+                    <Grid Grid.Row="0" Margin="{StaticResource SectionBottomMargin}">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <materialDesign:PackIcon Kind="CartOutline" Width="32" Height="32" VerticalAlignment="Center"
+                                                     Foreground="{StaticResource AppTertiaryBrush}"/>
+                            <StackPanel Margin="16,0,0,0">
+                                <TextBlock Text="HÓA ĐƠN NHẬP HÀNG" Style="{StaticResource TypographyH1}" />
+                                <TextBlock Text="Quản lý và theo dõi các hóa đơn nhập hàng"
+                                           Style="{StaticResource TypographyCaption}" Opacity="0.7" />
+                            </StackPanel>
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                             <Button Content="TẠO TỪ PHIẾU NHẬP" 
+                                    Command="{Binding CreateFromStockInCommand}"
                                     Style="{StaticResource SecondaryButton}" 
                                     Height="32"
                                     Margin="0,0,12,0"/>
@@ -90,7 +94,10 @@
                                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Bottom">
                                     <Button Command="{Binding RefreshCommand}"
                                             Style="{StaticResource AppRefreshButton}" 
-                                            Height="32" Margin="0,0,8,0"/>
+                                            Height="32" Margin="0,0,8,0"
+                                            ToolTip="Làm mới bộ lọc">
+                                        <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18"/>
+                                    </Button>
 
                                     <Button Command="{Binding ToggleAdvancedFilterCommand}"
                                             Style="{StaticResource SecondaryButton}" 
@@ -104,7 +111,12 @@
 
                                     <Button Command="{Binding ExportToExcelCommand}"
                                             Style="{StaticResource AppExcelButton}" 
-                                            Height="32"/>
+                                            Height="32">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="FileExcelOutline" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                            <TextBlock Text="XUẤT EXCEL" VerticalAlignment="Center" Style="{StaticResource TypographyButtonText}"/>
+                                        </StackPanel>
+                                    </Button>
                                 </StackPanel>
                             </Grid>
 
@@ -205,7 +217,7 @@
                                         </DataGridTextColumn.Header>
                                     </DataGridTextColumn>
 
-                                    <DataGridTextColumn Binding="{Binding Supplier.DisplayName}" Width="*">
+                                    <DataGridTextColumn Binding="{Binding Supplier.DisplayName}" Width="*" ElementStyle="{DynamicResource AppDataGridText}">
                                         <DataGridTextColumn.Header>
                                             <StackPanel Orientation="Horizontal">
                                                 <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
