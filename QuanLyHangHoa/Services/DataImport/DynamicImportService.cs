@@ -204,19 +204,42 @@ namespace QuanLyHangHoa.Services.DataImport
         public DynamicImportResult ExecuteImport(
             List<Dictionary<string, string>> rawRows,
             ImportFileType type,
-            Dictionary<string, string> mappings, // Maps Db Field Key -> Excel Header Name
+            Dictionary<string, string> mappings,
             int userId,
             bool autoCreateReferences = true)
         {
             var result = new DynamicImportResult();
-            var fields = GetFieldDefinitions(type);
+            var rowIdx = 1;
+
+            if (type == ImportFileType.StockIn)
+            {
+                ImportStockInDocuments(
+                    rawRows,
+                    mappings,
+                    result,
+                    userId,
+                    autoCreateReferences,
+                    ref rowIdx);
+                return result;
+            }
+
+            if (type == ImportFileType.StockOut)
+            {
+                ImportStockOutDocuments(
+                    rawRows,
+                    mappings,
+                    result,
+                    userId,
+                    autoCreateReferences,
+                    ref rowIdx);
+                return result;
+            }
 
             using var db = _contextFactory();
             using var transaction = db.Database.BeginTransaction();
 
             try
             {
-                int rowIdx = 1;
                 switch (type)
                 {
                     case ImportFileType.Category:
@@ -227,12 +250,6 @@ namespace QuanLyHangHoa.Services.DataImport
                         break;
                     case ImportFileType.ProductSerial:
                         ImportProductSerials(rawRows, mappings, db, result, autoCreateReferences, ref rowIdx);
-                        break;
-                    case ImportFileType.StockIn:
-                        ImportStockInDocuments(rawRows, mappings, db, result, userId, autoCreateReferences, ref rowIdx);
-                        break;
-                    case ImportFileType.StockOut:
-                        ImportStockOutDocuments(rawRows, mappings, db, result, userId, autoCreateReferences, ref rowIdx);
                         break;
                     case ImportFileType.PurchaseInvoice:
                         ImportPurchaseInvoices(rawRows, mappings, db, result, userId, autoCreateReferences, ref rowIdx);
@@ -248,7 +265,11 @@ namespace QuanLyHangHoa.Services.DataImport
             catch (Exception ex)
             {
                 transaction.Rollback();
-                result.Errors.Add(new RowError { RowNumber = 0, ErrorMessage = $"Lỗi hệ thống trong quá trình import: {ex.Message}" });
+                result.Errors.Add(new RowError
+                {
+                    RowNumber = 0,
+                    ErrorMessage = $"Lỗi hệ thống trong quá trình import: {ex.Message}"
+                });
             }
 
             return result;
@@ -495,170 +516,222 @@ namespace QuanLyHangHoa.Services.DataImport
             }
         }
 
+        private sealed record PreparedStockInImportLine(
+            Product Product,
+            decimal Quantity,
+            decimal BaseQuantity,
+            string[] SerialNumbers);
+
+        private sealed record PreparedStockOutImportLine(
+            Product Product,
+            decimal Quantity,
+            decimal BaseQuantity,
+            string[] SerialNumbers);
+
         private void ImportStockInDocuments(
             List<Dictionary<string, string>> rawRows,
             Dictionary<string, string> mappings,
-            AppDbContext db,
             DynamicImportResult result,
             int userId,
             bool autoCreateReferences,
             ref int rowIdx)
         {
-            var warehouse = db.Warehouses.FirstOrDefault(w => w.IsDefault && w.IsActive) 
-                            ?? db.Warehouses.FirstOrDefault(w => w.IsActive)
-                            ?? db.Warehouses.First();
-
-            // Group rows by DocumentCode or a virtual fallback code to allow batching
-            var grouped = rawRows.GroupBy(r => {
-                string code = GetMappedString(r, mappings, "DocumentCode", required: false);
+            var grouped = rawRows.GroupBy(row =>
+            {
+                var code = GetMappedString(row, mappings, "DocumentCode", required: false);
                 return string.IsNullOrWhiteSpace(code) ? "AUTO-GEN" : code;
             });
 
             foreach (var group in grouped)
             {
+                var groupRows = group.ToList();
+                var firstRowNumber = rowIdx + 1;
+                rowIdx += groupRows.Count;
+                using var db = _contextFactory();
+                using var transaction = db.Database.BeginTransaction();
+
                 try
                 {
-                    var firstRow = group.First();
-                    DateTime importDate = GetMappedDateTime(firstRow, mappings, "ImportDate", required: true);
-                    string? supplierName = GetMappedString(firstRow, mappings, "SupplierName", required: false);
-                    string? notes = GetMappedString(firstRow, mappings, "Notes", required: false);
-                    string? warehouseName = GetMappedString(firstRow, mappings, "WarehouseName", required: false);
+                    var defaultWarehouse = db.Warehouses
+                        .Where(item => item.IsActive)
+                        .OrderByDescending(item => item.IsDefault)
+                        .ThenBy(item => item.Id)
+                        .FirstOrDefault()
+                        ?? throw new InventoryDomainException("Không tìm thấy kho đang hoạt động.");
+                    var firstRow = groupRows[0];
+                    var importDate = GetMappedDateTime(firstRow, mappings, "ImportDate", required: true);
+                    var supplierName = GetMappedString(firstRow, mappings, "SupplierName", required: false);
+                    var notes = GetMappedString(firstRow, mappings, "Notes", required: false);
+                    var warehouseName = GetMappedString(firstRow, mappings, "WarehouseName", required: false);
+                    var warehouse = string.IsNullOrWhiteSpace(warehouseName)
+                        ? defaultWarehouse
+                        : db.Warehouses.SingleOrDefault(item => item.DisplayName == warehouseName && item.IsActive)
+                          ?? throw new InventoryDomainException($"Không tìm thấy kho '{warehouseName}'.");
 
-                    int whId = warehouse.Id;
-                    if (!string.IsNullOrEmpty(warehouseName))
+                    Supplier? supplier = null;
+                    if (!string.IsNullOrWhiteSpace(supplierName))
                     {
-                        var wh = db.Warehouses.FirstOrDefault(w => w.DisplayName == warehouseName);
-                        if (wh != null)
+                        supplier = db.Suppliers.SingleOrDefault(item => item.DisplayName == supplierName);
+                        if (supplier is null)
                         {
-                            whId = wh.Id;
-                        }
-                        else if (!autoCreateReferences)
-                        {
-                            throw new Exception($"Không tìm thấy kho '{warehouseName}'.");
+                            if (!autoCreateReferences)
+                            {
+                                throw new InventoryDomainException($"Không tìm thấy nhà cung cấp '{supplierName}'.");
+                            }
+
+                            supplier = new Supplier
+                            {
+                                DisplayName = supplierName,
+                                SupplierCode = $"SUP-{Guid.NewGuid():N}"[..12].ToUpperInvariant(),
+                                IsActive = true
+                            };
                         }
                     }
 
-                    int? supplierId = null;
-                    if (!string.IsNullOrEmpty(supplierName))
+                    var documentCode = group.Key == "AUTO-GEN"
+                        ? $"SI-{DateTime.UtcNow:yyyyMMddHHmmssfff}-{Guid.NewGuid():N}"[..32]
+                        : group.Key;
+                    if (db.StockIns.Any(item => item.DocumentCode == documentCode))
                     {
-                        var supplier = db.Suppliers.FirstOrDefault(s => s.DisplayName == supplierName);
-                        if (supplier == null)
-                        {
-                            if (autoCreateReferences)
-                            {
-                                supplier = new Supplier { DisplayName = supplierName, SupplierCode = $"SUP-{Guid.NewGuid().ToString().Substring(0, 8).ToUpperInvariant()}", IsActive = true };
-                                db.Suppliers.Add(supplier);
-                                db.SaveChanges();
-                            }
-                            else
-                            {
-                                throw new Exception($"Không tìm thấy nhà cung cấp '{supplierName}'.");
-                            }
-                        }
-                        supplierId = supplier.Id;
+                        throw new InventoryDomainException($"Mã phiếu nhập '{documentCode}' đã tồn tại.");
                     }
 
+                    var preparedLines = new List<PreparedStockInImportLine>();
+                    var documentSerials = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var itemRow in groupRows)
+                    {
+                        var productCode = GetMappedString(itemRow, mappings, "ProductCode", required: true);
+                        var quantity = GetMappedDecimal(itemRow, mappings, "Quantity", required: true);
+                        if (quantity <= 0)
+                        {
+                            throw new InventoryDomainException("Stock-in quantity must be greater than zero.");
+                        }
+
+                        var product = db.Products.SingleOrDefault(item => item.ProductCode == productCode && item.IsActive)
+                            ?? throw new InventoryDomainException($"Không tìm thấy sản phẩm '{productCode}' khi import dòng.");
+                        var conversionFactor = db.ProductUnits
+                            .Where(unit => unit.ProductId == product.Id && unit.UnitId == product.DefaultUnitId)
+                            .Select(unit => unit.ConversionFactor)
+                            .FirstOrDefault();
+                        if (conversionFactor <= 0)
+                        {
+                            conversionFactor = 1m;
+                        }
+
+                        var baseQuantity = quantity * conversionFactor;
+                        var serialNumbers = StockInService.ParseSerialRange(
+                                GetMappedString(itemRow, mappings, "SerialNumbers", required: false))
+                            .Select(serial => serial.Trim())
+                            .Where(serial => serial.Length > 0)
+                            .ToArray();
+                        if (serialNumbers.Length != serialNumbers.Distinct(StringComparer.OrdinalIgnoreCase).Count() ||
+                            serialNumbers.Any(serial => !documentSerials.Add(serial)))
+                        {
+                            throw new InventoryDomainException("Duplicate serials are not allowed.");
+                        }
+
+                        if (product.IsSerialTracked &&
+                            (baseQuantity != decimal.Truncate(baseQuantity) || serialNumbers.Length != (int)baseQuantity))
+                        {
+                            throw new InventoryDomainException("Serial count must match stock-in quantity.");
+                        }
+
+                        if (!product.IsSerialTracked && serialNumbers.Length > 0)
+                        {
+                            throw new InventoryDomainException("Non-serial products cannot receive serial numbers.");
+                        }
+
+                        if (serialNumbers.Length > 0 &&
+                            db.ProductSerials.Any(serial => serialNumbers.Contains(serial.SerialNumber)))
+                        {
+                            throw new InventoryDomainException("One or more serial numbers already exist.");
+                        }
+
+                        preparedLines.Add(new PreparedStockInImportLine(
+                            product,
+                            quantity,
+                            baseQuantity,
+                            serialNumbers));
+                    }
+
+                    var now = DateTime.UtcNow;
                     var stockIn = new StockIn
                     {
-                        DocumentCode = group.Key == "AUTO-GEN" ? $"SI-{DateTime.Now:yyyyMMddHHmmss}-{Guid.NewGuid().ToString().Substring(0, 4).ToUpperInvariant()}" : group.Key,
+                        DocumentCode = documentCode,
                         ImportDate = importDate,
-                        WarehouseId = whId,
-                        SupplierId = supplierId,
+                        WarehouseId = warehouse.Id,
+                        Supplier = supplier,
                         PurposeCode = "Purchase",
                         Notes = notes,
-                        Status = DocumentStatus.Draft,
+                        Status = DocumentStatus.Posted,
                         CreatedBy = userId,
-                        CreatedAt = DateTime.Now
+                        CreatedAt = now,
+                        PostedBy = userId,
+                        PostedAt = now
                     };
-
                     db.StockIns.Add(stockIn);
-                    db.SaveChanges(); // Get StockIn.Id
 
-                    var lines = new List<StockInLine>();
-                    foreach (var itemRow in group)
+                    var persistedLines = new List<(PreparedStockInImportLine Prepared, StockInLine Line)>();
+                    foreach (var prepared in preparedLines)
                     {
-                        rowIdx++;
-                        string productCode = GetMappedString(itemRow, mappings, "ProductCode", required: true);
-                        decimal qty = GetMappedDecimal(itemRow, mappings, "Quantity", required: true);
-                        string? serialsStr = GetMappedString(itemRow, mappings, "SerialNumbers", required: false);
-
-                        var product = db.Products.FirstOrDefault(p => p.ProductCode == productCode);
-                        if (product == null)
-                            throw new Exception($"Không tìm thấy sản phẩm '{productCode}' khi import dòng.");
-
-                        var pu = db.ProductUnits.FirstOrDefault(u => u.ProductId == product.Id && u.UnitId == product.DefaultUnitId);
                         var line = new StockInLine
                         {
-                            StockInId = stockIn.Id,
-                            ProductId = product.Id,
-                            UnitId = product.DefaultUnitId,
-                            Quantity = qty,
-                            BaseQuantity = qty * (pu?.ConversionFactor ?? 1m),
-                            UnitPrice = product.CostPrice ?? product.DefaultPrice
+                            StockIn = stockIn,
+                            ProductId = prepared.Product.Id,
+                            UnitId = prepared.Product.DefaultUnitId,
+                            Quantity = prepared.Quantity,
+                            BaseQuantity = prepared.BaseQuantity,
+                            UnitPrice = prepared.Product.CostPrice ?? prepared.Product.DefaultPrice,
+                            DraftSerials = prepared.SerialNumbers.Length == 0
+                                ? null
+                                : string.Join(",", prepared.SerialNumbers)
                         };
-
-                        if (!string.IsNullOrWhiteSpace(serialsStr))
-                        {
-                            var listSerials = StockInService.ParseSerialRange(serialsStr);
-                            foreach (var s in listSerials)
-                            {
-                                line.ProductSerials.Add(new ProductSerial
-                                {
-                                    SerialNumber = s,
-                                    ProductId = product.Id,
-                                    CurrentWarehouseId = whId,
-                                    CurrentStatus = "InStock",
-                                    LastStockInLineId = 0 // Will link to line below
-                                });
-                            }
-                        }
-
                         db.StockInLines.Add(line);
-                        lines.Add(line);
+                        persistedLines.Add((prepared, line));
                     }
 
                     db.SaveChanges();
-
-                    // Resolve backward reference for newly created serials to their LastStockInLineId
-                    foreach (var line in lines)
-                    {
-                        foreach (var s in line.ProductSerials)
-                        {
-                            s.LastStockInLineId = line.Id;
-                        }
-                    }
-                    db.SaveChanges();
-
-                    // Auto Post the Document for Stock Level computation
-                    // For stock-in we simulate posting so inventory increases
                     var postingService = new InventoryPostingService(
                         new EfInventoryUnitOfWork(db),
                         new DbDefaultWarehouseProvider(db),
                         new SystemClock());
 
-                    stockIn.Status = DocumentStatus.Posted;
-                    stockIn.PostedBy = userId;
-                    stockIn.PostedAt = DateTime.Now;
-
-                    foreach (var line in lines)
+                    foreach (var item in persistedLines)
                     {
-                        var serials = line.ProductSerials.Select(s => s.SerialNumber).ToArray();
                         postingService.PostStockIn(new PostStockInCommand(
                             stockIn.Id,
                             stockIn.WarehouseId,
                             StockInKind.Purchase,
                             StockDocumentStatus.Posted,
-                            line.ProductId,
-                            line.BaseQuantity > 0 ? (int)line.BaseQuantity : (int)line.Quantity,
-                            serials,
+                            item.Prepared.Product.Id,
+                            item.Prepared.BaseQuantity,
+                            item.Prepared.SerialNumbers,
                             userId));
+
+                        if (item.Prepared.SerialNumbers.Length > 0)
+                        {
+                            var serials = db.ProductSerials
+                                .Where(serial => item.Prepared.SerialNumbers.Contains(serial.SerialNumber))
+                                .ToList();
+                            foreach (var serial in serials)
+                            {
+                                serial.LastStockInLineId = item.Line.Id;
+                            }
+                        }
                     }
 
-                    result.SuccessCount += group.Count();
+                    db.SaveChanges();
+                    transaction.Commit();
+                    result.SuccessCount += groupRows.Count;
                 }
                 catch (Exception ex)
                 {
-                    result.Errors.Add(new RowError { RowNumber = rowIdx, ErrorMessage = $"Lỗi tại nhóm hóa đơn {group.Key}: {ex.Message}" });
+                    transaction.Rollback();
+                    result.Errors.Add(new RowError
+                    {
+                        RowNumber = firstRowNumber,
+                        ErrorMessage = $"Lỗi tại nhóm phiếu nhập {group.Key}: {ex.Message}"
+                    });
                 }
             }
         }
@@ -666,171 +739,231 @@ namespace QuanLyHangHoa.Services.DataImport
         private void ImportStockOutDocuments(
             List<Dictionary<string, string>> rawRows,
             Dictionary<string, string> mappings,
-            AppDbContext db,
             DynamicImportResult result,
             int userId,
             bool autoCreateReferences,
             ref int rowIdx)
         {
-            var warehouse = db.Warehouses.FirstOrDefault(w => w.IsDefault && w.IsActive) 
-                            ?? db.Warehouses.FirstOrDefault(w => w.IsActive)
-                            ?? db.Warehouses.First();
-
-            var grouped = rawRows.GroupBy(r => {
-                string code = GetMappedString(r, mappings, "DocumentCode", required: false);
+            var grouped = rawRows.GroupBy(row =>
+            {
+                var code = GetMappedString(row, mappings, "DocumentCode", required: false);
                 return string.IsNullOrWhiteSpace(code) ? "AUTO-GEN" : code;
             });
 
             foreach (var group in grouped)
             {
+                var groupRows = group.ToList();
+                var firstRowNumber = rowIdx + 1;
+                rowIdx += groupRows.Count;
+                using var db = _contextFactory();
+                using var transaction = db.Database.BeginTransaction();
+
                 try
                 {
-                    var firstRow = group.First();
-                    DateTime exportDate = GetMappedDateTime(firstRow, mappings, "ExportDate", required: true);
-                    string? customerName = GetMappedString(firstRow, mappings, "CustomerName", required: false);
-                    string? notes = GetMappedString(firstRow, mappings, "Notes", required: false);
-                    string? warehouseName = GetMappedString(firstRow, mappings, "WarehouseName", required: false);
+                    var defaultWarehouse = db.Warehouses
+                        .Where(item => item.IsActive)
+                        .OrderByDescending(item => item.IsDefault)
+                        .ThenBy(item => item.Id)
+                        .FirstOrDefault()
+                        ?? throw new InventoryDomainException("Không tìm thấy kho đang hoạt động.");
+                    var firstRow = groupRows[0];
+                    var exportDate = GetMappedDateTime(firstRow, mappings, "ExportDate", required: true);
+                    var customerName = GetMappedString(firstRow, mappings, "CustomerName", required: false);
+                    var notes = GetMappedString(firstRow, mappings, "Notes", required: false);
+                    var warehouseName = GetMappedString(firstRow, mappings, "WarehouseName", required: false);
+                    var warehouse = string.IsNullOrWhiteSpace(warehouseName)
+                        ? defaultWarehouse
+                        : db.Warehouses.SingleOrDefault(item => item.DisplayName == warehouseName && item.IsActive)
+                          ?? throw new InventoryDomainException($"Không tìm thấy kho '{warehouseName}'.");
 
-                    int whId = warehouse.Id;
-                    if (!string.IsNullOrEmpty(warehouseName))
+                    Customer? customer;
+                    if (string.IsNullOrWhiteSpace(customerName))
                     {
-                        var wh = db.Warehouses.FirstOrDefault(w => w.DisplayName == warehouseName);
-                        if (wh != null)
-                        {
-                            whId = wh.Id;
-                        }
-                        else if (!autoCreateReferences)
-                        {
-                            throw new Exception($"Không tìm thấy kho '{warehouseName}'.");
-                        }
-                    }
-
-                    int customerId = 0;
-                    if (!string.IsNullOrEmpty(customerName))
-                    {
-                        var customer = db.Customers.FirstOrDefault(c => c.DisplayName == customerName);
-                        if (customer == null)
-                        {
-                            if (autoCreateReferences)
-                            {
-                                customer = new Customer { DisplayName = customerName, CustomerCode = $"CUS-{Guid.NewGuid().ToString().Substring(0, 8).ToUpperInvariant()}", IsActive = true };
-                                db.Customers.Add(customer);
-                                db.SaveChanges();
-                            }
-                            else
-                            {
-                                throw new Exception($"Không tìm thấy khách hàng '{customerName}'.");
-                            }
-                        }
-                        customerId = customer.Id;
+                        customer = db.Customers.FirstOrDefault(item => item.CustomerCode == "CUS-LE")
+                                   ?? db.Customers.FirstOrDefault(item => item.IsActive);
                     }
                     else
                     {
-                        var defaultCust = db.Customers.FirstOrDefault(c => c.CustomerCode == "CUS-LE")
-                                       ?? db.Customers.FirstOrDefault(c => c.IsActive)
-                                       ?? db.Customers.FirstOrDefault();
-                        if (defaultCust == null)
-                        {
-                            if (autoCreateReferences)
-                            {
-                                defaultCust = new Customer { DisplayName = "Khách bán lẻ", CustomerCode = "CUS-LE", IsActive = true };
-                                db.Customers.Add(defaultCust);
-                                db.SaveChanges();
-                            }
-                            else
-                            {
-                                throw new Exception("Không tìm thấy khách hàng mặc định 'Khách bán lẻ' (CUS-LE) và tự động tạo đang tắt.");
-                            }
-                        }
-                        customerId = defaultCust.Id;
+                        customer = db.Customers.SingleOrDefault(item => item.DisplayName == customerName);
                     }
 
+                    if (customer is null)
+                    {
+                        if (!autoCreateReferences)
+                        {
+                            throw new InventoryDomainException("Không tìm thấy khách hàng phù hợp.");
+                        }
+
+                        customer = new Customer
+                        {
+                            DisplayName = string.IsNullOrWhiteSpace(customerName) ? "Khách bán lẻ" : customerName,
+                            CustomerCode = $"CUS-{Guid.NewGuid():N}"[..12].ToUpperInvariant(),
+                            IsActive = true
+                        };
+                    }
+
+                    var documentCode = group.Key == "AUTO-GEN"
+                        ? $"SO-{DateTime.UtcNow:yyyyMMddHHmmssfff}-{Guid.NewGuid():N}"[..32]
+                        : group.Key;
+                    if (db.StockOuts.Any(item => item.DocumentCode == documentCode))
+                    {
+                        throw new InventoryDomainException($"Mã phiếu xuất '{documentCode}' đã tồn tại.");
+                    }
+
+                    var preparedLines = new List<PreparedStockOutImportLine>();
+                    var documentSerials = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var itemRow in groupRows)
+                    {
+                        var productCode = GetMappedString(itemRow, mappings, "ProductCode", required: true);
+                        var quantity = GetMappedDecimal(itemRow, mappings, "Quantity", required: true);
+                        if (quantity <= 0)
+                        {
+                            throw new InventoryDomainException("Stock-out quantity must be greater than zero.");
+                        }
+
+                        var product = db.Products.SingleOrDefault(item => item.ProductCode == productCode && item.IsActive)
+                            ?? throw new InventoryDomainException($"Không tìm thấy sản phẩm '{productCode}' khi import dòng.");
+                        var conversionFactor = db.ProductUnits
+                            .Where(unit => unit.ProductId == product.Id && unit.UnitId == product.DefaultUnitId)
+                            .Select(unit => unit.ConversionFactor)
+                            .FirstOrDefault();
+                        if (conversionFactor <= 0)
+                        {
+                            conversionFactor = 1m;
+                        }
+
+                        var baseQuantity = quantity * conversionFactor;
+                        var serialNumbers = StockInService.ParseSerialRange(
+                                GetMappedString(itemRow, mappings, "SerialNumbers", required: false))
+                            .Select(serial => serial.Trim())
+                            .Where(serial => serial.Length > 0)
+                            .ToArray();
+                        if (serialNumbers.Length != serialNumbers.Distinct(StringComparer.OrdinalIgnoreCase).Count() ||
+                            serialNumbers.Any(serial => !documentSerials.Add(serial)))
+                        {
+                            throw new InventoryDomainException("Duplicate serials are not allowed.");
+                        }
+
+                        if (product.IsSerialTracked &&
+                            (baseQuantity != decimal.Truncate(baseQuantity) || serialNumbers.Length != (int)baseQuantity))
+                        {
+                            throw new InventoryDomainException("Serial count must match stock-out quantity.");
+                        }
+
+                        if (!product.IsSerialTracked && serialNumbers.Length > 0)
+                        {
+                            throw new InventoryDomainException("Non-serial products cannot be issued with serial numbers.");
+                        }
+
+                        foreach (var serialNumber in serialNumbers)
+                        {
+                            var serial = db.ProductSerials.SingleOrDefault(item => item.SerialNumber == serialNumber)
+                                ?? throw new InventoryDomainException($"Serial {serialNumber} does not exist.");
+                            if (serial.ProductId != product.Id ||
+                                serial.CurrentWarehouseId != warehouse.Id ||
+                                serial.CurrentStatus != "InStock")
+                            {
+                                throw new InventoryDomainException($"Serial {serialNumber} is not available in the selected warehouse.");
+                            }
+                        }
+
+                        preparedLines.Add(new PreparedStockOutImportLine(
+                            product,
+                            quantity,
+                            baseQuantity,
+                            serialNumbers));
+                    }
+
+                    foreach (var productGroup in preparedLines.GroupBy(item => item.Product.Id))
+                    {
+                        var requiredQuantity = productGroup.Sum(item => item.BaseQuantity);
+                        var balance = db.StockBalances.SingleOrDefault(item =>
+                            item.ProductId == productGroup.Key && item.WarehouseId == warehouse.Id);
+                        if (balance is null || balance.AvailableQuantity < requiredQuantity)
+                        {
+                            throw new InventoryDomainException(
+                                $"Không đủ tồn khả dụng cho sản phẩm {productGroup.First().Product.ProductCode}.");
+                        }
+                    }
+
+                    var now = DateTime.UtcNow;
                     var stockOut = new StockOut
                     {
-                        DocumentCode = group.Key == "AUTO-GEN" ? $"SO-{DateTime.Now:yyyyMMddHHmmss}-{Guid.NewGuid().ToString().Substring(0, 4).ToUpperInvariant()}" : group.Key,
+                        DocumentCode = documentCode,
                         ExportDate = exportDate,
-                        WarehouseId = whId,
-                        CustomerId = customerId,
+                        WarehouseId = warehouse.Id,
+                        Customer = customer,
                         PurposeCode = "Sale",
                         Notes = notes,
-                        Status = DocumentStatus.Draft,
+                        Status = DocumentStatus.Posted,
                         CreatedBy = userId,
-                        CreatedAt = DateTime.Now
+                        CreatedAt = now,
+                        PostedBy = userId,
+                        PostedAt = now
                     };
-
                     db.StockOuts.Add(stockOut);
-                    db.SaveChanges();
 
-                    var lines = new List<StockOutLine>();
-                    foreach (var itemRow in group)
+                    var persistedLines = new List<(PreparedStockOutImportLine Prepared, StockOutLine Line)>();
+                    foreach (var prepared in preparedLines)
                     {
-                        rowIdx++;
-                        string productCode = GetMappedString(itemRow, mappings, "ProductCode", required: true);
-                        decimal qty = GetMappedDecimal(itemRow, mappings, "Quantity", required: true);
-                        string? serialsStr = GetMappedString(itemRow, mappings, "SerialNumbers", required: false);
-
-                        var product = db.Products.FirstOrDefault(p => p.ProductCode == productCode);
-                        if (product == null)
-                            throw new Exception($"Không tìm thấy sản phẩm '{productCode}' khi import dòng.");
-
-                        var pu = db.ProductUnits.FirstOrDefault(u => u.ProductId == product.Id && u.UnitId == product.DefaultUnitId);
                         var line = new StockOutLine
                         {
-                            StockOutId = stockOut.Id,
-                            ProductId = product.Id,
-                            UnitId = product.DefaultUnitId,
-                            Quantity = qty,
-                            BaseQuantity = qty * (pu?.ConversionFactor ?? 1m),
-                            UnitPrice = product.DefaultPrice
+                            StockOut = stockOut,
+                            ProductId = prepared.Product.Id,
+                            UnitId = prepared.Product.DefaultUnitId,
+                            Quantity = prepared.Quantity,
+                            BaseQuantity = prepared.BaseQuantity,
+                            UnitPrice = prepared.Product.DefaultPrice,
+                            DraftSerials = prepared.SerialNumbers.Length == 0
+                                ? null
+                                : string.Join(",", prepared.SerialNumbers)
                         };
-
-                        if (!string.IsNullOrWhiteSpace(serialsStr))
-                        {
-                            var listSerials = StockInService.ParseSerialRange(serialsStr);
-                            foreach (var s in listSerials)
-                            {
-                                var serial = db.ProductSerials.FirstOrDefault(ps => ps.SerialNumber == s && ps.ProductId == product.Id);
-                                if (serial != null)
-                                {
-                                    line.ProductSerials.Add(serial);
-                                }
-                            }
-                        }
-
                         db.StockOutLines.Add(line);
-                        lines.Add(line);
+                        persistedLines.Add((prepared, line));
                     }
-                    db.SaveChanges();
 
-                    // Auto Post StockOut
+                    db.SaveChanges();
                     var postingService = new InventoryPostingService(
                         new EfInventoryUnitOfWork(db),
                         new DbDefaultWarehouseProvider(db),
                         new SystemClock());
 
-                    stockOut.Status = DocumentStatus.Posted;
-                    stockOut.PostedBy = userId;
-                    stockOut.PostedAt = DateTime.Now;
-
-                    foreach (var line in lines)
+                    foreach (var item in persistedLines)
                     {
-                        var serials = line.ProductSerials.Select(s => s.SerialNumber).ToArray();
                         postingService.PostStockOut(new PostStockOutCommand(
                             stockOut.Id,
                             stockOut.WarehouseId,
                             StockOutKind.Sale,
                             StockDocumentStatus.Posted,
-                            line.ProductId,
-                            line.BaseQuantity > 0 ? (int)line.BaseQuantity : (int)line.Quantity,
-                            serials,
+                            item.Prepared.Product.Id,
+                            item.Prepared.BaseQuantity,
+                            item.Prepared.SerialNumbers,
                             userId));
+
+                        if (item.Prepared.SerialNumbers.Length > 0)
+                        {
+                            var serials = db.ProductSerials
+                                .Where(serial => item.Prepared.SerialNumbers.Contains(serial.SerialNumber))
+                                .ToList();
+                            foreach (var serial in serials)
+                            {
+                                serial.LastStockOutLineId = item.Line.Id;
+                            }
+                        }
                     }
 
-                    result.SuccessCount += group.Count();
+                    db.SaveChanges();
+                    transaction.Commit();
+                    result.SuccessCount += groupRows.Count;
                 }
                 catch (Exception ex)
                 {
-                    result.Errors.Add(new RowError { RowNumber = rowIdx, ErrorMessage = $"Lỗi tại nhóm phiếu xuất {group.Key}: {ex.Message}" });
+                    transaction.Rollback();
+                    result.Errors.Add(new RowError
+                    {
+                        RowNumber = firstRowNumber,
+                        ErrorMessage = $"Lỗi tại nhóm phiếu xuất {group.Key}: {ex.Message}"
+                    });
                 }
             }
         }

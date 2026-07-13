@@ -54,6 +54,13 @@ public class OpeningBalanceImportServiceTests
         Assert.Equal(2, balances[1].AvailableQuantity);
         Assert.Equal(2, assertContext.ProductSerials.Count());
         Assert.Equal(2, assertContext.StockLedgers.Count());
+        var stockIn = Assert.Single(assertContext.StockIns);
+        Assert.Equal("OpeningBalance", stockIn.PurposeCode);
+        Assert.All(assertContext.StockLedgers, ledger =>
+        {
+            Assert.Equal("StockIn", ledger.SourceDocumentType);
+            Assert.Equal(stockIn.Id, ledger.SourceDocumentId);
+        });
         Assert.All(assertContext.AuditLogs, audit => Assert.Equal(AuditActionCode.PostStockIn.ToString(), audit.ActionCode));
     }
 
@@ -64,7 +71,7 @@ public class OpeningBalanceImportServiceTests
         connection.Open();
         using (var seedContext = DatabaseHelper.CreateContext(connection))
         {
-            seedContext.Database.EnsureCreated();
+            DatabaseHelper.SeedBasicData(seedContext);
             SeedProducts(seedContext);
         }
 

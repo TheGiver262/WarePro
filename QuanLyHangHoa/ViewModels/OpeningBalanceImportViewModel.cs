@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Collections.ObjectModel;
 using System.Data;
 using System.Linq;
@@ -8,6 +9,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using QuanLyHangHoa.Models;
+using QuanLyHangHoa.Services;
 using QuanLyHangHoa.Services.DataImport;
 using System.Text.Json;
 
@@ -36,6 +38,7 @@ namespace QuanLyHangHoa.ViewModels
         private readonly Func<Data.AppDbContext> _contextFactory;
         private readonly FileClassificationService _classifier = new();
         private readonly DynamicImportService _importService;
+        private readonly OpeningBalanceImportService _openingBalanceImportService;
         private readonly Action<string, string> _showMessage;
 
         private List<string> _rawHeaders = new();
@@ -85,6 +88,7 @@ namespace QuanLyHangHoa.ViewModels
             _postedByUserId = postedByUserId;
             _contextFactory = contextFactory;
             _importService = new DynamicImportService(contextFactory);
+            _openingBalanceImportService = new OpeningBalanceImportService(contextFactory);
             _showMessage = showMessage;
         }
 
@@ -258,19 +262,30 @@ namespace QuanLyHangHoa.ViewModels
 
             try
             {
-                // Create mapping dict
-                var mappingsDict = ColumnMappings.ToDictionary(m => m.DbFieldKey, m => m.ExcelHeader);
-
-                // Use the logged-in user ID
+                var mappingsDict = ColumnMappings.ToDictionary(mapping => mapping.DbFieldKey, mapping => mapping.ExcelHeader);
                 var importType = SelectedImportTypeItem?.Value ?? ImportFileType.Product;
-                var result = _importService.ExecuteImport(_rawRows, importType, mappingsDict, _postedByUserId, AutoCreateReferences);
 
-                SuccessCount = result.SuccessCount;
-                Errors = new ObservableCollection<RowError>(result.Errors);
-                
+                if (importType == ImportFileType.StockIn)
+                {
+                    var openingRows = BuildOpeningBalanceRows(mappingsDict);
+                    var openingResult = _openingBalanceImportService.ImportRows(openingRows, _postedByUserId);
+                    SuccessCount = openingResult.SuccessCount;
+                    Errors = new ObservableCollection<RowError>(openingResult.Errors);
+                }
+                else
+                {
+                    var dynamicResult = _importService.ExecuteImport(
+                        _rawRows,
+                        importType,
+                        mappingsDict,
+                        _postedByUserId,
+                        AutoCreateReferences);
+                    SuccessCount = dynamicResult.SuccessCount;
+                    Errors = new ObservableCollection<RowError>(dynamicResult.Errors);
+                }
+
                 StatusMessage = $"Import thành công {SuccessCount} dòng. Thất bại {Errors.Count} dòng.";
 
-                // Ghi audit log cho nhập tồn đầu kỳ
                 if (SuccessCount > 0)
                 {
                     try
@@ -283,18 +298,18 @@ namespace QuanLyHangHoa.ViewModels
                             ImportType = importType.ToString(),
                             ImportTypeDisplayName = importTypeName,
                             FileName = fileName,
-                            SuccessCount = SuccessCount,
+                            SuccessCount,
                             ErrorCount = Errors.Count,
-                            AutoCreateReferences = AutoCreateReferences
+                            AutoCreateReferences
                         };
-                        
+
                         db.AuditLogs.Add(new AuditLog
                         {
                             EntityName = "OpeningBalanceImport",
                             EntityId = 0,
                             ActionCode = "IMPORT",
                             PerformedBy = _postedByUserId,
-                            PerformedAt = DateTime.Now,
+                            PerformedAt = DateTime.UtcNow,
                             BeforeJson = null,
                             AfterJson = JsonSerializer.Serialize(detailLog)
                         });
@@ -313,6 +328,62 @@ namespace QuanLyHangHoa.ViewModels
                 StatusMessage = $"Lỗi import: {ex.Message}";
                 _showMessage(StatusMessage, "Lỗi");
             }
+        }
+
+        private List<OpeningBalanceImportRow> BuildOpeningBalanceRows(
+            IReadOnlyDictionary<string, string> mappings)
+        {
+            using var db = _contextFactory();
+            var result = new List<OpeningBalanceImportRow>();
+            var rowNumber = 1;
+
+            foreach (var rawRow in _rawRows)
+            {
+                rowNumber++;
+                var productCode = GetMappedValue(rawRow, mappings, "ProductCode", required: true);
+                var product = db.Products.SingleOrDefault(item =>
+                    item.ProductCode == productCode && item.IsActive)
+                    ?? throw new InvalidOperationException($"Không tìm thấy sản phẩm '{productCode}'.");
+                var quantityText = GetMappedValue(rawRow, mappings, "Quantity", required: true);
+                if (!decimal.TryParse(
+                        quantityText,
+                        NumberStyles.Number,
+                        CultureInfo.InvariantCulture,
+                        out var quantity) &&
+                    !decimal.TryParse(quantityText, out quantity))
+                {
+                    throw new InvalidOperationException($"Số lượng '{quantityText}' không hợp lệ ở dòng {rowNumber}.");
+                }
+
+                result.Add(new OpeningBalanceImportRow
+                {
+                    RowNumber = rowNumber,
+                    ProductId = product.Id,
+                    Quantity = quantity,
+                    SerialNumbers = GetMappedValue(rawRow, mappings, "SerialNumbers", required: false)
+                });
+            }
+
+            return result;
+        }
+
+        private static string GetMappedValue(
+            IReadOnlyDictionary<string, string> rawRow,
+            IReadOnlyDictionary<string, string> mappings,
+            string field,
+            bool required)
+        {
+            var value = mappings.TryGetValue(field, out var header) &&
+                        !string.IsNullOrWhiteSpace(header) &&
+                        rawRow.TryGetValue(header, out var mappedValue)
+                ? mappedValue?.Trim() ?? string.Empty
+                : string.Empty;
+            if (required && string.IsNullOrWhiteSpace(value))
+            {
+                throw new InvalidOperationException($"Thiếu dữ liệu bắt buộc: {field}.");
+            }
+
+            return value;
         }
 
         [RelayCommand]

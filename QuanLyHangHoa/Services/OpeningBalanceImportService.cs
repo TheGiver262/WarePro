@@ -7,184 +7,265 @@ using QuanLyHangHoa.Inventory;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services.DataImport;
 
-namespace QuanLyHangHoa.Services
-{
-    public class OpeningBalanceImportService
-    {
-        private readonly Func<AppDbContext> _contextFactory;
-        private readonly ExcelImportService _excelImportService = new();
-        private readonly CsvImportService _csvImportService = new();
+namespace QuanLyHangHoa.Services;
 
-        public OpeningBalanceImportService(Func<AppDbContext> contextFactory)
+public sealed class OpeningBalanceImportService
+{
+    private readonly Func<AppDbContext> _contextFactory;
+    private readonly ExcelImportService _excelImportService = new();
+    private readonly CsvImportService _csvImportService = new();
+
+    public OpeningBalanceImportService(Func<AppDbContext> contextFactory)
+    {
+        _contextFactory = contextFactory ?? throw new ArgumentNullException(nameof(contextFactory));
+    }
+
+    public ImportResult<OpeningBalanceImportRow> ImportFile(string filePath, int postedByUserId)
+    {
+        var extension = Path.GetExtension(filePath).ToLowerInvariant();
+        var parsed = extension switch
         {
-            _contextFactory = contextFactory;
+            ".xlsx" or ".xls" => _excelImportService.Import<OpeningBalanceImportRow>(filePath),
+            ".csv" => _csvImportService.Import<OpeningBalanceImportRow>(filePath),
+            _ => throw new NotSupportedException("Dinh dang file khong duoc ho tro.")
+        };
+
+        if (parsed.Errors.Count > 0)
+        {
+            return parsed;
         }
 
-        public ImportResult<OpeningBalanceImportRow> ImportFile(string filePath, int postedByUserId)
-        {
-            var extension = Path.GetExtension(filePath).ToLowerInvariant();
-            var parsed = extension switch
-            {
-                ".xlsx" or ".xls" => _excelImportService.Import<OpeningBalanceImportRow>(filePath),
-                ".csv" => _csvImportService.Import<OpeningBalanceImportRow>(filePath),
-                _ => throw new NotSupportedException("Dinh dang file khong duoc ho tro.")
-            };
+        return ImportRows(parsed.ImportedItems, postedByUserId);
+    }
 
-            var result = ImportRows(parsed.ImportedItems, postedByUserId);
-            result.Errors.InsertRange(0, parsed.Errors);
+    public ImportResult<OpeningBalanceImportRow> ImportRows(
+        IEnumerable<OpeningBalanceImportRow> rows,
+        int postedByUserId)
+    {
+        var result = new ImportResult<OpeningBalanceImportRow>();
+        var sourceRows = rows.ToList();
+        if (sourceRows.Count == 0)
+        {
+            result.Errors.Add(new RowError
+            {
+                RowNumber = 0,
+                ErrorMessage = "Không có dữ liệu tồn đầu kỳ để import."
+            });
             return result;
         }
 
-        public ImportResult<OpeningBalanceImportRow> ImportRows(IEnumerable<OpeningBalanceImportRow> rows, int postedByUserId)
+        using var db = _contextFactory();
+        var warehouseProvider = new DbDefaultWarehouseProvider(db);
+        int warehouseId;
+        try
         {
-            var result = new ImportResult<OpeningBalanceImportRow>();
+            warehouseId = warehouseProvider.GetDefaultWarehouseId();
+        }
+        catch (InventoryDomainException ex)
+        {
+            result.Errors.Add(new RowError { RowNumber = 0, ErrorMessage = ex.Message });
+            return result;
+        }
 
-            int stockInId = 0;
+        var preparedRows = PrepareRows(db, sourceRows, result);
+        if (result.Errors.Count > 0)
+        {
+            return result;
+        }
+
+        using var transaction = db.Database.BeginTransaction();
+        try
+        {
+            var now = DateTime.UtcNow;
+            var stockIn = new StockIn
+            {
+                DocumentCode = $"SI-OB-{now:yyyyMMddHHmmssfff}-{Guid.NewGuid():N}"[..35],
+                WarehouseId = warehouseId,
+                PurposeCode = "OpeningBalance",
+                Status = DocumentStatus.Posted,
+                ImportDate = now,
+                Notes = "Import tồn đầu kỳ từ Excel/CSV",
+                CreatedBy = postedByUserId,
+                CreatedAt = now,
+                PostedBy = postedByUserId,
+                PostedAt = now
+            };
+            db.StockIns.Add(stockIn);
+
+            var persistedLines = new List<(PreparedOpeningBalanceRow Prepared, StockInLine Line)>();
+            foreach (var prepared in preparedRows)
+            {
+                var line = new StockInLine
+                {
+                    StockIn = stockIn,
+                    ProductId = prepared.Product.Id,
+                    UnitId = prepared.UnitId,
+                    Quantity = prepared.Source.Quantity,
+                    BaseQuantity = prepared.Source.Quantity,
+                    UnitPrice = prepared.Product.CostPrice ?? prepared.Product.DefaultPrice,
+                    DraftSerials = prepared.SerialNumbers.Length == 0
+                        ? null
+                        : string.Join(",", prepared.SerialNumbers)
+                };
+                db.StockInLines.Add(line);
+                persistedLines.Add((prepared, line));
+            }
+
+            db.SaveChanges();
+
+            var postingService = new InventoryPostingService(
+                new EfInventoryUnitOfWork(db),
+                warehouseProvider,
+                new SystemClock());
+
+            foreach (var item in persistedLines)
+            {
+                postingService.PostStockIn(new PostStockInCommand(
+                    stockIn.Id,
+                    warehouseId,
+                    StockInKind.OpeningBalance,
+                    StockDocumentStatus.Posted,
+                    item.Prepared.Product.Id,
+                    item.Prepared.Source.Quantity,
+                    item.Prepared.SerialNumbers,
+                    postedByUserId));
+
+                if (item.Prepared.SerialNumbers.Length > 0)
+                {
+                    var serials = db.ProductSerials
+                        .Where(serial => item.Prepared.SerialNumbers.Contains(serial.SerialNumber))
+                        .ToList();
+                    foreach (var serial in serials)
+                    {
+                        serial.LastStockInLineId = item.Line.Id;
+                    }
+                }
+            }
+
+            db.SaveChanges();
+            transaction.Commit();
+            result.ImportedItems.AddRange(sourceRows);
+            result.SuccessCount = sourceRows.Count;
+        }
+        catch (Exception ex)
+        {
+            transaction.Rollback();
+            result.Errors.Add(new RowError
+            {
+                RowNumber = 0,
+                Data = "Chứng từ nhập tồn đầu kỳ",
+                ErrorMessage = ex.Message
+            });
+        }
+
+        return result;
+    }
+
+    private static List<PreparedOpeningBalanceRow> PrepareRows(
+        AppDbContext db,
+        IReadOnlyCollection<OpeningBalanceImportRow> rows,
+        ImportResult<OpeningBalanceImportRow> result)
+    {
+        var prepared = new List<PreparedOpeningBalanceRow>();
+        var documentSerials = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var row in rows)
+        {
             try
             {
-                using var db = _contextFactory();
-                var warehouseProvider = new DbDefaultWarehouseProvider(db);
-                var warehouseId = warehouseProvider.GetDefaultWarehouseId();
-                var stockIn = new StockIn
+                var product = db.Products.SingleOrDefault(item => item.Id == row.ProductId && item.IsActive)
+                    ?? throw new InventoryDomainException($"Product {row.ProductId} does not exist.");
+                if (row.Quantity <= 0)
                 {
-                    DocumentCode = $"SI-OB-{DateTime.Now:yyyyMMddHHmmss}",
-                    WarehouseId = warehouseId,
-                    PurposeCode = "OpeningBalance",
-                    Status = DocumentStatus.Posted,
-                    ImportDate = DateTime.Now,
-                    Notes = $"Import tồn đầu kỳ từ Excel/CSV",
-                    CreatedBy = postedByUserId,
-                    CreatedAt = DateTime.Now,
-                    PostedBy = postedByUserId,
-                    PostedAt = DateTime.Now
-                };
-                db.StockIns.Add(stockIn);
-                db.SaveChanges();
-                stockInId = stockIn.Id;
+                    throw new InventoryDomainException("Stock-in quantity must be greater than zero.");
+                }
+
+                var serialNumbers = StockInService.ParseSerialRange(row.SerialNumbers)
+                    .Select(serial => serial.Trim())
+                    .Where(serial => serial.Length > 0)
+                    .ToArray();
+                if (serialNumbers.Length != serialNumbers.Distinct(StringComparer.OrdinalIgnoreCase).Count())
+                {
+                    throw new InventoryDomainException("Duplicate serials are not allowed.");
+                }
+
+                if (serialNumbers.Any(serial => !documentSerials.Add(serial)))
+                {
+                    throw new InventoryDomainException("Duplicate serials are not allowed.");
+                }
+
+                if (product.IsSerialTracked &&
+                    (row.Quantity != decimal.Truncate(row.Quantity) || serialNumbers.Length != (int)row.Quantity))
+                {
+                    throw new InventoryDomainException("Serial count must match stock-in quantity.");
+                }
+
+                if (!product.IsSerialTracked && serialNumbers.Length > 0)
+                {
+                    throw new InventoryDomainException("Non-serial products cannot receive serial numbers.");
+                }
+
+                if (serialNumbers.Length > 0 &&
+                    db.ProductSerials.Any(serial => serialNumbers.Contains(serial.SerialNumber)))
+                {
+                    throw new InventoryDomainException("One or more serial numbers already exist.");
+                }
+
+                var unitId = db.ProductUnits
+                    .Where(unit => unit.ProductId == product.Id && unit.IsBaseUnit)
+                    .Select(unit => unit.UnitId)
+                    .FirstOrDefault();
+                if (unitId == 0)
+                {
+                    unitId = product.DefaultUnitId;
+                }
+
+                prepared.Add(new PreparedOpeningBalanceRow(row, product, unitId, serialNumbers));
             }
-            catch (Exception ex)
+            catch (InventoryDomainException ex)
             {
                 result.Errors.Add(new RowError
                 {
-                    RowNumber = 0,
-                    Data = "Khởi tạo chứng từ nhập đầu kỳ",
-                    ErrorMessage = $"Không thể khởi tạo chứng từ nhập đầu kỳ: {ex.Message}"
+                    RowNumber = row.RowNumber,
+                    Data = $"ProductId={row.ProductId}; Quantity={row.Quantity}; SerialNumbers={row.SerialNumbers}",
+                    ErrorMessage = ex.Message
                 });
-                return result;
             }
-
-            foreach (var row in rows)
-            {
-                try
-                {
-                    using var db = _contextFactory();
-                    using var transaction = db.Database.BeginTransaction();
-                    var warehouseProvider = new DbDefaultWarehouseProvider(db);
-                    var warehouseId = warehouseProvider.GetDefaultWarehouseId();
-                    var postingService = new InventoryPostingService(
-                        new EfInventoryUnitOfWork(db),
-                        warehouseProvider,
-                        new SystemClock());
-
-                    var product = db.Products.Find(row.ProductId);
-                    var unitId = db.ProductUnits
-                        .Where(pu => pu.ProductId == row.ProductId && pu.IsBaseUnit)
-                        .Select(pu => pu.UnitId)
-                        .FirstOrDefault();
-                    if (unitId == 0 && product != null) unitId = product.DefaultUnitId;
-                    if (unitId == 0) unitId = 1;
-
-                    var line = new StockInLine
-                    {
-                        StockInId = stockInId,
-                        ProductId = row.ProductId,
-                        UnitId = unitId,
-                        Quantity = row.Quantity,
-                        BaseQuantity = row.Quantity,
-                        UnitPrice = product?.DefaultPrice ?? 0,
-                        DraftSerials = string.IsNullOrWhiteSpace(row.SerialNumbers) ? null : row.SerialNumbers
-                    };
-                    db.StockInLines.Add(line);
-                    db.SaveChanges();
-
-                    postingService.PostStockIn(new PostStockInCommand(
-                        stockInId,
-                        warehouseId,
-                        StockInKind.OpeningBalance,
-                        StockDocumentStatus.Approved,
-                        row.ProductId,
-                        row.Quantity,
-                        StockInService.ParseSerialRange(row.SerialNumbers),
-                        postedByUserId));
-
-                    var sns = StockInService.ParseSerialRange(row.SerialNumbers);
-                    if (sns.Any())
-                    {
-                        var dbSerials = db.ProductSerials.Where(ps => sns.Contains(ps.SerialNumber)).ToList();
-                        foreach (var s in dbSerials)
-                        {
-                            s.LastStockInLineId = line.Id;
-                        }
-                        db.SaveChanges();
-                    }
-
-                    transaction.Commit();
-                    result.ImportedItems.Add(row);
-                    result.SuccessCount++;
-                }
-                catch (Exception ex) when (ex is InventoryDomainException or InvalidOperationException)
-                {
-                    result.Errors.Add(new RowError
-                    {
-                        RowNumber = row.RowNumber,
-                        Data = $"ProductId={row.ProductId}; Quantity={row.Quantity}; SerialNumbers={row.SerialNumbers}",
-                        ErrorMessage = ex.Message
-                    });
-                }
-            }
-
-            if (result.SuccessCount == 0 && stockInId > 0)
-            {
-                try
-                {
-                    using var db = _contextFactory();
-                    var stockIn = db.StockIns.Find(stockInId);
-                    if (stockIn != null)
-                    {
-                        db.StockIns.Remove(stockIn);
-                        db.SaveChanges();
-                    }
-                }
-                catch
-                {
-                    // Ignore
-                }
-            }
-
-            return result;
         }
 
-        private sealed class DbDefaultWarehouseProvider : IDefaultWarehouseProvider
+        return prepared;
+    }
+
+    private sealed record PreparedOpeningBalanceRow(
+        OpeningBalanceImportRow Source,
+        Product Product,
+        int UnitId,
+        string[] SerialNumbers);
+
+    private sealed class DbDefaultWarehouseProvider : IDefaultWarehouseProvider
+    {
+        private readonly AppDbContext _context;
+
+        public DbDefaultWarehouseProvider(AppDbContext context)
         {
-            private readonly AppDbContext _context;
-
-            public DbDefaultWarehouseProvider(AppDbContext context)
-            {
-                _context = context;
-            }
-
-            public int GetDefaultWarehouseId()
-            {
-                var warehouse = _context.Warehouses
-                    .FirstOrDefault(warehouse => warehouse.IsDefault && warehouse.IsActive);
-
-                return warehouse?.Id ?? 1;
-            }
+            _context = context;
         }
 
-        private sealed class SystemClock : IClock
+        public int GetDefaultWarehouseId()
         {
-            public DateTime Now => DateTime.Now;
+            var warehouse = _context.Warehouses
+                .Where(item => item.IsActive)
+                .OrderByDescending(item => item.IsDefault)
+                .ThenBy(item => item.Id)
+                .FirstOrDefault();
+
+            return warehouse?.Id
+                ?? throw new InventoryDomainException("Không tìm thấy kho đang hoạt động để nhập tồn đầu kỳ.");
         }
+    }
+
+    private sealed class SystemClock : IClock
+    {
+        public DateTime Now => DateTime.UtcNow;
     }
 }
