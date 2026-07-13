@@ -3,6 +3,34 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Xem trước bản in" Width="794" Height="950" MaxHeight="1050"
         WindowStartupLocation="CenterOwner" Background="#ECEFF1">
+    <Window.Resources>
+        <Style x:Key="PrintHeaderText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="8"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="PrintCellText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="8"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="5,3"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+        <Style x:Key="PrintCellCenter" TargetType="TextBlock" BasedOn="{StaticResource PrintCellText}">
+            <Setter Property="TextAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="PrintCellRight" TargetType="TextBlock" BasedOn="{StaticResource PrintCellText}">
+            <Setter Property="TextAlignment" Value="Right"/>
+        </Style>
+        <Style x:Key="PrintTotalLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="9"/>
+            <Setter Property="Margin" Value="0,2"/>
+        </Style>
+        <Style x:Key="PrintTotalValue" TargetType="TextBlock" BasedOn="{StaticResource PrintTotalLabel}">
+            <Setter Property="TextAlignment" Value="Right"/>
+        </Style>
+    </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
@@ -229,32 +257,4 @@
         </Border>
     </Grid>
 
-    <Window.Resources>
-        <Style x:Key="PrintHeaderText" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="8"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="HorizontalAlignment" Value="Center"/>
-            <Setter Property="TextAlignment" Value="Center"/>
-        </Style>
-        <Style x:Key="PrintCellText" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="8"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Margin" Value="5,3"/>
-            <Setter Property="TextWrapping" Value="Wrap"/>
-        </Style>
-        <Style x:Key="PrintCellCenter" TargetType="TextBlock" BasedOn="{StaticResource PrintCellText}">
-            <Setter Property="TextAlignment" Value="Center"/>
-        </Style>
-        <Style x:Key="PrintCellRight" TargetType="TextBlock" BasedOn="{StaticResource PrintCellText}">
-            <Setter Property="TextAlignment" Value="Right"/>
-        </Style>
-        <Style x:Key="PrintTotalLabel" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="9"/>
-            <Setter Property="Margin" Value="0,2"/>
-        </Style>
-        <Style x:Key="PrintTotalValue" TargetType="TextBlock" BasedOn="{StaticResource PrintTotalLabel}">
-            <Setter Property="TextAlignment" Value="Right"/>
-        </Style>
-    </Window.Resources>
 </Window>

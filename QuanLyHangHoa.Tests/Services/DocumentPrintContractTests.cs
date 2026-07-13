@@ -148,6 +148,21 @@ public class DocumentPrintContractTests
     }
 
     [Fact]
+    public void Print_preview_declares_local_resources_before_the_visual_tree()
+    {
+        var xamlPath = Path.Combine(RepoRoot, "QuanLyHangHoa", "Views", "DocumentPrintWindow.xaml");
+        var root = XDocument.Load(xamlPath).Root!;
+        var children = root.Elements().ToList();
+
+        var resourcesIndex = children.FindIndex(element => element.Name.LocalName == "Window.Resources");
+        var visualTreeIndex = children.FindIndex(element => element.Name.LocalName == "Grid");
+
+        Assert.True(resourcesIndex >= 0);
+        Assert.True(visualTreeIndex >= 0);
+        Assert.True(resourcesIndex < visualTreeIndex,
+            "StaticResource declarations must precede their first use in the visual tree.");
+    }
+    [Fact]
     public void Text_action_buttons_are_wired()
     {
         var viewsDirectory = Path.Combine(RepoRoot, "QuanLyHangHoa", "Views");
