@@ -14,6 +14,58 @@ namespace QuanLyHangHoa.Tests.Services;
 public class WarrantyClaimServiceTests
 {
     [Fact]
+    public void WarrantyClaimTransitions_enforces_allowed_state_action_table()
+    {
+        var allowed = new Dictionary<string, HashSet<WarrantyClaimAction>>
+        {
+            ["Open"] = new()
+            {
+                WarrantyClaimAction.Resolve,
+                WarrantyClaimAction.Send,
+                WarrantyClaimAction.Repair,
+                WarrantyClaimAction.Reject
+            },
+            ["ManufacturerWait"] = new()
+            {
+                WarrantyClaimAction.Repair,
+                WarrantyClaimAction.Replace
+            },
+            ["Ready"] = new()
+            {
+                WarrantyClaimAction.Replace,
+                WarrantyClaimAction.Close
+            },
+            ["Closed"] = new(),
+            ["Rejected"] = new()
+        };
+
+        foreach (var (status, allowedActions) in allowed)
+        {
+            foreach (var action in Enum.GetValues<WarrantyClaimAction>())
+            {
+                if (allowedActions.Contains(action))
+                {
+                    WarrantyClaimTransitions.EnsureAllowed(status, action);
+                }
+                else
+                {
+                    Assert.Throws<InvalidOperationException>(() =>
+                        WarrantyClaimTransitions.EnsureAllowed(status, action));
+                }
+            }
+        }
+    }
+
+    [Fact]
+    public void CoverageDates_reject_end_before_start()
+    {
+        Assert.Throws<InvalidOperationException>(() =>
+            WarrantyClaimService.EnsureValidCoverageDates(
+                new DateTime(2026, 5, 2),
+                new DateTime(2026, 5, 1)));
+    }
+
+    [Fact]
     public void CreateClaim_for_active_coverage_creates_checking_claim_and_marks_serial_in_warranty()
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
@@ -391,7 +443,7 @@ public class WarrantyClaimServiceTests
                 WarrantyCoverageId = coverage.Id,
                 ProductSerialId = serial.Id,
                 ReceivedDate = DateTime.Now,
-                Status = "Open"
+                Status = "Ready"
             };
             seedContext.WarrantyClaims.Add(claim);
             seedContext.SaveChanges();
@@ -417,5 +469,192 @@ public class WarrantyClaimServiceTests
         var remainingDays = (newCoverage.WarrantyEndDate - DateTime.Now).TotalDays;
         Assert.True(remainingDays > 14 && remainingDays <= 15);
     }
+
+    [Fact]
+    public void ReplaceSerial_rejects_second_replacement_without_changing_inventory_coverage_or_links()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        var claimId = SeedReplacementClaim(connection, "Ready", twoReplacementSerials: true);
+        var service = new WarrantyClaimService(() => CreateContext(connection));
+
+        service.ReplaceSerial(claimId, "REPLACEMENT-1", "Approved replacement", userId: 4);
+
+        ReplacementSnapshot before;
+        using (var snapshotContext = CreateContext(connection))
+        {
+            before = ReadReplacementSnapshot(snapshotContext, claimId);
+        }
+
+        Assert.Throws<InvalidOperationException>(() =>
+            service.ReplaceSerial(claimId, "REPLACEMENT-2", "Duplicate replacement", userId: 4));
+
+        using var assertContext = CreateContext(connection);
+        Assert.Equal(before, ReadReplacementSnapshot(assertContext, claimId));
+    }
+
+    [Theory]
+    [InlineData("Closed")]
+    [InlineData("Rejected")]
+    public void ReplaceSerial_rejects_terminal_claim_without_changing_inventory_coverage_or_links(string status)
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        var claimId = SeedReplacementClaim(connection, status, twoReplacementSerials: false);
+        var service = new WarrantyClaimService(() => CreateContext(connection));
+
+        ReplacementSnapshot before;
+        using (var snapshotContext = CreateContext(connection))
+        {
+            before = ReadReplacementSnapshot(snapshotContext, claimId);
+        }
+
+        Assert.Throws<InvalidOperationException>(() =>
+            service.ReplaceSerial(claimId, "REPLACEMENT-1", "Forbidden replacement", userId: 4));
+
+        using var assertContext = CreateContext(connection);
+        Assert.Equal(before, ReadReplacementSnapshot(assertContext, claimId));
+    }
+
+    [Theory]
+    [InlineData("Closed")]
+    [InlineData("Rejected")]
+    public void UpdateClaim_rejects_terminal_claim_without_changes(string status)
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        var claimId = SeedReplacementClaim(connection, status, twoReplacementSerials: false);
+        WarrantyClaim claim;
+        using (var arrangeContext = CreateContext(connection))
+        {
+            claim = arrangeContext.WarrantyClaims.AsNoTracking().Single(item => item.Id == claimId);
+        }
+        claim.ProcessingNote = "Forbidden edit";
+        var service = new WarrantyClaimService(() => CreateContext(connection));
+
+        Assert.Throws<InvalidOperationException>(() => service.UpdateClaim(claim));
+
+        using var assertContext = CreateContext(connection);
+        var unchanged = assertContext.WarrantyClaims.Single(item => item.Id == claimId);
+        Assert.Null(unchanged.ProcessingNote);
+        Assert.Equal(status, unchanged.Status);
+    }
+
+    private static int SeedReplacementClaim(
+        SqliteConnection connection,
+        string status,
+        bool twoReplacementSerials)
+    {
+        using var context = CreateContext(connection);
+        DatabaseHelper.SeedBasicData(context);
+        context.AppUsers.Add(new AppUser
+        {
+            Id = 4,
+            Username = "warranty-state",
+            FullName = "Warranty Staff",
+            PasswordHash = "hash",
+            RoleCode = "Nhân viên bảo hành",
+            IsActive = true
+        });
+        context.Products.Add(new Product
+        {
+            Id = 4000,
+            ProductCode = "P4000",
+            DisplayName = "Replacement product",
+            CategoryId = 1,
+            BrandId = 1,
+            DefaultUnitId = 1,
+            DefaultPrice = 10m,
+            IsSerialTracked = true
+        });
+
+        var defective = new ProductSerial
+        {
+            SerialNumber = "DEFECTIVE-1",
+            ProductId = 4000,
+            CurrentStatus = "InWarrantyProcess"
+        };
+        context.ProductSerials.Add(defective);
+        context.ProductSerials.Add(new ProductSerial
+        {
+            SerialNumber = "REPLACEMENT-1",
+            ProductId = 4000,
+            CurrentStatus = "InStock",
+            CurrentWarehouseId = 1
+        });
+        if (twoReplacementSerials)
+        {
+            context.ProductSerials.Add(new ProductSerial
+            {
+                SerialNumber = "REPLACEMENT-2",
+                ProductId = 4000,
+                CurrentStatus = "InStock",
+                CurrentWarehouseId = 1
+            });
+        }
+
+        context.StockBalances.Add(new StockBalance
+        {
+            ProductId = 4000,
+            WarehouseId = 1,
+            OnHandQuantity = twoReplacementSerials ? 2 : 1,
+            AvailableQuantity = twoReplacementSerials ? 2 : 1
+        });
+        context.SaveChanges();
+
+        var coverage = new WarrantyCoverage
+        {
+            ProductSerialId = defective.Id,
+            CustomerId = 1,
+            WarrantyStartDate = DateTime.Now.AddDays(-5),
+            WarrantyEndDate = DateTime.Now.AddDays(15),
+            CoverageStatus = "Active"
+        };
+        context.WarrantyCoverages.Add(coverage);
+        context.SaveChanges();
+
+        var claim = new WarrantyClaim
+        {
+            ClaimCode = $"WC-{status}",
+            WarrantyCoverageId = coverage.Id,
+            ProductSerialId = defective.Id,
+            ReceivedDate = DateTime.Now,
+            Status = status
+        };
+        context.WarrantyClaims.Add(claim);
+        context.SaveChanges();
+        return claim.Id;
+    }
+
+    private static ReplacementSnapshot ReadReplacementSnapshot(AppDbContext context, int claimId)
+    {
+        var claim = context.WarrantyClaims.Single(item => item.Id == claimId);
+        var serialStates = string.Join(",", context.ProductSerials
+            .Where(serial => serial.ProductId == 4000)
+            .OrderBy(serial => serial.SerialNumber)
+            .Select(serial => $"{serial.SerialNumber}:{serial.CurrentStatus}"));
+        var coverageStates = string.Join(",", context.WarrantyCoverages
+            .OrderBy(coverage => coverage.Id)
+            .Select(coverage => $"{coverage.ProductSerialId}:{coverage.CoverageStatus}"));
+        var balance = context.StockBalances.Single(item => item.ProductId == 4000 && item.WarehouseId == 1);
+
+        return new ReplacementSnapshot(
+            balance.OnHandQuantity,
+            balance.AvailableQuantity,
+            serialStates,
+            coverageStates,
+            claim.ReplacementSerialId,
+            claim.ReplacementStockOutId,
+            context.StockOuts.Count(item => item.PurposeCode == "WarrantyReplacement"));
+    }
+
+    private sealed record ReplacementSnapshot(
+        decimal OnHand,
+        decimal Available,
+        string SerialStates,
+        string CoverageStates,
+        int? ReplacementSerialId,
+        int? ReplacementStockOutId,
+        int ReplacementStockOutCount);
 }
 

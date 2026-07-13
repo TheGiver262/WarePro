@@ -70,6 +70,37 @@ namespace QuanLyHangHoa.ViewModels
         // Detail panel visibility
         [ObservableProperty] private bool _isDetailPanelOpen;
 
+        public bool CanCompleteRepair => HasStatus("Open")
+            && IsActionAllowed(WarrantyClaimAction.Repair);
+
+        public bool CanSendManufacturer => IsActionAllowed(WarrantyClaimAction.Send);
+
+        public bool CanReceiveManufacturerRepaired => HasStatus("ManufacturerWait")
+            && IsActionAllowed(WarrantyClaimAction.Repair);
+
+        public bool CanReceiveManufacturerReplaced => HasStatus("ManufacturerWait")
+            && IsActionAllowed(WarrantyClaimAction.Replace);
+
+        public bool CanReceiveManufacturerActions =>
+            CanReceiveManufacturerRepaired || CanReceiveManufacturerReplaced;
+
+        public bool CanRejectWarranty => IsActionAllowed(WarrantyClaimAction.Reject);
+
+        public bool CanReplaceWarrantySerial => HasStatus("Ready")
+            && IsActionAllowed(WarrantyClaimAction.Replace);
+
+        public bool IsSelectedWarrantyMutable => SelectedWarranty != null
+            && !WarrantyClaimTransitions.IsTerminal(SelectedWarranty.Status);
+
+        private bool HasStatus(string status) => string.Equals(
+            SelectedWarranty?.Status,
+            status,
+            StringComparison.OrdinalIgnoreCase);
+
+        private bool IsActionAllowed(WarrantyClaimAction action) =>
+            SelectedWarranty != null
+            && WarrantyClaimTransitions.IsAllowed(SelectedWarranty.Status, action);
+
         public WarrantyViewModel(AppUser currentUser, Func<AppDbContext> contextFactory)
             : this(
                 currentUser,
@@ -253,7 +284,8 @@ namespace QuanLyHangHoa.ViewModels
             {
                 using var db = _contextFactory();
                 var serials = db.ProductSerials
-                    .Where(s => s.WarrantyCoverage != null && s.WarrantyCoverage.CoverageStatus == "Active" && s.WarrantyCoverage.WarrantyEndDate >= DateTime.Now)
+                    .Where(s => s.WarrantyCoverage != null && s.WarrantyCoverage.CoverageStatus == "Active"
+                        && s.WarrantyCoverage.WarrantyEndDate >= DateTime.Today)
                     .Select(s => s.SerialNumber)
                     .Distinct()
                     .OrderBy(s => s)
@@ -304,7 +336,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(IsSelectedWarrantyMutable))]
         private void SaveWarranty()
         {
             if (SelectedWarranty == null) return;
@@ -320,7 +352,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(IsSelectedWarrantyMutable))]
         private void DeleteWarranty()
         {
             if (SelectedWarranty == null) return;
@@ -339,7 +371,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanCompleteRepair))]
         private void CompleteRepair()
         {
             if (SelectedWarranty == null) return;
@@ -348,7 +380,7 @@ namespace QuanLyHangHoa.ViewModels
                 "Đã hoàn tất sửa bảo hành.");
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanSendManufacturer))]
         private void SendManufacturer()
         {
             if (SelectedWarranty == null) return;
@@ -363,7 +395,7 @@ namespace QuanLyHangHoa.ViewModels
                 "Đã gửi hãng bảo hành.");
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanReceiveManufacturerRepaired))]
         private void ReceiveManufacturerRepaired()
         {
             if (SelectedWarranty == null) return;
@@ -373,7 +405,7 @@ namespace QuanLyHangHoa.ViewModels
                 "Hãng đã sửa xong, serial cũ trả lại khách.");
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanReceiveManufacturerReplaced))]
         private void ReceiveManufacturerReplaced()
         {
             if (SelectedWarranty == null) return;
@@ -391,7 +423,7 @@ namespace QuanLyHangHoa.ViewModels
                 "Hãng đã đổi mới, đã tạo phiếu nhập/xuất kho tự động.");
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanRejectWarranty))]
         private void RejectWarranty()
         {
             if (SelectedWarranty == null) return;
@@ -400,7 +432,7 @@ namespace QuanLyHangHoa.ViewModels
                 "Đã từ chối và trả máy cho khách.");
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanReplaceWarrantySerial))]
         private void ReplaceWarrantySerial()
         {
             if (SelectedWarranty == null) return;
@@ -468,6 +500,27 @@ namespace QuanLyHangHoa.ViewModels
             NewManufacturerSerial = string.Empty;
             ReplacementSerialNumber = string.Empty;
             IsDetailPanelOpen = true;
+        }
+
+        partial void OnSelectedWarrantyChanged(WarrantyClaim? value)
+        {
+            OnPropertyChanged(nameof(CanCompleteRepair));
+            OnPropertyChanged(nameof(CanSendManufacturer));
+            OnPropertyChanged(nameof(CanReceiveManufacturerRepaired));
+            OnPropertyChanged(nameof(CanReceiveManufacturerReplaced));
+            OnPropertyChanged(nameof(CanReceiveManufacturerActions));
+            OnPropertyChanged(nameof(CanRejectWarranty));
+            OnPropertyChanged(nameof(CanReplaceWarrantySerial));
+            OnPropertyChanged(nameof(IsSelectedWarrantyMutable));
+
+            CompleteRepairCommand.NotifyCanExecuteChanged();
+            SendManufacturerCommand.NotifyCanExecuteChanged();
+            ReceiveManufacturerRepairedCommand.NotifyCanExecuteChanged();
+            ReceiveManufacturerReplacedCommand.NotifyCanExecuteChanged();
+            RejectWarrantyCommand.NotifyCanExecuteChanged();
+            ReplaceWarrantySerialCommand.NotifyCanExecuteChanged();
+            SaveWarrantyCommand.NotifyCanExecuteChanged();
+            DeleteWarrantyCommand.NotifyCanExecuteChanged();
         }
 
         [RelayCommand]

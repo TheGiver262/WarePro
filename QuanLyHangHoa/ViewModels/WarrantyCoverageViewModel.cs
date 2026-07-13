@@ -9,6 +9,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
+using QuanLyHangHoa.Services;
 
 namespace QuanLyHangHoa.ViewModels
 {
@@ -95,60 +96,61 @@ namespace QuanLyHangHoa.ViewModels
             {
                 using var db = _contextFactory();
 
-                var stats = await db.WarrantyCoverages
-                    .AsNoTracking()
-                    .GroupBy(_ => 1)
-                    .Select(group => new
-                    {
-                        Total = group.Count(),
-                        Active = group.Count(coverage => coverage.CoverageStatus == "Active"),
-                        Expired = group.Count(coverage => coverage.CoverageStatus == "Expired"),
-                        Voided = group.Count(coverage => coverage.CoverageStatus == "Voided")
-                    })
-                    .FirstOrDefaultAsync(cancellationToken);
-
-                var query = db.WarrantyCoverages
+                var allCoverages = await db.WarrantyCoverages
                     .AsNoTracking()
                     .Include(coverage => coverage.ProductSerial!)
                     .ThenInclude(serial => serial.Product!)
                     .Include(coverage => coverage.Customer!)
-                    .AsQueryable();
+                    .ToListAsync(cancellationToken);
+
+                var today = DateTime.Today;
+                foreach (var coverage in allCoverages)
+                {
+                    coverage.CoverageStatus = WarrantyClaimService.GetEffectiveCoverageStatus(
+                        coverage.CoverageStatus,
+                        coverage.WarrantyEndDate,
+                        today);
+                }
+
+                var filtered = allCoverages.AsEnumerable();
 
                 if (!string.IsNullOrWhiteSpace(SearchSerial))
                 {
                     var term = SearchSerial.Trim();
-                    query = query.Where(coverage => coverage.ProductSerial != null
+                    filtered = filtered.Where(coverage => coverage.ProductSerial != null
                         && coverage.ProductSerial.SerialNumber.Contains(term));
                 }
 
                 if (!string.IsNullOrWhiteSpace(SearchCustomer))
                 {
                     var term = SearchCustomer.Trim();
-                    query = query.Where(coverage => coverage.Customer != null
+                    filtered = filtered.Where(coverage => coverage.Customer != null
                         && coverage.Customer.DisplayName.Contains(term));
                 }
 
                 if (!string.IsNullOrWhiteSpace(SearchProduct))
                 {
                     var term = SearchProduct.Trim();
-                    query = query.Where(coverage => coverage.ProductSerial != null
+                    filtered = filtered.Where(coverage => coverage.ProductSerial != null
                         && coverage.ProductSerial.Product != null
                         && coverage.ProductSerial.Product.DisplayName.Contains(term));
                 }
 
-                if (!string.IsNullOrWhiteSpace(SelectedStatusFilter) && SelectedStatusFilter != "Tất cả")
+                if (!string.IsNullOrWhiteSpace(SelectedStatusFilter)
+                    && SelectedStatusFilter != "Tất cả")
                 {
-                    query = query.Where(coverage => coverage.CoverageStatus == SelectedStatusFilter);
+                    filtered = filtered.Where(coverage =>
+                        coverage.CoverageStatus == SelectedStatusFilter);
                 }
 
-                var coverages = await query
+                var coverages = filtered
                     .OrderBy(coverage => coverage.ProductSerial.SerialNumber)
-                    .ToListAsync(cancellationToken);
+                    .ToList();
 
-                TotalCount = stats?.Total ?? 0;
-                ActiveCount = stats?.Active ?? 0;
-                ExpiredCount = stats?.Expired ?? 0;
-                VoidedCount = stats?.Voided ?? 0;
+                TotalCount = allCoverages.Count;
+                ActiveCount = allCoverages.Count(coverage => coverage.CoverageStatus == "Active");
+                ExpiredCount = allCoverages.Count(coverage => coverage.CoverageStatus == "Expired");
+                VoidedCount = allCoverages.Count(coverage => coverage.CoverageStatus == "Voided");
                 Coverages = new ObservableCollection<WarrantyCoverage>(coverages);
             }
             catch (OperationCanceledException)
@@ -180,6 +182,7 @@ namespace QuanLyHangHoa.ViewModels
 
             try
             {
+                WarrantyClaimService.EnsureValidCoverageDates(StartDate, EndDate);
                 using var db = _contextFactory();
                 // Cập nhật giá trị thay đổi từ form vào SelectedCoverage
                 SelectedCoverage.WarrantyStartDate = StartDate;

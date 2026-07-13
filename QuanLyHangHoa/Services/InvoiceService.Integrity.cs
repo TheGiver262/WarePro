@@ -44,6 +44,14 @@ public partial class InvoiceService
             throw new InvalidOperationException("The linked stock-out document is already used by another invoice.");
         }
 
+        var invalidWarrantyProduct = stockOut.Lines
+            .Select(line => line.Product)
+            .FirstOrDefault(product => product.WarrantyPeriodMonths < 0);
+        if (invalidWarrantyProduct != null)
+        {
+            throw new InvalidOperationException("Product warranty period cannot be negative.");
+        }
+
         invoice.Lines = DeriveSalesLines(db, invoice.Lines, stockOut.Lines);
         CalculateSalesInvoice(invoice);
         return stockOut;

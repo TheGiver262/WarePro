@@ -5,7 +5,9 @@ using QuanLyHangHoa.Inventory;
 using QuanLyHangHoa.Tests.Helpers;
 using Xunit;
 using System;
+using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace QuanLyHangHoa.Tests.ViewModels
 {
@@ -164,6 +166,122 @@ namespace QuanLyHangHoa.Tests.ViewModels
             }
 
             Assert.Equal("Đã hoàn tất sửa bảo hành.", viewModel.StatusMessage);
+        }
+
+        [Fact]
+        public async Task CoverageList_treats_expired_stored_active_coverage_as_expired()
+        {
+            using var connection = new Microsoft.Data.Sqlite.SqliteConnection("Data Source=:memory:");
+            connection.Open();
+            using (var seedContext = DatabaseHelper.CreateContext(connection))
+            {
+                DatabaseHelper.SeedBasicData(seedContext);
+                seedContext.Products.Add(new Product
+                {
+                    Id = 3000,
+                    ProductCode = "P3000",
+                    DisplayName = "Expired warranty product",
+                    CategoryId = 1,
+                    BrandId = 1,
+                    DefaultUnitId = 1,
+                    DefaultPrice = 10m,
+                    IsSerialTracked = true
+                });
+                var serial = new ProductSerial
+                {
+                    SerialNumber = "SERIAL-EXPIRED",
+                    ProductId = 3000,
+                    CurrentStatus = SerialStatus.Sold.ToString()
+                };
+                seedContext.ProductSerials.Add(serial);
+                seedContext.SaveChanges();
+                seedContext.WarrantyCoverages.Add(new WarrantyCoverage
+                {
+                    ProductSerialId = serial.Id,
+                    CustomerId = 1,
+                    WarrantyStartDate = DateTime.Today.AddYears(-1),
+                    WarrantyEndDate = DateTime.Today.AddDays(-1),
+                    CoverageStatus = "Active"
+                });
+                seedContext.SaveChanges();
+            }
+
+            var viewModel = new WarrantyCoverageViewModel(
+                () => DatabaseHelper.CreateContext(connection));
+            await viewModel.LoadData();
+
+            var displayed = Assert.Single(viewModel.Coverages);
+            Assert.Equal("Expired", displayed.CoverageStatus);
+            Assert.Equal(0, viewModel.ActiveCount);
+            Assert.Equal(1, viewModel.ExpiredCount);
+
+            using var assertContext = DatabaseHelper.CreateContext(connection);
+            Assert.Equal("Active", assertContext.WarrantyCoverages.Single().CoverageStatus);
+        }
+
+        [Theory]
+        [InlineData("Open", true, true, false, false, true, false, true)]
+        [InlineData("ManufacturerWait", false, false, true, true, false, false, true)]
+        [InlineData("Ready", false, false, false, false, false, true, true)]
+        [InlineData("Closed", false, false, false, false, false, false, false)]
+        [InlineData("Rejected", false, false, false, false, false, false, false)]
+        public void Warranty_commands_mirror_transition_policy(
+            string status,
+            bool canCompleteRepair,
+            bool canSendManufacturer,
+            bool canReceiveManufacturerRepaired,
+            bool canReceiveManufacturerReplaced,
+            bool canReject,
+            bool canReplaceFromStock,
+            bool canEdit)
+        {
+            using var connection = new Microsoft.Data.Sqlite.SqliteConnection("Data Source=:memory:");
+            connection.Open();
+            var viewModel = new WarrantyViewModel(
+                new AppUser { Id = 42 },
+                () => DatabaseHelper.CreateContext(connection),
+                (message, title) => { });
+
+            viewModel.SelectedWarranty = new WarrantyClaim
+            {
+                Id = 1,
+                ClaimCode = "WC-STATE",
+                WarrantyCoverageId = 1,
+                ProductSerialId = 1,
+                ReceivedDate = DateTime.Today,
+                Status = status
+            };
+
+            Assert.Equal(canCompleteRepair, viewModel.CompleteRepairCommand.CanExecute(null));
+            Assert.Equal(canSendManufacturer, viewModel.SendManufacturerCommand.CanExecute(null));
+            Assert.Equal(canReceiveManufacturerRepaired, viewModel.ReceiveManufacturerRepairedCommand.CanExecute(null));
+            Assert.Equal(canReceiveManufacturerReplaced, viewModel.ReceiveManufacturerReplacedCommand.CanExecute(null));
+            Assert.Equal(canReject, viewModel.RejectWarrantyCommand.CanExecute(null));
+            Assert.Equal(canReplaceFromStock, viewModel.ReplaceWarrantySerialCommand.CanExecute(null));
+            Assert.Equal(canEdit, viewModel.SaveWarrantyCommand.CanExecute(null));
+            Assert.Equal(canEdit, viewModel.DeleteWarrantyCommand.CanExecute(null));
+        }
+
+        [Fact]
+        public void WarrantyView_binds_transition_visibility_and_terminal_read_only_state()
+        {
+            var repoRoot = Path.GetFullPath(
+                Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
+            var xaml = File.ReadAllText(
+                Path.Combine(repoRoot, "QuanLyHangHoa", "Views", "WarrantyView.xaml"));
+
+            Assert.Contains(
+                "IsEnabled=\"{Binding IsSelectedWarrantyMutable}\"",
+                xaml);
+            Assert.Contains("Visibility=\"{Binding CanCompleteRepair,", xaml);
+            Assert.Contains("Visibility=\"{Binding CanSendManufacturer,", xaml);
+            Assert.Contains(
+                "Visibility=\"{Binding CanReceiveManufacturerActions,",
+                xaml);
+            Assert.Contains(
+                "Visibility=\"{Binding CanReplaceWarrantySerial,",
+                xaml);
+            Assert.Contains("Visibility=\"{Binding CanRejectWarranty,", xaml);
         }
     }
 }

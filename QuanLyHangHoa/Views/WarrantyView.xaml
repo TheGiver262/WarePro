@@ -374,7 +374,7 @@
                         <StackPanel>
                             
                             <!-- Resolution Mode UI -->
-                            <StackPanel>
+                            <StackPanel IsEnabled="{Binding IsSelectedWarrantyMutable}">
                                 
                                 <!-- Read-Only Ticket Summary Details -->
                                 <Border CornerRadius="{StaticResource Radius.md}" BorderThickness="1" BorderBrush="{StaticResource AppBorderBrush}" 
@@ -442,7 +442,8 @@
                                 <TextBlock Text="CÁC PHƯƠNG ÁN XỬ LÝ PHÙ HỢP" Style="{StaticResource TypographyLabelBold}" Margin="0,0,0,12" Foreground="{StaticResource AppPrimaryBrush}"/>
 
                                 <!-- Option 1: Hoàn thành sửa chữa tại cửa hàng -->
-                                <Border BorderThickness="1" BorderBrush="{StaticResource AppBorderBrush}" CornerRadius="{StaticResource Radius.md}" Padding="12" Margin="0,0,0,12" Background="{StaticResource AppSurfaceBrush}">
+                                <Border BorderThickness="1" BorderBrush="{StaticResource AppBorderBrush}" CornerRadius="{StaticResource Radius.md}" Padding="12" Margin="0,0,0,12" Background="{StaticResource AppSurfaceBrush}"
+                                        Visibility="{Binding CanCompleteRepair, Converter={StaticResource BooleanToVisibilityConverter}}">
                                     <StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                             <materialDesign:PackIcon Kind="Tools" Foreground="#4CAF50" Width="18" Height="18" VerticalAlignment="Center"/>
@@ -459,7 +460,8 @@
                                 </Border>
 
                                 <!-- Option 2: Gửi hãng bảo hành -->
-                                <Border BorderThickness="1" BorderBrush="{StaticResource AppBorderBrush}" CornerRadius="{StaticResource Radius.md}" Padding="12" Margin="0,0,0,12" Background="{StaticResource AppSurfaceBrush}">
+                                <Border BorderThickness="1" BorderBrush="{StaticResource AppBorderBrush}" CornerRadius="{StaticResource Radius.md}" Padding="12" Margin="0,0,0,12" Background="{StaticResource AppSurfaceBrush}"
+                                        Visibility="{Binding CanSendManufacturer, Converter={StaticResource BooleanToVisibilityConverter}}">
                                     <StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                             <materialDesign:PackIcon Kind="Send" Foreground="#FF9800" Width="18" Height="18" VerticalAlignment="Center"/>
@@ -514,7 +516,8 @@
                                 </Border>
 
                                 <!-- Option 3: Nhận máy trả từ hãng -->
-                                <Border BorderThickness="1" BorderBrush="{StaticResource AppBorderBrush}" CornerRadius="{StaticResource Radius.md}" Padding="12" Margin="0,0,0,12" Background="{StaticResource AppSurfaceBrush}">
+                                <Border BorderThickness="1" BorderBrush="{StaticResource AppBorderBrush}" CornerRadius="{StaticResource Radius.md}" Padding="12" Margin="0,0,0,12" Background="{StaticResource AppSurfaceBrush}"
+                                        Visibility="{Binding CanReceiveManufacturerActions, Converter={StaticResource BooleanToVisibilityConverter}}">
                                     <StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                             <materialDesign:PackIcon Kind="CallReceived" Foreground="#2196F3" Width="18" Height="18" VerticalAlignment="Center"/>
@@ -549,7 +552,8 @@
                                 </Border>
 
                                 <!-- Option 4: Đổi thiết bị mới từ kho của cửa hàng -->
-                                <Border BorderThickness="1" BorderBrush="{StaticResource AppBorderBrush}" CornerRadius="{StaticResource Radius.md}" Padding="12" Margin="0,0,0,12" Background="{StaticResource AppSurfaceBrush}">
+                                <Border BorderThickness="1" BorderBrush="{StaticResource AppBorderBrush}" CornerRadius="{StaticResource Radius.md}" Padding="12" Margin="0,0,0,12" Background="{StaticResource AppSurfaceBrush}"
+                                        Visibility="{Binding CanReplaceWarrantySerial, Converter={StaticResource BooleanToVisibilityConverter}}">
                                     <StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                             <materialDesign:PackIcon Kind="SwapHorizontal" Foreground="{StaticResource PrimaryPurpleBrush}" Width="18" Height="18" VerticalAlignment="Center"/>
@@ -573,7 +577,8 @@
                                 </Border>
 
                                 <!-- Option 5: Từ chối bảo hành -->
-                                <Border BorderThickness="1" BorderBrush="{StaticResource AppBorderBrush}" CornerRadius="{StaticResource Radius.md}" Padding="12" Margin="0,0,0,12" Background="{StaticResource AppSurfaceBrush}">
+                                <Border BorderThickness="1" BorderBrush="{StaticResource AppBorderBrush}" CornerRadius="{StaticResource Radius.md}" Padding="12" Margin="0,0,0,12" Background="{StaticResource AppSurfaceBrush}"
+                                        Visibility="{Binding CanRejectWarranty, Converter={StaticResource BooleanToVisibilityConverter}}">
                                     <StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                             <materialDesign:PackIcon Kind="CloseCircle" Foreground="{StaticResource AppErrorBrush}" Width="18" Height="18" VerticalAlignment="Center"/>

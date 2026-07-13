@@ -285,6 +285,30 @@ public class InvoiceIntegrityTests
     }
 
     [Fact]
+    public void SaveSalesInvoice_rejects_negative_warranty_period_without_writes()
+    {
+        using var connection = CreateInvoiceDatabase();
+        using (var arrangeContext = DatabaseHelper.CreateContext(connection))
+        {
+            arrangeContext.Products.Single(product => product.Id == 910).WarrantyPeriodMonths = -1;
+            arrangeContext.SaveChanges();
+        }
+        var service = new InvoiceService(() => DatabaseHelper.CreateContext(connection));
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            service.SaveSalesInvoice(NewLinkedSalesInvoice(
+                "SI-NEGATIVE-WARRANTY",
+                stockOutId: 200,
+                customerId: 1,
+                quantity: 1)));
+
+        Assert.Contains("warranty period", exception.Message, StringComparison.OrdinalIgnoreCase);
+        using var assertContext = DatabaseHelper.CreateContext(connection);
+        Assert.Empty(assertContext.SalesInvoices);
+        Assert.Empty(assertContext.WarrantyCoverages);
+    }
+
+    [Fact]
     public void Query_marks_past_due_unpaid_invoice_as_effectively_overdue_without_persisting_it()
     {
         using var connection = CreateInvoiceDatabase();
