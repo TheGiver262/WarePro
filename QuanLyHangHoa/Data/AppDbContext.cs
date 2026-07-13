@@ -298,14 +298,14 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasPrecision(0);
             entity.Property(e => e.Notes).IsRequired(false);
             entity.Property(e => e.PaidAmount).HasColumnType("decimal(18, 2)").HasDefaultValue(0m);
-            entity.Property(e => e.PaymentStatus).HasMaxLength(50).HasDefaultValue("Unpaid");
+            entity.Property(e => e.PaymentStatus).HasMaxLength(50).HasDefaultValue(PaymentStatus.Unpaid);
             entity.Property(e => e.DueDate).HasPrecision(0);
             entity.Property(e => e.InvoiceCode).HasMaxLength(50);
             entity.Property(e => e.InvoiceDate).HasPrecision(0);
             entity.Property(e => e.SubTotal).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.TaxAmount).HasColumnType("decimal(18, 2)");
 
-            entity.ToTable("PurchaseInvoice", t => t.HasCheckConstraint("CK_PurchaseInvoice_PaymentStatus", "[PaymentStatus] IN ('Unpaid', 'PartiallyPaid', 'Paid', 'Overdue')"));
+            entity.ToTable("PurchaseInvoice", t => t.HasCheckConstraint("CK_PurchaseInvoice_PaymentStatus", PaymentStatus.CheckConstraint));
 
             entity.HasOne(d => d.StockIn).WithMany(p => p.PurchaseInvoices)
                 .HasForeignKey(d => d.StockInId)
@@ -371,14 +371,14 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasPrecision(0);
             entity.Property(e => e.Notes).IsRequired(false);
             entity.Property(e => e.PaidAmount).HasColumnType("decimal(18, 2)").HasDefaultValue(0m);
-            entity.Property(e => e.PaymentStatus).HasMaxLength(50).HasDefaultValue("Unpaid");
+            entity.Property(e => e.PaymentStatus).HasMaxLength(50).HasDefaultValue(PaymentStatus.Unpaid);
             entity.Property(e => e.DueDate).HasPrecision(0);
             entity.Property(e => e.InvoiceCode).HasMaxLength(50);
             entity.Property(e => e.InvoiceDate).HasPrecision(0);
             entity.Property(e => e.SubTotal).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.TaxAmount).HasColumnType("decimal(18, 2)");
 
-            entity.ToTable("SalesInvoice", t => t.HasCheckConstraint("CK_SalesInvoice_PaymentStatus", "[PaymentStatus] IN ('Unpaid', 'PartiallyPaid', 'Paid', 'Overdue')"));
+            entity.ToTable("SalesInvoice", t => t.HasCheckConstraint("CK_SalesInvoice_PaymentStatus", PaymentStatus.CheckConstraint));
 
             entity.HasOne(d => d.Customer).WithMany(p => p.SalesInvoices)
                 .HasForeignKey(d => d.CustomerId)

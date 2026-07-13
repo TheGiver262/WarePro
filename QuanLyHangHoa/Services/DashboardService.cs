@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
+using QuanLyHangHoa.Models;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -124,10 +125,10 @@ namespace QuanLyHangHoa.Services
             // Unpaid Invoices
             stats.UnpaidSalesInvoiceCount = await context.SalesInvoices
                 .AsNoTracking()
-                .CountAsync(s => s.PaymentStatus == "Unpaid" || s.PaymentStatus == "Partial" || s.PaymentStatus == "Overdue");
+                .CountAsync(s => s.PaymentStatus != PaymentStatus.Paid);
             stats.UnpaidPurchaseInvoiceCount = await context.PurchaseInvoices
                 .AsNoTracking()
-                .CountAsync(p => p.PaymentStatus == "Unpaid" || p.PaymentStatus == "Partial" || p.PaymentStatus == "Overdue");
+                .CountAsync(p => p.PaymentStatus != PaymentStatus.Paid);
 
             // Warranty
             stats.WarrantyActiveCount = await context.WarrantyClaims

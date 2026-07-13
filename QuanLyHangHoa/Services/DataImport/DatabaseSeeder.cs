@@ -306,7 +306,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     item.TaxAmount = row.GetDecimal("TaxAmount") ?? 0;
                     item.GrandTotal = row.GetDecimal("GrandTotal") ?? row.GetDecimal("TotalAmount") ?? 0;
                     item.PaidAmount = row.GetDecimal("PaidAmount") ?? 0;
-                    item.PaymentStatus = row.GetString("PaymentStatus") ?? "Unpaid";
+                    item.PaymentStatus = PaymentStatus.Normalize(row.GetString("PaymentStatus") ?? PaymentStatus.Unpaid);
                     item.DueDate = row.GetDateTime("DueDate");
                     item.Notes = row.GetString("Notes");
                     item.CreatedAt = DateTime.Now;
@@ -368,7 +368,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     item.TaxAmount = row.GetDecimal("TaxAmount") ?? 0;
                     item.GrandTotal = row.GetDecimal("GrandTotal") ?? row.GetDecimal("TotalAmount") ?? 0;
                     item.PaidAmount = row.GetDecimal("PaidAmount") ?? 0;
-                    item.PaymentStatus = row.GetString("PaymentStatus") ?? "Unpaid";
+                    item.PaymentStatus = PaymentStatus.Normalize(row.GetString("PaymentStatus") ?? PaymentStatus.Unpaid);
                     item.DueDate = row.GetDateTime("DueDate");
                     item.Notes = row.GetString("Notes");
                     item.CreatedAt = DateTime.Now;

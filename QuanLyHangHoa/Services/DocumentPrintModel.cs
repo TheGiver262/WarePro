@@ -170,10 +170,10 @@ public sealed class DocumentPrintModel
 
     private static string PaymentStatus(string? status) => status switch
     {
-        "Paid" => "Đã thanh toán",
-        "Partial" => "Thanh toán một phần",
-        "Overdue" => "Quá hạn",
-        "Unpaid" => "Chưa thanh toán",
+        global::QuanLyHangHoa.Models.PaymentStatus.Paid => "Đã thanh toán",
+        global::QuanLyHangHoa.Models.PaymentStatus.PartiallyPaid => "Thanh toán một phần",
+        global::QuanLyHangHoa.Models.PaymentStatus.Overdue => "Quá hạn",
+        global::QuanLyHangHoa.Models.PaymentStatus.Unpaid => "Chưa thanh toán",
         _ => Text(status)
     };
 

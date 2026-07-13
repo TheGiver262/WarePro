@@ -7,7 +7,7 @@ using QuanLyHangHoa.Models;
 
 namespace QuanLyHangHoa.Services
 {
-    public class InvoiceService
+    public partial class InvoiceService
     {
         private readonly Func<AppDbContext> _contextFactory;
 
@@ -18,131 +18,53 @@ namespace QuanLyHangHoa.Services
 
         public void SaveSalesInvoice(SalesInvoice invoice)
         {
-            CalculateSalesInvoice(invoice);
             using var db = _contextFactory();
-            
-            if (invoice.Id == 0)
+            using var transaction = db.Database.BeginTransaction(System.Data.IsolationLevel.Serializable);
+            var isNew = invoice.Id == 0;
+            try
             {
-                db.SalesInvoices.Add(invoice);
+                var stockOut = PrepareSalesInvoice(db, invoice);
+                UpsertSalesInvoice(db, invoice);
+                ReconcileWarrantyCoverages(db, invoice, stockOut);
+                transaction.Commit();
             }
-            else
+            catch
             {
-                // Ensure no other instance is tracked for this ID
-                var local = db.SalesInvoices.Local.FirstOrDefault(i => i.Id == invoice.Id);
-                if (local != null) db.Entry(local).State = EntityState.Detached;
-
-                // Load existing with lines to clear them properly
-                var existing = db.SalesInvoices.Include(i => i.Lines).FirstOrDefault(i => i.Id == invoice.Id);
-                if (existing != null)
+                transaction.Rollback();
+                if (isNew)
                 {
-                    // Remove old lines
-                    if (existing.Lines != null)
-                        db.SalesInvoiceLines.RemoveRange(existing.Lines);
-                    
-                    // Update main properties
-                    db.Entry(existing).CurrentValues.SetValues(invoice);
-                    
-                    // Add new lines
-                    foreach (var line in invoice.Lines ?? new List<SalesInvoiceLine>())
-                    {
-                        line.SalesInvoiceId = invoice.Id;
-                        line.Id = 0; // Ensure they are added
-                        db.SalesInvoiceLines.Add(line);
-                    }
+                    invoice.Id = 0;
                 }
-                else
-                {
-                    db.SalesInvoices.Update(invoice);
-                }
-            }
-            db.SaveChanges();
-
-            // Automate warranty coverage creation
-            if (invoice.StockOutId.HasValue)
-            {
-                var stockOut = db.StockOuts
-                    .Include(s => s.Lines)
-                    .ThenInclude(l => l.ProductSerials)
-                    .Include(s => s.Lines)
-                    .ThenInclude(l => l.Product)
-                    .FirstOrDefault(s => s.Id == invoice.StockOutId.Value);
-
-                if (stockOut != null)
-                {
-                    foreach (var line in stockOut.Lines)
-                    {
-                        var months = line.Product.WarrantyPeriodMonths;
-                        if (months <= 0) months = 12;
-
-                        foreach (var serial in line.ProductSerials)
-                        {
-                            var existingCoverage = db.WarrantyCoverages
-                                .FirstOrDefault(c => c.ProductSerialId == serial.Id && c.SalesInvoiceId == invoice.Id);
-                            if (existingCoverage == null)
-                            {
-                                var coverage = new WarrantyCoverage
-                                {
-                                    ProductSerialId = serial.Id,
-                                    CustomerId = invoice.CustomerId,
-                                    SalesInvoiceId = invoice.Id,
-                                    WarrantyStartDate = invoice.InvoiceDate,
-                                    WarrantyEndDate = invoice.InvoiceDate.AddMonths(months),
-                                    CoverageStatus = "Active"
-                                };
-                                db.WarrantyCoverages.Add(coverage);
-                            }
-                        }
-                    }
-                    db.SaveChanges();
-                }
+                throw;
             }
         }
 
         public void SavePurchaseInvoice(PurchaseInvoice invoice)
         {
-            CalculatePurchaseInvoice(invoice);
             using var db = _contextFactory();
-            
-            if (invoice.Id == 0)
+            using var transaction = db.Database.BeginTransaction(System.Data.IsolationLevel.Serializable);
+            var isNew = invoice.Id == 0;
+            try
             {
-                db.PurchaseInvoices.Add(invoice);
+                PreparePurchaseInvoice(db, invoice);
+                UpsertPurchaseInvoice(db, invoice);
+                transaction.Commit();
             }
-            else
+            catch
             {
-                // Ensure no other instance is tracked for this ID
-                var local = db.PurchaseInvoices.Local.FirstOrDefault(i => i.Id == invoice.Id);
-                if (local != null) db.Entry(local).State = EntityState.Detached;
-
-                // Load existing with lines to clear them properly
-                var existing = db.PurchaseInvoices.Include(i => i.Lines).FirstOrDefault(i => i.Id == invoice.Id);
-                if (existing != null)
+                transaction.Rollback();
+                if (isNew)
                 {
-                    // Remove old lines
-                    if (existing.Lines != null)
-                        db.PurchaseInvoiceLines.RemoveRange(existing.Lines);
-                    
-                    // Update main properties
-                    db.Entry(existing).CurrentValues.SetValues(invoice);
-                    
-                    // Add new lines
-                    foreach (var line in invoice.Lines ?? new List<PurchaseInvoiceLine>())
-                    {
-                        line.PurchaseInvoiceId = invoice.Id;
-                        line.Id = 0; // Ensure they are added
-                        db.PurchaseInvoiceLines.Add(line);
-                    }
+                    invoice.Id = 0;
                 }
-                else
-                {
-                    db.PurchaseInvoices.Update(invoice);
-                }
+                throw;
             }
-            db.SaveChanges();
         }
 
         private static void CalculateSalesInvoice(SalesInvoice invoice)
         {
-            if (invoice.Lines == null) return;
+            if (invoice.Lines == null || invoice.Lines.Count == 0)
+                throw new InvalidOperationException("Invoice must contain at least one line.");
 
             foreach (var line in invoice.Lines)
             {
@@ -156,25 +78,27 @@ namespace QuanLyHangHoa.Services
             invoice.TaxAmount = invoice.Lines.Sum(line => line.TaxAmount);
             invoice.GrandTotal = invoice.Lines.Sum(line => line.GrandTotal);
 
+            ValidatePayment(invoice.PaidAmount, invoice.GrandTotal);
             UpdateSalesPaymentStatus(invoice);
         }
 
         private static void UpdateSalesPaymentStatus(SalesInvoice invoice)
         {
-            if (invoice.PaidAmount >= invoice.GrandTotal && invoice.GrandTotal > 0)
-                invoice.PaymentStatus = "Paid";
+            if (invoice.PaidAmount == invoice.GrandTotal && invoice.GrandTotal > 0)
+                invoice.PaymentStatus = PaymentStatus.Paid;
             else if (invoice.PaidAmount > 0)
-                invoice.PaymentStatus = "Partial";
+                invoice.PaymentStatus = PaymentStatus.PartiallyPaid;
             else
-                invoice.PaymentStatus = "Unpaid";
+                invoice.PaymentStatus = PaymentStatus.Unpaid;
 
-            if (invoice.PaymentStatus != "Paid" && invoice.DueDate.HasValue && invoice.DueDate.Value.Date < DateTime.Today)
-                invoice.PaymentStatus = "Overdue";
+            if (invoice.PaymentStatus != PaymentStatus.Paid && invoice.DueDate.HasValue && invoice.DueDate.Value.Date < DateTime.Today)
+                invoice.PaymentStatus = PaymentStatus.Overdue;
         }
 
         private static void CalculatePurchaseInvoice(PurchaseInvoice invoice)
         {
-            if (invoice.Lines == null) return;
+            if (invoice.Lines == null || invoice.Lines.Count == 0)
+                throw new InvalidOperationException("Invoice must contain at least one line.");
 
             foreach (var line in invoice.Lines)
             {
@@ -188,20 +112,29 @@ namespace QuanLyHangHoa.Services
             invoice.TaxAmount = invoice.Lines.Sum(line => line.TaxAmount);
             invoice.GrandTotal = invoice.Lines.Sum(line => line.GrandTotal);
 
+            ValidatePayment(invoice.PaidAmount, invoice.GrandTotal);
             UpdatePurchasePaymentStatus(invoice);
         }
 
         private static void UpdatePurchasePaymentStatus(PurchaseInvoice invoice)
         {
-            if (invoice.PaidAmount >= invoice.GrandTotal && invoice.GrandTotal > 0)
-                invoice.PaymentStatus = "Paid";
+            if (invoice.PaidAmount == invoice.GrandTotal && invoice.GrandTotal > 0)
+                invoice.PaymentStatus = PaymentStatus.Paid;
             else if (invoice.PaidAmount > 0)
-                invoice.PaymentStatus = "Partial";
+                invoice.PaymentStatus = PaymentStatus.PartiallyPaid;
             else
-                invoice.PaymentStatus = "Unpaid";
+                invoice.PaymentStatus = PaymentStatus.Unpaid;
 
-            if (invoice.PaymentStatus != "Paid" && invoice.DueDate.HasValue && invoice.DueDate.Value.Date < DateTime.Today)
-                invoice.PaymentStatus = "Overdue";
+            if (invoice.PaymentStatus != PaymentStatus.Paid && invoice.DueDate.HasValue && invoice.DueDate.Value.Date < DateTime.Today)
+                invoice.PaymentStatus = PaymentStatus.Overdue;
+        }
+
+        private static void ValidatePayment(decimal paidAmount, decimal grandTotal)
+        {
+            if (paidAmount < 0)
+                throw new InvalidOperationException("Invoice paid amount cannot be negative.");
+            if (paidAmount > grandTotal)
+                throw new InvalidOperationException("Invoice paid amount cannot exceed the grand total.");
         }
 
         private static void CalculateLine(
@@ -235,13 +168,15 @@ namespace QuanLyHangHoa.Services
         public List<SalesInvoice> GetAllSalesInvoices()
         {
             using var db = _contextFactory();
-            return db.SalesInvoices
+            var invoices = db.SalesInvoices
                 .Include(i => i.Customer)
                 .Include(i => i.Creator)
                 .Include(i => i.Lines!)
                 .ThenInclude(l => l.Product)
                 .OrderByDescending(i => i.InvoiceDate)
                 .ToList();
+            MarkEffectivePaymentStatus(invoices);
+            return invoices;
         }
 
         public List<SalesInvoice> GetSalesInvoicesPaged(
@@ -265,11 +200,13 @@ namespace QuanLyHangHoa.Services
 
             query = ApplySalesInvoiceFilters(query, code, customerName, startDate, endDate, paymentStatus, minTotal, maxTotal);
 
-            return query
+            var invoices = query
                 .OrderByDescending(i => i.InvoiceDate)
                 .Skip(skip)
                 .Take(take)
                 .ToList();
+            MarkEffectivePaymentStatus(invoices);
+            return invoices;
         }
 
         public int GetSalesInvoicesCount(
@@ -323,7 +260,7 @@ namespace QuanLyHangHoa.Services
 
             if (!string.IsNullOrEmpty(paymentStatus) && paymentStatus != "Tất cả" && paymentStatus != "All")
             {
-                query = query.Where(i => i.PaymentStatus == paymentStatus);
+                query = ApplySalesPaymentStatusFilter(query, paymentStatus);
             }
 
             if (minTotal.HasValue)
@@ -342,13 +279,15 @@ namespace QuanLyHangHoa.Services
         public List<PurchaseInvoice> GetAllPurchaseInvoices()
         {
             using var db = _contextFactory();
-            return db.PurchaseInvoices
+            var invoices = db.PurchaseInvoices
                 .Include(i => i.Supplier)
                 .Include(i => i.Creator)
                 .Include(i => i.Lines!)
                 .ThenInclude(l => l.Product)
                 .OrderByDescending(i => i.InvoiceDate)
                 .ToList();
+            MarkEffectivePaymentStatus(invoices);
+            return invoices;
         }
 
         public List<PurchaseInvoice> GetPurchaseInvoicesPaged(
@@ -372,11 +311,13 @@ namespace QuanLyHangHoa.Services
 
             query = ApplyPurchaseInvoiceFilters(query, code, supplierName, startDate, endDate, paymentStatus, minTotal, maxTotal);
 
-            return query
+            var invoices = query
                 .OrderByDescending(i => i.InvoiceDate)
                 .Skip(skip)
                 .Take(take)
                 .ToList();
+            MarkEffectivePaymentStatus(invoices);
+            return invoices;
         }
 
         public int GetPurchaseInvoicesCount(
@@ -429,7 +370,7 @@ namespace QuanLyHangHoa.Services
 
             if (!string.IsNullOrEmpty(paymentStatus) && paymentStatus != "Tất cả" && paymentStatus != "All")
             {
-                query = query.Where(i => i.PaymentStatus == paymentStatus);
+                query = ApplyPurchasePaymentStatusFilter(query, paymentStatus);
             }
 
             if (minTotal.HasValue)

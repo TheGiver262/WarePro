@@ -21,7 +21,7 @@ public partial class PurchaseInvoice
 
     public decimal GrandTotal { get; set; }
     public decimal PaidAmount { get; set; }
-    public string PaymentStatus { get; set; } = "Unpaid";
+    public string PaymentStatus { get; set; } = global::QuanLyHangHoa.Models.PaymentStatus.Unpaid;
     public DateTime? DueDate { get; set; }
     public int CreatedBy { get; set; }
     public DateTime CreatedAt { get; set; }

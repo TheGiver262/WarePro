@@ -98,7 +98,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     new() { Key = "TotalAmount", DisplayName = "Tổng tiền hóa đơn", IsRequired = true, DataType = "decimal" },
                     new() { Key = "DiscountAmount", DisplayName = "Tiền giảm giá", IsRequired = false, DataType = "decimal" },
                     new() { Key = "TaxAmount", DisplayName = "Tiền thuế VAT", IsRequired = false, DataType = "decimal" },
-                    new() { Key = "PaymentStatus", DisplayName = "Trạng thái thanh toán (Paid/Partial/Unpaid)", IsRequired = false },
+                    new() { Key = "PaymentStatus", DisplayName = "Trạng thái thanh toán (Paid/PartiallyPaid/Unpaid/Overdue)", IsRequired = false },
                     new() { Key = "Notes", DisplayName = "Ghi chú hóa đơn", IsRequired = false },
                     new() { Key = "ProductCode", DisplayName = "Mã sản phẩm", IsRequired = true },
                     new() { Key = "Quantity", DisplayName = "Số lượng", IsRequired = true, DataType = "decimal" },
@@ -113,7 +113,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     new() { Key = "TotalAmount", DisplayName = "Tổng tiền hóa đơn", IsRequired = true, DataType = "decimal" },
                     new() { Key = "DiscountAmount", DisplayName = "Tiền giảm giá", IsRequired = false, DataType = "decimal" },
                     new() { Key = "TaxAmount", DisplayName = "Tiền thuế VAT", IsRequired = false, DataType = "decimal" },
-                    new() { Key = "PaymentStatus", DisplayName = "Trạng thái thanh toán (Paid/Partial/Unpaid)", IsRequired = false },
+                    new() { Key = "PaymentStatus", DisplayName = "Trạng thái thanh toán (Paid/PartiallyPaid/Unpaid/Overdue)", IsRequired = false },
                     new() { Key = "Notes", DisplayName = "Ghi chú hóa đơn", IsRequired = false },
                     new() { Key = "ProductCode", DisplayName = "Mã sản phẩm", IsRequired = true },
                     new() { Key = "Quantity", DisplayName = "Số lượng", IsRequired = true, DataType = "decimal" },
@@ -993,7 +993,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     decimal totalAmount = GetMappedDecimal(firstRow, mappings, "TotalAmount", required: true);
                     decimal discount = GetMappedDecimalNull(firstRow, mappings, "DiscountAmount") ?? 0;
                     decimal taxAmount = GetMappedDecimalNull(firstRow, mappings, "TaxAmount") ?? 0;
-                    string? status = GetMappedString(firstRow, mappings, "PaymentStatus", required: false) ?? "Paid";
+                    string status = PaymentStatus.Normalize(GetMappedString(firstRow, mappings, "PaymentStatus", required: false) ?? PaymentStatus.Paid);
                     string? notes = GetMappedString(firstRow, mappings, "Notes", required: false);
 
                     var supplier = db.Suppliers.FirstOrDefault(s => s.DisplayName == supplierName);
@@ -1085,7 +1085,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     decimal totalAmount = GetMappedDecimal(firstRow, mappings, "TotalAmount", required: true);
                     decimal discount = GetMappedDecimalNull(firstRow, mappings, "DiscountAmount") ?? 0;
                     decimal taxAmount = GetMappedDecimalNull(firstRow, mappings, "TaxAmount") ?? 0;
-                    string? status = GetMappedString(firstRow, mappings, "PaymentStatus", required: false) ?? "Paid";
+                    string status = PaymentStatus.Normalize(GetMappedString(firstRow, mappings, "PaymentStatus", required: false) ?? PaymentStatus.Paid);
                     string? notes = GetMappedString(firstRow, mappings, "Notes", required: false);
 
                     var customer = db.Customers.FirstOrDefault(c => c.DisplayName == customerName);

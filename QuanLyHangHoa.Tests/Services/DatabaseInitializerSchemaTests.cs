@@ -17,7 +17,7 @@ public class DatabaseInitializerSchemaTests
         var version = (int)versionField.GetRawConstantValue()!;
         var sql = (string)sqlField.GetRawConstantValue()!;
 
-        Assert.Equal(4, version);
+        Assert.Equal(5, version);
         foreach (var table in new[] { "StockIn", "StockOut", "StockAdjustment", "StockTransfer" })
         {
             Assert.Contains($"COL_LENGTH('{table}', 'ApprovedAt')", sql);

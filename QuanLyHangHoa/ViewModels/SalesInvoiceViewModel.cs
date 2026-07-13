@@ -248,15 +248,20 @@ namespace QuanLyHangHoa.ViewModels
                     var query = db.SalesInvoices.AsNoTracking().AsQueryable();
                     query = ApplySalesInvoiceFiltersStatic(query, SearchInvoiceCode, SearchCustomerName, FilterStartDate, FilterEndDate, paymentStatus ?? string.Empty, FilterMinTotal, FilterMaxTotal);
                     
+                    var today = DateTime.Today;
                     var stats = query.GroupBy(i => 1)
                         .Select(g => new
                         {
                             TotalCount = g.Count(),
                             TotalAmount = g.Sum(i => i.GrandTotal),
-                            Paid = g.Count(i => i.PaymentStatus == "Paid"),
-                            Partial = g.Count(i => i.PaymentStatus == "Partial"),
-                            Unpaid = g.Count(i => i.PaymentStatus == "Unpaid"),
-                            Overdue = g.Count(i => i.PaymentStatus == "Overdue")
+                            Paid = g.Count(i => i.PaymentStatus == PaymentStatus.Paid),
+                            Partial = g.Count(i => i.PaymentStatus == PaymentStatus.PartiallyPaid
+                                && (!i.DueDate.HasValue || i.DueDate.Value >= today)),
+                            Unpaid = g.Count(i => i.PaymentStatus == PaymentStatus.Unpaid
+                                && (!i.DueDate.HasValue || i.DueDate.Value >= today)),
+                            Overdue = g.Count(i => i.PaymentStatus != PaymentStatus.Paid
+                                && i.DueDate.HasValue
+                                && i.DueDate.Value < today)
                         })
                         .FirstOrDefault() ?? new { TotalCount = 0, TotalAmount = 0m, Paid = 0, Partial = 0, Unpaid = 0, Overdue = 0 };
 
@@ -326,7 +331,7 @@ namespace QuanLyHangHoa.ViewModels
 
             if (!string.IsNullOrEmpty(paymentStatus) && paymentStatus != "Tất cả" && paymentStatus != "All")
             {
-                query = query.Where(i => i.PaymentStatus == paymentStatus);
+                query = InvoicePaymentStatusFilter.Apply(query, paymentStatus);
             }
 
             if (minTotal.HasValue)
@@ -397,7 +402,7 @@ namespace QuanLyHangHoa.ViewModels
             DueDate = invoice.DueDate ?? DateTime.Now;
             PaidAmount = invoice.PaidAmount;
             SelectedStockOut = AvailableStockOuts.FirstOrDefault(s => s.Id == invoice.StockOutId);
-            SelectedPaymentStatus = StatusToVietnamese(invoice.PaymentStatus ?? "Unpaid");
+            SelectedPaymentStatus = StatusToVietnamese(invoice.PaymentStatus ?? PaymentStatus.Unpaid);
             Notes = invoice.Notes ?? string.Empty;
             
             Lines.Clear();
@@ -408,6 +413,8 @@ namespace QuanLyHangHoa.ViewModels
                     Lines.Add(new SalesInvoiceLineEditor
                     {
                         SelectedProduct = AvailableProducts.FirstOrDefault(p => p.Id == line.ProductId),
+                        SourceLineId = line.StockOutLineId,
+                        SourceUnitId = line.UnitId,
                         Quantity = line.Quantity,
                         UnitPrice = line.UnitPrice,
                         TaxRate = line.TaxRate
@@ -463,7 +470,8 @@ namespace QuanLyHangHoa.ViewModels
                 {
                     Id = 0,
                     ProductId = l.SelectedProduct!.Id,
-                    UnitId = l.SelectedProduct!.DefaultUnitId,
+                    UnitId = l.SourceUnitId ?? l.SelectedProduct!.DefaultUnitId,
+                    StockOutLineId = l.SourceLineId,
                     Quantity = l.Quantity,
                     UnitPrice = l.UnitPrice,
                     TaxRate = l.TaxRate,
@@ -487,11 +495,11 @@ namespace QuanLyHangHoa.ViewModels
         {
             return vietnameseStatus switch
             {
-                "Chưa TT" => "Unpaid",
-                "TT 1 phần" => "Partial",
-                "Đã TT" => "Paid",
-                "Quá hạn" => "Overdue",
-                _ => "Unpaid"
+                "Chưa TT" => PaymentStatus.Unpaid,
+                "TT 1 phần" => PaymentStatus.PartiallyPaid,
+                "Đã TT" => PaymentStatus.Paid,
+                "Quá hạn" => PaymentStatus.Overdue,
+                _ => PaymentStatus.Unpaid
             };
         }
 
@@ -499,10 +507,10 @@ namespace QuanLyHangHoa.ViewModels
         {
             return englishStatus switch
             {
-                "Unpaid" => "Chưa TT",
-                "Partial" => "TT 1 phần",
-                "Paid" => "Đã TT",
-                "Overdue" => "Quá hạn",
+                PaymentStatus.Unpaid => "Chưa TT",
+                PaymentStatus.PartiallyPaid => "TT 1 phần",
+                PaymentStatus.Paid => "Đã TT",
+                PaymentStatus.Overdue => "Quá hạn",
                 _ => "Chưa TT"
             };
         }

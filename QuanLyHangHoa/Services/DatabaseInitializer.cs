@@ -13,7 +13,7 @@ namespace QuanLyHangHoa.Services;
 
 public sealed class DatabaseInitializer
 {
-    private const int CurrentSchemaVersion = 4;
+    private const int CurrentSchemaVersion = 5;
 
     private const string SchemaVersion1Sql = """
         IF COL_LENGTH('Product', 'Description') IS NULL ALTER TABLE Product ADD Description NVARCHAR(MAX);
@@ -82,6 +82,46 @@ public sealed class DatabaseInitializer
         IF COL_LENGTH('StockTransfer', 'ApprovedAt') IS NULL ALTER TABLE StockTransfer ADD ApprovedAt DATETIME2(0) NULL;
         IF COL_LENGTH('StockTransfer', 'PostedAt') IS NULL ALTER TABLE StockTransfer ADD PostedAt DATETIME2(0) NULL;
         """;
+    private const string SchemaVersion5Sql = """
+        IF OBJECT_ID(N'[dbo].[SalesInvoice]', N'U') IS NOT NULL
+        BEGIN
+            UPDATE SalesInvoice SET PaymentStatus = 'Unpaid' WHERE UPPER(PaymentStatus) = 'UNPAID';
+            UPDATE SalesInvoice SET PaymentStatus = 'PartiallyPaid' WHERE UPPER(PaymentStatus) IN ('PARTIAL', 'PARTIALLYPAID');
+            UPDATE SalesInvoice SET PaymentStatus = 'Paid' WHERE UPPER(PaymentStatus) = 'PAID';
+            UPDATE SalesInvoice SET PaymentStatus = 'Overdue' WHERE UPPER(PaymentStatus) = 'OVERDUE';
+            UPDATE SalesInvoice
+            SET PaymentStatus = CASE
+                WHEN PaidAmount >= GrandTotal AND GrandTotal > 0 THEN 'Paid'
+                WHEN PaidAmount > 0 THEN 'PartiallyPaid'
+                ELSE 'Unpaid'
+            END
+            WHERE PaymentStatus IS NULL OR PaymentStatus NOT IN ('Unpaid', 'PartiallyPaid', 'Paid', 'Overdue');
+            IF OBJECT_ID(N'[dbo].[CK_SalesInvoice_PaymentStatus]', N'C') IS NOT NULL
+                ALTER TABLE SalesInvoice DROP CONSTRAINT CK_SalesInvoice_PaymentStatus;
+            ALTER TABLE SalesInvoice WITH CHECK ADD CONSTRAINT CK_SalesInvoice_PaymentStatus
+                CHECK (PaymentStatus IN ('Unpaid', 'PartiallyPaid', 'Paid', 'Overdue'));
+        END;
+
+        IF OBJECT_ID(N'[dbo].[PurchaseInvoice]', N'U') IS NOT NULL
+        BEGIN
+            UPDATE PurchaseInvoice SET PaymentStatus = 'Unpaid' WHERE UPPER(PaymentStatus) = 'UNPAID';
+            UPDATE PurchaseInvoice SET PaymentStatus = 'PartiallyPaid' WHERE UPPER(PaymentStatus) IN ('PARTIAL', 'PARTIALLYPAID');
+            UPDATE PurchaseInvoice SET PaymentStatus = 'Paid' WHERE UPPER(PaymentStatus) = 'PAID';
+            UPDATE PurchaseInvoice SET PaymentStatus = 'Overdue' WHERE UPPER(PaymentStatus) = 'OVERDUE';
+            UPDATE PurchaseInvoice
+            SET PaymentStatus = CASE
+                WHEN PaidAmount >= GrandTotal AND GrandTotal > 0 THEN 'Paid'
+                WHEN PaidAmount > 0 THEN 'PartiallyPaid'
+                ELSE 'Unpaid'
+            END
+            WHERE PaymentStatus IS NULL OR PaymentStatus NOT IN ('Unpaid', 'PartiallyPaid', 'Paid', 'Overdue');
+            IF OBJECT_ID(N'[dbo].[CK_PurchaseInvoice_PaymentStatus]', N'C') IS NOT NULL
+                ALTER TABLE PurchaseInvoice DROP CONSTRAINT CK_PurchaseInvoice_PaymentStatus;
+            ALTER TABLE PurchaseInvoice WITH CHECK ADD CONSTRAINT CK_PurchaseInvoice_PaymentStatus
+                CHECK (PaymentStatus IN ('Unpaid', 'PartiallyPaid', 'Paid', 'Overdue'));
+        END;
+        """;
+
 
     private readonly Func<AppDbContext> _contextFactory;
     private readonly string _baseDirectory;
@@ -199,6 +239,10 @@ public sealed class DatabaseInitializer
             IF @CurrentVersion < 4
             BEGIN
                 {{SchemaVersion4Sql}}
+            END;
+            IF @CurrentVersion < 5
+            BEGIN
+                {{SchemaVersion5Sql}}
             END;
             UPDATE [dbo].[__WareProSchemaVersion]
             SET [Version] = {{CurrentSchemaVersion}}, [UpdatedAt] = SYSUTCDATETIME()
