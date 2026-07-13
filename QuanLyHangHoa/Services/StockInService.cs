@@ -383,17 +383,17 @@ namespace QuanLyHangHoa.Services
             {
                 var trimmed = part.Trim();
                 var rangeMatch = Regex.Match(trimmed, @"^(.+?)(\d+)-[^\d]*(\d+)$");
-                if (rangeMatch.Success)
+                string startStr = rangeMatch.Groups[2].Value;
+                string endStr = rangeMatch.Groups[3].Value;
+                if (rangeMatch.Success &&
+                    long.TryParse(startStr, out long start) &&
+                    long.TryParse(endStr, out long end) &&
+                    end >= start)
                 {
                     string prefix = rangeMatch.Groups[1].Value;
-                    string startStr = rangeMatch.Groups[2].Value;
-                    string endStr   = rangeMatch.Groups[3].Value;
-                    if (long.TryParse(startStr, out long start) && long.TryParse(endStr, out long end) && end >= start)
-                    {
-                        int padLen = startStr.Length;
-                        for (long i = start; i <= end; i++)
-                            result.Add(prefix + i.ToString().PadLeft(padLen, '0'));
-                    }
+                    int padLen = startStr.Length;
+                    for (long i = start; i <= end; i++)
+                        result.Add(prefix + i.ToString().PadLeft(padLen, '0'));
                 }
                 else
                 {

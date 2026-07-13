@@ -513,7 +513,7 @@ namespace QuanLyHangHoa.ViewModels
                 available = _stockOutService.GetInStockSerials(line.SelectedProduct.Id, WarehouseId);
             }
 
-            var dialog = new Views.SerialInputWindow(existing, available, isReadOnly);
+            var dialog = new Views.SerialInputWindow(existing, available, isReadOnly, requireNonEmptySerials: true);
             dialog.Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(x => x.IsActive) ?? Application.Current.MainWindow;
             
             if (CanEdit)

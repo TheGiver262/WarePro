@@ -498,7 +498,7 @@ namespace QuanLyHangHoa.ViewModels
             
             var existing = string.Join("\n", line.SerialNumbers);
             var isReadOnly = !CanEdit;
-            var dialog = new Views.SerialInputWindow(existing, null, isReadOnly);
+            var dialog = new Views.SerialInputWindow(existing, null, isReadOnly, requireNonEmptySerials: true);
             
             // Try to find the main window or active window to set as owner
             dialog.Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(x => x.IsActive) ?? Application.Current.MainWindow;

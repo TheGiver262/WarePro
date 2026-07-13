@@ -33,4 +33,14 @@ public class StockInSerialParsingTests
         var serials = StockInService.ParseSerialRange("SN-001-002, MANUAL-01");
         Assert.Equal(new[] { "SN-001", "SN-002", "MANUAL-01" }, serials);
     }
+
+    [Theory]
+    [InlineData("SN-003-001")]
+    [InlineData("ABC123-001")]
+    public void ParseSerialRange_preserves_range_like_serial_when_range_is_not_ascending(string input)
+    {
+        var serials = StockInService.ParseSerialRange(input);
+
+        Assert.Equal(new[] { input }, serials);
+    }
 }

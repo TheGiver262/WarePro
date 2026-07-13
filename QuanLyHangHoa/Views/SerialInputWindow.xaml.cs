@@ -54,6 +54,7 @@ namespace QuanLyHangHoa.Views
         public ObservableCollection<AvailableSerialItem> AvailableSerials { get; } = new();
         private bool _isUpdating;
         private bool _hasAvailableSource;
+        private readonly bool _requireNonEmptySerials;
 
         public bool HasAvailableSerials => AvailableSerials.Count > 0;
         public bool ShowAvailableSerials => HasAvailableSerials && !IsReadOnly;
@@ -62,10 +63,11 @@ namespace QuanLyHangHoa.Views
         public bool ShowConfirmButton => !IsReadOnly;
         public HorizontalAlignment CancelButtonAlignment => IsReadOnly ? HorizontalAlignment.Right : HorizontalAlignment.Left;
 
-        public SerialInputWindow(string existingInput = "", IEnumerable<ProductSerial>? available = null, bool isReadOnly = false)
+        public SerialInputWindow(string existingInput = "", IEnumerable<ProductSerial>? available = null, bool isReadOnly = false, bool requireNonEmptySerials = false)
         {
             IsReadOnly = isReadOnly;
             _hasAvailableSource = available != null;
+            _requireNonEmptySerials = requireNonEmptySerials;
             InitializeComponent();
 
             _isUpdating = true;
@@ -180,6 +182,18 @@ namespace QuanLyHangHoa.Views
 
         private void Confirm_Click(object sender, RoutedEventArgs e)
         {
+            var serials = StockInService.ParseSerialRange(SerialTextBox.Text);
+            if (_requireNonEmptySerials && serials.Count == 0)
+            {
+                MessageBox.Show(
+                    "Vui l\u00f2ng ch\u1ecdn ho\u1eb7c nh\u1eadp \u00edt nh\u1ea5t m\u1ed9t serial.",
+                    "Thi\u1ebfu Serial",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
+            SerialInput = SerialTextBox.Text;
             DialogResult = true;
             Close();
         }
