@@ -70,36 +70,29 @@ namespace QuanLyHangHoa.ViewModels
         // Detail panel visibility
         [ObservableProperty] private bool _isDetailPanelOpen;
 
-        public bool CanCompleteRepair => HasStatus("Open")
-            && IsActionAllowed(WarrantyClaimAction.Repair);
+        public bool CanCompleteRepair => IsActionAllowed(WarrantyClaimAction.CompleteShopRepair);
 
         public bool CanSendManufacturer => IsActionAllowed(WarrantyClaimAction.Send);
 
-        public bool CanReceiveManufacturerRepaired => HasStatus("ManufacturerWait")
-            && IsActionAllowed(WarrantyClaimAction.Repair);
+        public bool CanReceiveManufacturerRepaired =>
+            IsActionAllowed(WarrantyClaimAction.ReceiveManufacturerRepair);
 
-        public bool CanReceiveManufacturerReplaced => HasStatus("ManufacturerWait")
-            && IsActionAllowed(WarrantyClaimAction.Replace);
+        public bool CanReceiveManufacturerReplaced =>
+            IsActionAllowed(WarrantyClaimAction.ReceiveManufacturerReplacement);
 
         public bool CanReceiveManufacturerActions =>
             CanReceiveManufacturerRepaired || CanReceiveManufacturerReplaced;
 
         public bool CanRejectWarranty => IsActionAllowed(WarrantyClaimAction.Reject);
 
-        public bool CanReplaceWarrantySerial => HasStatus("Ready")
-            && IsActionAllowed(WarrantyClaimAction.Replace);
+        public bool CanReplaceWarrantySerial => IsActionAllowed(WarrantyClaimAction.ReplaceFromStock);
 
         public bool IsSelectedWarrantyMutable => SelectedWarranty != null
             && !WarrantyClaimTransitions.IsTerminal(SelectedWarranty.Status);
 
-        private bool HasStatus(string status) => string.Equals(
-            SelectedWarranty?.Status,
-            status,
-            StringComparison.OrdinalIgnoreCase);
-
         private bool IsActionAllowed(WarrantyClaimAction action) =>
             SelectedWarranty != null
-            && WarrantyClaimTransitions.IsAllowed(SelectedWarranty.Status, action);
+            && WarrantyClaimTransitions.IsAllowed(SelectedWarranty, action);
 
         public WarrantyViewModel(AppUser currentUser, Func<AppDbContext> contextFactory)
             : this(
@@ -284,7 +277,9 @@ namespace QuanLyHangHoa.ViewModels
             {
                 using var db = _contextFactory();
                 var serials = db.ProductSerials
-                    .Where(s => s.WarrantyCoverage != null && s.WarrantyCoverage.CoverageStatus == "Active"
+                    .Where(s => s.WarrantyCoverage != null
+                        && s.WarrantyCoverage.CoverageStatus == "Active"
+                        && s.WarrantyCoverage.WarrantyStartDate <= DateTime.Today
                         && s.WarrantyCoverage.WarrantyEndDate >= DateTime.Today)
                     .Select(s => s.SerialNumber)
                     .Distinct()

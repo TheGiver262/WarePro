@@ -19,6 +19,9 @@ public partial class WarrantyCoverage
 
     public string CoverageStatus { get; set; } = null!;
 
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public string EffectiveCoverageStatus { get; set; } = string.Empty;
+
     public virtual Customer Customer { get; set; } = null!;
 
     public virtual ProductSerial ProductSerial { get; set; } = null!;

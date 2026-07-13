@@ -211,12 +211,24 @@ namespace QuanLyHangHoa.Tests.ViewModels
             await viewModel.LoadData();
 
             var displayed = Assert.Single(viewModel.Coverages);
-            Assert.Equal("Expired", displayed.CoverageStatus);
+            Assert.Equal("Active", displayed.CoverageStatus);
+            Assert.Equal("Expired", displayed.EffectiveCoverageStatus);
             Assert.Equal(0, viewModel.ActiveCount);
             Assert.Equal(1, viewModel.ExpiredCount);
 
-            using var assertContext = DatabaseHelper.CreateContext(connection);
-            Assert.Equal("Active", assertContext.WarrantyCoverages.Single().CoverageStatus);
+            displayed.WarrantyEndDate = DateTime.Today.AddDays(30);
+            using (var updateContext = DatabaseHelper.CreateContext(connection))
+            {
+                updateContext.Attach(displayed);
+                updateContext.Entry(displayed).Property(item => item.WarrantyEndDate).IsModified = true;
+                updateContext.Entry(displayed).Property(item => item.CoverageStatus).IsModified = true;
+                updateContext.SaveChanges();
+            }
+
+            using (var assertContext = DatabaseHelper.CreateContext(connection))
+            {
+                Assert.Equal("Active", assertContext.WarrantyCoverages.Single().CoverageStatus);
+            }
         }
 
         [Theory]
@@ -249,7 +261,8 @@ namespace QuanLyHangHoa.Tests.ViewModels
                 WarrantyCoverageId = 1,
                 ProductSerialId = 1,
                 ReceivedDate = DateTime.Today,
-                Status = status
+                Status = status,
+                ResolutionType = status == "Ready" ? "Replace" : null
             };
 
             Assert.Equal(canCompleteRepair, viewModel.CompleteRepairCommand.CanExecute(null));
@@ -260,6 +273,24 @@ namespace QuanLyHangHoa.Tests.ViewModels
             Assert.Equal(canReplaceFromStock, viewModel.ReplaceWarrantySerialCommand.CanExecute(null));
             Assert.Equal(canEdit, viewModel.SaveWarrantyCommand.CanExecute(null));
             Assert.Equal(canEdit, viewModel.DeleteWarrantyCommand.CanExecute(null));
+        }
+
+        [Fact]
+        public void Ready_repair_claim_cannot_be_replaced_from_stock()
+        {
+            using var connection = new Microsoft.Data.Sqlite.SqliteConnection("Data Source=:memory:");
+            connection.Open();
+            var viewModel = new WarrantyViewModel(
+                new AppUser { Id = 42 },
+                () => DatabaseHelper.CreateContext(connection),
+                (message, title) => { });
+            viewModel.SelectedWarranty = new WarrantyClaim
+            {
+                Status = "Ready",
+                ResolutionType = "Repair"
+            };
+
+            Assert.False(viewModel.ReplaceWarrantySerialCommand.CanExecute(null));
         }
 
         [Fact]
@@ -282,6 +313,18 @@ namespace QuanLyHangHoa.Tests.ViewModels
                 "Visibility=\"{Binding CanReplaceWarrantySerial,",
                 xaml);
             Assert.Contains("Visibility=\"{Binding CanRejectWarranty,", xaml);
+        }
+
+        [Fact]
+        public void WarrantyCoverageView_binds_effective_status_without_replacing_stored_status()
+        {
+            var repoRoot = Path.GetFullPath(
+                Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
+            var xaml = File.ReadAllText(
+                Path.Combine(repoRoot, "QuanLyHangHoa", "Views", "WarrantyCoverageView.xaml"));
+
+            Assert.Contains("SortMemberPath=\"EffectiveCoverageStatus\"", xaml);
+            Assert.Contains("{Binding EffectiveCoverageStatus,", xaml);
         }
     }
 }

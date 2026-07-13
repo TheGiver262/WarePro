@@ -23,16 +23,20 @@ public class WarrantyClaimServiceTests
                 WarrantyClaimAction.Resolve,
                 WarrantyClaimAction.Send,
                 WarrantyClaimAction.Repair,
+                WarrantyClaimAction.CompleteShopRepair,
                 WarrantyClaimAction.Reject
             },
             ["ManufacturerWait"] = new()
             {
                 WarrantyClaimAction.Repair,
-                WarrantyClaimAction.Replace
+                WarrantyClaimAction.Replace,
+                WarrantyClaimAction.ReceiveManufacturerRepair,
+                WarrantyClaimAction.ReceiveManufacturerReplacement
             },
             ["Ready"] = new()
             {
                 WarrantyClaimAction.Replace,
+                WarrantyClaimAction.ReplaceFromStock,
                 WarrantyClaimAction.Close
             },
             ["Closed"] = new(),
@@ -54,6 +58,28 @@ public class WarrantyClaimServiceTests
                 }
             }
         }
+    }
+
+    [Fact]
+    public void WarrantyClaimTransitions_requires_replacement_resolution_for_stock_replacement()
+    {
+        var repairClaim = new WarrantyClaim
+        {
+            Status = "Ready",
+            ResolutionType = "Repair"
+        };
+        var replacementClaim = new WarrantyClaim
+        {
+            Status = "Ready",
+            ResolutionType = "Replace"
+        };
+
+        Assert.False(WarrantyClaimTransitions.IsAllowed(
+            repairClaim,
+            WarrantyClaimAction.ReplaceFromStock));
+        WarrantyClaimTransitions.EnsureAllowed(
+            replacementClaim,
+            WarrantyClaimAction.ReplaceFromStock);
     }
 
     [Fact]
@@ -112,6 +138,61 @@ public class WarrantyClaimServiceTests
         Assert.Equal("Screen flicker", claim.ProblemDescription);
         Assert.Equal(serialId, claim.ProductSerialId);
         Assert.Equal(4, claim.ProcessedBy);
+    }
+
+    [Fact]
+    public void CreateClaim_rejects_active_coverage_that_has_not_started_without_changes()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        using (var seedContext = CreateContext(connection))
+        {
+            DatabaseHelper.SeedBasicData(seedContext);
+            seedContext.Products.Add(new Product
+            {
+                Id = 1002,
+                ProductCode = "P1002",
+                DisplayName = "Future warranty product",
+                CategoryId = 1,
+                BrandId = 1,
+                DefaultUnitId = 1,
+                DefaultPrice = 10m,
+                IsSerialTracked = true
+            });
+            var serial = new ProductSerial
+            {
+                SerialNumber = "WARRANTY-FUTURE",
+                ProductId = 1002,
+                CurrentStatus = SerialStatus.Sold.ToString()
+            };
+            seedContext.ProductSerials.Add(serial);
+            seedContext.SaveChanges();
+            seedContext.WarrantyCoverages.Add(new WarrantyCoverage
+            {
+                ProductSerialId = serial.Id,
+                CustomerId = 1,
+                WarrantyStartDate = DateTime.Today.AddDays(1),
+                WarrantyEndDate = DateTime.Today.AddDays(30),
+                CoverageStatus = "Active"
+            });
+            seedContext.SaveChanges();
+        }
+
+        var service = new WarrantyClaimService(() => CreateContext(connection));
+
+        Assert.Null(service.GetCoverageBySerial("WARRANTY-FUTURE"));
+        Assert.Throws<InvalidOperationException>(() =>
+            service.CreateClaim(
+                "WC-FUTURE",
+                "WARRANTY-FUTURE",
+                "Not started",
+                userId: 4));
+
+        using var assertContext = CreateContext(connection);
+        Assert.Empty(assertContext.WarrantyClaims);
+        Assert.Equal(
+            SerialStatus.Sold.ToString(),
+            assertContext.ProductSerials.Single().CurrentStatus);
     }
 
     [Fact]
@@ -443,7 +524,8 @@ public class WarrantyClaimServiceTests
                 WarrantyCoverageId = coverage.Id,
                 ProductSerialId = serial.Id,
                 ReceivedDate = DateTime.Now,
-                Status = "Ready"
+                Status = "Ready",
+                ResolutionType = "Replace"
             };
             seedContext.WarrantyClaims.Add(claim);
             seedContext.SaveChanges();
@@ -468,6 +550,53 @@ public class WarrantyClaimServiceTests
         
         var remainingDays = (newCoverage.WarrantyEndDate - DateTime.Now).TotalDays;
         Assert.True(remainingDays > 14 && remainingDays <= 15);
+    }
+
+    [Fact]
+    public void ReplaceSerial_transfers_coverage_ending_today_for_the_same_day()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        var claimId = SeedReplacementClaim(
+            connection,
+            "Ready",
+            twoReplacementSerials: false,
+            coverageEndDate: DateTime.Today);
+        var service = new WarrantyClaimService(() => CreateContext(connection));
+
+        service.ReplaceSerial(claimId, "REPLACEMENT-1", "Same-day replacement", userId: 4);
+
+        using var assertContext = CreateContext(connection);
+        var claim = assertContext.WarrantyClaims.Single(item => item.Id == claimId);
+        var transferred = assertContext.WarrantyCoverages.Single(
+            coverage => coverage.ProductSerialId == claim.ReplacementSerialId);
+        Assert.Equal("Active", transferred.CoverageStatus);
+        Assert.Equal(DateTime.Today, transferred.WarrantyStartDate.Date);
+        Assert.Equal(DateTime.Today, transferred.WarrantyEndDate.Date);
+    }
+
+    [Fact]
+    public void ReplaceSerial_rejects_ready_repair_claim_without_changes()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        var claimId = SeedReplacementClaim(
+            connection,
+            "Ready",
+            twoReplacementSerials: false,
+            resolutionType: "Repair");
+        var service = new WarrantyClaimService(() => CreateContext(connection));
+        ReplacementSnapshot before;
+        using (var snapshotContext = CreateContext(connection))
+        {
+            before = ReadReplacementSnapshot(snapshotContext, claimId);
+        }
+
+        Assert.Throws<InvalidOperationException>(() =>
+            service.ReplaceSerial(claimId, "REPLACEMENT-1", "Invalid replacement", userId: 4));
+
+        using var assertContext = CreateContext(connection);
+        Assert.Equal(before, ReadReplacementSnapshot(assertContext, claimId));
     }
 
     [Fact]
@@ -543,7 +672,9 @@ public class WarrantyClaimServiceTests
     private static int SeedReplacementClaim(
         SqliteConnection connection,
         string status,
-        bool twoReplacementSerials)
+        bool twoReplacementSerials,
+        string? resolutionType = null,
+        DateTime? coverageEndDate = null)
     {
         using var context = CreateContext(connection);
         DatabaseHelper.SeedBasicData(context);
@@ -607,7 +738,7 @@ public class WarrantyClaimServiceTests
             ProductSerialId = defective.Id,
             CustomerId = 1,
             WarrantyStartDate = DateTime.Now.AddDays(-5),
-            WarrantyEndDate = DateTime.Now.AddDays(15),
+            WarrantyEndDate = coverageEndDate ?? DateTime.Now.AddDays(15),
             CoverageStatus = "Active"
         };
         context.WarrantyCoverages.Add(coverage);
@@ -619,7 +750,8 @@ public class WarrantyClaimServiceTests
             WarrantyCoverageId = coverage.Id,
             ProductSerialId = defective.Id,
             ReceivedDate = DateTime.Now,
-            Status = status
+            Status = status,
+            ResolutionType = resolutionType ?? (status == "Ready" ? "Replace" : null)
         };
         context.WarrantyClaims.Add(claim);
         context.SaveChanges();

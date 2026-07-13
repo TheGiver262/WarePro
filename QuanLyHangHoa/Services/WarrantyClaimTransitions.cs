@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using QuanLyHangHoa.Models;
 
 namespace QuanLyHangHoa.Services;
 
@@ -10,7 +11,11 @@ public enum WarrantyClaimAction
     Repair,
     Replace,
     Reject,
-    Close
+    Close,
+    CompleteShopRepair,
+    ReceiveManufacturerRepair,
+    ReceiveManufacturerReplacement,
+    ReplaceFromStock
 }
 
 public static class WarrantyClaimTransitions
@@ -23,16 +28,20 @@ public static class WarrantyClaimTransitions
                 WarrantyClaimAction.Resolve,
                 WarrantyClaimAction.Send,
                 WarrantyClaimAction.Repair,
+                WarrantyClaimAction.CompleteShopRepair,
                 WarrantyClaimAction.Reject
             ],
             ["ManufacturerWait"] =
             [
                 WarrantyClaimAction.Repair,
-                WarrantyClaimAction.Replace
+                WarrantyClaimAction.Replace,
+                WarrantyClaimAction.ReceiveManufacturerRepair,
+                WarrantyClaimAction.ReceiveManufacturerReplacement
             ],
             ["Ready"] =
             [
                 WarrantyClaimAction.Replace,
+                WarrantyClaimAction.ReplaceFromStock,
                 WarrantyClaimAction.Close
             ],
             ["Closed"] = [],
@@ -45,12 +54,34 @@ public static class WarrantyClaimTransitions
             && actions.Contains(action);
     }
 
+    public static bool IsAllowed(WarrantyClaim claim, WarrantyClaimAction action)
+    {
+        ArgumentNullException.ThrowIfNull(claim);
+        return IsAllowed(claim.Status, action)
+            && (action != WarrantyClaimAction.ReplaceFromStock
+                || string.Equals(
+                    claim.ResolutionType,
+                    "Replace",
+                    StringComparison.OrdinalIgnoreCase));
+    }
+
     public static void EnsureAllowed(string currentStatus, WarrantyClaimAction action)
     {
         if (!IsAllowed(currentStatus, action))
         {
             throw new InvalidOperationException(
                 $"Warranty action '{action}' is not allowed from status '{currentStatus}'.");
+        }
+    }
+
+    public static void EnsureAllowed(WarrantyClaim claim, WarrantyClaimAction action)
+    {
+        ArgumentNullException.ThrowIfNull(claim);
+        if (!IsAllowed(claim, action))
+        {
+            throw new InvalidOperationException(
+                $"Warranty action '{action}' is not allowed for status '{claim.Status}' " +
+                $"and resolution '{claim.ResolutionType}'.");
         }
     }
 

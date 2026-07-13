@@ -106,7 +106,7 @@ namespace QuanLyHangHoa.ViewModels
                 var today = DateTime.Today;
                 foreach (var coverage in allCoverages)
                 {
-                    coverage.CoverageStatus = WarrantyClaimService.GetEffectiveCoverageStatus(
+                    coverage.EffectiveCoverageStatus = WarrantyClaimService.GetEffectiveCoverageStatus(
                         coverage.CoverageStatus,
                         coverage.WarrantyEndDate,
                         today);
@@ -140,7 +140,7 @@ namespace QuanLyHangHoa.ViewModels
                     && SelectedStatusFilter != "Tất cả")
                 {
                     filtered = filtered.Where(coverage =>
-                        coverage.CoverageStatus == SelectedStatusFilter);
+                        coverage.EffectiveCoverageStatus == SelectedStatusFilter);
                 }
 
                 var coverages = filtered
@@ -148,9 +148,9 @@ namespace QuanLyHangHoa.ViewModels
                     .ToList();
 
                 TotalCount = allCoverages.Count;
-                ActiveCount = allCoverages.Count(coverage => coverage.CoverageStatus == "Active");
-                ExpiredCount = allCoverages.Count(coverage => coverage.CoverageStatus == "Expired");
-                VoidedCount = allCoverages.Count(coverage => coverage.CoverageStatus == "Voided");
+                ActiveCount = allCoverages.Count(coverage => coverage.EffectiveCoverageStatus == "Active");
+                ExpiredCount = allCoverages.Count(coverage => coverage.EffectiveCoverageStatus == "Expired");
+                VoidedCount = allCoverages.Count(coverage => coverage.EffectiveCoverageStatus == "Voided");
                 Coverages = new ObservableCollection<WarrantyCoverage>(coverages);
             }
             catch (OperationCanceledException)

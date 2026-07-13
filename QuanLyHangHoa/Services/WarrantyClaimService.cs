@@ -66,7 +66,7 @@ namespace QuanLyHangHoa.Services
             var claim = db.WarrantyClaims.Find(claimId)
                 ?? throw new InvalidOperationException($"Claim {claimId} not found.");
 
-            WarrantyClaimTransitions.EnsureAllowed(claim.Status, WarrantyClaimAction.Resolve);
+            WarrantyClaimTransitions.EnsureAllowed(claim, WarrantyClaimAction.Resolve);
             claim.ResolutionType = resolutionType;
             claim.TechnicalConclusion = technicalConclusion;
             claim.ApprovedBy = approverId;
@@ -80,7 +80,7 @@ namespace QuanLyHangHoa.Services
             var claim = db.WarrantyClaims.Find(claimId)
                 ?? throw new InvalidOperationException($"Claim {claimId} not found.");
 
-            WarrantyClaimTransitions.EnsureAllowed(claim.Status, WarrantyClaimAction.Close);
+            WarrantyClaimTransitions.EnsureAllowed(claim, WarrantyClaimAction.Close);
             claim.ProcessingNote = note;
             claim.Status = "Closed";
             claim.ClosedDate = DateTime.Now;
@@ -101,7 +101,12 @@ namespace QuanLyHangHoa.Services
             var serial = db.ProductSerials.FirstOrDefault(s => s.SerialNumber == serialNumber)
                 ?? throw new InvalidOperationException($"Serial {serialNumber} không tồn tại.");
 
-            var coverage = db.WarrantyCoverages.FirstOrDefault(c => c.ProductSerialId == serial.Id && c.CoverageStatus == "Active" && c.WarrantyEndDate >= DateTime.Today)
+            var today = DateTime.Today;
+            var coverage = db.WarrantyCoverages.FirstOrDefault(c =>
+                c.ProductSerialId == serial.Id
+                && c.CoverageStatus == "Active"
+                && c.WarrantyStartDate <= today
+                && c.WarrantyEndDate >= today)
                 ?? throw new InvalidOperationException($"Serial {serialNumber} không có bảo hành còn hiệu lực.");
 
             var claim = new WarrantyClaim
@@ -142,12 +147,9 @@ namespace QuanLyHangHoa.Services
             var claim = db.WarrantyClaims.Find(claimId)
                 ?? throw new InvalidOperationException($"Claim {claimId} not found.");
 
-            WarrantyClaimTransitions.EnsureAllowed(claim.Status, WarrantyClaimAction.Repair);
-            if (!string.Equals(claim.Status, "Open", StringComparison.OrdinalIgnoreCase))
-            {
-                throw new InvalidOperationException(
-                    "Store repair completion is allowed only for an open warranty claim.");
-            }
+            WarrantyClaimTransitions.EnsureAllowed(
+                claim,
+                WarrantyClaimAction.CompleteShopRepair);
 
             claim.TechnicalConclusion = technicalConclusion;
             claim.Status = "Ready";
@@ -171,7 +173,7 @@ namespace QuanLyHangHoa.Services
             var claim = db.WarrantyClaims.Find(claimId)
                 ?? throw new InvalidOperationException($"Phiếu bảo hành #{claimId} không tồn tại.");
 
-            WarrantyClaimTransitions.EnsureAllowed(claim.Status, WarrantyClaimAction.Send);
+            WarrantyClaimTransitions.EnsureAllowed(claim, WarrantyClaimAction.Send);
             claim.ManufacturerName = manufacturerName;
             claim.ManufacturerTrackingCode = trackingCode;
             claim.ManufacturerExpectedReturnDate = expectedReturnDate;
@@ -204,9 +206,9 @@ namespace QuanLyHangHoa.Services
             var claim = db.WarrantyClaims.Find(claimId)
                 ?? throw new InvalidOperationException($"Phiếu bảo hành #{claimId} không tồn tại.");
 
-            WarrantyClaimTransitions.EnsureAllowed(claim.Status, WarrantyClaimAction.Repair);
-            if (claim.Status != "ManufacturerWait")
-                throw new InvalidOperationException("Phiếu bảo hành này chưa được gửi hãng.");
+            WarrantyClaimTransitions.EnsureAllowed(
+                claim,
+                WarrantyClaimAction.ReceiveManufacturerRepair);
 
             claim.TechnicalConclusion = conclusion;
             claim.ResolutionType = "ManufacturerRepair";
@@ -241,9 +243,9 @@ namespace QuanLyHangHoa.Services
                 .FirstOrDefault(c => c.Id == claimId)
                 ?? throw new InvalidOperationException($"Phiếu bảo hành #{claimId} không tồn tại.");
 
-            WarrantyClaimTransitions.EnsureAllowed(claim.Status, WarrantyClaimAction.Replace);
-            if (claim.Status != "ManufacturerWait")
-                throw new InvalidOperationException("Phiếu bảo hành này chưa được gửi hãng.");
+            WarrantyClaimTransitions.EnsureAllowed(
+                claim,
+                WarrantyClaimAction.ReceiveManufacturerReplacement);
 
             EnsureReplacementNotApplied(claim);
 
@@ -368,7 +370,7 @@ namespace QuanLyHangHoa.Services
             var claim = db.WarrantyClaims.Find(claimId)
                 ?? throw new InvalidOperationException($"Claim {claimId} not found.");
 
-            WarrantyClaimTransitions.EnsureAllowed(claim.Status, WarrantyClaimAction.Reject);
+            WarrantyClaimTransitions.EnsureAllowed(claim, WarrantyClaimAction.Reject);
             claim.RejectionReason = reason;
             claim.Status = "Rejected";
             claim.ResolutionType = "Reject";
@@ -398,12 +400,9 @@ namespace QuanLyHangHoa.Services
                 .FirstOrDefault(c => c.Id == claimId)
                 ?? throw new InvalidOperationException($"Phiếu bảo hành #{claimId} không tồn tại.");
 
-            WarrantyClaimTransitions.EnsureAllowed(claim.Status, WarrantyClaimAction.Replace);
-            if (!string.Equals(claim.Status, "Ready", StringComparison.OrdinalIgnoreCase))
-            {
-                throw new InvalidOperationException(
-                    "Direct replacement is allowed only for an approved Ready claim.");
-            }
+            WarrantyClaimTransitions.EnsureAllowed(
+                claim,
+                WarrantyClaimAction.ReplaceFromStock);
 
             EnsureReplacementNotApplied(claim);
 
@@ -556,9 +555,8 @@ namespace QuanLyHangHoa.Services
 
             EnsureValidCoverageDates(oldCoverage.WarrantyStartDate, oldCoverage.WarrantyEndDate);
             oldCoverage.CoverageStatus = "Inactive";
-            var now = DateTime.Now;
-            var remainingDays = (oldCoverage.WarrantyEndDate - now).TotalDays;
-            if (remainingDays <= 0)
+            var today = DateTime.Today;
+            if (oldCoverage.WarrantyEndDate.Date < today)
             {
                 return;
             }
@@ -568,8 +566,8 @@ namespace QuanLyHangHoa.Services
                 ProductSerialId = newSerialId,
                 CustomerId = oldCoverage.CustomerId,
                 SalesInvoiceId = oldCoverage.SalesInvoiceId,
-                WarrantyStartDate = now,
-                WarrantyEndDate = now.AddDays(remainingDays),
+                WarrantyStartDate = today,
+                WarrantyEndDate = oldCoverage.WarrantyEndDate.Date,
                 CoverageStatus = "Active"
             });
         }
@@ -610,8 +608,13 @@ namespace QuanLyHangHoa.Services
 
             if (serial == null) return null;
 
+            var today = DateTime.Today;
             return db.WarrantyCoverages
-                .FirstOrDefault(c => c.ProductSerialId == serial.Id && c.CoverageStatus == "Active" && c.WarrantyEndDate >= DateTime.Today);
+                .FirstOrDefault(c =>
+                    c.ProductSerialId == serial.Id
+                    && c.CoverageStatus == "Active"
+                    && c.WarrantyStartDate <= today
+                    && c.WarrantyEndDate >= today);
         }
 
         private sealed class DbDefaultWarehouseProvider : IDefaultWarehouseProvider

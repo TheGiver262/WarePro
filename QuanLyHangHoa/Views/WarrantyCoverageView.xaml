@@ -168,7 +168,7 @@
                                 </DataGridTextColumn.Header>
                             </DataGridTextColumn>
                             
-                            <DataGridTemplateColumn Width="120" SortMemberPath="CoverageStatus">
+                            <DataGridTemplateColumn Width="120" SortMemberPath="EffectiveCoverageStatus">
                                 <DataGridTemplateColumn.Header>
                                     <StackPanel Orientation="Horizontal">
                                         <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
@@ -178,9 +178,9 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Border CornerRadius="12" Padding="12,4" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="12,0"
-                                                Background="{Binding CoverageStatus, Converter={StaticResource StatusToBgBrushConverter}}">
-                                            <TextBlock Text="{Binding CoverageStatus, Converter={StaticResource StatusToTextConverter}}" 
-                                                       Foreground="{Binding CoverageStatus, Converter={StaticResource StatusToFgBrushConverter}}"
+                                                Background="{Binding EffectiveCoverageStatus, Converter={StaticResource StatusToBgBrushConverter}}">
+                                            <TextBlock Text="{Binding EffectiveCoverageStatus, Converter={StaticResource StatusToTextConverter}}"
+                                                       Foreground="{Binding EffectiveCoverageStatus, Converter={StaticResource StatusToFgBrushConverter}}"
                                                        FontSize="11" FontWeight="SemiBold"/>
                                         </Border>
                                     </DataTemplate>
