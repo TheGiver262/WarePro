@@ -261,7 +261,8 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("PK__ProductU__3214EC077420ED44");
 
-            entity.ToTable("ProductUnit");
+            entity.ToTable("ProductUnit", table =>
+                table.HasCheckConstraint("CK_ProductUnit_ConversionFactor_Positive", "[ConversionFactor] > 0"));
 
             entity.HasIndex(e => e.ProductId, "UX_ProductUnit_BaseUnit")
                 .IsUnique()

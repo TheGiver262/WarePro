@@ -49,6 +49,7 @@ namespace QuanLyHangHoa.Services
             
             try
             {
+                using var transaction = db.Database.BeginTransaction();
                 db.AppUsers.Add(user);
                 db.SaveChanges();
 
@@ -56,6 +57,7 @@ namespace QuanLyHangHoa.Services
                 var newState = new { user.Username, user.FullName, user.RoleCode, user.IsActive };
                 AddAudit(db, "AppUser", user.Id, "CREATE", performedByUserId, null, newState);
                 db.SaveChanges();
+                transaction.Commit();
             }
             catch (Exception ex)
             {
@@ -70,6 +72,7 @@ namespace QuanLyHangHoa.Services
             var existing = db.AppUsers.Find(updatedUser.Id);
             if (existing != null)
             {
+                using var transaction = db.Database.BeginTransaction();
                 // Capture old state
                 var oldState = new { existing.FullName, existing.RoleCode, existing.IsActive };
                 
@@ -91,6 +94,7 @@ namespace QuanLyHangHoa.Services
                 
                 AddAudit(db, "AppUser", existing.Id, "UPDATE", performedByUserId, oldState, newState);
                 db.SaveChanges();
+                transaction.Commit();
             }
         }
 
@@ -100,6 +104,7 @@ namespace QuanLyHangHoa.Services
             var user = db.AppUsers.Find(userId);
             if (user != null)
             {
+                using var transaction = db.Database.BeginTransaction();
                 var oldState = new { user.IsActive, user.Username };
                 user.IsActive = !user.IsActive;
                 
@@ -110,6 +115,7 @@ namespace QuanLyHangHoa.Services
                 var newState = new { user.IsActive, user.Username };
                 AddAudit(db, "AppUser", user.Id, action, performedByUserId, oldState, newState);
                 db.SaveChanges();
+                transaction.Commit();
             }
         }
 
@@ -134,20 +140,59 @@ namespace QuanLyHangHoa.Services
 
             try
             {
+                using var transaction = db.Database.BeginTransaction();
                 // Capture state before delete for audit
-                var oldState = new { user.Username, user.FullName, user.RoleCode };
-                
-                db.AppUsers.Remove(user);
+                var oldState = new { user.Username, user.FullName, user.RoleCode, user.IsActive };
+
+                if (HasDependencies(db, id))
+                {
+                    user.IsActive = false;
+                    db.SaveChanges();
+                    AddAudit(
+                        db,
+                        "AppUser",
+                        id,
+                        "DEACTIVATE",
+                        performedByUserId,
+                        oldState,
+                        new { user.Username, user.FullName, user.RoleCode, user.IsActive });
+                }
+                else
+                {
+                    db.AppUsers.Remove(user);
+                    db.SaveChanges();
+                    AddAudit(db, "AppUser", id, "DELETE", performedByUserId, oldState, null);
+                }
+
                 db.SaveChanges();
-                
-                AddAudit(db, "AppUser", id, "DELETE", performedByUserId, oldState, null);
-                db.SaveChanges();
+                transaction.Commit();
             }
             catch (Exception ex)
             {
                 var message = ex.InnerException?.Message ?? ex.Message;
                 throw new Exception($"Lỗi khi xoá người dùng: {message}", ex);
             }
+        }
+
+        private static bool HasDependencies(AppDbContext db, int userId)
+        {
+            return db.AppUsers.Any(user => user.CreatedBy == userId) ||
+                   db.AuditLogs.Any(log => log.PerformedBy == userId) ||
+                   db.PurchaseInvoices.Any(invoice => invoice.CreatedBy == userId) ||
+                   db.SalesInvoices.Any(invoice => invoice.CreatedBy == userId) ||
+                   db.StockAdjustments.Any(document =>
+                       document.CreatedBy == userId || document.ApprovedBy == userId || document.PostedBy == userId) ||
+                   db.StockCountSessions.Any(document =>
+                       document.CreatedBy == userId || document.ApprovedBy == userId || document.PostedBy == userId) ||
+                   db.StockIns.Any(document =>
+                       document.CreatedBy == userId || document.ApprovedBy == userId || document.PostedBy == userId) ||
+                   db.StockLedgers.Any(ledger => ledger.PostedBy == userId) ||
+                   db.StockOuts.Any(document =>
+                       document.CreatedBy == userId || document.ApprovedBy == userId || document.PostedBy == userId) ||
+                   db.StockTransfers.Any(document =>
+                       document.CreatedBy == userId || document.ApprovedBy == userId || document.PostedBy == userId) ||
+                   db.WarrantyClaims.Any(claim =>
+                       claim.ApprovedBy == userId || claim.ProcessedBy == userId);
         }
 
         private void AddAudit(AppDbContext db, string entityName, int entityId, string action, int userId, object? oldValues = null, object? newValues = null)

@@ -26,17 +26,21 @@ namespace QuanLyHangHoa.Services
         public void Add(Supplier supplier, int performedBy)
         {
             using var db = _contextFactory();
+            using var transaction = db.Database.BeginTransaction();
             db.Suppliers.Add(supplier);
             db.SaveChanges();
             AddAudit(db, "CREATE", supplier.Id, null, Serialize(supplier), performedBy);
+            transaction.Commit();
         }
 
         public void Update(Supplier supplier, string beforeJson, int performedBy)
         {
             using var db = _contextFactory();
+            using var transaction = db.Database.BeginTransaction();
             db.Suppliers.Update(supplier);
             db.SaveChanges();
             AddAudit(db, "UPDATE", supplier.Id, beforeJson, Serialize(supplier), performedBy);
+            transaction.Commit();
         }
 
         public void Delete(int id, int performedBy)
@@ -45,10 +49,24 @@ namespace QuanLyHangHoa.Services
             var supplier = db.Suppliers.Find(id);
             if (supplier != null)
             {
+                using var transaction = db.Database.BeginTransaction();
                 var beforeJson = Serialize(supplier);
-                db.Suppliers.Remove(supplier);
-                db.SaveChanges();
-                AddAudit(db, "DELETE", id, beforeJson, null, performedBy);
+                var hasDependencies = db.PurchaseInvoices.Any(invoice => invoice.SupplierId == id) ||
+                                      db.StockIns.Any(stockIn => stockIn.SupplierId == id);
+                if (hasDependencies)
+                {
+                    supplier.IsActive = false;
+                    db.SaveChanges();
+                    AddAudit(db, "DEACTIVATE", id, beforeJson, Serialize(supplier), performedBy);
+                }
+                else
+                {
+                    db.Suppliers.Remove(supplier);
+                    db.SaveChanges();
+                    AddAudit(db, "DELETE", id, beforeJson, null, performedBy);
+                }
+
+                transaction.Commit();
             }
         }
 

@@ -26,17 +26,43 @@ namespace QuanLyHangHoa.Services
         public void Add(Unit unit, int performedBy)
         {
             using var db = _contextFactory();
+            using var transaction = db.Database.BeginTransaction();
             db.Units.Add(unit);
             db.SaveChanges();
             AddAudit(db, "CREATE", unit.Id, null, Serialize(unit), performedBy);
+            transaction.Commit();
         }
 
         public void Update(Unit unit, string beforeJson, int performedBy)
         {
             using var db = _contextFactory();
+            using var transaction = db.Database.BeginTransaction();
             db.Units.Update(unit);
             db.SaveChanges();
             AddAudit(db, "UPDATE", unit.Id, beforeJson, Serialize(unit), performedBy);
+            transaction.Commit();
+        }
+
+        public IReadOnlyList<(string Name, int Count)> GetDependencies(int unitId)
+        {
+            using var db = _contextFactory();
+            return GetDependencies(db, unitId);
+        }
+
+        private static IReadOnlyList<(string Name, int Count)> GetDependencies(
+            AppDbContext db,
+            int unitId)
+        {
+            return new List<(string Name, int Count)>
+            {
+                ("Product", db.Products.Count(row => row.DefaultUnitId == unitId)),
+                ("ProductUnit", db.ProductUnits.Count(row => row.UnitId == unitId)),
+                ("PurchaseInvoiceLine", db.PurchaseInvoiceLines.Count(row => row.UnitId == unitId)),
+                ("SalesInvoiceLine", db.SalesInvoiceLines.Count(row => row.UnitId == unitId)),
+                ("StockInLine", db.StockInLines.Count(row => row.UnitId == unitId)),
+                ("StockOutLine", db.StockOutLines.Count(row => row.UnitId == unitId)),
+                ("StockTransferLine", db.StockTransferLines.Count(row => row.UnitId == unitId))
+            };
         }
 
         public void Delete(int id, int performedBy)
@@ -45,10 +71,23 @@ namespace QuanLyHangHoa.Services
             var unit = db.Units.Find(id);
             if (unit != null)
             {
+                using var transaction = db.Database.BeginTransaction();
                 var beforeJson = Serialize(unit);
-                db.Units.Remove(unit);
-                db.SaveChanges();
-                AddAudit(db, "DELETE", id, beforeJson, null, performedBy);
+                var hasDependencies = GetDependencies(db, id).Any(dependency => dependency.Count > 0);
+                if (hasDependencies)
+                {
+                    unit.IsActive = false;
+                    db.SaveChanges();
+                    AddAudit(db, "DEACTIVATE", id, beforeJson, Serialize(unit), performedBy);
+                }
+                else
+                {
+                    db.Units.Remove(unit);
+                    db.SaveChanges();
+                    AddAudit(db, "DELETE", id, beforeJson, null, performedBy);
+                }
+
+                transaction.Commit();
             }
         }
 

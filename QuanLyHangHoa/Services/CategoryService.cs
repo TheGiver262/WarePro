@@ -26,17 +26,21 @@ namespace QuanLyHangHoa.Services
         public void Add(Category category, int performedBy)
         {
             using var db = _contextFactory();
+            using var transaction = db.Database.BeginTransaction();
             db.Categories.Add(category);
             db.SaveChanges();
             AddAudit(db, "CREATE", category.Id, null, Serialize(category), performedBy);
+            transaction.Commit();
         }
 
         public void Update(Category category, string beforeJson, int performedBy)
         {
             using var db = _contextFactory();
+            using var transaction = db.Database.BeginTransaction();
             db.Categories.Update(category);
             db.SaveChanges();
             AddAudit(db, "UPDATE", category.Id, beforeJson, Serialize(category), performedBy);
+            transaction.Commit();
         }
 
         public void Delete(int id, int performedBy)
@@ -45,10 +49,22 @@ namespace QuanLyHangHoa.Services
             var category = db.Categories.Find(id);
             if (category != null)
             {
+                using var transaction = db.Database.BeginTransaction();
                 var beforeJson = Serialize(category);
-                db.Categories.Remove(category);
-                db.SaveChanges();
-                AddAudit(db, "DELETE", id, beforeJson, null, performedBy);
+                if (db.Products.Any(product => product.CategoryId == id))
+                {
+                    category.IsActive = false;
+                    db.SaveChanges();
+                    AddAudit(db, "DEACTIVATE", id, beforeJson, Serialize(category), performedBy);
+                }
+                else
+                {
+                    db.Categories.Remove(category);
+                    db.SaveChanges();
+                    AddAudit(db, "DELETE", id, beforeJson, null, performedBy);
+                }
+
+                transaction.Commit();
             }
         }
 

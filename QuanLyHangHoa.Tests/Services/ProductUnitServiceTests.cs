@@ -12,6 +12,58 @@ namespace QuanLyHangHoa.Tests.Services;
 
 public class ProductUnitServiceTests
 {
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void Add_rejects_non_positive_conversion_factor(decimal factor)
+    {
+        using var connection = CreateDatabase();
+        var service = new ProductUnitService(() => CreateContext(connection));
+
+        var exception = Assert.Throws<InvalidOperationException>(() => service.Add(new ProductUnit
+        {
+            ProductId = 1200,
+            UnitId = 102,
+            ConversionFactor = factor
+        }));
+
+        Assert.Contains("greater than zero", exception.Message, StringComparison.OrdinalIgnoreCase);
+        using var assertContext = CreateContext(connection);
+        Assert.Empty(assertContext.ProductUnits);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void Update_rejects_non_positive_conversion_factor(decimal factor)
+    {
+        using var connection = CreateDatabase();
+        using (var seedContext = CreateContext(connection))
+        {
+            seedContext.ProductUnits.Add(new ProductUnit
+            {
+                Id = 1,
+                ProductId = 1200,
+                UnitId = 102,
+                ConversionFactor = 12m
+            });
+            seedContext.SaveChanges();
+        }
+
+        var service = new ProductUnitService(() => CreateContext(connection));
+        var exception = Assert.Throws<InvalidOperationException>(() => service.Update(new ProductUnit
+        {
+            Id = 1,
+            ProductId = 1200,
+            UnitId = 102,
+            ConversionFactor = factor
+        }));
+
+        Assert.Contains("greater than zero", exception.Message, StringComparison.OrdinalIgnoreCase);
+        using var assertContext = CreateContext(connection);
+        Assert.Equal(12m, assertContext.ProductUnits.Single().ConversionFactor);
+    }
+
     [Fact]
     public void Add_saves_product_unit()
     {
@@ -77,5 +129,14 @@ public class ProductUnitServiceTests
     private static AppDbContext CreateContext(SqliteConnection connection)
     {
         return DatabaseHelper.CreateContext(connection);
+    }
+
+    private static SqliteConnection CreateDatabase()
+    {
+        var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        using var context = CreateContext(connection);
+        context.Database.EnsureCreated();
+        return connection;
     }
 }

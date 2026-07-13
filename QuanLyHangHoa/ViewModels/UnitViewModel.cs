@@ -125,29 +125,25 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand(CanExecute = nameof(CanManage))]
         private void DeleteUnit(Unit unit)
         {
-            using var db = _contextFactory();
-            // 1. Kiểm tra phát sinh dữ liệu
-            bool isUsed = db.Products.Any(p => p.DefaultUnitId == unit.Id) ||
-                         db.ProductUnits.Any(pu => pu.UnitId == unit.Id) ||
-                         db.SalesInvoiceLines.Any(sil => sil.UnitId == unit.Id) ||
-                         db.PurchaseInvoiceLines.Any(pil => pil.UnitId == unit.Id) ||
-                         db.StockInLines.Any(sil => sil.UnitId == unit.Id) ||
-                         db.StockOutLines.Any(sol => sol.UnitId == unit.Id);
+            var dependencies = _service.GetDependencies(unit.Id)
+                .Where(dependency => dependency.Count > 0)
+                .ToList();
+            var dependencySummary = string.Join(
+                Environment.NewLine,
+                dependencies.Select(dependency => $"• {dependency.Name}: {dependency.Count}"));
+            var message = dependencies.Count > 0
+                ? $"Đơn vị tính '{unit.DisplayName}' đang được tham chiếu:\n{dependencySummary}\n\nThao tác này sẽ chuyển trạng thái đơn vị sang 'Dừng'. Bạn có muốn tiếp tục?"
+                : $"Đơn vị tính '{unit.DisplayName}' chưa có dữ liệu liên quan. Bạn có chắc chắn muốn xoá vĩnh viễn đơn vị tính này?";
 
-            if (isUsed)
-            {
-                MessageBox.Show($"Không thể xoá đơn vị tính '{unit.DisplayName}' vì đang có dữ liệu liên quan (Sản phẩm, Hóa đơn hoặc Phiếu kho).\n\nVui lòng chuyển trạng thái đơn vị sang 'Dừng' nếu không còn sử dụng.", 
-                    "Không thể xoá", MessageBoxButton.OK, MessageBoxImage.Stop);
-                return;
-            }
-
-            // 2. Xác nhận xoá (nếu không có ràng buộc)
-            var result = MessageBox.Show($"Đơn vị tính '{unit.DisplayName}' chưa có dữ liệu liên quan. Bạn có chắc chắn muốn xoá vĩnh viễn đơn vị tính này?", 
-                "Xác nhận xoá", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            var result = MessageBox.Show(
+                message,
+                dependencies.Count > 0 ? "Xác nhận dừng" : "Xác nhận xoá",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
             
             if (result == MessageBoxResult.Yes)
             {
-                try 
+                try
                 {
                     _service.Delete(unit.Id, _currentUser.Id);
                     LoadData();

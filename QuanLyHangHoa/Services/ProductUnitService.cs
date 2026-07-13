@@ -50,6 +50,7 @@ namespace QuanLyHangHoa.Services
 
         public virtual void Add(ProductUnit pu)
         {
+            ValidateConversionFactor(pu.ConversionFactor);
             using var db = _contextFactory();
             db.ProductUnits.Add(pu);
             db.SaveChanges();
@@ -57,6 +58,7 @@ namespace QuanLyHangHoa.Services
 
         public virtual void Update(ProductUnit updated)
         {
+            ValidateConversionFactor(updated.ConversionFactor);
             using var db = _contextFactory();
             var pu = db.ProductUnits.Find(updated.Id);
             if (pu == null) return;
@@ -97,6 +99,14 @@ namespace QuanLyHangHoa.Services
             
             if (target == null || target.ConversionFactor == 0) return quantity;
             return quantity / target.ConversionFactor;
+        }
+
+        private static void ValidateConversionFactor(decimal conversionFactor)
+        {
+            if (conversionFactor <= 0)
+            {
+                throw new InvalidOperationException("Conversion factor must be greater than zero.");
+            }
         }
     }
 }

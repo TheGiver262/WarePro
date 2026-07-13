@@ -12,6 +12,36 @@ namespace QuanLyHangHoa.Tests.Services;
 public class ProductServiceTests
 {
     [Fact]
+    public void DeleteProduct_hard_deletes_pristine_product()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        using (var seedContext = CreateContext(connection))
+        {
+            seedContext.Database.EnsureCreated();
+            seedContext.Products.Add(new Product
+            {
+                Id = 1099,
+                ProductCode = "P1099",
+                DisplayName = "Pristine product",
+                CategoryId = 1,
+                BrandId = 1,
+                DefaultUnitId = 1,
+                DefaultPrice = 10m,
+                IsActive = true
+            });
+            seedContext.SaveChanges();
+        }
+
+        var service = new ProductService(() => CreateContext(connection));
+        service.DeleteProduct(1099, userId: 1);
+
+        using var assertContext = CreateContext(connection);
+        Assert.Empty(assertContext.Products);
+        Assert.Equal("DELETE", Assert.Single(assertContext.AuditLogs).ActionCode);
+    }
+
+    [Fact]
     public void AddInitialStock_posts_opening_balance_without_changing_product_quantity()
     {
         using var connection = new SqliteConnection("Data Source=:memory:");

@@ -147,11 +147,13 @@ namespace QuanLyHangHoa.Services
         public virtual void AddProduct(Product p, int userId)
         {
             using var db = _contextFactory();
+            using var transaction = db.Database.BeginTransaction();
             db.Products.Add(p);
             db.SaveChanges();
 
             AddAudit(db, "Product", p.Id, "CREATE", userId, null, new { p.ProductCode, p.DisplayName, p.IsActive });
             db.SaveChanges();
+            transaction.Commit();
         }
 
         public virtual void UpdateProduct(Product updated, int userId)
@@ -159,6 +161,7 @@ namespace QuanLyHangHoa.Services
             using var db = _contextFactory();
             var p = db.Products.Find(updated.Id);
             if (p == null) return;
+            using var transaction = db.Database.BeginTransaction();
             
             var oldState = new { p.ProductCode, p.DisplayName, p.IsActive };
 
@@ -177,6 +180,7 @@ namespace QuanLyHangHoa.Services
 
             AddAudit(db, "Product", p.Id, "UPDATE", userId, oldState, new { p.ProductCode, p.DisplayName, p.IsActive });
             db.SaveChanges();
+            transaction.Commit();
         }
 
         public virtual void DeactivateProduct(int id, int userId)
@@ -184,23 +188,44 @@ namespace QuanLyHangHoa.Services
             using var db = _contextFactory();
             var p = db.Products.Find(id);
             if (p == null) return;
+            using var transaction = db.Database.BeginTransaction();
             p.IsActive = false;
             db.SaveChanges();
 
             AddAudit(db, "Product", id, "DEACTIVATE", userId, new { Status = "Active" }, new { Status = "Inactive" });
             db.SaveChanges();
+            transaction.Commit();
         }
 
         public virtual bool HasTransactionHistory(int id)
         {
+            return GetDependencies(id).Any(dependency => dependency.Count > 0);
+        }
+
+        public virtual IReadOnlyList<(string Name, int Count)> GetDependencies(int productId)
+        {
             using var db = _contextFactory();
-            return db.PurchaseInvoiceLines.Any(l => l.ProductId == id) ||
-                   db.SalesInvoiceLines.Any(l => l.ProductId == id) ||
-                   db.StockInLines.Any(l => l.ProductId == id) ||
-                   db.StockOutLines.Any(l => l.ProductId == id) ||
-                   db.StockAdjustmentLines.Any(l => l.ProductId == id) ||
-                   db.StockCountLines.Any(l => l.ProductId == id) ||
-                   db.StockLedgers.Any(l => l.ProductId == id);
+            return GetDependencies(db, productId);
+        }
+
+        private static IReadOnlyList<(string Name, int Count)> GetDependencies(
+            AppDbContext db,
+            int productId)
+        {
+            return new List<(string Name, int Count)>
+            {
+                ("ProductUnit", db.ProductUnits.Count(row => row.ProductId == productId)),
+                ("ProductSerial", db.ProductSerials.Count(row => row.ProductId == productId)),
+                ("StockBalance", db.StockBalances.Count(row => row.ProductId == productId)),
+                ("StockTransferLine", db.StockTransferLines.Count(row => row.ProductId == productId)),
+                ("PurchaseInvoiceLine", db.PurchaseInvoiceLines.Count(row => row.ProductId == productId)),
+                ("SalesInvoiceLine", db.SalesInvoiceLines.Count(row => row.ProductId == productId)),
+                ("StockInLine", db.StockInLines.Count(row => row.ProductId == productId)),
+                ("StockOutLine", db.StockOutLines.Count(row => row.ProductId == productId)),
+                ("StockAdjustmentLine", db.StockAdjustmentLines.Count(row => row.ProductId == productId)),
+                ("StockCountLine", db.StockCountLines.Count(row => row.ProductId == productId)),
+                ("StockLedger", db.StockLedgers.Count(row => row.ProductId == productId))
+            };
         }
 
         public virtual void DeleteProduct(int id, int userId)
@@ -208,13 +233,26 @@ namespace QuanLyHangHoa.Services
             using var db = _contextFactory();
             var p = db.Products.Find(id);
             if (p == null) return;
+            using var transaction = db.Database.BeginTransaction();
 
             var oldState = new { p.ProductCode, p.DisplayName };
-            db.Products.Remove(p);
-            db.SaveChanges();
+            var hasDependencies = GetDependencies(db, id).Any(dependency => dependency.Count > 0);
 
-            AddAudit(db, "Product", id, "DELETE", userId, oldState, null);
+            if (hasDependencies)
+            {
+                p.IsActive = false;
+                db.SaveChanges();
+                AddAudit(db, "Product", id, "DEACTIVATE", userId, oldState, new { p.ProductCode, p.DisplayName, p.IsActive });
+            }
+            else
+            {
+                db.Products.Remove(p);
+                db.SaveChanges();
+                AddAudit(db, "Product", id, "DELETE", userId, oldState, null);
+            }
+
             db.SaveChanges();
+            transaction.Commit();
         }
 
         public virtual void AddInitialStock(int productId, List<string> serialNumbers, int userId)

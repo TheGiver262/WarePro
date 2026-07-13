@@ -26,17 +26,21 @@ namespace QuanLyHangHoa.Services
         public void Add(Customer customer, int performedBy)
         {
             using var db = _contextFactory();
+            using var transaction = db.Database.BeginTransaction();
             db.Customers.Add(customer);
             db.SaveChanges();
             AddAudit(db, "CREATE", customer.Id, null, Serialize(customer), performedBy);
+            transaction.Commit();
         }
 
         public void Update(Customer customer, string beforeJson, int performedBy)
         {
             using var db = _contextFactory();
+            using var transaction = db.Database.BeginTransaction();
             db.Customers.Update(customer);
             db.SaveChanges();
             AddAudit(db, "UPDATE", customer.Id, beforeJson, Serialize(customer), performedBy);
+            transaction.Commit();
         }
 
         public void Delete(int id, int performedBy)
@@ -45,10 +49,25 @@ namespace QuanLyHangHoa.Services
             var customer = db.Customers.Find(id);
             if (customer != null)
             {
+                using var transaction = db.Database.BeginTransaction();
                 var beforeJson = Serialize(customer);
-                db.Customers.Remove(customer);
-                db.SaveChanges();
-                AddAudit(db, "DELETE", id, beforeJson, null, performedBy);
+                var hasDependencies = db.SalesInvoices.Any(invoice => invoice.CustomerId == id) ||
+                                      db.StockOuts.Any(stockOut => stockOut.CustomerId == id) ||
+                                      db.WarrantyCoverages.Any(coverage => coverage.CustomerId == id);
+                if (hasDependencies)
+                {
+                    customer.IsActive = false;
+                    db.SaveChanges();
+                    AddAudit(db, "DEACTIVATE", id, beforeJson, Serialize(customer), performedBy);
+                }
+                else
+                {
+                    db.Customers.Remove(customer);
+                    db.SaveChanges();
+                    AddAudit(db, "DELETE", id, beforeJson, null, performedBy);
+                }
+
+                transaction.Commit();
             }
         }
 
