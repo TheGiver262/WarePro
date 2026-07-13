@@ -257,6 +257,23 @@ public class UiRegressionContractTests
         Assert.Equal("24", (string?)contentBorder.Attribute("Padding"));
     }
 
+    [Fact]
+    public void Serial_edit_preserves_status_field_layout_but_makes_it_read_only()
+    {
+        var document = LoadView("ProductSerialEditView.xaml");
+        var statusDisplay = document.Descendants().Single(element =>
+            element.Name.LocalName == "TextBox" &&
+            (string?)element.Attribute("Text") == "{Binding StatusDisplay}");
+
+        Assert.DoesNotContain(document.Descendants(),
+            element => element.Name.LocalName == "ComboBox");
+        Assert.Equal("True", (string?)statusDisplay.Attribute("IsReadOnly"));
+        Assert.Equal("{StaticResource AppTextBoxStyle}", (string?)statusDisplay.Attribute("Style"));
+        Assert.Equal("45", (string?)statusDisplay.Attribute("Height"));
+        Assert.Equal("600", (string?)document.Root?.Attribute("Height"));
+        Assert.Equal("550", (string?)document.Root?.Attribute("Width"));
+    }
+
     [Theory]
     [InlineData(false, null, "Chưa bán")]
     [InlineData(true, null, "Không có bảo hành")]

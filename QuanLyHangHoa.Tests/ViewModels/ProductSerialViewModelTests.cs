@@ -85,4 +85,20 @@ public class ProductSerialViewModelTests
         Assert.Equal("Tất cả trạng thái", viewModel.SelectedStatus);
         Assert.Equal((string.Empty, "All"), calls.Last());
     }
+
+    [Fact]
+    public void Serial_edit_exposes_read_only_status_display_without_status_editor_state()
+    {
+        var type = typeof(ProductSerialEditViewModel);
+        var statusDisplay = type.GetProperty("StatusDisplay");
+
+        Assert.NotNull(statusDisplay);
+        Assert.False(statusDisplay!.CanWrite);
+        Assert.Null(type.GetProperty("SelectedStatus"));
+        Assert.Null(type.GetProperty("Statuses"));
+
+        var viewModel = new ProductSerialEditViewModel(
+            () => null!, new ProductSerial { CurrentStatus = "ReturnedToManufacturer" }, userId: 1);
+        Assert.Equal("Trả lại NCC", statusDisplay.GetValue(viewModel));
+    }
 }

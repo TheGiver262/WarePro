@@ -70,6 +70,38 @@ namespace QuanLyHangHoa.Services
             return query.Count();
         }
 
+        public void UpdateNote(int serialId, string? note, int userId)
+        {
+            using var db = _contextFactory();
+            using var transaction = db.Database.BeginTransaction();
+            var serial = db.ProductSerials.SingleOrDefault(item => item.Id == serialId)
+                ?? throw new InvalidOperationException("Không tìm thấy serial.");
+            var beforeJson = System.Text.Json.JsonSerializer.Serialize(new { serial.Note });
+
+            serial.Note = note;
+            db.AuditLogs.Add(new AuditLog
+            {
+                EntityName = "ProductSerial",
+                EntityId = serial.Id,
+                ActionCode = "UPDATE",
+                PerformedBy = userId,
+                PerformedAt = DateTime.UtcNow,
+                BeforeJson = beforeJson,
+                AfterJson = System.Text.Json.JsonSerializer.Serialize(new { serial.Note })
+            });
+
+            try
+            {
+                db.SaveChanges();
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+
         private IQueryable<ProductSerial> ApplySerialFilters(IQueryable<ProductSerial> query, string serial, string product, string brand, string status, DateTime? fromDate, DateTime? toDate, string note)
         {
             if (!string.IsNullOrWhiteSpace(status) && status != "All")
