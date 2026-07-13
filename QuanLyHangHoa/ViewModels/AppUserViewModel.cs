@@ -186,8 +186,16 @@ namespace QuanLyHangHoa.ViewModels
         {
             if (user == null || _currentUser == null) return;
 
-            var result = System.Windows.MessageBox.Show($"Bạn có chắc chắn muốn xoá người dùng '{user.Username}' khỏi hệ thống không?\nThao tác này không thể hoàn tác.", 
-                "Xác nhận xoá", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning);
+            var hasDependencies = _userService.HasDependencies(user.Id);
+            var message = hasDependencies
+                ? $"Người dùng '{user.Username}' đang được tham chiếu bởi dữ liệu hệ thống. Thao tác này sẽ chuyển trạng thái người dùng sang 'Dừng'. Bạn có muốn tiếp tục?"
+                : $"Người dùng '{user.Username}' chưa có dữ liệu liên quan. Bạn có chắc chắn muốn xoá vĩnh viễn người dùng này khỏi hệ thống?";
+
+            var result = System.Windows.MessageBox.Show(
+                message,
+                hasDependencies ? "Xác nhận dừng" : "Xác nhận xoá",
+                System.Windows.MessageBoxButton.YesNo,
+                System.Windows.MessageBoxImage.Warning);
 
             if (result == System.Windows.MessageBoxResult.Yes)
             {

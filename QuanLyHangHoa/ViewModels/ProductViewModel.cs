@@ -293,22 +293,26 @@ namespace QuanLyHangHoa.ViewModels
         private void DeleteProduct(Product? product)
         {
             if (product == null) return;
-            
-            // 1. Kiểm tra phát sinh dữ liệu
-            if (_service.HasTransactionHistory(product.Id))
-            {
-                MessageBox.Show($"Không thể xoá sản phẩm '{product.DisplayName}' vì đã có dữ liệu phát sinh (Hóa đơn, Nhập/Xuất kho).\n\nVui lòng chuyển sản phẩm sang 'Dừng' nếu không còn sử dụng.", 
-                    "Không thể xoá", MessageBoxButton.OK, MessageBoxImage.Stop);
-                return;
-            }
 
-            // 2. Xác nhận xoá (nếu không có lịch sử)
-            var result = MessageBox.Show($"Sản phẩm '{product.DisplayName}' chưa có lịch sử giao dịch. Bạn có chắc chắn muốn xoá vĩnh viễn sản phẩm này khỏi hệ thống?", 
-                "Xác nhận xoá", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            var dependencies = _service.GetDependencies(product.Id)
+                .Where(dependency => dependency.Count > 0)
+                .ToList();
+            var dependencySummary = string.Join(
+                Environment.NewLine,
+                dependencies.Select(dependency => $"• {dependency.Name}: {dependency.Count}"));
+            var message = dependencies.Count > 0
+                ? $"Sản phẩm '{product.DisplayName}' đang được tham chiếu:\n{dependencySummary}\n\nThao tác này sẽ chuyển trạng thái sản phẩm sang 'Dừng'. Bạn có muốn tiếp tục?"
+                : $"Sản phẩm '{product.DisplayName}' chưa có dữ liệu liên quan. Bạn có chắc chắn muốn xoá vĩnh viễn sản phẩm này khỏi hệ thống?";
+
+            var result = MessageBox.Show(
+                message,
+                dependencies.Count > 0 ? "Xác nhận dừng" : "Xác nhận xoá",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
                 
             if (result == MessageBoxResult.Yes)
             {
-                try 
+                try
                 {
                     _service.DeleteProduct(product.Id, _currentUser.Id);
                     LoadCounts();

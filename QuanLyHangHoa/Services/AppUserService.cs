@@ -174,6 +174,12 @@ namespace QuanLyHangHoa.Services
             }
         }
 
+        public bool HasDependencies(int userId)
+        {
+            using var db = _contextFactory();
+            return HasDependencies(db, userId);
+        }
+
         private static bool HasDependencies(AppDbContext db, int userId)
         {
             return db.AppUsers.Any(user => user.CreatedBy == userId) ||

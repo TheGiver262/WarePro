@@ -417,7 +417,10 @@ namespace QuanLyHangHoa.Migrations
                     b.HasIndex(new[] { "ProductId", "UnitId" }, "UX_ProductUnit_Product_Unit")
                         .IsUnique();
 
-                    b.ToTable("ProductUnit", (string)null);
+                    b.ToTable("ProductUnit", t =>
+                        {
+                            t.HasCheckConstraint("CK_ProductUnit_ConversionFactor_Positive", "[ConversionFactor] > 0");
+                        });
                 });
 
             modelBuilder.Entity("QuanLyHangHoa.Models.PurchaseInvoice", b =>
