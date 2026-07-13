@@ -74,28 +74,62 @@ namespace QuanLyHangHoa.ViewModels
 
         private bool CanManageUsers()
         {
+            return RefreshAndAuthorize(PermissionAction.ManageUsers);
+        }
+        private bool CanPostStockIn() => RefreshAndAuthorize(PermissionAction.PostStockIn);
+
+        private bool CanPostStockOut() => RefreshAndAuthorize(PermissionAction.PostStockOut);
+
+        private bool CanPostStockAdjustment() => RefreshAndAuthorize(PermissionAction.PostStockAdjustment);
+
+        private bool CanCreatePurchaseInvoice() => RefreshAndAuthorize(PermissionAction.CreatePurchaseInvoice);
+
+        private bool CanCreateSalesInvoice() => RefreshAndAuthorize(PermissionAction.CreateSalesInvoice);
+
+        private bool CanCreateWarrantyClaim() => RefreshAndAuthorize(PermissionAction.CreateWarrantyClaim);
+
+        private bool CanOpenReports() => RefreshAndAuthorize(PermissionAction.ViewReports);
+
+        private bool CanManageAuditLogs() => RefreshAndAuthorize(PermissionAction.ManageAuditLogs);
+
+
+        private bool RefreshAndAuthorize(PermissionAction action)
+        {
+            if (_sessionInvalidated)
+            {
+                return false;
+            }
+
             var previousUser = CurrentUser;
             using var db = ContextFactory();
             var refreshedUser = db.AppUsers
                 .AsNoTracking()
                 .SingleOrDefault(user => user.Id == _authenticatedUserId);
-            var authorizationChanged = previousUser == null ||
-                refreshedUser == null ||
-                previousUser.IsActive != refreshedUser.IsActive ||
-                !string.Equals(previousUser.RoleCode, refreshedUser.RoleCode, StringComparison.OrdinalIgnoreCase);
+            var identityChanged = previousUser?.IsActive != refreshedUser?.IsActive ||
+                !string.Equals(previousUser?.RoleCode, refreshedUser?.RoleCode, StringComparison.OrdinalIgnoreCase);
 
             CurrentUser = refreshedUser;
-            NotifyAuthorizationChanged();
-            var canManageUsers = AuthorizationService.CanPerform(refreshedUser, PermissionAction.ManageUsers);
+            if (identityChanged)
+            {
+                _viewCache.Clear();
+                CurrentView = null;
+            }
+
+            var isAuthorized = AuthorizationService.CanPerform(refreshedUser, action);
 
             if (refreshedUser == null ||
                 !refreshedUser.IsActive ||
-                authorizationChanged && !canManageUsers)
+                identityChanged && !isAuthorized)
             {
                 InvalidateSession();
             }
 
-            return canManageUsers;
+
+            if (identityChanged)
+            {
+                NotifyAuthorizationChanged();
+            }
+            return isAuthorized;
         }
 
         private void NotifyAuthorizationChanged()
@@ -115,6 +149,7 @@ namespace QuanLyHangHoa.ViewModels
         {
             if (_sessionInvalidated) return;
             _sessionInvalidated = true;
+            CurrentView = null;
             _viewCache.Clear();
             _invalidateSession();
         }
@@ -151,51 +186,59 @@ namespace QuanLyHangHoa.ViewModels
             NavigateToView("Product", () => new ProductView { DataContext = new ProductViewModel(ContextFactory, CurrentUser!) }, "KHO HÀNG", "Quản lý danh mục sản phẩm và tồn kho");
         }
 
-        [RelayCommand(CanExecute = nameof(CanAccessStockOut))]
+        [RelayCommand(CanExecute = nameof(CanPostStockOut))]
         private void OpenStockOutView()
         {
+            if (!RefreshAndAuthorize(PermissionAction.PostStockOut)) return;
             NavigateToView("StockOut", () => new StockOutView { DataContext = new StockOutViewModel(CurrentUser!, ContextFactory) }, "XUẤT KHO", "Lập phiếu xuất kho và quản lý hàng xuất");
         }
 
-        [RelayCommand(CanExecute = nameof(CanAccessStockIn))]
+        [RelayCommand(CanExecute = nameof(CanPostStockIn))]
         private void OpenStockInView()
         {
+            if (!RefreshAndAuthorize(PermissionAction.PostStockIn)) return;
             NavigateToView("StockIn", () => new StockInView { DataContext = new StockInViewModel(CurrentUser!, ContextFactory) }, "NHẬP KHO", "Lập phiếu nhập kho và quản lý hàng nhập");
         }
 
-        [RelayCommand(CanExecute = nameof(CanAccessStockAdjustment))]
+        [RelayCommand(CanExecute = nameof(CanPostStockAdjustment))]
         private void OpenStockTransferView()
         {
+            if (!RefreshAndAuthorize(PermissionAction.PostStockAdjustment)) return;
             NavigateToView("StockTransfer", () => new StockTransferView { DataContext = new StockTransferViewModel(CurrentUser!, ContextFactory) }, "CHUYỂN KHO", "Điều chuyển hàng hóa giữa các kho nội bộ");
         }
 
-        [RelayCommand(CanExecute = nameof(CanAccessStockAdjustment))]
+        [RelayCommand(CanExecute = nameof(CanPostStockAdjustment))]
         private void OpenStockAdjustmentView()
         {
+            if (!RefreshAndAuthorize(PermissionAction.PostStockAdjustment)) return;
             NavigateToView("StockAdjustment", () => new StockAdjustmentView { DataContext = new StockAdjustmentViewModel(CurrentUser!, ContextFactory) }, "ĐIỀU CHỈNH", "Điều chỉnh số lượng tồn kho thực tế");
         }
 
-        [RelayCommand(CanExecute = nameof(CanAccessStockAdjustment))]
+        [RelayCommand(CanExecute = nameof(CanPostStockAdjustment))]
         private void OpenStockCountView()
         {
+            if (!RefreshAndAuthorize(PermissionAction.PostStockAdjustment)) return;
             NavigateToView("StockCount", () => new StockCountView { DataContext = new StockCountViewModel(CurrentUser!, ContextFactory) }, "KIỂM KÊ", "Kiểm kê định kỳ và đối soát hàng hóa");
         }
 
-        [RelayCommand(CanExecute = nameof(CanAccessPurchaseInvoices))]
+        [RelayCommand(CanExecute = nameof(CanCreatePurchaseInvoice))]
         private void OpenPurchaseInvoiceView()
         {
+            if (!RefreshAndAuthorize(PermissionAction.CreatePurchaseInvoice)) return;
             NavigateToView("PurchaseInvoice", () => new PurchaseInvoiceView { DataContext = new PurchaseInvoiceViewModel(CurrentUser!, ContextFactory) }, "HÓA ĐƠN MUA", "Quản lý hóa đơn nhập hàng từ NCC");
         }
 
-        [RelayCommand(CanExecute = nameof(CanAccessSalesInvoices))]
+        [RelayCommand(CanExecute = nameof(CanCreateSalesInvoice))]
         private void OpenSalesInvoiceView()
         {
+            if (!RefreshAndAuthorize(PermissionAction.CreateSalesInvoice)) return;
             NavigateToView("SalesInvoice", () => new SalesInvoiceView { DataContext = new SalesInvoiceViewModel(CurrentUser!, ContextFactory) }, "HÓA ĐƠN BÁN", "Quản lý hóa đơn bán lẻ cho khách hàng");
         }
 
-        [RelayCommand(CanExecute = nameof(CanAccessWarranty))]
+        [RelayCommand(CanExecute = nameof(CanCreateWarrantyClaim))]
         private void OpenWarrantyView()
         {
+            if (!RefreshAndAuthorize(PermissionAction.CreateWarrantyClaim)) return;
             NavigateToView("Warranty", () => 
             {
                 var vm = new WarrantyViewModel(CurrentUser!, ContextFactory);
@@ -204,9 +247,10 @@ namespace QuanLyHangHoa.ViewModels
             }, "BẢO HÀNH", "Quản lý phiếu bảo hành và sửa chữa");
         }
 
-        [RelayCommand(CanExecute = nameof(CanAccessWarranty))]
+        [RelayCommand(CanExecute = nameof(CanCreateWarrantyClaim))]
         private void OpenWarrantyCoverageView()
         {
+            if (!RefreshAndAuthorize(PermissionAction.CreateWarrantyClaim)) return;
             NavigateToView(
                 "WarrantyCoverage",
                 () => new WarrantyCoverageView
@@ -259,15 +303,17 @@ namespace QuanLyHangHoa.ViewModels
             NavigateToView("ProductSerial", () => new ProductSerialView { DataContext = new ProductSerialViewModel(ContextFactory, CurrentUser!) }, "QUẢN LÝ SERIAL", "Quản lý số Serial và IMEI sản phẩm");
         }
 
-        [RelayCommand(CanExecute = nameof(CanAccessStockAdjustment))]
+        [RelayCommand(CanExecute = nameof(CanPostStockAdjustment))]
         private void OpenOpeningBalanceImportView()
         {
+            if (!RefreshAndAuthorize(PermissionAction.PostStockAdjustment)) return;
             NavigateToView("OpeningBalanceImport", () => new OpeningBalanceImportView { DataContext = new OpeningBalanceImportViewModel(CurrentUser!.Id, ContextFactory) }, "NHẬP TỒN ĐẦU KỲ", "Import số dư đầu kỳ từ file Excel/CSV");
         }
 
-        [RelayCommand(CanExecute = nameof(CanAccessReports))]
+        [RelayCommand(CanExecute = nameof(CanOpenReports))]
         private void OpenReportView()
         {
+            if (!RefreshAndAuthorize(PermissionAction.ViewReports)) return;
             NavigateToView("Report", () => new ReportView { DataContext = new ReportViewModel() }, "BÁO CÁO", "Phân tích hiệu quả kinh doanh và tài chính");
         }
 
@@ -275,17 +321,18 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand(CanExecute = nameof(CanManageUsers))]
         private void OpenAppUserView()
         {
+            if (!RefreshAndAuthorize(PermissionAction.ManageUsers)) return;
             NavigateToView("AppUser", () => new AppUserView { DataContext = new AppUserViewModel(CurrentUser!, ContextFactory) }, "NGƯỜI DÙNG", "Quản lý tài khoản hệ thống");
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanManageAuditLogs))]
         private void OpenAuditLogView()
         {
-            if (CanViewLogs)
+            if (RefreshAndAuthorize(PermissionAction.ManageAuditLogs))
             {
                 NavigateToView("AuditLog", () => new AuditLogView { DataContext = new AuditLogViewModel(ContextFactory) }, "NHẬT KÝ HỆ THỐNG", "Theo dõi lịch sử thay đổi dữ liệu toàn hệ thống");
             }
-            else
+            else if (!_sessionInvalidated)
             {
                 System.Windows.MessageBox.Show("Bạn không có quyền truy cập!", "Thông báo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
             }

@@ -1,4 +1,5 @@
 using System;
+using System.Data;
 using System.Collections.Generic;
 using System.Linq;
 using QuanLyHangHoa.Data;
@@ -26,6 +27,9 @@ namespace QuanLyHangHoa.Services
         public void AddUser(AppUser user, int performedByUserId)
         {
             using var db = _contextFactory();
+            using var transaction = db.Database.BeginTransaction(IsolationLevel.Serializable);
+            var actor = db.AppUsers.SingleOrDefault(existingUser => existingUser.Id == performedByUserId);
+            EnsureActorCanManageUsers(actor);
             
             // Check for duplicate username
             if (db.AppUsers.Any(u => u.Username == user.Username))
@@ -49,7 +53,6 @@ namespace QuanLyHangHoa.Services
             
             try
             {
-                using var transaction = db.Database.BeginTransaction();
                 db.AppUsers.Add(user);
                 db.SaveChanges();
 
@@ -69,10 +72,12 @@ namespace QuanLyHangHoa.Services
         public void UpdateUser(int targetUserId, AppUser updatedUser, int performedByUserId)
         {
             using var db = _contextFactory();
+            using var transaction = db.Database.BeginTransaction(IsolationLevel.Serializable);
+            var actor = db.AppUsers.SingleOrDefault(user => user.Id == performedByUserId);
+            EnsureActorCanManageUsers(actor);
             var existing = db.AppUsers.Find(targetUserId);
             if (existing != null)
             {
-                using var transaction = db.Database.BeginTransaction();
                 var isSelf = targetUserId == performedByUserId;
 
                 if (isSelf && existing.IsActive && !updatedUser.IsActive)
@@ -118,10 +123,12 @@ namespace QuanLyHangHoa.Services
         public void ToggleUserStatus(int userId, int performedByUserId)
         {
             using var db = _contextFactory();
+            using var transaction = db.Database.BeginTransaction(IsolationLevel.Serializable);
+            var actor = db.AppUsers.SingleOrDefault(existingUser => existingUser.Id == performedByUserId);
+            EnsureActorCanManageUsers(actor);
             var user = db.AppUsers.Find(userId);
             if (user != null)
             {
-                using var transaction = db.Database.BeginTransaction();
                 if (user.IsActive && userId == performedByUserId)
                 {
                     throw new InvalidOperationException("Bạn không thể tự dừng tài khoản của chính mình.");
@@ -147,18 +154,21 @@ namespace QuanLyHangHoa.Services
 
         public void DeleteUser(int id, int performedByUserId)
         {
+            using var db = _contextFactory();
+            using var transaction = db.Database.BeginTransaction(IsolationLevel.Serializable);
+            var actor = db.AppUsers.SingleOrDefault(user => user.Id == performedByUserId);
+            EnsureActorCanManageUsers(actor);
+
             if (id == performedByUserId)
             {
                 throw new InvalidOperationException("Bạn không thể tự xoá tài khoản của chính mình.");
             }
 
-            using var db = _contextFactory();
             var user = db.AppUsers.Find(id);
             if (user == null)
             {
                 return;
             }
-            using var transaction = db.Database.BeginTransaction();
 
             if (IsActiveAdministrator(user))
             {
@@ -200,6 +210,14 @@ namespace QuanLyHangHoa.Services
             }
         }
 
+
+        private static void EnsureActorCanManageUsers(AppUser? actor)
+        {
+            if (actor == null || !IsActiveAdministrator(actor))
+            {
+                throw new InvalidOperationException("Only an active administrator can manage users.");
+            }
+        }
 
         private static bool IsAdministrator(AppUser user) =>
             string.Equals(user.RoleCode, "Quản trị viên", StringComparison.OrdinalIgnoreCase);

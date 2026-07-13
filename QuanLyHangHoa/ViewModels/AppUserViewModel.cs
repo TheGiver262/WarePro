@@ -54,7 +54,6 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void OpenAddUserDialog()
         {
-            if (_currentUser == null) return;
 
             var vm = new AddUserViewModel(_currentUser.Id, _userService);
             var window = new AddUserWindow { DataContext = vm };
@@ -155,7 +154,7 @@ namespace QuanLyHangHoa.ViewModels
                 return;
             }
 
-            if (_currentUser == null)
+            if (!IsAdmin)
             {
                 System.Windows.MessageBox.Show("Bạn không có quyền thực hiện thao tác này.", "Lỗi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
                 return;
@@ -185,7 +184,7 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void DeleteUser(AppUser? user)
         {
-            if (user == null || _currentUser == null) return;
+            if (user == null) return;
 
             var hasDependencies = _userService.HasDependencies(user.Id);
             var message = hasDependencies
@@ -216,7 +215,7 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void ToggleStatus(AppUser? user)
         {
-            if (user == null || _currentUser == null) return;
+            if (user == null) return;
 
             try
             {
