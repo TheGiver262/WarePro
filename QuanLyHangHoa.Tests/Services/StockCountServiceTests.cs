@@ -49,6 +49,7 @@ public class StockCountServiceTests
         using (var seedContext = DatabaseHelper.CreateContext(connection))
         {
             DatabaseHelper.SeedBasicData(seedContext);
+            seedContext.AppUsers.Find(1)!.RoleCode = "Quản lý";
             seedContext.Products.Add(new Product { 
                 Id = 600, 
                 ProductCode = "P600", 
@@ -58,6 +59,13 @@ public class StockCountServiceTests
                 DefaultUnitId = 1, 
                 DefaultPrice = 10m,
                 IsActive = true
+            });
+            seedContext.StockBalances.Add(new StockBalance
+            {
+                ProductId = 600,
+                WarehouseId = 1,
+                OnHandQuantity = 5,
+                AvailableQuantity = 5
             });
             
             var session = new StockCountSession
@@ -95,7 +103,7 @@ public class StockCountServiceTests
             .Include(si => si.Lines)
             .Single(si => si.DocumentCode.StartsWith("SI-ADJ-CNT-002"));
             
-        Assert.Equal("Draft", stockIn.Status);
+        Assert.Equal("Posted", stockIn.Status);
         Assert.Equal("Adjustment", stockIn.PurposeCode);
         Assert.Equal("Nhập để điều chỉnh tồn kho (Theo phiên kiểm kê CNT-002)", stockIn.Notes);
         
@@ -145,6 +153,7 @@ public class StockCountServiceTests
         using (var seedContext = DatabaseHelper.CreateContext(connection))
         {
             DatabaseHelper.SeedBasicData(seedContext);
+            seedContext.AppUsers.Find(1)!.RoleCode = "Quản lý";
             seedContext.Products.Add(new Product { 
                 Id = 700, 
                 ProductCode = "P700", 
@@ -154,6 +163,13 @@ public class StockCountServiceTests
                 DefaultUnitId = 1, 
                 DefaultPrice = 15m,
                 IsActive = true
+            });
+            seedContext.StockBalances.Add(new StockBalance
+            {
+                ProductId = 700,
+                WarehouseId = 1,
+                OnHandQuantity = 10,
+                AvailableQuantity = 10
             });
             
             var session = new StockCountSession
@@ -193,7 +209,7 @@ public class StockCountServiceTests
     }
 
     [Fact]
-    public void ProcessResults_creates_draft_StockIn_and_does_not_update_StockBalances_directly()
+    public void ProcessResults_posts_StockIn_and_updates_StockBalances_atomically()
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
@@ -201,6 +217,7 @@ public class StockCountServiceTests
         using (var seedContext = DatabaseHelper.CreateContext(connection))
         {
             DatabaseHelper.SeedBasicData(seedContext);
+            seedContext.AppUsers.Find(1)!.RoleCode = "Quản lý";
             seedContext.Products.Add(new Product { 
                 Id = 800, 
                 ProductCode = "P800", 
@@ -249,16 +266,14 @@ public class StockCountServiceTests
         service.ProcessResults(sessionId, 1);
 
         using var assertContext = DatabaseHelper.CreateContext(connection);
-        // Tồn kho không trực tiếp thay đổi khi phiếu mới chỉ ở dạng Nháp
         var balance = assertContext.StockBalances.Single(b => b.ProductId == 800 && b.WarehouseId == 1);
-        Assert.Equal(5, balance.OnHandQuantity);
-        Assert.Equal(5, balance.AvailableQuantity);
+        Assert.Equal(7, balance.OnHandQuantity);
+        Assert.Equal(7, balance.AvailableQuantity);
 
-        // Phiếu nháp StockIn được tạo ra
         var stockIn = assertContext.StockIns
             .Include(si => si.Lines)
             .Single(si => si.DocumentCode.StartsWith("SI-ADJ-CNT-BAL-001"));
-        Assert.Equal("Draft", stockIn.Status);
+        Assert.Equal("Posted", stockIn.Status);
         Assert.Equal(2, stockIn.Lines.Single().Quantity);
     }
 }

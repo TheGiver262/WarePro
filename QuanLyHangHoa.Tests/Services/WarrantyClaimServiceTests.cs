@@ -280,6 +280,15 @@ public class WarrantyClaimServiceTests
         using (var seedContext = CreateContext(connection))
         {
             DatabaseHelper.SeedBasicData(seedContext);
+            seedContext.AppUsers.Add(new AppUser
+            {
+                Id = 4,
+                Username = "warranty",
+                FullName = "Warranty Staff",
+                PasswordHash = "hash",
+                RoleCode = "Nhân viên bảo hành",
+                IsActive = true
+            });
             seedContext.Products.Add(new Product { Id = 3000, ProductCode = "P3000", DisplayName = "P30", CategoryId = 1, BrandId = 1, DefaultUnitId = 1, DefaultPrice = 10m, IsSerialTracked = true });
             
             var serial = new ProductSerial { SerialNumber = "OLD-WARRANTY-SERIAL-1", ProductId = 3000, CurrentStatus = "ReturnedToManufacturer" };
@@ -340,6 +349,15 @@ public class WarrantyClaimServiceTests
         using (var seedContext = CreateContext(connection))
         {
             DatabaseHelper.SeedBasicData(seedContext);
+            seedContext.AppUsers.Add(new AppUser
+            {
+                Id = 4,
+                Username = "warranty",
+                FullName = "Warranty Staff",
+                PasswordHash = "hash",
+                RoleCode = "Nhân viên bảo hành",
+                IsActive = true
+            });
             seedContext.Products.Add(new Product { Id = 3001, ProductCode = "P3001", DisplayName = "P31", CategoryId = 1, BrandId = 1, DefaultUnitId = 1, DefaultPrice = 10m, IsSerialTracked = true });
             
             var serial = new ProductSerial { SerialNumber = "OLD-WARRANTY-SERIAL-2", ProductId = 3001, CurrentStatus = "InWarrantyProcess" };

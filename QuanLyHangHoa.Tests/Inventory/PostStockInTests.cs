@@ -81,7 +81,7 @@ public class PostStockInTests
 
         var ex = Assert.Throws<InventoryDomainException>(() => service.PostStockIn(command));
 
-        Assert.Equal("Only approved or ready-to-post stock-in documents can be posted.", ex.Message);
+        Assert.Equal("Only approved stock-in documents can be posted.", ex.Message);
     }
 
     [Theory]

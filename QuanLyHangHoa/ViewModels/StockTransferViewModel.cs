@@ -106,8 +106,14 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private ObservableCollection<StockTransferLineEditor> _lines = new();
 
         [ObservableProperty] private int _stockTransferId;
-        [ObservableProperty] private string _status = "Draft";
-        [ObservableProperty] private bool _isPosted;
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(CanEdit))]
+        [NotifyPropertyChangedFor(nameof(CanProcessLifecycle))]
+        private string _status = DocumentStatus.Draft;
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(CanEdit))]
+        [NotifyPropertyChangedFor(nameof(CanProcessLifecycle))]
+        private bool _isPosted;
         [ObservableProperty] private string _documentCode = string.Empty;
         [ObservableProperty] private Warehouse? _selectedFromWarehouse;
         [ObservableProperty] private Warehouse? _selectedToWarehouse;
@@ -127,11 +133,17 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private int _draftCount;
         [ObservableProperty] private int _postedCount;
 
-        public bool CanEdit => !IsPosted;
+        public bool IsAdminOrManager => AuthorizationService.CanPerform(_currentUser, PermissionAction.ApproveStock);
+        public bool CanUserEdit => _currentUser.RoleCode == "Quản trị viên" ||
+            _currentUser.RoleCode == "Quản lý" || _currentUser.RoleCode == "Nhân viên kho";
+        public bool CanEdit => !IsPosted && CanUserEdit && StockDocumentUiLifecycle.IsDraft(Status);
+        public bool CanProcessLifecycle => StockDocumentUiLifecycle.IsDraft(Status)
+            ? CanUserEdit
+            : IsAdminOrManager && (StockDocumentUiLifecycle.IsPendingApproval(Status) || StockDocumentUiLifecycle.IsApproved(Status));
 
         public StockTransferViewModel(AppUser? currentUser = null, Func<AppDbContext>? contextFactory = null)
         {
-            _currentUser = currentUser ?? new AppUser { Id = 1 };
+            _currentUser = currentUser ?? new AppUser { Id = 1, Username = "System", RoleCode = "Quản trị viên" };
             var factory = contextFactory ?? (() => new QuanLyHangHoa.Data.AppDbContext());
             _contextFactory = factory;
             _productService = new ProductService(factory);
@@ -202,9 +214,14 @@ namespace QuanLyHangHoa.ViewModels
         private void EditDetail(StockTransfer st)
         {
             if (st == null) return;
-            if (st.Status == "Posted")
+            if (!CanUserEdit)
             {
-                MessageBox.Show("Không thể sửa phiếu đã ghi sổ.", "Thông báo");
+                MessageBox.Show("Bạn không có quyền chỉnh sửa phiếu này.", "Thông báo");
+                return;
+            }
+            if (!StockDocumentUiLifecycle.IsDraft(st.Status))
+            {
+                MessageBox.Show("Chỉ có thể sửa phiếu nháp.", "Thông báo");
                 return;
             }
             LoadFromModel(st);
@@ -229,7 +246,7 @@ namespace QuanLyHangHoa.ViewModels
             TransferDate = st.TransferDate;
             Notes = st.Notes ?? string.Empty;
             Status = st.Status;
-            IsPosted = st.Status == "Posted";
+            IsPosted = StockDocumentUiLifecycle.IsPosted(st.Status);
             
             Lines.Clear();
             foreach (var line in st.Lines)
@@ -360,44 +377,77 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void ConfirmAndPost()
         {
-            if (IsPosted) return;
-
-            if (!ValidateForm()) return;
-            try
+            if (IsPosted || StockDocumentUiLifecycle.IsPosted(Status)) return;
+            var isDraft = StockDocumentUiLifecycle.IsDraft(Status);
+            if (isDraft && !CanUserEdit)
             {
-                var st = CreateModel();
-                var stLines = CreateLines();
-                _stockTransferService.SaveDraft(st, stLines, _currentUser.Id);
-                StockTransferId = st.Id;
+                MessageBox.Show("Bạn không có quyền gửi duyệt phiếu.", "Thông báo");
+                return;
             }
-            catch (Exception ex)
+            if (!isDraft && (!IsAdminOrManager ||
+                (!StockDocumentUiLifecycle.IsPendingApproval(Status) && !StockDocumentUiLifecycle.IsApproved(Status))))
             {
-                MessageBox.Show($"Lỗi khi lưu dữ liệu trước khi ghi sổ: {ex.Message}", "Lỗi");
+                MessageBox.Show("Bạn không có quyền duyệt và ghi sổ phiếu.", "Thông báo");
                 return;
             }
 
-            foreach (var line in Lines)
+            if (isDraft)
             {
-                if (line.IsSerialRequired && line.SerialNumbers.Count != (int)line.Quantity)
+                if (!ValidateForm()) return;
+                try
                 {
-                    var result = MessageBox.Show(
-                        $"Sản phẩm {line.SelectedProduct?.DisplayName} yêu cầu {(int)line.Quantity} serial, nhưng hiện mới có {line.SerialNumbers.Count}.\n\nBạn có muốn bổ sung serial trước khi ghi sổ không?", 
-                        "Thiếu Serial", MessageBoxButton.YesNo, MessageBoxImage.Warning);
-                    
-                    if (result == MessageBoxResult.Yes) return;
+                    var st = CreateModel();
+                    var stLines = CreateLines();
+                    _stockTransferService.SaveDraft(st, stLines, _currentUser.Id);
+                    StockTransferId = st.Id;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Lỗi khi lưu dữ liệu trước khi gửi duyệt: {ex.Message}", "Lỗi");
+                    return;
+                }
+
+                foreach (var line in Lines)
+                {
+                    if (line.IsSerialRequired && line.SerialNumbers.Count != (int)line.Quantity)
+                    {
+                        var result = MessageBox.Show(
+                            $"Sản phẩm {line.SelectedProduct?.DisplayName} yêu cầu {(int)line.Quantity} serial, nhưng hiện mới có {line.SerialNumbers.Count}.\n\nBạn có muốn bổ sung serial trước khi gửi duyệt không?",
+                            "Thiếu Serial", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+                        if (result == MessageBoxResult.Yes) return;
+                    }
                 }
             }
 
-            var confirm = MessageBox.Show("Bạn có chắc chắn muốn ghi sổ phiếu chuyển kho này? Sau khi ghi sổ sẽ không thể chỉnh sửa.", "Xác nhận ghi sổ", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            var confirmMessage = isDraft && !IsAdminOrManager
+                ? "Bạn có chắc chắn muốn gửi duyệt phiếu chuyển kho này? Sau khi gửi sẽ không thể chỉnh sửa."
+                : "Bạn có chắc chắn muốn duyệt và ghi sổ phiếu chuyển kho này? Sau khi gửi duyệt sẽ không thể chỉnh sửa.";
+            var confirm = MessageBox.Show(confirmMessage, "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (confirm != MessageBoxResult.Yes) return;
 
             try
             {
+                if (StockDocumentUiLifecycle.IsDraft(Status))
+                {
+                    _stockTransferService.SubmitForApproval(StockTransferId, _currentUser.Id);
+                    Status = DocumentStatus.PendingApproval;
+                    if (!IsAdminOrManager)
+                    {
+                        MessageBox.Show("Đã gửi phiếu chuyển kho chờ duyệt.", "Thông báo");
+                        BackToList();
+                        return;
+                    }
+                }
+                if (StockDocumentUiLifecycle.IsPendingApproval(Status))
+                {
+                    _stockTransferService.Approve(StockTransferId, _currentUser.Id);
+                    Status = DocumentStatus.Approved;
+                }
                 _stockTransferService.Post(StockTransferId, _currentUser.Id);
                 IsPosted = true;
-                Status = "Posted";
-                OnPropertyChanged(nameof(CanEdit));
-                
+                Status = DocumentStatus.Posted;
+
                 MessageBox.Show("Đã ghi sổ thành công. Hàng hóa đã được chuyển kho.", "Thông báo");
                 BackToList();
             }

@@ -192,8 +192,8 @@ namespace QuanLyHangHoa.Services
 
             if (existing != null)
             {
-                if (existing.Status == DocumentStatus.Posted || existing.Status == "đã ghi sổ")
-                    throw new Exception("Không thể cập nhật phiếu đã ghi sổ.");
+                var lifecycle = new StockDocumentLifecycleService();
+                lifecycle.EnsureCanEditDetails(ParseStatus(existing.Status));
 
                 var beforeJson = Serialize(existing);
 
@@ -247,19 +247,61 @@ namespace QuanLyHangHoa.Services
             }
         }
 
+        public virtual void SubmitForApproval(int stockInId, int userId)
+        {
+            using var db = _contextFactory();
+            var stockIn = db.StockIns.SingleOrDefault(item => item.Id == stockInId)
+                ?? throw new InventoryDomainException("Không tìm thấy phiếu nhập kho.");
+            var beforeJson = Serialize(stockIn);
+            var lifecycle = new StockDocumentLifecycleService();
+            stockIn.Status = lifecycle.SubmitForApproval(ParseStatus(stockIn.Status)).ToString();
+            stockIn.UpdatedBy = userId;
+            stockIn.UpdatedAt = DateTime.UtcNow;
+            db.SaveChanges();
+            AddAudit(db, "SUBMIT", stockIn.Id, beforeJson, Serialize(stockIn), userId);
+        }
+
+        public virtual void Approve(int stockInId, int userId)
+        {
+            using var db = _contextFactory();
+            var stockIn = db.StockIns.SingleOrDefault(item => item.Id == stockInId)
+                ?? throw new InventoryDomainException("Không tìm thấy phiếu nhập kho.");
+            var actor = db.AppUsers.AsNoTracking().SingleOrDefault(item => item.Id == userId);
+            var beforeJson = Serialize(stockIn);
+            var lifecycle = new StockDocumentLifecycleService();
+            stockIn.Status = lifecycle.Approve(
+                ParseStatus(stockIn.Status),
+                AuthorizationService.CanPerform(actor, PermissionAction.ApproveStock)).ToString();
+            stockIn.ApprovedBy = userId;
+            stockIn.ApprovedAt = DateTime.UtcNow;
+            stockIn.UpdatedBy = userId;
+            stockIn.UpdatedAt = DateTime.UtcNow;
+            db.SaveChanges();
+            AddAudit(db, "APPROVE", stockIn.Id, beforeJson, Serialize(stockIn), userId);
+        }
+
         public virtual void Post(int stockInId, int userId)
         {
             using var db = _contextFactory();
             using var transaction = db.Database.BeginTransaction();
 
             var stockIn = db.StockIns
-                .Include(s => s.Lines)
-                    .ThenInclude(l => l.ProductSerials)
-                .FirstOrDefault(s => s.Id == stockInId);
+                .Include(item => item.Lines)
+                    .ThenInclude(line => line.ProductSerials)
+                .FirstOrDefault(item => item.Id == stockInId)
+                ?? throw new InventoryDomainException("Không tìm thấy phiếu nhập kho.");
+            var lifecycle = new StockDocumentLifecycleService();
+            lifecycle.EnsureCanPost(ParseStatus(stockIn.Status));
+            var actor = db.AppUsers.AsNoTracking().SingleOrDefault(item => item.Id == userId);
+            if (!AuthorizationService.CanPerform(actor, PermissionAction.ApproveStock))
+            {
+                throw new InventoryDomainException("You are not authorized to approve stock documents.");
+            }
 
-            if (stockIn == null) throw new Exception("Không tìm thấy phiếu nhập kho.");
-            if (stockIn.Status == DocumentStatus.Posted || stockIn.Status == "đã ghi sổ") 
-                throw new Exception("Phiếu này đã được ghi sổ.");
+            if (stockIn.Lines.Count == 0)
+            {
+                throw new InventoryDomainException("Phiếu nhập kho phải có ít nhất một dòng hàng.");
+            }
 
             // Auto calculate BaseQuantity from ProductUnit in db
             var lineProductIds = stockIn.Lines.Select(l => l.ProductId).Distinct().ToList();
@@ -297,9 +339,17 @@ namespace QuanLyHangHoa.Services
                 var product = db.Products.Find(line.ProductId);
                 if (product != null && product.IsSerialTracked)
                 {
-                    if (serials.Count != (int)line.Quantity)
+                    if (line.BaseQuantity != decimal.Truncate(line.BaseQuantity))
                     {
-                        throw new Exception($"Sản phẩm {product.DisplayName} yêu cầu {(int)line.Quantity} serial, nhưng hiện có {serials.Count}.");
+                        throw new InventoryDomainException(
+                            $"Sản phẩm {product.DisplayName} theo dõi serial nên số lượng cơ sở phải là số nguyên.");
+                    }
+
+                    var requiredSerialCount = (int)line.BaseQuantity;
+                    if (serials.Count != requiredSerialCount)
+                    {
+                        throw new InventoryDomainException(
+                            $"Sản phẩm {product.DisplayName} yêu cầu {requiredSerialCount} serial, nhưng hiện có {serials.Count}.");
                     }
 
                     // Check if any of these serials already exist in db.ProductSerials
@@ -326,9 +376,8 @@ namespace QuanLyHangHoa.Services
                 throw new Exception($"Các số serial sau bị trùng lặp trong phiếu: [{string.Join(", ", duplicateDocumentSerials)}]. Vui lòng kiểm tra lại trước khi duyệt.");
             }
 
-            stockIn.Status = DocumentStatus.Posted;
             stockIn.PostedBy = userId;
-            stockIn.PostedAt = DateTime.Now;
+            stockIn.PostedAt = DateTime.UtcNow;
             db.SaveChanges();
 
             var postingService = new InventoryPostingService(
@@ -344,10 +393,10 @@ namespace QuanLyHangHoa.Services
                 postingService.PostStockIn(new PostStockInCommand(
                     stockIn.Id,
                     stockIn.WarehouseId,
-                    StockInKind.Purchase,
-                    StockDocumentStatus.Posted,
+                    ParseKind(stockIn.PurposeCode),
+                    StockDocumentStatus.Approved,
                     line.ProductId,
-                    line.BaseQuantity > 0 ? (int)line.BaseQuantity : (int)line.Quantity,
+                    line.BaseQuantity > 0 ? line.BaseQuantity : line.Quantity,
                     serials,
                     userId));
             }
@@ -368,9 +417,38 @@ namespace QuanLyHangHoa.Services
             db.SaveChanges();
 
             var afterJson = Serialize(stockIn);
-            AddAudit(db, "UPDATE", stockIn.Id, beforeJson, afterJson, userId);
+            AddAudit(db, "POST", stockIn.Id, beforeJson, afterJson, userId);
 
             transaction.Commit();
+        }
+
+        private static StockDocumentStatus ParseStatus(string status)
+        {
+            if (status == "nháp" || status == DocumentStatus.Draft)
+            {
+                return StockDocumentStatus.Draft;
+            }
+
+            if (status == "đã ghi sổ" || status == DocumentStatus.Posted)
+            {
+                return StockDocumentStatus.Posted;
+            }
+
+            return Enum.TryParse<StockDocumentStatus>(status, ignoreCase: true, out var parsed)
+                ? parsed
+                : throw new InventoryDomainException($"Unsupported stock-in status {status}.");
+        }
+
+        private static StockInKind ParseKind(string purposeCode)
+        {
+            return purposeCode switch
+            {
+                "Purchase" => StockInKind.Purchase,
+                "OpeningBalance" => StockInKind.OpeningBalance,
+                "Adjustment" => StockInKind.Adjustment,
+                "WarrantyReceive" => StockInKind.WarrantyReceive,
+                _ => throw new InventoryDomainException($"Unsupported stock-in purpose {purposeCode}.")
+            };
         }
 
         public static List<string> ParseSerialRange(string input)

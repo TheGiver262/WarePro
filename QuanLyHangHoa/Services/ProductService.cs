@@ -217,7 +217,7 @@ namespace QuanLyHangHoa.Services
             db.SaveChanges();
         }
 
-        public virtual void AddInitialStock(int productId, List<string> serialNumbers)
+        public virtual void AddInitialStock(int productId, List<string> serialNumbers, int userId)
         {
             using var db = _contextFactory();
             var product = db.Products.Find(productId);
@@ -237,7 +237,7 @@ namespace QuanLyHangHoa.Services
                 productId,
                 serialNumbers.Count,
                 serialNumbers,
-                PostedByUserId: 1));
+                PostedByUserId: userId));
         }
 
         private sealed class DbDefaultWarehouseProvider : IDefaultWarehouseProvider

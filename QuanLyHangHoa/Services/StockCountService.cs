@@ -11,8 +11,9 @@ namespace QuanLyHangHoa.Services
 {
     public class StockCountService
     {
+        private const string CountedStatus = "đã kiểm kê";
+        private const string CompletedStatus = "hoàn thành";
         private readonly Func<AppDbContext> _contextFactory;
-
 
         public StockCountService(Func<AppDbContext> contextFactory)
         {
@@ -30,123 +31,326 @@ namespace QuanLyHangHoa.Services
         public void ProcessResults(int sessionId, int userId)
         {
             using var db = _contextFactory();
-            var session = db.StockCountSessions
-                .Include(s => s.Lines)
-                .FirstOrDefault(s => s.Id == sessionId);
+            using var transaction = db.Database.BeginTransaction();
 
-            if (session == null || session.Status != "đã kiểm kê") return;
+            var session = db.StockCountSessions
+                .Include(item => item.Lines)
+                .SingleOrDefault(item => item.Id == sessionId)
+                ?? throw new InventoryDomainException("Không tìm thấy phiên kiểm kê.");
+
+            if (session.Status == CompletedStatus)
+            {
+                return;
+            }
+
+            if (session.Status != CountedStatus)
+            {
+                throw new InventoryDomainException("Chỉ phiên đã kiểm kê mới được xử lý chênh lệch.");
+            }
+
+            var actor = db.AppUsers.AsNoTracking().SingleOrDefault(item => item.Id == userId);
+            if (!AuthorizationService.CanPerform(actor, PermissionAction.ApproveStock))
+            {
+                throw new InventoryDomainException("You are not authorized to approve stock documents.");
+            }
+
+            if (db.StockIns.Any(item => item.StockCountSessionId == sessionId) ||
+                db.StockOuts.Any(item => item.StockCountSessionId == sessionId))
+            {
+                throw new InventoryDomainException("Phiên kiểm kê đã có phiếu điều chỉnh liên kết.");
+            }
 
             var beforeJson = Serialize(session);
-
-            var stockInService = new StockInService(_contextFactory);
-            var stockOutService = new StockOutService(_contextFactory);
-
-            // Lấy hoặc tự động tạo khách hàng đặc biệt cho phiếu xuất kho điều chỉnh
-            var defaultCustomer = db.Customers.FirstOrDefault(c => c.CustomerCode == "CUS-ADJ");
-            if (defaultCustomer == null)
+            foreach (var line in session.Lines)
             {
-                defaultCustomer = new Customer
+                if (line.CountedQuantity < 0)
                 {
-                    CustomerCode = "CUS-ADJ",
-                    DisplayName = "Khách hàng điều chỉnh (Hệ thống)",
-                    IsActive = true
-                };
-                db.Customers.Add(defaultCustomer);
-                db.SaveChanges();
+                    throw new InventoryDomainException("Số lượng kiểm kê thực tế không được âm.");
+                }
+
+                line.VarianceQuantity = line.CountedQuantity - line.SystemQuantity;
             }
-            int defaultCustomerId = defaultCustomer.Id;
 
-            // Tạo các phiếu nhập/xuất kho nháp tương ứng với chênh lệch kiểm kê
-            foreach (var line in session.Lines!)
+            var correctionLines = session.Lines
+                .Where(item => item.VarianceQuantity != 0)
+                .OrderBy(item => item.Id)
+                .ToList();
+            var productIds = correctionLines.Select(item => item.ProductId).Distinct().ToArray();
+            var products = db.Products
+                .Where(item => productIds.Contains(item.Id))
+                .ToDictionary(item => item.Id);
+
+            foreach (var line in correctionLines)
             {
-                if (line.VarianceQuantity == 0) continue;
+                if (!products.TryGetValue(line.ProductId, out var product))
+                {
+                    throw new InventoryDomainException($"Product {line.ProductId} does not exist.");
+                }
 
-                var product = db.Products.Find(line.ProductId);
-                if (product == null) continue;
+                var quantity = Math.Abs(line.VarianceQuantity);
+                var serialNumbers = ParseSerials(line.SerialNumbers);
+                ValidateCorrectionLine(product, quantity, serialNumbers);
+            }
+
+            Customer? adjustmentCustomer = null;
+            if (correctionLines.Any(item => item.VarianceQuantity < 0))
+            {
+                adjustmentCustomer = db.Customers.SingleOrDefault(item => item.CustomerCode == "CUS-ADJ");
+                if (adjustmentCustomer == null)
+                {
+                    adjustmentCustomer = new Customer
+                    {
+                        CustomerCode = "CUS-ADJ",
+                        DisplayName = "Khách hàng điều chỉnh (Hệ thống)",
+                        IsActive = true
+                    };
+                    db.Customers.Add(adjustmentCustomer);
+                    db.SaveChanges();
+                }
+            }
+
+            var now = DateTime.UtcNow;
+            var postingService = new InventoryPostingService(
+                new EfInventoryUnitOfWork(db),
+                new FixedWarehouseProvider(session.WarehouseId),
+                new UtcClock());
+
+            foreach (var line in correctionLines)
+            {
+                var product = products[line.ProductId];
+                var quantity = Math.Abs(line.VarianceQuantity);
+                var serialNumbers = ParseSerials(line.SerialNumbers);
 
                 if (line.VarianceQuantity > 0)
                 {
-                    var stockIn = new StockIn
-                    {
-                        DocumentCode = $"SI-ADJ-{session.SessionCode}-{line.Id}",
-                        WarehouseId = session.WarehouseId,
-                        ImportDate = DateTime.Now,
-                        Notes = $"Nhập để điều chỉnh tồn kho (Theo phiên kiểm kê {session.SessionCode})",
-                        PurposeCode = "Adjustment",
-                        Status = DocumentStatus.Draft,
-                        CreatedBy = userId,
-                        CreatedAt = DateTime.Now
-                    };
-
-                    var inLine = new StockInLine
-                    {
-                        ProductId = line.ProductId,
-                        UnitId = product.DefaultUnitId,
-                        Quantity = line.VarianceQuantity,
-                        BaseQuantity = line.VarianceQuantity,
-                        UnitPrice = product.CostPrice ?? product.DefaultPrice,
-                        DraftSerials = line.SerialNumbers
-                    };
-
-                    stockInService.SaveDraft(stockIn, new List<StockInLine> { inLine }, userId);
+                    PostStockInCorrection(
+                        db,
+                        postingService,
+                        session,
+                        line,
+                        product,
+                        quantity,
+                        serialNumbers,
+                        userId,
+                        now);
                 }
                 else
                 {
-                    var stockOut = new StockOut
-                    {
-                        DocumentCode = $"SO-ADJ-{session.SessionCode}-{line.Id}",
-                        CustomerId = defaultCustomerId,
-                        WarehouseId = session.WarehouseId,
-                        ExportDate = DateTime.Now,
-                        Notes = $"Xuất để điều chỉnh tồn kho (Theo phiên kiểm kê {session.SessionCode})",
-                        PurposeCode = "Adjustment",
-                        Status = DocumentStatus.Draft,
-                        CreatedBy = userId,
-                        CreatedAt = DateTime.Now
-                    };
-
-                    var outLine = new StockOutLine
-                    {
-                        ProductId = line.ProductId,
-                        UnitId = product.DefaultUnitId,
-                        Quantity = Math.Abs(line.VarianceQuantity),
-                        BaseQuantity = Math.Abs(line.VarianceQuantity),
-                        UnitPrice = product.CostPrice ?? product.DefaultPrice,
-                        DraftSerials = line.SerialNumbers
-                    };
-
-                    stockOutService.SaveDraft(stockOut, new List<StockOutLine> { outLine }, userId);
+                    PostStockOutCorrection(
+                        db,
+                        postingService,
+                        session,
+                        line,
+                        product,
+                        adjustmentCustomer!.Id,
+                        quantity,
+                        serialNumbers,
+                        userId,
+                        now);
                 }
             }
 
-            session.Status = "hoàn thành";
+            session.Status = CompletedStatus;
+            session.ApprovedBy = userId;
+            session.ApprovedAt = now;
             session.PostedBy = userId;
-            session.PostedAt = DateTime.Now;
+            session.PostedAt = now;
             db.SaveChanges();
-
-            var afterJson = Serialize(session);
-            AddAudit(db, "POST", session.Id, beforeJson, afterJson, userId);
+            AddAudit(db, "POST", session.Id, beforeJson, Serialize(session), userId);
+            transaction.Commit();
         }
 
-        private string Serialize(StockCountSession s)
+        private static void PostStockInCorrection(
+            AppDbContext db,
+            InventoryPostingService postingService,
+            StockCountSession session,
+            StockCountLine countLine,
+            Product product,
+            decimal quantity,
+            IReadOnlyCollection<string> serialNumbers,
+            int userId,
+            DateTime now)
+        {
+            var documentLine = new StockInLine
+            {
+                ProductId = countLine.ProductId,
+                UnitId = product.DefaultUnitId,
+                Quantity = quantity,
+                BaseQuantity = quantity,
+                UnitPrice = product.CostPrice ?? product.DefaultPrice,
+                DraftSerials = serialNumbers.Count == 0 ? null : string.Join(",", serialNumbers)
+            };
+            var document = new StockIn
+            {
+                DocumentCode = $"SI-ADJ-{session.SessionCode}-{countLine.Id}",
+                WarehouseId = session.WarehouseId,
+                ImportDate = now,
+                Notes = $"Nhập để điều chỉnh tồn kho (Theo phiên kiểm kê {session.SessionCode})",
+                PurposeCode = "Adjustment",
+                Status = StockDocumentStatus.Approved.ToString(),
+                CreatedBy = userId,
+                CreatedAt = now,
+                ApprovedBy = userId,
+                ApprovedAt = now,
+                PostedBy = userId,
+                PostedAt = now,
+                StockCountSessionId = session.Id,
+                StockCountLineId = countLine.Id,
+                Lines = new List<StockInLine> { documentLine }
+            };
+            db.StockIns.Add(document);
+            db.SaveChanges();
+
+            postingService.PostStockIn(new PostStockInCommand(
+                document.Id,
+                session.WarehouseId,
+                StockInKind.Adjustment,
+                StockDocumentStatus.Approved,
+                countLine.ProductId,
+                quantity,
+                serialNumbers,
+                userId));
+
+            if (serialNumbers.Count > 0)
+            {
+                var serials = db.ProductSerials
+                    .Where(item => serialNumbers.Contains(item.SerialNumber))
+                    .ToList();
+                foreach (var serial in serials)
+                {
+                    serial.LastStockInLineId = documentLine.Id;
+                }
+                db.SaveChanges();
+            }
+        }
+
+        private static void PostStockOutCorrection(
+            AppDbContext db,
+            InventoryPostingService postingService,
+            StockCountSession session,
+            StockCountLine countLine,
+            Product product,
+            int customerId,
+            decimal quantity,
+            IReadOnlyCollection<string> serialNumbers,
+            int userId,
+            DateTime now)
+        {
+            var documentLine = new StockOutLine
+            {
+                ProductId = countLine.ProductId,
+                UnitId = product.DefaultUnitId,
+                Quantity = quantity,
+                BaseQuantity = quantity,
+                UnitPrice = product.CostPrice ?? product.DefaultPrice,
+                DraftSerials = serialNumbers.Count == 0 ? null : string.Join(",", serialNumbers)
+            };
+            var document = new StockOut
+            {
+                DocumentCode = $"SO-ADJ-{session.SessionCode}-{countLine.Id}",
+                CustomerId = customerId,
+                WarehouseId = session.WarehouseId,
+                ExportDate = now,
+                Notes = $"Xuất để điều chỉnh tồn kho (Theo phiên kiểm kê {session.SessionCode})",
+                PurposeCode = "Adjustment",
+                Status = StockDocumentStatus.Approved.ToString(),
+                CreatedBy = userId,
+                CreatedAt = now,
+                ApprovedBy = userId,
+                ApprovedAt = now,
+                PostedBy = userId,
+                PostedAt = now,
+                StockCountSessionId = session.Id,
+                StockCountLineId = countLine.Id,
+                Lines = new List<StockOutLine> { documentLine }
+            };
+            db.StockOuts.Add(document);
+            db.SaveChanges();
+
+            postingService.PostStockOut(new PostStockOutCommand(
+                document.Id,
+                session.WarehouseId,
+                StockOutKind.Adjustment,
+                StockDocumentStatus.Approved,
+                countLine.ProductId,
+                quantity,
+                serialNumbers,
+                userId));
+
+            if (serialNumbers.Count > 0)
+            {
+                var serials = db.ProductSerials
+                    .Where(item => serialNumbers.Contains(item.SerialNumber))
+                    .ToList();
+                foreach (var serial in serials)
+                {
+                    serial.LastStockOutLineId = documentLine.Id;
+                }
+                db.SaveChanges();
+            }
+        }
+
+        private static string[] ParseSerials(string? input)
+        {
+            return StockInService.ParseSerialRange(input ?? string.Empty)
+                .Select(item => item.Trim())
+                .Where(item => item.Length > 0)
+                .ToArray();
+        }
+
+        private static void ValidateCorrectionLine(
+            Product product,
+            decimal quantity,
+            IReadOnlyCollection<string> serialNumbers)
+        {
+            if (!product.IsSerialTracked && serialNumbers.Count > 0)
+            {
+                throw new InventoryDomainException("Non-serial products cannot receive serial numbers.");
+            }
+
+            if (!product.IsSerialTracked)
+            {
+                return;
+            }
+
+            if (quantity != decimal.Truncate(quantity))
+            {
+                throw new InventoryDomainException(
+                    $"Sản phẩm {product.DisplayName} theo dõi serial nên số lượng cơ sở phải là số nguyên.");
+            }
+
+            if (serialNumbers.Count != (int)quantity)
+            {
+                throw new InventoryDomainException(
+                    $"Sản phẩm {product.DisplayName} yêu cầu {(int)quantity} serial, nhưng hiện có {serialNumbers.Count}.");
+            }
+        }
+
+        private static string Serialize(StockCountSession session)
         {
             return JsonSerializer.Serialize(new
             {
-                s.Id,
-                s.SessionCode,
-                s.WarehouseId,
-                s.Status,
-                s.CountDate,
-                s.CreatedBy,
-                s.PostedBy,
-                s.PostedAt
+                session.Id,
+                session.SessionCode,
+                session.WarehouseId,
+                session.Status,
+                session.CountDate,
+                session.CreatedBy,
+                session.PostedBy,
+                session.PostedAt
             }, new JsonSerializerOptions
             {
                 Encoder = System.Text.Encodings.Web.JavaScriptEncoder.Create(System.Text.Unicode.UnicodeRanges.All)
             });
         }
 
-        private void AddAudit(AppDbContext db, string action, int entityId, string? before, string? after, int performedBy)
+        private static void AddAudit(
+            AppDbContext db,
+            string action,
+            int entityId,
+            string? before,
+            string? after,
+            int performedBy)
         {
             db.AuditLogs.Add(new AuditLog
             {
@@ -156,9 +360,26 @@ namespace QuanLyHangHoa.Services
                 BeforeJson = before,
                 AfterJson = after,
                 PerformedBy = performedBy,
-                PerformedAt = DateTime.Now
+                PerformedAt = DateTime.UtcNow
             });
             db.SaveChanges();
+        }
+
+        private sealed class FixedWarehouseProvider : IDefaultWarehouseProvider
+        {
+            private readonly int _warehouseId;
+
+            public FixedWarehouseProvider(int warehouseId)
+            {
+                _warehouseId = warehouseId;
+            }
+
+            public int GetDefaultWarehouseId() => _warehouseId;
+        }
+
+        private sealed class UtcClock : IClock
+        {
+            public DateTime Now => DateTime.UtcNow;
         }
     }
 }

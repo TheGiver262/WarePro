@@ -51,9 +51,9 @@ namespace QuanLyHangHoa.Tests.Helpers
             if (!context.AppUsers.Any())
             {
                 context.AppUsers.AddRange(
-                    new AppUser { Id = 1, Username = "admin", FullName = "Administrator", PasswordHash = "hash", RoleCode = "Admin", IsActive = true },
-                    new AppUser { Id = 2, Username = "manager", FullName = "Manager", PasswordHash = "hash", RoleCode = "Manager", IsActive = true },
-                    new AppUser { Id = 3, Username = "staff", FullName = "Staff Member", PasswordHash = "hash", RoleCode = "Staff", IsActive = true }
+                    new AppUser { Id = 1, Username = "admin", FullName = "Administrator", PasswordHash = "hash", RoleCode = "Quản trị viên", IsActive = true },
+                    new AppUser { Id = 2, Username = "manager", FullName = "Manager", PasswordHash = "hash", RoleCode = "Quản lý", IsActive = true },
+                    new AppUser { Id = 3, Username = "staff", FullName = "Staff Member", PasswordHash = "hash", RoleCode = "Nhân viên kho", IsActive = true }
                 );
             }
 

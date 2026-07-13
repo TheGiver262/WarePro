@@ -260,7 +260,7 @@
                             <TextBlock Text="LƯU NHÁP" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
-                    <Button Command="{Binding ConfirmAndPostCommand}" Style="{StaticResource PrimaryButton}" IsEnabled="{Binding IsEditMode}">
+                    <Button Command="{Binding ConfirmAndPostCommand}" Style="{StaticResource PrimaryButton}" IsEnabled="{Binding CanProcessLifecycle}">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="CheckAll" Width="20" Height="20" VerticalAlignment="Center" Margin="0,0,8,0"/>
                             <TextBlock Text="GHI SỔ" VerticalAlignment="Center"/>
@@ -387,8 +387,10 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <ComboBox ItemsSource="{Binding AvailableSerials}"
-                                                  SelectedItem="{Binding SelectedSerial, UpdateSourceTrigger=PropertyChanged}"
-                                                  DisplayMemberPath="SerialNumber"
+                                                  Text="{Binding SerialDisplay, Mode=OneWay}"
+                                                  IsEditable="True" IsReadOnly="True"
+                                                  PreviewMouseLeftButtonDown="SerialSelector_PreviewMouseLeftButtonDown"
+                                                  ToolTip="{Binding SerialNumbers}"
                                                   Style="{StaticResource AppComboBoxStyle}" Height="40" Margin="4"
                                                   materialDesign:TextFieldAssist.DecorationVisibility="Collapsed" BorderThickness="0"
                                                   Visibility="{Binding IsSerialTracked, Converter={StaticResource BooleanToVisibilityConverter}}"

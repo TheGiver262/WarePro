@@ -14,12 +14,14 @@ public enum StockInKind
 {
     Purchase,
     OpeningBalance,
+    Adjustment,
     WarrantyReceive
 }
 
 public enum StockOutKind
 {
     Sale,
+    Adjustment,
     WarrantyReplacement
 }
 

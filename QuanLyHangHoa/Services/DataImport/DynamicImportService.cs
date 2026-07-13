@@ -663,9 +663,11 @@ namespace QuanLyHangHoa.Services.DataImport
                         Supplier = supplier,
                         PurposeCode = "Purchase",
                         Notes = notes,
-                        Status = DocumentStatus.Posted,
+                        Status = StockDocumentStatus.Approved.ToString(),
                         CreatedBy = userId,
                         CreatedAt = now,
+                        ApprovedBy = userId,
+                        ApprovedAt = now,
                         PostedBy = userId,
                         PostedAt = now
                     };
@@ -702,7 +704,7 @@ namespace QuanLyHangHoa.Services.DataImport
                             stockIn.Id,
                             stockIn.WarehouseId,
                             StockInKind.Purchase,
-                            StockDocumentStatus.Posted,
+                            StockDocumentStatus.Approved,
                             item.Prepared.Product.Id,
                             item.Prepared.BaseQuantity,
                             item.Prepared.SerialNumbers,
@@ -895,9 +897,11 @@ namespace QuanLyHangHoa.Services.DataImport
                         Customer = customer,
                         PurposeCode = "Sale",
                         Notes = notes,
-                        Status = DocumentStatus.Posted,
+                        Status = StockDocumentStatus.Approved.ToString(),
                         CreatedBy = userId,
                         CreatedAt = now,
+                        ApprovedBy = userId,
+                        ApprovedAt = now,
                         PostedBy = userId,
                         PostedAt = now
                     };
@@ -934,7 +938,7 @@ namespace QuanLyHangHoa.Services.DataImport
                             stockOut.Id,
                             stockOut.WarehouseId,
                             StockOutKind.Sale,
-                            StockDocumentStatus.Posted,
+                            StockDocumentStatus.Approved,
                             item.Prepared.Product.Id,
                             item.Prepared.BaseQuantity,
                             item.Prepared.SerialNumbers,

@@ -49,6 +49,7 @@ public class StockInServiceTests
         };
 
         service.SaveDraft(stockIn, lines, 1);
+        ApproveForPosting(service, connection, stockIn.Id);
         service.Post(stockIn.Id, 1);
 
         var stats = service.GetStockInStats(string.Empty, string.Empty, null, null, null, string.Empty);
@@ -132,6 +133,7 @@ public class StockInServiceTests
         }
 
         // 2. Post Draft A -> should succeed and insert the serial "SN-001"
+        ApproveForPosting(service, connection, stockInA.Id);
         service.Post(stockInA.Id, 1);
 
         using (var db = CreateContext(connection))
@@ -143,6 +145,7 @@ public class StockInServiceTests
         }
 
         // 3. Post Draft B -> should fail because "SN-001" already exists in DB
+        ApproveForPosting(service, connection, stockInB.Id);
         var ex = Assert.Throws<Exception>(() => service.Post(stockInB.Id, 1));
         Assert.Equal("Số serial [SN-001] đã tồn tại trong hệ thống. Vui lòng kiểm tra và chỉnh sửa lại phiếu nháp trước khi duyệt.", ex.Message);
 
@@ -165,6 +168,7 @@ public class StockInServiceTests
         };
         service.SaveDraft(stockInC, linesC, 1);
 
+        ApproveForPosting(service, connection, stockInC.Id);
         var exDup = Assert.Throws<Exception>(() => service.Post(stockInC.Id, 1));
         Assert.Equal("Các số serial sau bị trùng lặp trong phiếu: [SN-002]. Vui lòng kiểm tra lại trước khi duyệt.", exDup.Message);
     }
@@ -222,6 +226,7 @@ public class StockInServiceTests
         };
 
         service.SaveDraft(stockIn, lines, 1);
+        ApproveForPosting(service, connection, stockIn.Id);
         service.Post(stockIn.Id, 1);
 
         using var assertContext = CreateContext(connection);
@@ -232,6 +237,17 @@ public class StockInServiceTests
         var ledger = assertContext.StockLedgers.Single(l => l.ProductId == 300);
         Assert.Equal("In", ledger.MovementType);
         Assert.Equal(24, ledger.Quantity);
+    }
+
+    private static void ApproveForPosting(StockInService service, SqliteConnection connection, int stockInId)
+    {
+        using (var db = CreateContext(connection))
+        {
+            db.AppUsers.Find(1)!.RoleCode = "Quản lý";
+            db.SaveChanges();
+        }
+        service.SubmitForApproval(stockInId, 1);
+        service.Approve(stockInId, 1);
     }
 
     private static AppDbContext CreateContext(SqliteConnection connection)

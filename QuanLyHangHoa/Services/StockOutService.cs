@@ -140,6 +140,8 @@ namespace QuanLyHangHoa.Services
         public void Create(StockOut stockOut, List<StockOutLine> lines, int userId)
         {
             SaveDraft(stockOut, lines, userId);
+            SubmitForApproval(stockOut.Id, userId);
+            Approve(stockOut.Id, userId);
             Post(stockOut.Id, userId);
         }
 
@@ -181,8 +183,8 @@ namespace QuanLyHangHoa.Services
 
             if (existing != null)
             {
-                if (existing.Status == DocumentStatus.Posted || existing.Status == "đã ghi sổ")
-                    throw new Exception("Không thể cập nhật phiếu đã ghi sổ.");
+                var lifecycle = new StockDocumentLifecycleService();
+                lifecycle.EnsureCanEditDetails(ParseStatus(existing.Status));
 
                 var beforeJson = Serialize(existing);
 
@@ -224,18 +226,60 @@ namespace QuanLyHangHoa.Services
             }
         }
 
+        public virtual void SubmitForApproval(int stockOutId, int userId)
+        {
+            using var db = _contextFactory();
+            var stockOut = db.StockOuts.SingleOrDefault(item => item.Id == stockOutId)
+                ?? throw new InventoryDomainException("Không tìm thấy phiếu xuất kho.");
+            var beforeJson = Serialize(stockOut);
+            var lifecycle = new StockDocumentLifecycleService();
+            stockOut.Status = lifecycle.SubmitForApproval(ParseStatus(stockOut.Status)).ToString();
+            stockOut.UpdatedBy = userId;
+            stockOut.UpdatedAt = DateTime.UtcNow;
+            db.SaveChanges();
+            AddAudit(db, "SUBMIT", stockOut.Id, beforeJson, Serialize(stockOut), userId);
+        }
+
+        public virtual void Approve(int stockOutId, int userId)
+        {
+            using var db = _contextFactory();
+            var stockOut = db.StockOuts.SingleOrDefault(item => item.Id == stockOutId)
+                ?? throw new InventoryDomainException("Không tìm thấy phiếu xuất kho.");
+            var actor = db.AppUsers.AsNoTracking().SingleOrDefault(item => item.Id == userId);
+            var beforeJson = Serialize(stockOut);
+            var lifecycle = new StockDocumentLifecycleService();
+            stockOut.Status = lifecycle.Approve(
+                ParseStatus(stockOut.Status),
+                AuthorizationService.CanPerform(actor, PermissionAction.ApproveStock)).ToString();
+            stockOut.ApprovedBy = userId;
+            stockOut.ApprovedAt = DateTime.UtcNow;
+            stockOut.UpdatedBy = userId;
+            stockOut.UpdatedAt = DateTime.UtcNow;
+            db.SaveChanges();
+            AddAudit(db, "APPROVE", stockOut.Id, beforeJson, Serialize(stockOut), userId);
+        }
+
         public void Post(int stockOutId, int userId)
         {
             using var db = _contextFactory();
             using var transaction = db.Database.BeginTransaction();
 
             var stockOut = db.StockOuts
-                .Include(s => s.Lines)
-                .FirstOrDefault(s => s.Id == stockOutId);
+                .Include(item => item.Lines)
+                .FirstOrDefault(item => item.Id == stockOutId)
+                ?? throw new InventoryDomainException("Không tìm thấy phiếu xuất kho.");
+            var lifecycle = new StockDocumentLifecycleService();
+            lifecycle.EnsureCanPost(ParseStatus(stockOut.Status));
+            var actor = db.AppUsers.AsNoTracking().SingleOrDefault(item => item.Id == userId);
+            if (!AuthorizationService.CanPerform(actor, PermissionAction.ApproveStock))
+            {
+                throw new InventoryDomainException("You are not authorized to approve stock documents.");
+            }
 
-            if (stockOut == null) throw new Exception("Không tìm thấy phiếu xuất kho.");
-            if (stockOut.Status == DocumentStatus.Posted || stockOut.Status == "đã ghi sổ") 
-                throw new Exception("Phiếu này đã được ghi sổ.");
+            if (stockOut.Lines.Count == 0)
+            {
+                throw new InventoryDomainException("Phiếu xuất kho phải có ít nhất một dòng hàng.");
+            }
 
             // Auto calculate BaseQuantity from ProductUnit in db
             var lineProductIds = stockOut.Lines.Select(l => l.ProductId).Distinct().ToList();
@@ -275,9 +319,17 @@ namespace QuanLyHangHoa.Services
                 var product = db.Products.Find(line.ProductId);
                 if (product != null && product.IsSerialTracked)
                 {
-                    if (serials.Count != (int)line.Quantity)
+                    if (line.BaseQuantity != decimal.Truncate(line.BaseQuantity))
                     {
-                        throw new Exception($"Sản phẩm {product.DisplayName} yêu cầu {(int)line.Quantity} serial, nhưng hiện có {serials.Count}.");
+                        throw new InventoryDomainException(
+                            $"Sản phẩm {product.DisplayName} theo dõi serial nên số lượng cơ sở phải là số nguyên.");
+                    }
+
+                    var requiredSerialCount = (int)line.BaseQuantity;
+                    if (serials.Count != requiredSerialCount)
+                    {
+                        throw new InventoryDomainException(
+                            $"Sản phẩm {product.DisplayName} yêu cầu {requiredSerialCount} serial, nhưng hiện có {serials.Count}.");
                     }
 
                     // Check that all serials are InStock, belong to this product, and are in the correct warehouse
@@ -316,9 +368,8 @@ namespace QuanLyHangHoa.Services
                 throw new Exception($"Các số serial sau bị trùng lặp trong phiếu: [{string.Join(", ", duplicateDocumentSerials)}]. Vui lòng kiểm tra lại trước khi duyệt.");
             }
 
-            stockOut.Status = DocumentStatus.Posted;
             stockOut.PostedBy = userId;
-            stockOut.PostedAt = DateTime.Now;
+            stockOut.PostedAt = DateTime.UtcNow;
             db.SaveChanges();
 
             var postingService = new InventoryPostingService(
@@ -333,10 +384,10 @@ namespace QuanLyHangHoa.Services
                 postingService.PostStockOut(new PostStockOutCommand(
                     stockOut.Id,
                     stockOut.WarehouseId,
-                    StockOutKind.Sale,
-                    StockDocumentStatus.Posted,
+                    ParseKind(stockOut.PurposeCode),
+                    StockDocumentStatus.Approved,
                     line.ProductId,
-                    line.BaseQuantity > 0 ? (int)line.BaseQuantity : (int)line.Quantity,
+                    line.BaseQuantity > 0 ? line.BaseQuantity : line.Quantity,
                     serials,
                     userId));
             }
@@ -357,9 +408,37 @@ namespace QuanLyHangHoa.Services
             db.SaveChanges();
 
             var afterJson = Serialize(stockOut);
-            AddAudit(db, "UPDATE", stockOut.Id, beforeJson, afterJson, userId);
+            AddAudit(db, "POST", stockOut.Id, beforeJson, afterJson, userId);
 
             transaction.Commit();
+        }
+
+        private static StockDocumentStatus ParseStatus(string status)
+        {
+            if (status == "nháp" || status == DocumentStatus.Draft)
+            {
+                return StockDocumentStatus.Draft;
+            }
+
+            if (status == "đã ghi sổ" || status == DocumentStatus.Posted)
+            {
+                return StockDocumentStatus.Posted;
+            }
+
+            return Enum.TryParse<StockDocumentStatus>(status, ignoreCase: true, out var parsed)
+                ? parsed
+                : throw new InventoryDomainException($"Unsupported stock-out status {status}.");
+        }
+
+        private static StockOutKind ParseKind(string purposeCode)
+        {
+            return purposeCode switch
+            {
+                "Sale" => StockOutKind.Sale,
+                "Adjustment" => StockOutKind.Adjustment,
+                "WarrantyReplacement" => StockOutKind.WarrantyReplacement,
+                _ => throw new InventoryDomainException($"Unsupported stock-out purpose {purposeCode}.")
+            };
         }
 
         public List<ProductSerial> GetInStockSerials(int productId, int warehouseId)

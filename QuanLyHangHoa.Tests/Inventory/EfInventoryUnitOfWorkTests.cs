@@ -19,6 +19,15 @@ public class EfInventoryUnitOfWorkTests
         connection.Open();
         using var context = CreateContext(connection);
         context.Database.EnsureCreated();
+        context.AppUsers.Add(new AppUser
+        {
+            Id = 1,
+            Username = "admin",
+            FullName = "Administrator",
+            PasswordHash = "hash",
+            RoleCode = "Quản trị viên",
+            IsActive = true
+        });
         context.Products.Add(new Product { Id = 100, ProductCode = "P100",
             DisplayName = "Serial product",
             CategoryId = 1,
@@ -81,6 +90,15 @@ public class EfInventoryUnitOfWorkTests
         connection.Open();
         using var context = CreateContext(connection);
         context.Database.EnsureCreated();
+        context.AppUsers.Add(new AppUser
+        {
+            Id = 1,
+            Username = "admin",
+            FullName = "Administrator",
+            PasswordHash = "hash",
+            RoleCode = "Quản trị viên",
+            IsActive = true
+        });
         context.Products.Add(new Product { Id = 101, ProductCode = "P101",
             DisplayName = "Non serial product",
             CategoryId = 1,

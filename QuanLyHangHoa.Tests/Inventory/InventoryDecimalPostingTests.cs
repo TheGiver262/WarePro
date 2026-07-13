@@ -73,6 +73,15 @@ public class InventoryDecimalPostingTests
         connection.Open();
         using var context = DatabaseHelper.CreateContext(connection);
         context.Database.EnsureCreated();
+        context.AppUsers.Add(new AppUser
+        {
+            Id = 1,
+            Username = "admin",
+            FullName = "Administrator",
+            PasswordHash = "hash",
+            RoleCode = "Quản trị viên",
+            IsActive = true
+        });
         context.Products.Add(new Product
         {
             Id = 109,

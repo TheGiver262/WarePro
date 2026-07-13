@@ -4,6 +4,8 @@ namespace QuanLyHangHoa.Inventory;
 
 public interface IInventoryUnitOfWork
 {
+    bool CanApproveStock(int userId);
+    bool CanProcessWarrantyStock(int userId);
     ProductSnapshot GetProduct(int productId);
     StockBalanceSnapshot? FindBalance(int productId, int warehouseId);
     StockBalanceSnapshot GetOrCreateBalance(int productId, int warehouseId);

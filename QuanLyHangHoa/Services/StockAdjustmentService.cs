@@ -55,7 +55,8 @@ namespace QuanLyHangHoa.Services
 
             if (existing != null)
             {
-                if (existing.Status == DocumentStatus.Posted) throw new Exception("Không thể cập nhật phiếu đã ghi sổ.");
+                var lifecycle = new StockDocumentLifecycleService();
+                lifecycle.EnsureCanEditDetails(ParseStatus(existing.Status));
 
                 // Update header
                 existing.WarehouseId = adjustment.WarehouseId;
@@ -94,34 +95,67 @@ namespace QuanLyHangHoa.Services
             }
         }
 
+        public virtual void SubmitForApproval(int adjustmentId, int userId)
+        {
+            using var db = _contextFactory();
+            var adjustment = db.StockAdjustments.SingleOrDefault(item => item.Id == adjustmentId)
+                ?? throw new InventoryDomainException("Không tìm thấy phiếu điều chỉnh.");
+            var lifecycle = new StockDocumentLifecycleService();
+            adjustment.Status = lifecycle.SubmitForApproval(ParseStatus(adjustment.Status)).ToString();
+            db.SaveChanges();
+        }
+
+        public virtual void Approve(int adjustmentId, int userId)
+        {
+            using var db = _contextFactory();
+            var adjustment = db.StockAdjustments.SingleOrDefault(item => item.Id == adjustmentId)
+                ?? throw new InventoryDomainException("Không tìm thấy phiếu điều chỉnh.");
+            var actor = db.AppUsers.AsNoTracking().SingleOrDefault(item => item.Id == userId);
+            var lifecycle = new StockDocumentLifecycleService();
+            adjustment.Status = lifecycle.Approve(
+                ParseStatus(adjustment.Status),
+                AuthorizationService.CanPerform(actor, PermissionAction.ApproveStock)).ToString();
+            adjustment.ApprovedBy = userId;
+            adjustment.ApprovedAt = DateTime.UtcNow;
+            db.SaveChanges();
+        }
+
         public void Post(int adjustmentId, int userId)
         {
             using var db = _contextFactory();
             using var transaction = db.Database.BeginTransaction();
 
             var adjustment = db.StockAdjustments
-                .Include(s => s.Lines)
-                .FirstOrDefault(s => s.Id == adjustmentId);
+                .Include(item => item.Lines)
+                .FirstOrDefault(item => item.Id == adjustmentId)
+                ?? throw new InventoryDomainException("Không tìm thấy phiếu điều chỉnh.");
+            var lifecycle = new StockDocumentLifecycleService();
+            lifecycle.EnsureCanPost(ParseStatus(adjustment.Status));
+            var actor = db.AppUsers.AsNoTracking().SingleOrDefault(item => item.Id == userId);
+            if (!AuthorizationService.CanPerform(actor, PermissionAction.ApproveStock))
+            {
+                throw new InventoryDomainException("You are not authorized to approve stock documents.");
+            }
 
-            if (adjustment == null) throw new Exception("Không tìm thấy phiếu điều chỉnh.");
-            if (adjustment.Status == DocumentStatus.Posted) throw new Exception("Phiếu này đã được ghi sổ.");
+            if (adjustment.Lines.Count == 0)
+            {
+                throw new InventoryDomainException("Phiếu điều chỉnh phải có ít nhất một dòng hàng.");
+            }
 
-            adjustment.Status = DocumentStatus.Posted;
             adjustment.PostedBy = userId;
-            adjustment.PostedAt = DateTime.Now;
+            adjustment.PostedAt = DateTime.UtcNow;
             db.SaveChanges();
 
             var postingService = new InventoryAdjustmentService(
                 new EfInventoryUnitOfWork(db),
                 new FixedWarehouseProvider(adjustment.WarehouseId),
                 new SystemClock());
-
             postingService.PostAdjustment(new PostStockAdjustmentCommand(
                 adjustment.Id,
-                ParseStatus(adjustment.Status),
+                StockDocumentStatus.Approved,
                 adjustment.ReferenceDocumentCode ?? string.Empty,
                 adjustment.ReasonCode ?? string.Empty,
-                BuildLineCommands(db, adjustment.Lines ?? Enumerable.Empty<StockAdjustmentLine>()),
+                BuildLineCommands(db, adjustment.Lines),
                 userId));
 
             transaction.Commit();
@@ -133,18 +167,21 @@ namespace QuanLyHangHoa.Services
         {
             return lines.Select(line =>
             {
-                var serialNumbers = Array.Empty<string>();
-                if (line.ProductSerialId.HasValue)
+                var serialNumbers = StockInService.ParseSerialRange(line.DraftSerials ?? string.Empty)
+                    .Select(serial => serial.Trim())
+                    .Where(serial => serial.Length > 0)
+                    .ToList();
+                if (line.ProductSerialId.HasValue && serialNumbers.Count == 0)
                 {
                     var serial = db.ProductSerials.Find(line.ProductSerialId.Value)
                         ?? throw new InventoryDomainException($"Serial id {line.ProductSerialId.Value} does not exist.");
-                    serialNumbers = new[] { serial.SerialNumber };
+                    serialNumbers.Add(serial.SerialNumber);
                 }
 
                 return new StockAdjustmentLineCommand(
                     line.ProductId,
                     ParseDirection(line.Direction),
-                    (int)Math.Abs(line.BaseQuantityDelta),
+                    Math.Abs(line.BaseQuantityDelta),
                     serialNumbers);
             }).ToArray();
         }

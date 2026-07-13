@@ -79,7 +79,8 @@ namespace QuanLyHangHoa.Services
 
             if (existing != null)
             {
-                if (existing.Status == "Posted") throw new Exception("Không thể cập nhật phiếu đã ghi sổ.");
+                var lifecycle = new StockDocumentLifecycleService();
+                lifecycle.EnsureCanEditDetails(ParseStatus(existing.Status));
 
                 var beforeJson = Serialize(existing);
 
@@ -122,44 +123,93 @@ namespace QuanLyHangHoa.Services
             }
         }
 
+        public virtual void SubmitForApproval(int stockTransferId, int userId)
+        {
+            using var db = _contextFactory();
+            var transfer = db.StockTransfers.SingleOrDefault(item => item.Id == stockTransferId)
+                ?? throw new InventoryDomainException("Không tìm thấy phiếu chuyển kho.");
+            var beforeJson = Serialize(transfer);
+            var lifecycle = new StockDocumentLifecycleService();
+            transfer.Status = lifecycle.SubmitForApproval(ParseStatus(transfer.Status)).ToString();
+            transfer.UpdatedBy = userId;
+            transfer.UpdatedAt = DateTime.UtcNow;
+            db.SaveChanges();
+            AddAudit(db, "SUBMIT", transfer.Id, beforeJson, Serialize(transfer), userId);
+        }
+
+        public virtual void Approve(int stockTransferId, int userId)
+        {
+            using var db = _contextFactory();
+            var transfer = db.StockTransfers.SingleOrDefault(item => item.Id == stockTransferId)
+                ?? throw new InventoryDomainException("Không tìm thấy phiếu chuyển kho.");
+            var actor = db.AppUsers.AsNoTracking().SingleOrDefault(item => item.Id == userId);
+            var lifecycle = new StockDocumentLifecycleService();
+            var beforeJson = Serialize(transfer);
+            transfer.Status = lifecycle.Approve(
+                ParseStatus(transfer.Status),
+                AuthorizationService.CanPerform(actor, PermissionAction.ApproveStock)).ToString();
+            transfer.ApprovedBy = userId;
+            transfer.ApprovedAt = DateTime.UtcNow;
+            transfer.UpdatedBy = userId;
+            transfer.UpdatedAt = DateTime.UtcNow;
+            db.SaveChanges();
+            AddAudit(db, "APPROVE", transfer.Id, beforeJson, Serialize(transfer), userId);
+        }
+
         public virtual void Post(int stockTransferId, int userId)
         {
             using var db = _contextFactory();
             using var transaction = db.Database.BeginTransaction();
 
             var stockTransfer = db.StockTransfers
-                .Include(s => s.Lines)
-                    .ThenInclude(l => l.ProductSerials)
-                .FirstOrDefault(s => s.Id == stockTransferId);
+                .Include(transfer => transfer.Lines)
+                    .ThenInclude(line => line.ProductSerials)
+                .FirstOrDefault(transfer => transfer.Id == stockTransferId)
+                ?? throw new InventoryDomainException("Không tìm thấy phiếu chuyển kho.");
+            var lifecycle = new StockDocumentLifecycleService();
+            lifecycle.EnsureCanPost(ParseStatus(stockTransfer.Status));
+            var actor = db.AppUsers.AsNoTracking().SingleOrDefault(item => item.Id == userId);
+            if (!AuthorizationService.CanPerform(actor, PermissionAction.ApproveStock))
+            {
+                throw new InventoryDomainException("You are not authorized to approve stock documents.");
+            }
 
-            if (stockTransfer == null) throw new Exception("Không tìm thấy phiếu chuyển kho.");
-            if (stockTransfer.Status == "Posted") throw new Exception("Phiếu này đã được ghi sổ.");
-            if (stockTransfer.FromWarehouseId == stockTransfer.ToWarehouseId) throw new Exception("Kho đi và kho đến phải khác nhau.");
+            if (stockTransfer.Lines.Count == 0)
+            {
+                throw new InventoryDomainException("Phiếu chuyển kho phải có ít nhất một dòng hàng.");
+            }
+
+            if (stockTransfer.FromWarehouseId == stockTransfer.ToWarehouseId)
+            {
+                throw new InventoryDomainException("Kho đi và kho đến phải khác nhau.");
+            }
 
             var beforeJson = Serialize(stockTransfer);
-
-            // Validate serials before posting
             foreach (var line in stockTransfer.Lines)
             {
-                var product = db.Products.Find(line.ProductId);
-                if (product != null && product.IsSerialTracked)
+                var product = db.Products.Find(line.ProductId)
+                    ?? throw new InventoryDomainException($"Product {line.ProductId} does not exist.");
+                if (!product.IsSerialTracked)
                 {
-                    if (line.BaseQuantity != decimal.Truncate(line.BaseQuantity))
-                    {
-                        throw new Exception($"Sản phẩm {product.DisplayName} theo dõi serial nên số lượng cơ sở phải là số nguyên.");
-                    }
+                    continue;
+                }
 
-                    var requiredSerialCount = (int)line.BaseQuantity;
-                    if (line.ProductSerials.Count != requiredSerialCount)
-                    {
-                        throw new Exception($"Sản phẩm {product.DisplayName} yêu cầu {requiredSerialCount} serial, nhưng hiện có {line.ProductSerials.Count}.");
-                    }
+                if (line.BaseQuantity != decimal.Truncate(line.BaseQuantity))
+                {
+                    throw new InventoryDomainException(
+                        $"Sản phẩm {product.DisplayName} theo dõi serial nên số lượng cơ sở phải là số nguyên.");
+                }
+
+                var requiredSerialCount = (int)line.BaseQuantity;
+                if (line.ProductSerials.Count != requiredSerialCount)
+                {
+                    throw new InventoryDomainException(
+                        $"Sản phẩm {product.DisplayName} yêu cầu {requiredSerialCount} serial, nhưng hiện có {line.ProductSerials.Count}.");
                 }
             }
 
-            stockTransfer.Status = "Posted";
             stockTransfer.PostedBy = userId;
-            stockTransfer.PostedAt = DateTime.Now;
+            stockTransfer.PostedAt = DateTime.UtcNow;
             db.SaveChanges();
 
             var postingService = new InventoryPostingService(
@@ -167,26 +217,38 @@ namespace QuanLyHangHoa.Services
                 new DbDefaultWarehouseProvider(db),
                 new SystemClock());
 
-            // Locking strategy: Order by ProductId to avoid deadlocks
-            foreach (var line in stockTransfer.Lines.OrderBy(l => l.ProductId))
+            foreach (var line in stockTransfer.Lines.OrderBy(item => item.ProductId))
             {
-                var serials = line.ProductSerials.Select(s => s.SerialNumber).ToArray();
-
                 postingService.PostStockTransfer(new PostStockTransferCommand(
                     stockTransfer.Id,
                     stockTransfer.FromWarehouseId,
                     stockTransfer.ToWarehouseId,
-                    StockDocumentStatus.Posted,
+                    StockDocumentStatus.Approved,
                     line.ProductId,
                     line.BaseQuantity,
-                    serials,
+                    line.ProductSerials.Select(serial => serial.SerialNumber).ToArray(),
                     userId));
             }
 
-            var afterJson = Serialize(stockTransfer);
-            AddAudit(db, "UPDATE", stockTransfer.Id, beforeJson, afterJson, userId);
-
+            AddAudit(db, "POST", stockTransfer.Id, beforeJson, Serialize(stockTransfer), userId);
             transaction.Commit();
+        }
+
+        private static StockDocumentStatus ParseStatus(string status)
+        {
+            if (status == "nháp" || status == DocumentStatus.Draft)
+            {
+                return StockDocumentStatus.Draft;
+            }
+
+            if (status == "đã ghi sổ" || status == DocumentStatus.Posted)
+            {
+                return StockDocumentStatus.Posted;
+            }
+
+            return Enum.TryParse<StockDocumentStatus>(status, ignoreCase: true, out var parsed)
+                ? parsed
+                : throw new InventoryDomainException($"Unsupported stock transfer status {status}.");
         }
 
         private sealed class DbDefaultWarehouseProvider : IDefaultWarehouseProvider

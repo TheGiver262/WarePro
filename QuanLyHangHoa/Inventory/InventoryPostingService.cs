@@ -22,11 +22,8 @@ public sealed class InventoryPostingService
 
     public void PostStockIn(PostStockInCommand command)
     {
-        // Allow Approved or Posted for transitionary states
-        if (command.Status != StockDocumentStatus.Approved && command.Status != StockDocumentStatus.Posted)
-        {
-            throw new InventoryDomainException("Only approved or ready-to-post stock-in documents can be posted.");
-        }
+        EnsureApprovedAndAuthorized(command.Status, command.PostedByUserId, "stock-in",
+            allowWarrantyPermission: command.Kind == StockInKind.WarrantyReceive);
 
         if (command.Quantity <= 0)
         {
@@ -100,14 +97,13 @@ public sealed class InventoryPostingService
 
     public void PostStockOut(PostStockOutCommand command)
     {
-        if (command.Kind != StockOutKind.Sale && command.Kind != StockOutKind.WarrantyReplacement)
+        EnsureApprovedAndAuthorized(command.Status, command.PostedByUserId, "stock-out",
+            allowWarrantyPermission: command.Kind == StockOutKind.WarrantyReplacement);
+        if (command.Kind != StockOutKind.Sale &&
+            command.Kind != StockOutKind.Adjustment &&
+            command.Kind != StockOutKind.WarrantyReplacement)
         {
-            throw new InventoryDomainException("Only sale or warranty-replacement stock-out can be posted by this service.");
-        }
-
-        if (command.Status != StockDocumentStatus.Approved && command.Status != StockDocumentStatus.Posted)
-        {
-            throw new InventoryDomainException("Only approved or ready-to-post stock-out documents can be posted.");
+            throw new InventoryDomainException("Only sale, adjustment or warranty-replacement stock-out can be posted by this service.");
         }
 
         if (command.Quantity <= 0)
@@ -170,7 +166,7 @@ public sealed class InventoryPostingService
             var serial = _unitOfWork.GetSerial(serialNumber);
             _unitOfWork.SaveSerial(serial with
             {
-                Status = SerialStatus.Sold,
+                Status = command.Kind == StockOutKind.Adjustment ? SerialStatus.Inactive : SerialStatus.Sold,
                 CurrentWarehouseId = null
             });
         }
@@ -197,10 +193,7 @@ public sealed class InventoryPostingService
 
     public void PostStockTransfer(PostStockTransferCommand command)
     {
-        if (command.Status != StockDocumentStatus.Approved && command.Status != StockDocumentStatus.Posted)
-        {
-            throw new InventoryDomainException("Only approved or ready-to-post stock-transfer documents can be posted.");
-        }
+        EnsureApprovedAndAuthorized(command.Status, command.PostedByUserId, "stock-transfer", allowWarrantyPermission: false);
 
         if (command.Quantity <= 0)
         {
@@ -300,6 +293,26 @@ public sealed class InventoryPostingService
 
         _unitOfWork.MarkDocumentPosted(command.DocumentId, "StockTransfer");
         _unitOfWork.Commit();
+    }
+
+    private void EnsureApprovedAndAuthorized(
+        StockDocumentStatus status,
+        int userId,
+        string documentType,
+        bool allowWarrantyPermission)
+    {
+        if (status != StockDocumentStatus.Approved)
+        {
+            throw new InventoryDomainException($"Only approved {documentType} documents can be posted.");
+        }
+
+        var isAuthorized = allowWarrantyPermission
+            ? _unitOfWork.CanProcessWarrantyStock(userId)
+            : _unitOfWork.CanApproveStock(userId);
+        if (!isAuthorized)
+        {
+            throw new InventoryDomainException("You are not authorized to approve stock documents.");
+        }
     }
 
     private static void EnsureNoDuplicateSerials(string[] serialNumbers)

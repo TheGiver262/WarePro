@@ -10,6 +10,7 @@ using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
 using QuanLyHangHoa.Inventory;
+using QuanLyHangHoa.Views;
 
 namespace QuanLyHangHoa.ViewModels
 {
@@ -33,12 +34,17 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private ProductSerial? _selectedSerial;
         [ObservableProperty] private ObservableCollection<ProductSerial> _availableSerials = new();
         [ObservableProperty] private bool _isSerialTracked;
+        [ObservableProperty] private string _serialNumbers = string.Empty;
+
+        public string SerialDisplay => SerialNumbers;
 
         partial void OnSelectedProductChanged(Product? value)
         {
             AvailableUnits.Clear();
             AvailableSerials.Clear();
             IsSerialTracked = value?.IsSerialTracked ?? false;
+            SerialNumbers = string.Empty;
+            SelectedSerial = null;
 
             if (value != null)
             {
@@ -63,6 +69,11 @@ namespace QuanLyHangHoa.ViewModels
         partial void OnQuantityChanged(decimal value)
         {
             UpdateBaseQuantity();
+        }
+
+        partial void OnSerialNumbersChanged(string value)
+        {
+            OnPropertyChanged(nameof(SerialDisplay));
         }
 
         private void UpdateBaseQuantity()
@@ -103,7 +114,9 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private int _warehouseId;
         [ObservableProperty] private string _adjustmentType = "Manual";
         [ObservableProperty] private string _reasonCode = "DAMAGED";
-        [ObservableProperty] private string _status = DocumentStatus.Draft;
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(CanProcessLifecycle))]
+        private string _status = DocumentStatus.Draft;
         [ObservableProperty] private string _notes = string.Empty;
         [ObservableProperty] private ObservableCollection<StockAdjustmentLineEditor> _lines = new();
 
@@ -112,9 +125,24 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private ObservableCollection<Warehouse> _availableWarehouses = new();
         [ObservableProperty] private List<string> _availableReasons = new() { "DAMAGED", "EXPIRED", "INVENTORY_COUNT", "LOST", "OTHER" };
 
+        public bool IsAdminOrManager => AuthorizationService.CanPerform(_currentUser, PermissionAction.ApproveStock);
+        public bool CanUserEdit => _currentUser.RoleCode == "Quản trị viên" ||
+            _currentUser.RoleCode == "Quản lý" || _currentUser.RoleCode == "Nhân viên kho";
+        public bool CanProcessLifecycle => StockDocumentUiLifecycle.IsDraft(Status)
+            ? CanUserEdit
+            : IsAdminOrManager && (StockDocumentUiLifecycle.IsPendingApproval(Status) || StockDocumentUiLifecycle.IsApproved(Status));
+
+        partial void OnStatusChanged(string value)
+        {
+            if (!StockDocumentUiLifecycle.IsDraft(value))
+            {
+                IsEditMode = false;
+            }
+        }
+
         public StockAdjustmentViewModel(AppUser? currentUser = null, Func<AppDbContext>? contextFactory = null)
         {
-            _currentUser = currentUser ?? new AppUser { Id = 1 };
+            _currentUser = currentUser ?? new AppUser { Id = 1, Username = "System", RoleCode = "Quản trị viên" };
             _contextFactory = contextFactory ?? (() => new AppDbContext());
             _productService = new ProductService(_contextFactory);
             _adjustmentService = new StockAdjustmentService(_contextFactory);
@@ -189,9 +217,14 @@ namespace QuanLyHangHoa.ViewModels
         private void EditDetail(StockAdjustment item)
         {
             if (item == null) return;
-            if (item.Status == DocumentStatus.Posted || item.Status == "đã ghi sổ")
+            if (!CanUserEdit)
             {
-                MessageBox.Show("Không thể sửa phiếu đã ghi sổ.", "Thông báo");
+                MessageBox.Show("Bạn không có quyền chỉnh sửa phiếu này.", "Thông báo");
+                return;
+            }
+            if (!StockDocumentUiLifecycle.IsDraft(item.Status))
+            {
+                MessageBox.Show("Chỉ có thể sửa phiếu nháp.", "Thông báo");
                 return;
             }
             LoadForEditing(item.Id, true);
@@ -219,14 +252,15 @@ namespace QuanLyHangHoa.ViewModels
                     Direction = line.Direction,
                     Quantity = line.QuantityDelta,
                     BaseQuantity = line.BaseQuantityDelta,
-                    SelectedSerial = line.ProductSerial
+                    SelectedSerial = line.ProductSerial,
+                    SerialNumbers = line.DraftSerials ?? line.ProductSerial?.SerialNumber ?? string.Empty
                 };
                 Lines.Add(editor);
             }
 
             IsListViewVisible = false;
             IsDetailViewVisible = true;
-            IsEditMode = editMode;
+            IsEditMode = editMode && StockDocumentUiLifecycle.IsDraft(Status);
         }
 
         [RelayCommand]
@@ -247,6 +281,59 @@ namespace QuanLyHangHoa.ViewModels
         private void RemoveLine(StockAdjustmentLineEditor line)
         {
             if (line != null) Lines.Remove(line);
+        }
+
+        [RelayCommand]
+        private void OpenSerialWindow(StockAdjustmentLineEditor? line)
+        {
+            if (line?.SelectedProduct == null || !line.IsSerialTracked || !IsEditMode)
+            {
+                return;
+            }
+
+            if (line.BaseQuantity <= 0 || line.BaseQuantity != decimal.Truncate(line.BaseQuantity))
+            {
+                MessageBox.Show("Số lượng cơ sở của sản phẩm theo dõi serial phải là số nguyên dương.", "Cảnh báo");
+                return;
+            }
+
+            List<ProductSerial>? availableSerials = null;
+            if (line.Direction == "Out")
+            {
+                using var db = _contextFactory();
+                availableSerials = db.ProductSerials
+                    .AsNoTracking()
+                    .Where(item => item.ProductId == line.SelectedProduct.Id &&
+                                   item.CurrentWarehouseId == WarehouseId &&
+                                   item.CurrentStatus == "InStock")
+                    .OrderBy(item => item.SerialNumber)
+                    .ToList();
+            }
+
+            var dialog = new SerialInputWindow(line.SerialNumbers, availableSerials, false);
+            if (dialog.ShowDialog() != true)
+            {
+                return;
+            }
+
+            var serialNumbers = StockInService.ParseSerialRange(dialog.SerialInput);
+            var expectedCount = (int)line.BaseQuantity;
+            if (serialNumbers.Count != expectedCount)
+            {
+                MessageBox.Show(
+                    $"Sản phẩm {line.SelectedProduct.DisplayName} yêu cầu {expectedCount} serial, nhưng hiện có {serialNumbers.Count}.",
+                    "Cảnh báo");
+                return;
+            }
+
+            if (serialNumbers.Distinct(StringComparer.OrdinalIgnoreCase).Count() != serialNumbers.Count)
+            {
+                MessageBox.Show("Danh sách serial không được trùng lặp.", "Cảnh báo");
+                return;
+            }
+
+            line.SerialNumbers = string.Join(",", serialNumbers);
+            line.SelectedSerial = null;
         }
 
         [RelayCommand]
@@ -273,7 +360,8 @@ namespace QuanLyHangHoa.ViewModels
                     QuantityDelta = l.Quantity,
                     BaseQuantityDelta = l.BaseQuantity,
                     Direction = l.Direction,
-                    ProductSerialId = l.SelectedSerial?.Id
+                    ProductSerialId = string.IsNullOrWhiteSpace(l.SerialNumbers) ? l.SelectedSerial?.Id : null,
+                    DraftSerials = string.IsNullOrWhiteSpace(l.SerialNumbers) ? null : l.SerialNumbers
                 }).ToList();
 
                 _adjustmentService.SaveDraft(adj, lineModels, _currentUser.Id);
@@ -290,17 +378,71 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void ConfirmAndPost()
         {
-            if (!Validate()) return;
+            if (StockDocumentUiLifecycle.IsPosted(Status)) return;
+            var isDraft = StockDocumentUiLifecycle.IsDraft(Status);
+            if (isDraft && !CanUserEdit)
+            {
+                MessageBox.Show("Bạn không có quyền gửi duyệt phiếu.", "Thông báo");
+                return;
+            }
+            if (!isDraft && (!IsAdminOrManager ||
+                (!StockDocumentUiLifecycle.IsPendingApproval(Status) && !StockDocumentUiLifecycle.IsApproved(Status))))
+            {
+                MessageBox.Show("Bạn không có quyền duyệt và ghi sổ phiếu.", "Thông báo");
+                return;
+            }
 
-            var result = MessageBox.Show("Bạn có chắc chắn muốn ghi sổ phiếu điều chỉnh này? Sau khi ghi sổ sẽ không thể chỉnh sửa.", 
-                "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Question);
-            
+            if (isDraft && !Validate()) return;
+
+            var confirmMessage = isDraft && !IsAdminOrManager
+                ? "Bạn có chắc chắn muốn gửi duyệt phiếu điều chỉnh này? Sau khi gửi sẽ không thể chỉnh sửa."
+                : "Bạn có chắc chắn muốn duyệt và ghi sổ phiếu điều chỉnh này? Sau khi gửi duyệt sẽ không thể chỉnh sửa.";
+            var result = MessageBox.Show(confirmMessage, "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
             if (result != MessageBoxResult.Yes) return;
 
             try
             {
-                SaveDraft(); // Ensure current changes are saved
+                if (StockDocumentUiLifecycle.IsDraft(Status))
+                {
+                    var adjustment = new StockAdjustment
+                    {
+                        Id = EditingId,
+                        DocumentCode = DocumentCode,
+                        WarehouseId = WarehouseId,
+                        AdjustmentType = AdjustmentType,
+                        ReasonCode = ReasonCode,
+                        Notes = Notes,
+                        Status = Status
+                    };
+                    var lineModels = Lines.Select(line => new StockAdjustmentLine
+                    {
+                        ProductId = line.SelectedProduct?.Id ?? 0,
+                        QuantityDelta = line.Quantity,
+                        BaseQuantityDelta = line.BaseQuantity,
+                        Direction = line.Direction,
+                        ProductSerialId = string.IsNullOrWhiteSpace(line.SerialNumbers) ? line.SelectedSerial?.Id : null,
+                        DraftSerials = string.IsNullOrWhiteSpace(line.SerialNumbers) ? null : line.SerialNumbers
+                    }).ToList();
+                    _adjustmentService.SaveDraft(adjustment, lineModels, _currentUser.Id);
+                    EditingId = adjustment.Id;
+                    Status = adjustment.Status;
+                    _adjustmentService.SubmitForApproval(EditingId, _currentUser.Id);
+                    Status = DocumentStatus.PendingApproval;
+                    if (!IsAdminOrManager)
+                    {
+                        MessageBox.Show("Đã gửi phiếu điều chỉnh chờ duyệt.", "Thông báo");
+                        BackToList();
+                        return;
+                    }
+                }
+                if (StockDocumentUiLifecycle.IsPendingApproval(Status))
+                {
+                    _adjustmentService.Approve(EditingId, _currentUser.Id);
+                    Status = DocumentStatus.Approved;
+                }
                 _adjustmentService.Post(EditingId, _currentUser.Id);
+                Status = DocumentStatus.Posted;
                 MessageBox.Show("Đã ghi sổ thành công.", "Thông báo");
                 BackToList();
             }
@@ -396,10 +538,54 @@ namespace QuanLyHangHoa.ViewModels
                     MessageBox.Show($"Số lượng của sản phẩm {line.SelectedProduct.DisplayName} phải lớn hơn 0.", "Cảnh báo");
                     return false;
                 }
-                if (line.IsSerialTracked && line.SelectedSerial == null)
+                if (line.IsSerialTracked)
                 {
-                    MessageBox.Show($"Sản phẩm {line.SelectedProduct.DisplayName} yêu cầu chọn Serial.", "Cảnh báo");
-                    return false;
+                    if (line.BaseQuantity != decimal.Truncate(line.BaseQuantity))
+                    {
+                        MessageBox.Show($"Số lượng cơ sở của sản phẩm {line.SelectedProduct.DisplayName} phải là số nguyên.", "Cảnh báo");
+                        return false;
+                    }
+
+                    var serialNumbers = StockInService.ParseSerialRange(line.SerialNumbers);
+                    var requiredCount = (int)line.BaseQuantity;
+                    if (serialNumbers.Count != requiredCount)
+                    {
+                        MessageBox.Show($"Sản phẩm {line.SelectedProduct.DisplayName} yêu cầu {requiredCount} serial, nhưng hiện có {serialNumbers.Count}.", "Cảnh báo");
+                        return false;
+                    }
+
+                    if (serialNumbers.Distinct(StringComparer.OrdinalIgnoreCase).Count() != serialNumbers.Count)
+                    {
+                        MessageBox.Show($"Serial của sản phẩm {line.SelectedProduct.DisplayName} không được trùng lặp.", "Cảnh báo");
+                        return false;
+                    }
+
+                    using var db = _contextFactory();
+                    if (line.Direction == "In")
+                    {
+                        var existingSerials = db.ProductSerials
+                            .Where(item => serialNumbers.Contains(item.SerialNumber))
+                            .Select(item => item.SerialNumber)
+                            .ToList();
+                        if (existingSerials.Count > 0)
+                        {
+                            MessageBox.Show($"Serial [{string.Join(", ", existingSerials)}] đã tồn tại trong hệ thống.", "Cảnh báo");
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        var validSerialCount = db.ProductSerials.Count(item =>
+                            serialNumbers.Contains(item.SerialNumber) &&
+                            item.ProductId == line.SelectedProduct.Id &&
+                            item.CurrentWarehouseId == WarehouseId &&
+                            item.CurrentStatus == "InStock");
+                        if (validSerialCount != serialNumbers.Count)
+                        {
+                            MessageBox.Show($"Một hoặc nhiều serial của sản phẩm {line.SelectedProduct.DisplayName} không còn tồn tại trong kho đã chọn.", "Cảnh báo");
+                            return false;
+                        }
+                    }
                 }
             }
 

@@ -82,11 +82,13 @@ public sealed class OpeningBalanceImportService
                 DocumentCode = $"SI-OB-{now:yyyyMMddHHmmssfff}-{Guid.NewGuid():N}"[..35],
                 WarehouseId = warehouseId,
                 PurposeCode = "OpeningBalance",
-                Status = DocumentStatus.Posted,
+                Status = StockDocumentStatus.Approved.ToString(),
                 ImportDate = now,
                 Notes = "Import tồn đầu kỳ từ Excel/CSV",
                 CreatedBy = postedByUserId,
                 CreatedAt = now,
+                ApprovedBy = postedByUserId,
+                ApprovedAt = now,
                 PostedBy = postedByUserId,
                 PostedAt = now
             };
@@ -124,7 +126,7 @@ public sealed class OpeningBalanceImportService
                     stockIn.Id,
                     warehouseId,
                     StockInKind.OpeningBalance,
-                    StockDocumentStatus.Posted,
+                    StockDocumentStatus.Approved,
                     item.Prepared.Product.Id,
                     item.Prepared.Source.Quantity,
                     item.Prepared.SerialNumbers,

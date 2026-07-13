@@ -17,6 +17,7 @@ public class StockTransferSerialBaseQuantityTests
         using (var setup = DatabaseHelper.CreateContext(connection))
         {
             DatabaseHelper.SeedBasicData(setup);
+            setup.AppUsers.Find(1)!.RoleCode = "Quản lý";
             setup.Warehouses.Add(new Warehouse
             {
                 Id = 2,
@@ -83,6 +84,8 @@ public class StockTransferSerialBaseQuantityTests
         }
 
         var service = new StockTransferService(() => DatabaseHelper.CreateContext(connection));
+        service.SubmitForApproval(701, 1);
+        service.Approve(701, 1);
         service.Post(701, 1);
 
         using var verify = DatabaseHelper.CreateContext(connection);

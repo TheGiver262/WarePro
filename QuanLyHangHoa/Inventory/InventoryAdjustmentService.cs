@@ -20,9 +20,14 @@ public sealed class InventoryAdjustmentService
 
     public void PostAdjustment(PostStockAdjustmentCommand command)
     {
-        if (command.Status != StockDocumentStatus.Approved && command.Status != StockDocumentStatus.Posted)
+        if (command.Status != StockDocumentStatus.Approved)
         {
-            throw new InventoryDomainException("Only approved or ready-to-post stock adjustments can be posted.");
+            throw new InventoryDomainException("Only approved stock adjustments can be posted.");
+        }
+
+        if (!_unitOfWork.CanApproveStock(command.PostedByUserId))
+        {
+            throw new InventoryDomainException("You are not authorized to approve stock documents.");
         }
 
         if (string.IsNullOrWhiteSpace(command.Reason))

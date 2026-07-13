@@ -21,6 +21,7 @@ public class StockAdjustmentServiceTests
         using (var seedContext = DatabaseHelper.CreateContext(connection))
         {
             DatabaseHelper.SeedBasicData(seedContext);
+            seedContext.AppUsers.Find(1)!.RoleCode = "Quản lý";
             seedContext.Products.Add(new Product { Id = 500, ProductCode = "P500",
                 DisplayName = "Adjustment service product",
                 CategoryId = 1,
@@ -62,6 +63,8 @@ public class StockAdjustmentServiceTests
         });
 
         service.SaveDraft(adjustment, adjustment.Lines.ToList(), 1);
+        service.SubmitForApproval(adjustment.Id, 1);
+        service.Approve(adjustment.Id, 1);
         service.Post(adjustment.Id, 1);
 
         using var assertContext = DatabaseHelper.CreateContext(connection);
@@ -81,5 +84,67 @@ public class StockAdjustmentServiceTests
 
         var audit = Assert.Single(assertContext.AuditLogs);
         Assert.Equal(AuditActionCode.PostStockAdjustment.ToString(), audit.ActionCode);
+    }
+
+    [Fact]
+    public void Post_uses_all_draft_serials_for_serial_tracked_adjustment()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        using (var seedContext = DatabaseHelper.CreateContext(connection))
+        {
+            DatabaseHelper.SeedBasicData(seedContext);
+            seedContext.AppUsers.Find(1)!.RoleCode = "Quản lý";
+            seedContext.Products.Add(new Product
+            {
+                Id = 501,
+                ProductCode = "P501-SERIAL",
+                DisplayName = "Adjustment serial product",
+                CategoryId = 1,
+                BrandId = 1,
+                DefaultUnitId = 1,
+                DefaultPrice = 10m,
+                IsSerialTracked = true
+            });
+            seedContext.SaveChanges();
+        }
+
+        var service = new StockAdjustmentService(() => DatabaseHelper.CreateContext(connection));
+        var adjustment = new StockAdjustment
+        {
+            DocumentCode = "ADJ-SVC-SERIAL-001",
+            WarehouseId = 1,
+            AdjustmentType = "Manual",
+            ReasonCode = "INVENTORY_COUNT",
+            CreatedBy = 1
+        };
+        var lines = new List<StockAdjustmentLine>
+        {
+            new()
+            {
+                ProductId = 501,
+                QuantityDelta = 2m,
+                BaseQuantityDelta = 2m,
+                Direction = "In",
+                DraftSerials = "ADJ-SVC-SN-001,ADJ-SVC-SN-002"
+            }
+        };
+
+        service.SaveDraft(adjustment, lines, 1);
+        service.SubmitForApproval(adjustment.Id, 1);
+        service.Approve(adjustment.Id, 1);
+        service.Post(adjustment.Id, 1);
+
+        using var assertContext = DatabaseHelper.CreateContext(connection);
+        var serials = assertContext.ProductSerials
+            .Where(item => item.ProductId == 501)
+            .OrderBy(item => item.SerialNumber)
+            .ToList();
+        Assert.Equal(2, serials.Count);
+        Assert.All(serials, item =>
+        {
+            Assert.Equal("InStock", item.CurrentStatus);
+            Assert.Equal(1, item.CurrentWarehouseId);
+        });
     }
 }

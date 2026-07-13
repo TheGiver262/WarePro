@@ -779,6 +779,10 @@ namespace QuanLyHangHoa.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<string>("DraftSerials")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
 
@@ -990,6 +994,12 @@ namespace QuanLyHangHoa.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<int?>("StockCountLineId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("StockCountSessionId")
+                        .HasColumnType("int");
+
                     b.Property<int?>("SupplierId")
                         .HasColumnType("int");
 
@@ -1013,6 +1023,12 @@ namespace QuanLyHangHoa.Migrations
                     b.HasIndex("PostedBy");
 
                     b.HasIndex(new[] { "ImportDate" }, "IX_StockIn_ImportDate");
+
+                    b.HasIndex(new[] { "StockCountLineId" }, "UX_StockIn_StockCountLineId")
+                        .IsUnique()
+                        .HasFilter("[StockCountLineId] IS NOT NULL");
+
+                    b.HasIndex(new[] { "StockCountSessionId" }, "IX_StockIn_StockCountSessionId");
 
                     b.HasIndex(new[] { "SupplierId" }, "IX_StockIn_SupplierId");
 
@@ -1183,6 +1199,12 @@ namespace QuanLyHangHoa.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<int?>("StockCountLineId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("StockCountSessionId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasPrecision(0)
                         .HasColumnType("datetime2(0)");
@@ -1205,6 +1227,12 @@ namespace QuanLyHangHoa.Migrations
                     b.HasIndex(new[] { "CustomerId" }, "IX_StockOut_CustomerId");
 
                     b.HasIndex(new[] { "ExportDate" }, "IX_StockOut_ExportDate");
+
+                    b.HasIndex(new[] { "StockCountLineId" }, "UX_StockOut_StockCountLineId")
+                        .IsUnique()
+                        .HasFilter("[StockCountLineId] IS NOT NULL");
+
+                    b.HasIndex(new[] { "StockCountSessionId" }, "IX_StockOut_StockCountSessionId");
 
                     b.HasIndex(new[] { "WarehouseId", "PostedAt" }, "IX_StockOut_Warehouse_ProductLookup");
 
@@ -2015,6 +2043,18 @@ namespace QuanLyHangHoa.Migrations
                         .HasForeignKey("SupplierId")
                         .HasConstraintName("FK_StockIn_Supplier");
 
+                    b.HasOne("QuanLyHangHoa.Models.StockCountLine", null)
+                        .WithMany()
+                        .HasForeignKey("StockCountLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("FK_StockIn_StockCountLine");
+
+                    b.HasOne("QuanLyHangHoa.Models.StockCountSession", null)
+                        .WithMany()
+                        .HasForeignKey("StockCountSessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("FK_StockIn_StockCountSession");
+
                     b.HasOne("QuanLyHangHoa.Models.Warehouse", "Warehouse")
                         .WithMany("StockIns")
                         .HasForeignKey("WarehouseId")
@@ -2116,6 +2156,18 @@ namespace QuanLyHangHoa.Migrations
                         .WithMany("StockOutPosters")
                         .HasForeignKey("PostedBy")
                         .HasConstraintName("FK_StockOut_PostedBy");
+
+                    b.HasOne("QuanLyHangHoa.Models.StockCountLine", null)
+                        .WithMany()
+                        .HasForeignKey("StockCountLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("FK_StockOut_StockCountLine");
+
+                    b.HasOne("QuanLyHangHoa.Models.StockCountSession", null)
+                        .WithMany()
+                        .HasForeignKey("StockCountSessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("FK_StockOut_StockCountSession");
 
                     b.HasOne("QuanLyHangHoa.Models.Warehouse", "Warehouse")
                         .WithMany("StockOuts")

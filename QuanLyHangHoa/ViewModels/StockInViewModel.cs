@@ -114,7 +114,10 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private ObservableCollection<StockInLineEditor> _lines = new();
 
         [ObservableProperty] private int _stockInId;
-        [ObservableProperty] private string _status = DocumentStatus.Draft;
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(CanEdit))]
+        [NotifyPropertyChangedFor(nameof(CanApprove))]
+        private string _status = DocumentStatus.Draft;
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(CanEdit))]
         private bool _isPosted;
@@ -156,8 +159,10 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private int _postedCount;
 
         public decimal TotalAmount => Lines.Sum(l => l.Quantity * l.Price);
-        public bool CanEdit => !IsPosted && !IsViewMode;
-        public bool CanApprove => AuthorizationService.CanPerform(_currentUser, PermissionAction.ApproveStock) && (Status == DocumentStatus.Draft || Status == "nháp");
+        public bool CanEdit => !IsPosted && !IsViewMode && StockDocumentUiLifecycle.IsDraft(Status);
+        public bool CanApprove => StockDocumentUiLifecycle.IsDraft(Status)
+            ? CanUserEdit
+            : IsAdminOrManager && (StockDocumentUiLifecycle.IsPendingApproval(Status) || StockDocumentUiLifecycle.IsApproved(Status));
         public bool IsAdminOrManager => AuthorizationService.CanPerform(_currentUser, PermissionAction.ApproveStock);
         public bool CanUserEdit => _currentUser != null && (_currentUser.RoleCode == "Quản trị viên" || _currentUser.RoleCode == "Quản lý" || _currentUser.RoleCode == "Nhân viên kho");
 
@@ -403,9 +408,9 @@ namespace QuanLyHangHoa.ViewModels
                 MessageBox.Show("Bạn không có quyền chỉnh sửa phiếu này.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
-            if (si.Status == DocumentStatus.Posted || si.Status == "đã ghi sổ")
+            if (!StockDocumentUiLifecycle.IsDraft(si.Status))
             {
-                MessageBox.Show("Không thể sửa phiếu đã ghi sổ.", "Thông báo");
+                MessageBox.Show("Chỉ có thể sửa phiếu nháp.", "Thông báo");
                 return;
             }
             IsViewMode = false;
@@ -549,47 +554,77 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void ConfirmAndPost()
         {
-            if (IsPosted) return;
-
-            // 1. Always save current state as draft first to ensure DB is up to date
-            if (!ValidateForm()) return;
-            try
+            if (IsPosted || StockDocumentUiLifecycle.IsPosted(Status)) return;
+            var isDraft = StockDocumentUiLifecycle.IsDraft(Status);
+            if (isDraft && !CanUserEdit)
             {
-                var si = CreateModel();
-                var siLines = CreateLines();
-                _stockInService.SaveDraft(si, siLines, _currentUser.Id);
-                StockInId = si.Id;
+                MessageBox.Show("Bạn không có quyền gửi duyệt phiếu.", "Thông báo");
+                return;
             }
-            catch (Exception ex)
+            if (!isDraft && (!IsAdminOrManager ||
+                (!StockDocumentUiLifecycle.IsPendingApproval(Status) && !StockDocumentUiLifecycle.IsApproved(Status))))
             {
-                MessageBox.Show($"Lỗi khi lưu dữ liệu trước khi ghi sổ: {ex.Message}", "Lỗi");
+                MessageBox.Show("Bạn không có quyền duyệt và ghi sổ phiếu.", "Thông báo");
                 return;
             }
 
-            // 2. Validate serials before posting
-            foreach (var line in Lines)
+            if (isDraft)
             {
-                if (line.IsSerialRequired && line.SerialNumbers.Count != (int)line.Quantity)
+                if (!ValidateForm()) return;
+                try
                 {
-                    var result = MessageBox.Show(
-                        $"Sản phẩm {line.SelectedProduct?.DisplayName} yêu cầu { (int)line.Quantity } serial, nhưng hiện mới có {line.SerialNumbers.Count}.\n\nBạn có muốn bổ sung serial trước khi ghi sổ không?", 
-                        "Thiếu Serial", MessageBoxButton.YesNo, MessageBoxImage.Warning);
-                    
-                    if (result == MessageBoxResult.Yes) return;
+                    var si = CreateModel();
+                    var siLines = CreateLines();
+                    _stockInService.SaveDraft(si, siLines, _currentUser.Id);
+                    StockInId = si.Id;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Lỗi khi lưu dữ liệu trước khi gửi duyệt: {ex.Message}", "Lỗi");
+                    return;
+                }
+
+                foreach (var line in Lines)
+                {
+                    if (line.IsSerialRequired && line.SerialNumbers.Count != (int)line.Quantity)
+                    {
+                        var result = MessageBox.Show(
+                            $"Sản phẩm {line.SelectedProduct?.DisplayName} yêu cầu {(int)line.Quantity} serial, nhưng hiện mới có {line.SerialNumbers.Count}.\n\nBạn có muốn bổ sung serial trước khi gửi duyệt không?",
+                            "Thiếu Serial", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+                        if (result == MessageBoxResult.Yes) return;
+                    }
                 }
             }
 
-            // 3. Confirm posting
-            var confirm = MessageBox.Show("Bạn có chắc chắn muốn ghi sổ phiếu nhập này? Sau khi ghi sổ sẽ không thể chỉnh sửa.", "Xác nhận ghi sổ", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            var confirmMessage = isDraft && !IsAdminOrManager
+                ? "Bạn có chắc chắn muốn gửi duyệt phiếu nhập này? Sau khi gửi sẽ không thể chỉnh sửa."
+                : "Bạn có chắc chắn muốn duyệt và ghi sổ phiếu nhập này? Sau khi gửi duyệt sẽ không thể chỉnh sửa.";
+            var confirm = MessageBox.Show(confirmMessage, "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (confirm != MessageBoxResult.Yes) return;
 
             try
             {
+                if (StockDocumentUiLifecycle.IsDraft(Status))
+                {
+                    _stockInService.SubmitForApproval(StockInId, _currentUser.Id);
+                    Status = DocumentStatus.PendingApproval;
+                    if (!IsAdminOrManager)
+                    {
+                        MessageBox.Show("Đã gửi phiếu nhập kho chờ duyệt.", "Thông báo");
+                        BackToList();
+                        return;
+                    }
+                }
+                if (StockDocumentUiLifecycle.IsPendingApproval(Status))
+                {
+                    _stockInService.Approve(StockInId, _currentUser.Id);
+                    Status = DocumentStatus.Approved;
+                }
                 _stockInService.Post(StockInId, _currentUser.Id);
                 IsPosted = true;
                 Status = DocumentStatus.Posted;
-                OnPropertyChanged(nameof(CanEdit));
-                
+
                 MessageBox.Show("Đã ghi sổ thành công. Hàng hóa đã được nhập vào kho.", "Thông báo");
                 ResetForm();
             }
@@ -603,7 +638,7 @@ namespace QuanLyHangHoa.ViewModels
         private void ApproveDocument(StockIn document)
         {
             if (document == null) return;
-            if (document.Status == DocumentStatus.Posted || document.Status == "đã ghi sổ")
+            if (StockDocumentUiLifecycle.IsPosted(document.Status))
             {
                 MessageBox.Show("Phiếu này đã được ghi sổ rồi.", "Thông báo");
                 return;
@@ -613,18 +648,37 @@ namespace QuanLyHangHoa.ViewModels
                 MessageBox.Show("Bạn không có quyền duyệt phiếu.", "Thông báo");
                 return;
             }
+            if (!StockDocumentUiLifecycle.IsDraft(document.Status) &&
+                !StockDocumentUiLifecycle.IsPendingApproval(document.Status) &&
+                !StockDocumentUiLifecycle.IsApproved(document.Status))
+            {
+                MessageBox.Show("Trạng thái phiếu không cho phép duyệt hoặc ghi sổ.", "Thông báo");
+                return;
+            }
 
             var confirm = MessageBox.Show($"Bạn có chắc chắn muốn duyệt và ghi sổ phiếu nhập kho {document.DocumentCode} không?", "Xác nhận duyệt phiếu", MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (confirm != MessageBoxResult.Yes) return;
 
             try
             {
+                if (StockDocumentUiLifecycle.IsDraft(document.Status))
+                {
+                    _stockInService.SubmitForApproval(document.Id, _currentUser.Id);
+                    document.Status = DocumentStatus.PendingApproval;
+                }
+                if (StockDocumentUiLifecycle.IsPendingApproval(document.Status))
+                {
+                    _stockInService.Approve(document.Id, _currentUser.Id);
+                    document.Status = DocumentStatus.Approved;
+                }
                 _stockInService.Post(document.Id, _currentUser.Id);
+                document.Status = DocumentStatus.Posted;
                 MessageBox.Show("Duyệt và ghi sổ phiếu nhập kho thành công.", "Thông báo");
                 LoadData();
             }
             catch (Exception ex)
             {
+                LoadData();
                 MessageBox.Show(ex.Message, "Lỗi");
             }
         }

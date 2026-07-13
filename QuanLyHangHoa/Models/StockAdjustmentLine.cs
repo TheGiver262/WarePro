@@ -13,6 +13,8 @@ public partial class StockAdjustmentLine
 
     public int? ProductSerialId { get; set; }
 
+    public string? DraftSerials { get; set; }
+
     public decimal QuantityDelta { get; set; }
 
     public decimal BaseQuantityDelta { get; set; }

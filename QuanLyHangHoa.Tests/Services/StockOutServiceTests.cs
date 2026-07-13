@@ -50,6 +50,7 @@ public class StockOutServiceTests
             }
         };
 
+        GrantApprovalPermission(connection);
         service.Create(stockOut, lines, 1);
 
         var stats = service.GetStockOutStats(string.Empty, string.Empty, null, null, null, string.Empty);
@@ -144,6 +145,7 @@ public class StockOutServiceTests
         }
 
         // 2. Post Draft A -> should succeed and set SN-101 to Sold (not in warehouse)
+        ApproveForPosting(service, connection, stockOutA.Id);
         service.Post(stockOutA.Id, 1);
 
         using (var db = DatabaseHelper.CreateContext(connection))
@@ -157,6 +159,7 @@ public class StockOutServiceTests
         }
 
         // 3. Post Draft B -> should fail because "SN-101" is no longer InStock / in this warehouse
+        ApproveForPosting(service, connection, stockOutB.Id);
         var ex = Assert.Throws<Exception>(() => service.Post(stockOutB.Id, 1));
         Assert.Equal("Các số serial sau đã được xuất kho ở phiếu khác hoặc không còn tồn kho trong kho này: [SN-101]. Vui lòng sửa lại phiếu nháp trước khi duyệt.", ex.Message);
 
@@ -179,6 +182,7 @@ public class StockOutServiceTests
         };
         service.SaveDraft(stockOutC, linesC, 1);
 
+        ApproveForPosting(service, connection, stockOutC.Id);
         var exDup = Assert.Throws<Exception>(() => service.Post(stockOutC.Id, 1));
         Assert.Equal("Các số serial sau bị trùng lặp trong phiếu: [SN-102]. Vui lòng kiểm tra lại trước khi duyệt.", exDup.Message);
     }
@@ -238,6 +242,7 @@ public class StockOutServiceTests
         };
 
         service.SaveDraft(stockOut, lines, 1);
+        ApproveForPosting(service, connection, stockOut.Id);
         service.Post(stockOut.Id, 1);
 
         using var assertContext = DatabaseHelper.CreateContext(connection);
@@ -248,5 +253,19 @@ public class StockOutServiceTests
         var ledger = assertContext.StockLedgers.Single(l => l.ProductId == 400);
         Assert.Equal("Out", ledger.MovementType);
         Assert.Equal(24, ledger.Quantity);
+    }
+
+    private static void GrantApprovalPermission(SqliteConnection connection)
+    {
+        using var db = DatabaseHelper.CreateContext(connection);
+        db.AppUsers.Find(1)!.RoleCode = "Quản lý";
+        db.SaveChanges();
+    }
+
+    private static void ApproveForPosting(StockOutService service, SqliteConnection connection, int stockOutId)
+    {
+        GrantApprovalPermission(connection);
+        service.SubmitForApproval(stockOutId, 1);
+        service.Approve(stockOutId, 1);
     }
 }

@@ -3,6 +3,7 @@ using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
+using QuanLyHangHoa.Services;
 
 namespace QuanLyHangHoa.Inventory;
 
@@ -13,6 +14,18 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
     public EfInventoryUnitOfWork(AppDbContext context)
     {
         _context = context;
+    }
+
+    public bool CanApproveStock(int userId)
+    {
+        var actor = _context.AppUsers.AsNoTracking().SingleOrDefault(user => user.Id == userId);
+        return AuthorizationService.CanPerform(actor, PermissionAction.ApproveStock);
+    }
+
+    public bool CanProcessWarrantyStock(int userId)
+    {
+        var actor = _context.AppUsers.AsNoTracking().SingleOrDefault(user => user.Id == userId);
+        return AuthorizationService.CanPerform(actor, PermissionAction.CreateWarrantyClaim);
     }
 
     public ProductSnapshot GetProduct(int productId)

@@ -12,6 +12,11 @@ internal sealed class InMemoryInventoryStore : IInventoryUnitOfWork
     public Dictionary<(int Id, string Type), StockDocumentStatus> DocumentStatuses { get; } = new();
     public int PurchaseInvoiceCreatedCount { get; private set; }
     public bool WasCommitted { get; private set; }
+    public bool IsStockApprovalAuthorized { get; set; } = true;
+    public bool IsWarrantyStockAuthorized { get; set; } = true;
+
+    public bool CanApproveStock(int userId) => IsStockApprovalAuthorized;
+    public bool CanProcessWarrantyStock(int userId) => IsWarrantyStockAuthorized;
 
     public ProductSnapshot GetProduct(int productId)
     {

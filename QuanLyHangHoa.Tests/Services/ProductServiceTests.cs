@@ -19,6 +19,7 @@ public class ProductServiceTests
         using (var seedContext = CreateContext(connection))
         {
             DatabaseHelper.SeedBasicData(seedContext);
+            seedContext.AppUsers.Single(user => user.Id == 1).RoleCode = "Quản trị viên";
             seedContext.Products.Add(new Product { Id = 1100, ProductCode = "P1100",
                 DisplayName = "Initial stock product",
                 CategoryId = 1,
@@ -33,7 +34,7 @@ public class ProductServiceTests
 
         var service = new ProductService(() => CreateContext(connection));
 
-        service.AddInitialStock(1100, new List<string> { "INIT-001", "INIT-002" });
+        service.AddInitialStock(1100, new List<string> { "INIT-001", "INIT-002" }, userId: 1);
 
         using var assertContext = CreateContext(connection);
         // Quantity removed

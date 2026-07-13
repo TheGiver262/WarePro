@@ -35,6 +35,10 @@ public partial class StockOut
 
     public int? UpdatedBy { get; set; }
 
+    public int? StockCountSessionId { get; set; }
+
+    public int? StockCountLineId { get; set; }
+
     public virtual AppUser? Approver { get; set; }
 
     public virtual AppUser Creator { get; set; } = null!;

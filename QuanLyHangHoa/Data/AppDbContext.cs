@@ -478,6 +478,7 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.BaseQuantityDelta).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.Direction).HasMaxLength(20);
+            entity.Property(e => e.DraftSerials).HasMaxLength(4000);
             entity.Property(e => e.QuantityDelta).HasColumnType("decimal(18, 2)");
 
             entity.HasOne(d => d.Adjustment).WithMany(p => p.Lines)
@@ -580,6 +581,10 @@ public partial class AppDbContext : DbContext
             entity.ToTable("StockIn", t => t.HasCheckConstraint("CK_StockIn_PurposeCode", "[PurposeCode] IN ('Purchase', 'OpeningBalance', 'Adjustment', 'WarrantyReceive')"));
 
             entity.HasIndex(e => e.SupplierId, "IX_StockIn_SupplierId");
+            entity.HasIndex(e => e.StockCountSessionId, "IX_StockIn_StockCountSessionId");
+            entity.HasIndex(e => e.StockCountLineId, "UX_StockIn_StockCountLineId")
+                .IsUnique()
+                .HasFilter("[StockCountLineId] IS NOT NULL");
 
             entity.HasIndex(e => new { e.WarehouseId, e.PostedAt }, "IX_StockIn_Warehouse_ProductLookup");
 
@@ -617,6 +622,18 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Supplier).WithMany(p => p.StockIns)
                 .HasForeignKey(d => d.SupplierId)
                 .HasConstraintName("FK_StockIn_Supplier");
+
+            entity.HasOne<StockCountLine>()
+                .WithMany()
+                .HasForeignKey(d => d.StockCountLineId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_StockIn_StockCountLine");
+
+            entity.HasOne<StockCountSession>()
+                .WithMany()
+                .HasForeignKey(d => d.StockCountSessionId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_StockIn_StockCountSession");
 
             entity.HasOne(d => d.Warehouse).WithMany(p => p.StockIns)
                 .HasForeignKey(d => d.WarehouseId)
@@ -695,6 +712,10 @@ public partial class AppDbContext : DbContext
             entity.ToTable("StockOut", t => t.HasCheckConstraint("CK_StockOut_PurposeCode", "[PurposeCode] IN ('Sale', 'WarrantyReplacement', 'Adjustment')"));
 
             entity.HasIndex(e => e.CustomerId, "IX_StockOut_CustomerId");
+            entity.HasIndex(e => e.StockCountSessionId, "IX_StockOut_StockCountSessionId");
+            entity.HasIndex(e => e.StockCountLineId, "UX_StockOut_StockCountLineId")
+                .IsUnique()
+                .HasFilter("[StockCountLineId] IS NOT NULL");
 
             entity.HasIndex(e => new { e.WarehouseId, e.PostedAt }, "IX_StockOut_Warehouse_ProductLookup");
 
@@ -733,6 +754,18 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Poster).WithMany(p => p.StockOutPosters)
                 .HasForeignKey(d => d.PostedBy)
                 .HasConstraintName("FK_StockOut_PostedBy");
+
+            entity.HasOne<StockCountLine>()
+                .WithMany()
+                .HasForeignKey(d => d.StockCountLineId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_StockOut_StockCountLine");
+
+            entity.HasOne<StockCountSession>()
+                .WithMany()
+                .HasForeignKey(d => d.StockCountSessionId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_StockOut_StockCountSession");
 
             entity.HasOne(d => d.Warehouse).WithMany(p => p.StockOuts)
                 .HasForeignKey(d => d.WarehouseId)

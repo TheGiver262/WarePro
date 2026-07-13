@@ -589,6 +589,12 @@ namespace QuanLyHangHoa.ViewModels
                 return;
             }
 
+            if (!AuthorizationService.CanPerform(_currentUser, PermissionAction.ApproveStock))
+            {
+                MessageBox.Show("Bạn không có quyền duyệt và xử lý chênh lệch kiểm kê.", "Thông báo");
+                return;
+            }
+
             var confirm = MessageBox.Show($"Bạn có muốn thực hiện xử lý chênh lệch cho phiên kiểm kê {session.SessionCode} không?", 
                 "Xác nhận xử lý", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
@@ -597,7 +603,7 @@ namespace QuanLyHangHoa.ViewModels
             try
             {
                 _stockCountService.ProcessResults(session.Id, _currentUser.Id);
-                MessageBox.Show("Xử lý chênh lệch thành công! Phiếu nhập/xuất điều chỉnh kho nháp đã được tạo.", "Thông báo");
+                MessageBox.Show("Xử lý chênh lệch thành công. Phiếu nhập/xuất điều chỉnh đã được ghi sổ.", "Thông báo");
                 
                 LoadPastSessions();
                 
