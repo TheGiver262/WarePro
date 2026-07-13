@@ -33,6 +33,7 @@ public sealed class StockReversalService
 
         using var db = _contextFactory();
         using var transaction = db.Database.BeginTransaction();
+        AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockAdjustment);
 
         try
         {

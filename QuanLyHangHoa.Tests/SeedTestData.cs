@@ -242,7 +242,7 @@ namespace QuanLyHangHoa.Tests
                 decimal taxAmount = subTotal * 0.10m;
                 initPurchaseInvoice.PaidAmount = subTotal + taxAmount;
 
-                invoiceService.SavePurchaseInvoice(initPurchaseInvoice);
+                invoiceService.SavePurchaseInvoice(initPurchaseInvoice, user.Id);
                 _output.WriteLine("Khởi tạo tồn kho dồi dào thành công!");
             }
 
@@ -339,7 +339,7 @@ namespace QuanLyHangHoa.Tests
                 decimal taxAmount = subTotal * 0.10m;
                 purchaseInvoice.PaidAmount = subTotal + taxAmount;
 
-                invoiceService.SavePurchaseInvoice(purchaseInvoice);
+                invoiceService.SavePurchaseInvoice(purchaseInvoice, user.Id);
                 _output.WriteLine($"Đã seed thành công cặp Phiếu nhập {stockIn.DocumentCode} & Hóa đơn nhập {purchaseInvoice.InvoiceCode}");
             }
 
@@ -469,7 +469,7 @@ namespace QuanLyHangHoa.Tests
                 decimal taxAmount = subTotal * 0.10m;
                 salesInvoice.PaidAmount = subTotal + taxAmount;
 
-                invoiceService.SaveSalesInvoice(salesInvoice);
+                invoiceService.SaveSalesInvoice(salesInvoice, user.Id);
                 _output.WriteLine($"Đã seed thành công cặp Phiếu xuất {stockOut.DocumentCode} & Hóa đơn xuất {salesInvoice.InvoiceCode}");
             }
 

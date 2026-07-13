@@ -9,7 +9,7 @@ using QuanLyHangHoa.Models;
 
 namespace QuanLyHangHoa.Services
 {
-    public class StockCountService
+    public partial class StockCountService
     {
         private const string CountedStatus = "đã kiểm kê";
         private const string CompletedStatus = "hoàn thành";
@@ -20,9 +20,11 @@ namespace QuanLyHangHoa.Services
             _contextFactory = contextFactory;
         }
 
-        public void CreateSession(StockCountSession session)
+        public void CreateSession(StockCountSession session, int userId)
         {
             using var db = _contextFactory();
+            AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockAdjustment);
+            session.CreatedBy = userId;
             db.StockCountSessions.Add(session);
             db.SaveChanges();
             AddAudit(db, "CREATE", session.Id, null, Serialize(session), session.CreatedBy);
@@ -32,6 +34,7 @@ namespace QuanLyHangHoa.Services
         {
             using var db = _contextFactory();
             using var transaction = db.Database.BeginTransaction();
+            var actor = AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockAdjustment);
 
             var session = db.StockCountSessions
                 .Include(item => item.Lines)
@@ -48,7 +51,6 @@ namespace QuanLyHangHoa.Services
                 throw new InventoryDomainException("Chỉ phiên đã kiểm kê mới được xử lý chênh lệch.");
             }
 
-            var actor = db.AppUsers.AsNoTracking().SingleOrDefault(item => item.Id == userId);
             if (!AuthorizationService.CanPerform(actor, PermissionAction.ApproveStock))
             {
                 throw new InventoryDomainException("You are not authorized to approve stock documents.");

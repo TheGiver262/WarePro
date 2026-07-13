@@ -13,7 +13,7 @@ namespace QuanLyHangHoa.Services
 {
     public interface IProductSerialImportService
     {
-        Task<(int SuccessCount, string Message)> ImportFromExcelAsync(string filePath);
+        Task<(int SuccessCount, string Message)> ImportFromExcelAsync(string filePath, int actorId);
     }
 
     public class ProductSerialImportService : IProductSerialImportService
@@ -25,8 +25,10 @@ namespace QuanLyHangHoa.Services
             _contextFactory = contextFactory;
         }
 
-        public async Task<(int SuccessCount, string Message)> ImportFromExcelAsync(string filePath)
+        public async Task<(int SuccessCount, string Message)> ImportFromExcelAsync(string filePath, int actorId)
         {
+            using var _context = _contextFactory();
+            AuthorizationService.RequireFreshActor(_context, actorId, PermissionAction.ManageMasterData);
             if (!File.Exists(filePath))
                 return (0, $"Lỗi: Không tìm thấy file Excel tại {filePath}");
 
@@ -71,7 +73,6 @@ namespace QuanLyHangHoa.Services
                 Console.WriteLine($"[IMPORT] Found {serialRows.Count()} rows in Serial sheet.");
 
                 // 3. Load Existing Data from DB
-                using var _context = _contextFactory();
                 var dbProducts = await _context.Products.ToDictionaryAsync(p => p.ProductCode, p => p.Id);
                 var defaultWarehouse = await _context.Warehouses.FirstOrDefaultAsync(w => w.IsDefault && w.IsActive) 
                                        ?? await _context.Warehouses.FirstOrDefaultAsync();
@@ -92,7 +93,8 @@ namespace QuanLyHangHoa.Services
                     WarehouseId = defaultWarehouse.Id,
                     CreatedAt = DateTime.Now,
                     PostedAt = DateTime.Now,
-                    CreatedBy = 1 // Admin
+                    CreatedBy = actorId,
+                    PostedBy = actorId
                 };
                 _context.StockIns.Add(stockIn);
                 await _context.SaveChangesAsync();

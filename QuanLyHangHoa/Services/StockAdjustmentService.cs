@@ -44,6 +44,7 @@ namespace QuanLyHangHoa.Services
         public virtual void SaveDraft(StockAdjustment adjustment, List<StockAdjustmentLine> lines, int userId)
         {
             using var db = _contextFactory();
+            AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockAdjustment);
             
             StockAdjustment? existing = null;
             if (adjustment.Id > 0)
@@ -98,6 +99,7 @@ namespace QuanLyHangHoa.Services
         public virtual void SubmitForApproval(int adjustmentId, int userId)
         {
             using var db = _contextFactory();
+            AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockAdjustment);
             var adjustment = db.StockAdjustments.SingleOrDefault(item => item.Id == adjustmentId)
                 ?? throw new InventoryDomainException("Không tìm thấy phiếu điều chỉnh.");
             var lifecycle = new StockDocumentLifecycleService();
@@ -108,9 +110,9 @@ namespace QuanLyHangHoa.Services
         public virtual void Approve(int adjustmentId, int userId)
         {
             using var db = _contextFactory();
+            var actor = AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockAdjustment);
             var adjustment = db.StockAdjustments.SingleOrDefault(item => item.Id == adjustmentId)
                 ?? throw new InventoryDomainException("Không tìm thấy phiếu điều chỉnh.");
-            var actor = db.AppUsers.AsNoTracking().SingleOrDefault(item => item.Id == userId);
             var lifecycle = new StockDocumentLifecycleService();
             adjustment.Status = lifecycle.Approve(
                 ParseStatus(adjustment.Status),
@@ -124,6 +126,7 @@ namespace QuanLyHangHoa.Services
         {
             using var db = _contextFactory();
             using var transaction = db.Database.BeginTransaction();
+            var actor = AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockAdjustment);
 
             var adjustment = db.StockAdjustments
                 .Include(item => item.Lines)
@@ -131,7 +134,6 @@ namespace QuanLyHangHoa.Services
                 ?? throw new InventoryDomainException("Không tìm thấy phiếu điều chỉnh.");
             var lifecycle = new StockDocumentLifecycleService();
             lifecycle.EnsureCanPost(ParseStatus(adjustment.Status));
-            var actor = db.AppUsers.AsNoTracking().SingleOrDefault(item => item.Id == userId);
             if (!AuthorizationService.CanPerform(actor, PermissionAction.ApproveStock))
             {
                 throw new InventoryDomainException("You are not authorized to approve stock documents.");

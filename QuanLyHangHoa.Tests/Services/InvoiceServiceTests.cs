@@ -50,7 +50,7 @@ public class InvoiceServiceTests
             }
         };
 
-        service.SaveSalesInvoice(invoice);
+        service.SaveSalesInvoice(invoice, 1);
 
         using var assertContext = DatabaseHelper.CreateContext(connection);
         var saved = assertContext.SalesInvoices.Include(i => i.Lines).Single();
@@ -101,7 +101,7 @@ public class InvoiceServiceTests
             }
         };
 
-        service.SavePurchaseInvoice(invoice);
+        service.SavePurchaseInvoice(invoice, 1);
 
         using var assertContext = DatabaseHelper.CreateContext(connection);
         var saved = assertContext.PurchaseInvoices.Include(i => i.Lines).Single();

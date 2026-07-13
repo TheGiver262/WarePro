@@ -332,7 +332,7 @@ namespace QuanLyHangHoa.ViewModels
                     };
                 }).ToList();
 
-                _stockCountService.CreateSession(session);
+                _stockCountService.CreateSession(session, _currentUser.Id);
                 MessageBox.Show("Đã lưu phiên kiểm kê ở dạng Nháp.", "Thông báo");
                 
                 Lines.Clear();
@@ -416,7 +416,7 @@ namespace QuanLyHangHoa.ViewModels
                     };
                 }).ToList();
 
-                _stockCountService.CreateSession(session);
+                _stockCountService.CreateSession(session, _currentUser.Id);
                 MessageBox.Show("Đã chốt phiên kiểm kê.", "Thông báo");
                 
                 Lines.Clear();
@@ -441,18 +441,7 @@ namespace QuanLyHangHoa.ViewModels
             {
                 using var db = _contextFactory();
                 
-                foreach (var line in SelectedSessionLines)
-                {
-                    var dbLine = db.StockCountLines.Find(line.Id);
-                    if (dbLine != null)
-                    {
-                        dbLine.CountedQuantity = line.CountedQuantity;
-                        dbLine.VarianceQuantity = line.CountedQuantity == -1m ? 0m : line.CountedQuantity - dbLine.SystemQuantity;
-                        dbLine.SerialNumbers = line.SerialNumbers;
-                    }
-                }
-
-                db.SaveChanges();
+                _stockCountService.UpdateDraft(SelectedSession.Id, SelectedSessionLines, _currentUser.Id);
                 MessageBox.Show("Đã lưu các thay đổi của phiên kiểm kê.", "Thông báo");
                 
                 var currentId = SelectedSession.Id;
@@ -498,26 +487,7 @@ namespace QuanLyHangHoa.ViewModels
 
             try
             {
-                using var db = _contextFactory();
-                
-                foreach (var line in SelectedSessionLines)
-                {
-                    var dbLine = db.StockCountLines.Find(line.Id);
-                    if (dbLine != null)
-                    {
-                        dbLine.CountedQuantity = line.CountedQuantity;
-                        dbLine.VarianceQuantity = line.CountedQuantity - dbLine.SystemQuantity;
-                        dbLine.SerialNumbers = line.SerialNumbers;
-                    }
-                }
-
-                var dbSession = db.StockCountSessions.Find(currentId);
-                if (dbSession != null)
-                {
-                    dbSession.Status = "đã kiểm kê";
-                }
-
-                db.SaveChanges();
+                _stockCountService.CommitSession(currentId, SelectedSessionLines, _currentUser.Id);
                 MessageBox.Show("Đã chốt phiên kiểm kê thành công.", "Thông báo");
                 
                 LoadPastSessions();

@@ -478,7 +478,7 @@ namespace QuanLyHangHoa.ViewModels
                     SalesInvoiceId = invoice.Id
                 }).ToList();
 
-                _invoiceService.SaveSalesInvoice(invoice);
+                _invoiceService.SaveSalesInvoice(invoice, _currentUser.Id);
                 MessageBox.Show("Lưu hoá đơn thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
                 
                 ResetForm();

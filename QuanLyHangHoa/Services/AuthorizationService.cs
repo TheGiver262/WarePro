@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using Microsoft.EntityFrameworkCore;
+using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
 
 namespace QuanLyHangHoa.Services
@@ -65,6 +68,20 @@ namespace QuanLyHangHoa.Services
                 && permissions.Contains(action);
         }
 
+
+        public static AppUser RequireFreshActor(
+            AppDbContext db,
+            int actorId,
+            PermissionAction action)
+        {
+            ArgumentNullException.ThrowIfNull(db);
+            var actor = db.AppUsers.AsNoTracking().SingleOrDefault(user => user.Id == actorId);
+            if (!CanPerform(actor, action))
+            {
+                throw new InvalidOperationException("The current user is not authorized for this action.");
+            }
+            return actor!;
+        }
         private static HashSet<PermissionAction> AllPermissions()
         {
             return new HashSet<PermissionAction>((PermissionAction[])Enum.GetValues(typeof(PermissionAction)));

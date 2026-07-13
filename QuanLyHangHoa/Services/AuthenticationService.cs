@@ -44,8 +44,6 @@ namespace QuanLyHangHoa.Services
             // Strict case-sensitive check in application logic
             if (user == null || user.Username != username)
             {
-                var systemUserId = db.AppUsers.OrderBy(u => u.Id).Select(u => u.Id).FirstOrDefault();
-                WriteAudit(db, "AppUser", 0, "LoginFailedUnknownUser", systemUserId == 0 ? 1 : systemUserId);
                 return LoginResult.Invalid(0);
             }
 

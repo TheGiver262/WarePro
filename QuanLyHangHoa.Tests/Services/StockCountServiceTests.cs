@@ -33,7 +33,7 @@ public class StockCountServiceTests
             Status = "Draft"
         };
 
-        service.CreateSession(session);
+        service.CreateSession(session, 1);
 
         using var assertContext = DatabaseHelper.CreateContext(connection);
         var saved = assertContext.StockCountSessions.Single();
@@ -133,7 +133,7 @@ public class StockCountServiceTests
             Status = "đã kiểm kê"
         };
 
-        service.CreateSession(session);
+        service.CreateSession(session, 1);
 
         using var assertContext = DatabaseHelper.CreateContext(connection);
         var logs = assertContext.AuditLogs.ToList();

@@ -50,6 +50,7 @@ namespace QuanLyHangHoa.Services
         public virtual void SaveDraft(StockTransfer stockTransfer, List<StockTransferLine> lines, int userId)
         {
             using var db = _contextFactory();
+            AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockAdjustment);
             
             // Map transient ProductSerial objects to database-tracked ones to avoid UNIQUE KEY constraint errors
             foreach (var line in lines)
@@ -126,6 +127,7 @@ namespace QuanLyHangHoa.Services
         public virtual void SubmitForApproval(int stockTransferId, int userId)
         {
             using var db = _contextFactory();
+            AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockAdjustment);
             var transfer = db.StockTransfers.SingleOrDefault(item => item.Id == stockTransferId)
                 ?? throw new InventoryDomainException("Không tìm thấy phiếu chuyển kho.");
             var beforeJson = Serialize(transfer);
@@ -140,9 +142,9 @@ namespace QuanLyHangHoa.Services
         public virtual void Approve(int stockTransferId, int userId)
         {
             using var db = _contextFactory();
+            var actor = AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockAdjustment);
             var transfer = db.StockTransfers.SingleOrDefault(item => item.Id == stockTransferId)
                 ?? throw new InventoryDomainException("Không tìm thấy phiếu chuyển kho.");
-            var actor = db.AppUsers.AsNoTracking().SingleOrDefault(item => item.Id == userId);
             var lifecycle = new StockDocumentLifecycleService();
             var beforeJson = Serialize(transfer);
             transfer.Status = lifecycle.Approve(
@@ -160,6 +162,7 @@ namespace QuanLyHangHoa.Services
         {
             using var db = _contextFactory();
             using var transaction = db.Database.BeginTransaction();
+            var actor = AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockAdjustment);
 
             var stockTransfer = db.StockTransfers
                 .Include(transfer => transfer.Lines)
@@ -168,7 +171,6 @@ namespace QuanLyHangHoa.Services
                 ?? throw new InventoryDomainException("Không tìm thấy phiếu chuyển kho.");
             var lifecycle = new StockDocumentLifecycleService();
             lifecycle.EnsureCanPost(ParseStatus(stockTransfer.Status));
-            var actor = db.AppUsers.AsNoTracking().SingleOrDefault(item => item.Id == userId);
             if (!AuthorizationService.CanPerform(actor, PermissionAction.ApproveStock))
             {
                 throw new InventoryDomainException("You are not authorized to approve stock documents.");
@@ -279,6 +281,7 @@ namespace QuanLyHangHoa.Services
         public virtual void Delete(int id, int userId)
         {
             using var db = _contextFactory();
+            AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockAdjustment);
             var stockTransfer = db.StockTransfers
                 .Include(s => s.Lines)
                 .FirstOrDefault(s => s.Id == id);

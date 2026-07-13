@@ -16,11 +16,16 @@ namespace QuanLyHangHoa.Services
             _contextFactory = contextFactory;
         }
 
-        public void SaveSalesInvoice(SalesInvoice invoice)
+        public void SaveSalesInvoice(SalesInvoice invoice, int actorId)
         {
             using var db = _contextFactory();
             using var transaction = db.Database.BeginTransaction(System.Data.IsolationLevel.Serializable);
+            AuthorizationService.RequireFreshActor(db, actorId, PermissionAction.CreateSalesInvoice);
             var isNew = invoice.Id == 0;
+            if (isNew)
+            {
+                invoice.CreatedBy = actorId;
+            }
             try
             {
                 var stockOut = PrepareSalesInvoice(db, invoice);
@@ -39,11 +44,16 @@ namespace QuanLyHangHoa.Services
             }
         }
 
-        public void SavePurchaseInvoice(PurchaseInvoice invoice)
+        public void SavePurchaseInvoice(PurchaseInvoice invoice, int actorId)
         {
             using var db = _contextFactory();
             using var transaction = db.Database.BeginTransaction(System.Data.IsolationLevel.Serializable);
+            AuthorizationService.RequireFreshActor(db, actorId, PermissionAction.CreatePurchaseInvoice);
             var isNew = invoice.Id == 0;
+            if (isNew)
+            {
+                invoice.CreatedBy = actorId;
+            }
             try
             {
                 PreparePurchaseInvoice(db, invoice);

@@ -156,6 +156,7 @@ namespace QuanLyHangHoa.Services
         public virtual void SaveDraft(StockIn stockIn, List<StockInLine> lines, int userId)
         {
             using var db = _contextFactory();
+            AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockIn);
             
             StockIn? existing = null;
             if (stockIn.Id > 0)
@@ -250,6 +251,7 @@ namespace QuanLyHangHoa.Services
         public virtual void SubmitForApproval(int stockInId, int userId)
         {
             using var db = _contextFactory();
+            AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockIn);
             var stockIn = db.StockIns.SingleOrDefault(item => item.Id == stockInId)
                 ?? throw new InventoryDomainException("Không tìm thấy phiếu nhập kho.");
             var beforeJson = Serialize(stockIn);
@@ -264,9 +266,9 @@ namespace QuanLyHangHoa.Services
         public virtual void Approve(int stockInId, int userId)
         {
             using var db = _contextFactory();
+            var actor = AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockIn);
             var stockIn = db.StockIns.SingleOrDefault(item => item.Id == stockInId)
                 ?? throw new InventoryDomainException("Không tìm thấy phiếu nhập kho.");
-            var actor = db.AppUsers.AsNoTracking().SingleOrDefault(item => item.Id == userId);
             var beforeJson = Serialize(stockIn);
             var lifecycle = new StockDocumentLifecycleService();
             stockIn.Status = lifecycle.Approve(
@@ -284,6 +286,7 @@ namespace QuanLyHangHoa.Services
         {
             using var db = _contextFactory();
             using var transaction = db.Database.BeginTransaction();
+            var actor = AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockIn);
 
             var stockIn = db.StockIns
                 .Include(item => item.Lines)
@@ -292,7 +295,6 @@ namespace QuanLyHangHoa.Services
                 ?? throw new InventoryDomainException("Không tìm thấy phiếu nhập kho.");
             var lifecycle = new StockDocumentLifecycleService();
             lifecycle.EnsureCanPost(ParseStatus(stockIn.Status));
-            var actor = db.AppUsers.AsNoTracking().SingleOrDefault(item => item.Id == userId);
             if (!AuthorizationService.CanPerform(actor, PermissionAction.ApproveStock))
             {
                 throw new InventoryDomainException("You are not authorized to approve stock documents.");
@@ -509,6 +511,7 @@ namespace QuanLyHangHoa.Services
         public virtual void Delete(int id, int userId)
         {
             using var db = _contextFactory();
+            AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockIn);
             var stockIn = db.StockIns
                 .Include(s => s.Lines)
                 .FirstOrDefault(s => s.Id == id);

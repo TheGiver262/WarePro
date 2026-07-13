@@ -19,7 +19,7 @@ public class InvoiceIntegrityTests
         var service = new InvoiceService(() => DatabaseHelper.CreateContext(connection));
         var invoice = NewUnlinkedSalesInvoice("SI-PARTIAL", paidAmount: 50m);
 
-        service.SaveSalesInvoice(invoice);
+        service.SaveSalesInvoice(invoice, 1);
 
         using var assertContext = DatabaseHelper.CreateContext(connection);
         Assert.Equal(PaymentStatus.PartiallyPaid, assertContext.SalesInvoices.Single().PaymentStatus);
@@ -34,7 +34,7 @@ public class InvoiceIntegrityTests
         var service = new InvoiceService(() => DatabaseHelper.CreateContext(connection));
         var invoice = NewUnlinkedSalesInvoice("SI-BAD-PAYMENT", paidAmount);
 
-        Assert.Throws<InvalidOperationException>(() => service.SaveSalesInvoice(invoice));
+        Assert.Throws<InvalidOperationException>(() => service.SaveSalesInvoice(invoice, 1));
 
         using var assertContext = DatabaseHelper.CreateContext(connection);
         Assert.Empty(assertContext.SalesInvoices);
@@ -63,7 +63,7 @@ public class InvoiceIntegrityTests
         var service = new InvoiceService(() => DatabaseHelper.CreateContext(connection));
         var invoice = NewLinkedSalesInvoice("SI-INVALID-LINK", 200, customerId, quantity);
 
-        Assert.Throws<InvalidOperationException>(() => service.SaveSalesInvoice(invoice));
+        Assert.Throws<InvalidOperationException>(() => service.SaveSalesInvoice(invoice, 1));
 
         using var assertContext = DatabaseHelper.CreateContext(connection);
         Assert.Empty(assertContext.SalesInvoices);
@@ -92,7 +92,7 @@ public class InvoiceIntegrityTests
         var service = new InvoiceService(() => DatabaseHelper.CreateContext(connection));
         var invoice = NewLinkedPurchaseInvoice("PI-INVALID-LINK", 100, supplierId, quantity);
 
-        Assert.Throws<InvalidOperationException>(() => service.SavePurchaseInvoice(invoice));
+        Assert.Throws<InvalidOperationException>(() => service.SavePurchaseInvoice(invoice, 1));
 
         using var assertContext = DatabaseHelper.CreateContext(connection);
         Assert.Empty(assertContext.PurchaseInvoices);
@@ -106,7 +106,7 @@ public class InvoiceIntegrityTests
         var first = NewLinkedSalesInvoice("SI-LINKED-1", 200, 1, 1);
         first.Lines.Single().UnitPrice = 999m;
 
-        service.SaveSalesInvoice(first);
+        service.SaveSalesInvoice(first, 1);
 
         using (var assertContext = DatabaseHelper.CreateContext(connection))
         {
@@ -116,7 +116,7 @@ public class InvoiceIntegrityTests
         }
 
         var reused = NewLinkedSalesInvoice("SI-LINKED-2", 200, 1, 1);
-        Assert.Throws<InvalidOperationException>(() => service.SaveSalesInvoice(reused));
+        Assert.Throws<InvalidOperationException>(() => service.SaveSalesInvoice(reused, 1));
     }
 
     [Fact]
@@ -127,7 +127,7 @@ public class InvoiceIntegrityTests
         var first = NewLinkedPurchaseInvoice("PI-LINKED-1", 100, 1, 1);
         first.Lines.Single().UnitPrice = 999m;
 
-        service.SavePurchaseInvoice(first);
+        service.SavePurchaseInvoice(first, 1);
 
         using (var assertContext = DatabaseHelper.CreateContext(connection))
         {
@@ -137,7 +137,7 @@ public class InvoiceIntegrityTests
         }
 
         var reused = NewLinkedPurchaseInvoice("PI-LINKED-2", 100, 1, 1);
-        Assert.Throws<InvalidOperationException>(() => service.SavePurchaseInvoice(reused));
+        Assert.Throws<InvalidOperationException>(() => service.SavePurchaseInvoice(reused, 1));
     }
 
     [Fact]
@@ -159,7 +159,7 @@ public class InvoiceIntegrityTests
         var service = new InvoiceService(() => DatabaseHelper.CreateContext(connection));
         var invoice = NewLinkedSalesInvoice("SI-ROLLBACK", 200, 1, 1);
 
-        Assert.Throws<DbUpdateException>(() => service.SaveSalesInvoice(invoice));
+        Assert.Throws<DbUpdateException>(() => service.SaveSalesInvoice(invoice, 1));
 
         using var assertContext = DatabaseHelper.CreateContext(connection);
         Assert.Empty(assertContext.SalesInvoices);
@@ -173,7 +173,7 @@ public class InvoiceIntegrityTests
         var service = new InvoiceService(() => DatabaseHelper.CreateContext(connection));
         var invoice = NewLinkedSalesInvoice("SI-RECONCILE", 200, 1, 1);
         invoice.InvoiceDate = new DateTime(2026, 1, 10);
-        service.SaveSalesInvoice(invoice);
+        service.SaveSalesInvoice(invoice, 1);
 
         using (var arrangeContext = DatabaseHelper.CreateContext(connection))
         {
@@ -184,7 +184,7 @@ public class InvoiceIntegrityTests
         var retainedUpdate = NewLinkedSalesInvoice("SI-RECONCILE", 200, 2, 1);
         retainedUpdate.Id = invoice.Id;
         retainedUpdate.InvoiceDate = new DateTime(2026, 2, 10);
-        service.SaveSalesInvoice(retainedUpdate);
+        service.SaveSalesInvoice(retainedUpdate, 1);
 
         using (var retainedContext = DatabaseHelper.CreateContext(connection))
         {
@@ -198,7 +198,7 @@ public class InvoiceIntegrityTests
         var stockOutUpdate = NewLinkedSalesInvoice("SI-RECONCILE", 210, 2, 1);
         stockOutUpdate.Id = invoice.Id;
         stockOutUpdate.InvoiceDate = new DateTime(2026, 3, 10);
-        service.SaveSalesInvoice(stockOutUpdate);
+        service.SaveSalesInvoice(stockOutUpdate, 1);
 
         using var assertContext = DatabaseHelper.CreateContext(connection);
         var coverages = assertContext.WarrantyCoverages.OrderBy(coverage => coverage.ProductSerialId).ToList();
@@ -217,7 +217,7 @@ public class InvoiceIntegrityTests
         var service = new InvoiceService(() => DatabaseHelper.CreateContext(connection));
         var invoice = NewLinkedSalesInvoice("SI-TRANSFERRED", 200, 1, 1);
         invoice.InvoiceDate = new DateTime(2026, 1, 10);
-        service.SaveSalesInvoice(invoice);
+        service.SaveSalesInvoice(invoice, 1);
 
         var replacementStart = new DateTime(2026, 5, 1);
         var replacementEnd = new DateTime(2026, 11, 1);
@@ -254,7 +254,7 @@ public class InvoiceIntegrityTests
         var update = NewLinkedSalesInvoice("SI-TRANSFERRED", 200, 1, 1);
         update.Id = invoice.Id;
         update.InvoiceDate = new DateTime(2026, 6, 10);
-        service.SaveSalesInvoice(update);
+        service.SaveSalesInvoice(update, 1);
 
         using var assertContext = DatabaseHelper.CreateContext(connection);
         var originalCoverage = assertContext.WarrantyCoverages.Single(coverage => coverage.Id == originalCoverageId);
@@ -278,7 +278,7 @@ public class InvoiceIntegrityTests
             stockOutId: 220,
             customerId: 1,
             quantity: 1,
-            productId: 911));
+            productId: 911), 1);
 
         using var assertContext = DatabaseHelper.CreateContext(connection);
         Assert.Empty(assertContext.WarrantyCoverages);
@@ -300,7 +300,7 @@ public class InvoiceIntegrityTests
                 "SI-NEGATIVE-WARRANTY",
                 stockOutId: 200,
                 customerId: 1,
-                quantity: 1)));
+                quantity: 1), 1));
 
         Assert.Contains("warranty period", exception.Message, StringComparison.OrdinalIgnoreCase);
         using var assertContext = DatabaseHelper.CreateContext(connection);
