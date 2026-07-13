@@ -435,6 +435,11 @@ public partial class AppDbContext : DbContext
             entity.ToTable("StockAdjustment");
 
             entity.HasIndex(e => e.DocumentCode, "UX_StockAdjustment_DocumentCode").IsUnique();
+            entity.HasIndex(
+                    e => new { e.ReferenceDocumentType, e.ReferenceDocumentId, e.AdjustmentType },
+                    "UX_StockAdjustment_Reversal_Source")
+                .IsUnique()
+                .HasFilter("[AdjustmentType] = 'Reversal' AND [ReferenceDocumentType] IS NOT NULL AND [ReferenceDocumentId] IS NOT NULL");
 
             entity.Property(e => e.AdjustmentType).HasMaxLength(50);
             entity.Property(e => e.ApprovedAt).HasPrecision(0);

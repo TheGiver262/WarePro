@@ -29,6 +29,25 @@ public class StockReversalServiceTests
                 DefaultPrice = 10m,
                 IsSerialTracked = false
                  });
+            seedContext.StockIns.Add(new StockIn
+            {
+                Id = originalDocumentId,
+                DocumentCode = "PIN-LEGACY-REVERSAL",
+                WarehouseId = 1,
+                PurposeCode = "Purchase",
+                Status = "Posted",
+                CreatedBy = 1,
+                PostedBy = 1,
+                CreatedAt = new DateTime(2026, 4, 27, 15, 0, 0),
+                PostedAt = new DateTime(2026, 4, 27, 16, 0, 0)
+            });
+            seedContext.StockBalances.Add(new StockBalance
+            {
+                WarehouseId = 1,
+                ProductId = 700,
+                OnHandQuantity = 10m,
+                AvailableQuantity = 10m
+            });
             seedContext.StockLedgers.Add(new StockLedger
             {
                 SourceDocumentType = "StockIn",

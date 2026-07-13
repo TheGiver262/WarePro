@@ -20,9 +20,9 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _reason = "WrongPosting";
         [ObservableProperty] private string _statusMessage = string.Empty;
 
-        public StockReversalViewModel(AppUser? currentUser = null, Func<AppDbContext>? contextFactory = null)
+        public StockReversalViewModel(AppUser currentUser, Func<AppDbContext>? contextFactory = null)
             : this(
-                currentUser ?? new AppUser { Id = 1 },
+                currentUser,
                 new StockReversalService(contextFactory ?? (() => new QuanLyHangHoa.Data.AppDbContext())).ReversePostedLedgerDocument,
                 (message, title) => MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information))
         {
@@ -33,6 +33,7 @@ namespace QuanLyHangHoa.ViewModels
             Func<string, int, int, int> reverseDocument,
             Action<string, string> showMessage)
         {
+            ArgumentNullException.ThrowIfNull(currentUser);
             _currentUser = currentUser;
             _reverseDocument = reverseDocument;
             _showMessage = showMessage;
@@ -58,6 +59,11 @@ namespace QuanLyHangHoa.ViewModels
             try
             {
                 var adjustmentId = _reverseDocument(DocumentType, documentId, _currentUser.Id);
+                if (adjustmentId <= 0)
+                {
+                    throw new InventoryDomainException("Không tìm thấy chứng từ kho đã ghi sổ.");
+                }
+
                 StatusMessage = $"Đã đảo chứng từ kho, adjustment #{adjustmentId}.";
                 _showMessage(StatusMessage, "Thông báo");
             }

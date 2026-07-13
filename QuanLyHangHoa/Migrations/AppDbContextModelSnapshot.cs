@@ -753,6 +753,10 @@ namespace QuanLyHangHoa.Migrations
                     b.HasIndex(new[] { "DocumentCode" }, "UX_StockAdjustment_DocumentCode")
                         .IsUnique();
 
+                    b.HasIndex(new[] { "ReferenceDocumentType", "ReferenceDocumentId", "AdjustmentType" }, "UX_StockAdjustment_Reversal_Source")
+                        .IsUnique()
+                        .HasFilter("[AdjustmentType] = 'Reversal' AND [ReferenceDocumentType] IS NOT NULL AND [ReferenceDocumentId] IS NOT NULL");
+
                     b.ToTable("StockAdjustment", (string)null);
                 });
 
