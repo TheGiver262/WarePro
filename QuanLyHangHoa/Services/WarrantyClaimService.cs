@@ -37,13 +37,6 @@ namespace QuanLyHangHoa.Services
                     : storedStatus;
         }
 
-        public void CreateClaim(WarrantyClaim claim)
-        {
-            using var db = _contextFactory();
-            db.WarrantyClaims.Add(claim);
-            db.SaveChanges();
-        }
-
         public void UpdateClaim(WarrantyClaim claim)
         {
             using var db = _contextFactory();
@@ -56,7 +49,8 @@ namespace QuanLyHangHoa.Services
                     "Warranty claim status must be changed through a warranty action.");
             }
 
-            db.Entry(existing).CurrentValues.SetValues(claim);
+            existing.ProblemDescription = claim.ProblemDescription;
+            existing.ExpectedReturnDate = claim.ExpectedReturnDate;
             db.SaveChanges();
         }
 
@@ -105,8 +99,8 @@ namespace QuanLyHangHoa.Services
             var coverage = db.WarrantyCoverages.FirstOrDefault(c =>
                 c.ProductSerialId == serial.Id
                 && c.CoverageStatus == "Active"
-                && c.WarrantyStartDate <= today
-                && c.WarrantyEndDate >= today)
+                && c.WarrantyStartDate.Date <= today
+                && c.WarrantyEndDate.Date >= today)
                 ?? throw new InvalidOperationException($"Serial {serialNumber} không có bảo hành còn hiệu lực.");
 
             var claim = new WarrantyClaim
@@ -613,8 +607,8 @@ namespace QuanLyHangHoa.Services
                 .FirstOrDefault(c =>
                     c.ProductSerialId == serial.Id
                     && c.CoverageStatus == "Active"
-                    && c.WarrantyStartDate <= today
-                    && c.WarrantyEndDate >= today);
+                    && c.WarrantyStartDate.Date <= today
+                    && c.WarrantyEndDate.Date >= today);
         }
 
         private sealed class DbDefaultWarehouseProvider : IDefaultWarehouseProvider

@@ -272,15 +272,22 @@ namespace QuanLyHangHoa.ViewModels
             SelectedWarranty = null;
             ResetForm();
 
-            // Load available serials from Database
+            LoadAvailableSerials();
+
+            var createClaimWindow = new Views.CreateWarrantyWindow(this);
+            createClaimWindow.ShowDialog();
+        }
+
+        public void LoadAvailableSerials()
+        {
             try
             {
                 using var db = _contextFactory();
                 var serials = db.ProductSerials
                     .Where(s => s.WarrantyCoverage != null
                         && s.WarrantyCoverage.CoverageStatus == "Active"
-                        && s.WarrantyCoverage.WarrantyStartDate <= DateTime.Today
-                        && s.WarrantyCoverage.WarrantyEndDate >= DateTime.Today)
+                        && s.WarrantyCoverage.WarrantyStartDate.Date <= DateTime.Today
+                        && s.WarrantyCoverage.WarrantyEndDate.Date >= DateTime.Today)
                     .Select(s => s.SerialNumber)
                     .Distinct()
                     .OrderBy(s => s)
@@ -291,9 +298,6 @@ namespace QuanLyHangHoa.ViewModels
             {
                 System.Diagnostics.Debug.WriteLine($"Lỗi tải danh sách Serial: {ex.Message}");
             }
-
-            var createClaimWindow = new Views.CreateWarrantyWindow(this);
-            createClaimWindow.ShowDialog();
         }
 
         [RelayCommand]

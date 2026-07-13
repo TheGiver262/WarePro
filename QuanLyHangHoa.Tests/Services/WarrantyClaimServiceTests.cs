@@ -92,7 +92,7 @@ public class WarrantyClaimServiceTests
     }
 
     [Fact]
-    public void CreateClaim_for_active_coverage_creates_checking_claim_and_marks_serial_in_warranty()
+    public void CreateClaim_accepts_coverage_starting_later_today()
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
@@ -119,8 +119,8 @@ public class WarrantyClaimServiceTests
             {
                 ProductSerialId = serialId,
                 CustomerId = 1,
-                WarrantyStartDate = new DateTime(2026, 1, 1),
-                WarrantyEndDate = new DateTime(2027, 1, 1),
+                WarrantyStartDate = DateTime.Today.AddHours(23),
+                WarrantyEndDate = DateTime.Today.AddDays(30),
                 CoverageStatus = "Active"
             });
             seedContext.SaveChanges();
@@ -128,6 +128,7 @@ public class WarrantyClaimServiceTests
 
         var service = new WarrantyClaimService(() => CreateContext(connection));
 
+        Assert.NotNull(service.GetCoverageBySerial("WARRANTY-001"));
         var claimId = service.CreateClaim("WC-0001", "WARRANTY-001", "Screen flicker", userId: 4);
 
         using var assertContext = CreateContext(connection);
@@ -667,6 +668,58 @@ public class WarrantyClaimServiceTests
         var unchanged = assertContext.WarrantyClaims.Single(item => item.Id == claimId);
         Assert.Null(unchanged.ProcessingNote);
         Assert.Equal(status, unchanged.Status);
+    }
+
+    [Fact]
+    public void UpdateClaim_cannot_forge_replacement_approval_or_transition_owned_fields()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        var claimId = SeedReplacementClaim(
+            connection,
+            "Ready",
+            twoReplacementSerials: false,
+            resolutionType: "Repair");
+        WarrantyClaim detached;
+        int replacementSerialId;
+        using (var arrangeContext = CreateContext(connection))
+        {
+            detached = arrangeContext.WarrantyClaims
+                .AsNoTracking()
+                .Single(item => item.Id == claimId);
+            replacementSerialId = arrangeContext.ProductSerials
+                .Single(item => item.SerialNumber == "REPLACEMENT-1")
+                .Id;
+        }
+        detached.ProblemDescription = "Updated symptom";
+        detached.ResolutionType = "Replace";
+        detached.ApprovedBy = 4;
+        detached.ClosedDate = DateTime.Today;
+        detached.ReplacementSerialId = replacementSerialId;
+
+        var service = new WarrantyClaimService(() => CreateContext(connection));
+        service.UpdateClaim(detached);
+
+        using var assertContext = CreateContext(connection);
+        var stored = assertContext.WarrantyClaims.Single(item => item.Id == claimId);
+        Assert.Equal("Updated symptom", stored.ProblemDescription);
+        Assert.Equal("Repair", stored.ResolutionType);
+        Assert.Null(stored.ApprovedBy);
+        Assert.Null(stored.ClosedDate);
+        Assert.Null(stored.ReplacementSerialId);
+    }
+
+    [Fact]
+    public void WarrantyClaimService_does_not_expose_raw_entity_creation()
+    {
+        var unsafeOverload = typeof(WarrantyClaimService)
+            .GetMethods()
+            .SingleOrDefault(method =>
+                method.Name == nameof(WarrantyClaimService.CreateClaim)
+                && method.GetParameters() is [{ ParameterType: var parameterType }]
+                && parameterType == typeof(WarrantyClaim));
+
+        Assert.Null(unsafeOverload);
     }
 
     private static int SeedReplacementClaim(

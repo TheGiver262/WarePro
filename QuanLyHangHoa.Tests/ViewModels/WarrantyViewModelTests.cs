@@ -47,8 +47,8 @@ namespace QuanLyHangHoa.Tests.ViewModels
                 {
                     ProductSerialId = serial.Id,
                     CustomerId = 1,
-                    WarrantyStartDate = new DateTime(2026, 1, 1),
-                    WarrantyEndDate = new DateTime(2027, 1, 1),
+                    WarrantyStartDate = DateTime.Today.AddHours(23),
+                    WarrantyEndDate = DateTime.Today.AddDays(30),
                     CoverageStatus = "Active"
                 });
                 seedContext.SaveChanges();
@@ -58,6 +58,9 @@ namespace QuanLyHangHoa.Tests.ViewModels
                 new AppUser { Id = 42, FullName = "Nhan vien" },
                 () => DatabaseHelper.CreateContext(connection),
                 (msg, title) => { });
+
+            viewModel.LoadAvailableSerials();
+            Assert.Contains("SERIAL-001", viewModel.AvailableSerials);
 
             viewModel.ClaimCode = "WC-001";
             viewModel.SerialNumber = "SERIAL-001";
