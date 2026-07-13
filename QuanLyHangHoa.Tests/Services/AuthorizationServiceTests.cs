@@ -1,11 +1,37 @@
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
 using Xunit;
+using System.Reflection;
+using QuanLyHangHoa.Data;
+using QuanLyHangHoa.ViewModels;
 
 namespace QuanLyHangHoa.Tests.Services;
 
 public class AuthorizationServiceTests
 {
+    [Theory]
+    [InlineData(typeof(AppUserViewModel))]
+    [InlineData(typeof(MainViewModel))]
+    [InlineData(typeof(StockInViewModel))]
+    [InlineData(typeof(StockOutViewModel))]
+    [InlineData(typeof(StockTransferViewModel))]
+    [InlineData(typeof(StockAdjustmentViewModel))]
+    [InlineData(typeof(StockCountViewModel))]
+    [InlineData(typeof(StockReversalViewModel))]
+    [InlineData(typeof(SalesInvoiceViewModel))]
+    [InlineData(typeof(PurchaseInvoiceViewModel))]
+    public void Authenticated_view_models_reject_null_user(Type viewModelType)
+    {
+        var constructor = viewModelType.GetConstructor([typeof(AppUser), typeof(Func<AppDbContext>)]);
+
+        Assert.NotNull(constructor);
+        Func<AppDbContext> unusedFactory = () => throw new InvalidOperationException("Context must not be created for a null user.");
+        var exception = Assert.Throws<TargetInvocationException>(() =>
+            constructor.Invoke([null, unusedFactory]));
+
+        Assert.IsType<ArgumentNullException>(exception.InnerException);
+    }
+
     [Fact]
     public void Admin_can_perform_every_known_action()
     {

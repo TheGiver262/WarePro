@@ -6,13 +6,15 @@ using QuanLyHangHoa.Views;
 using QuanLyHangHoa.Services;
 using System.Windows.Controls;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using System.Linq;
 
 namespace QuanLyHangHoa.ViewModels
 {
     public partial class MainViewModel : ObservableObject
     {
         [ObservableProperty]
-        private AppUser _currentUser;
+        private AppUser? _currentUser;
 
         [ObservableProperty]
         private UserControl? _currentView;
@@ -39,14 +41,28 @@ namespace QuanLyHangHoa.ViewModels
         public Func<Data.AppDbContext> ContextFactory { get; }
         private readonly DashboardService _dashboardService;
         private readonly System.Collections.Generic.Dictionary<string, UserControl> _viewCache = new();
+        private readonly int _authenticatedUserId;
+        private readonly Action _invalidateSession;
+        private bool _sessionInvalidated;
 
         public MainViewModel(AppUser user, Func<Data.AppDbContext> contextFactory)
+            : this(user, contextFactory, null)
         {
+            OpenDashboard();
+        }
+
+        public MainViewModel(
+            AppUser user,
+            Func<Data.AppDbContext> contextFactory,
+            Action? invalidateSession)
+        {
+            ArgumentNullException.ThrowIfNull(user);
+            ArgumentNullException.ThrowIfNull(contextFactory);
             CurrentUser = user;
+            _authenticatedUserId = user.Id;
             ContextFactory = contextFactory;
             _dashboardService = new DashboardService(ContextFactory);
-            
-            OpenDashboard();
+            _invalidateSession = invalidateSession ?? Logout;
         }
 
         public Task LoadInitialViewAsync()
@@ -54,6 +70,53 @@ namespace QuanLyHangHoa.ViewModels
             return CurrentView?.DataContext is DashboardViewModel dashboard
                 ? dashboard.EnsureLoadedAsync()
                 : Task.CompletedTask;
+        }
+
+        private bool CanManageUsers()
+        {
+            var previousUser = CurrentUser;
+            using var db = ContextFactory();
+            var refreshedUser = db.AppUsers
+                .AsNoTracking()
+                .SingleOrDefault(user => user.Id == _authenticatedUserId);
+            var authorizationChanged = previousUser == null ||
+                refreshedUser == null ||
+                previousUser.IsActive != refreshedUser.IsActive ||
+                !string.Equals(previousUser.RoleCode, refreshedUser.RoleCode, StringComparison.OrdinalIgnoreCase);
+
+            CurrentUser = refreshedUser;
+            NotifyAuthorizationChanged();
+            var canManageUsers = AuthorizationService.CanPerform(refreshedUser, PermissionAction.ManageUsers);
+
+            if (refreshedUser == null ||
+                !refreshedUser.IsActive ||
+                authorizationChanged && !canManageUsers)
+            {
+                InvalidateSession();
+            }
+
+            return canManageUsers;
+        }
+
+        private void NotifyAuthorizationChanged()
+        {
+            OnPropertyChanged(nameof(IsAdmin));
+            OnPropertyChanged(nameof(CanViewLogs));
+            OnPropertyChanged(nameof(CanAccessStockIn));
+            OnPropertyChanged(nameof(CanAccessStockOut));
+            OnPropertyChanged(nameof(CanAccessStockAdjustment));
+            OnPropertyChanged(nameof(CanAccessPurchaseInvoices));
+            OnPropertyChanged(nameof(CanAccessSalesInvoices));
+            OnPropertyChanged(nameof(CanAccessWarranty));
+            OnPropertyChanged(nameof(CanAccessReports));
+        }
+
+        private void InvalidateSession()
+        {
+            if (_sessionInvalidated) return;
+            _sessionInvalidated = true;
+            _viewCache.Clear();
+            _invalidateSession();
         }
 
         private void NavigateToView<TView>(string cacheKey, Func<TView> viewFactory, string title, string subtitle) where TView : UserControl
@@ -85,49 +148,49 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void OpenProductView()
         {
-            NavigateToView("Product", () => new ProductView { DataContext = new ProductViewModel(ContextFactory, CurrentUser) }, "KHO HÀNG", "Quản lý danh mục sản phẩm và tồn kho");
+            NavigateToView("Product", () => new ProductView { DataContext = new ProductViewModel(ContextFactory, CurrentUser!) }, "KHO HÀNG", "Quản lý danh mục sản phẩm và tồn kho");
         }
 
         [RelayCommand(CanExecute = nameof(CanAccessStockOut))]
         private void OpenStockOutView()
         {
-            NavigateToView("StockOut", () => new StockOutView { DataContext = new StockOutViewModel(CurrentUser, ContextFactory) }, "XUẤT KHO", "Lập phiếu xuất kho và quản lý hàng xuất");
+            NavigateToView("StockOut", () => new StockOutView { DataContext = new StockOutViewModel(CurrentUser!, ContextFactory) }, "XUẤT KHO", "Lập phiếu xuất kho và quản lý hàng xuất");
         }
 
         [RelayCommand(CanExecute = nameof(CanAccessStockIn))]
         private void OpenStockInView()
         {
-            NavigateToView("StockIn", () => new StockInView { DataContext = new StockInViewModel(CurrentUser, ContextFactory) }, "NHẬP KHO", "Lập phiếu nhập kho và quản lý hàng nhập");
+            NavigateToView("StockIn", () => new StockInView { DataContext = new StockInViewModel(CurrentUser!, ContextFactory) }, "NHẬP KHO", "Lập phiếu nhập kho và quản lý hàng nhập");
         }
 
         [RelayCommand(CanExecute = nameof(CanAccessStockAdjustment))]
         private void OpenStockTransferView()
         {
-            NavigateToView("StockTransfer", () => new StockTransferView { DataContext = new StockTransferViewModel(CurrentUser, ContextFactory) }, "CHUYỂN KHO", "Điều chuyển hàng hóa giữa các kho nội bộ");
+            NavigateToView("StockTransfer", () => new StockTransferView { DataContext = new StockTransferViewModel(CurrentUser!, ContextFactory) }, "CHUYỂN KHO", "Điều chuyển hàng hóa giữa các kho nội bộ");
         }
 
         [RelayCommand(CanExecute = nameof(CanAccessStockAdjustment))]
         private void OpenStockAdjustmentView()
         {
-            NavigateToView("StockAdjustment", () => new StockAdjustmentView { DataContext = new StockAdjustmentViewModel(CurrentUser, ContextFactory) }, "ĐIỀU CHỈNH", "Điều chỉnh số lượng tồn kho thực tế");
+            NavigateToView("StockAdjustment", () => new StockAdjustmentView { DataContext = new StockAdjustmentViewModel(CurrentUser!, ContextFactory) }, "ĐIỀU CHỈNH", "Điều chỉnh số lượng tồn kho thực tế");
         }
 
         [RelayCommand(CanExecute = nameof(CanAccessStockAdjustment))]
         private void OpenStockCountView()
         {
-            NavigateToView("StockCount", () => new StockCountView { DataContext = new StockCountViewModel(CurrentUser, ContextFactory) }, "KIỂM KÊ", "Kiểm kê định kỳ và đối soát hàng hóa");
+            NavigateToView("StockCount", () => new StockCountView { DataContext = new StockCountViewModel(CurrentUser!, ContextFactory) }, "KIỂM KÊ", "Kiểm kê định kỳ và đối soát hàng hóa");
         }
 
         [RelayCommand(CanExecute = nameof(CanAccessPurchaseInvoices))]
         private void OpenPurchaseInvoiceView()
         {
-            NavigateToView("PurchaseInvoice", () => new PurchaseInvoiceView { DataContext = new PurchaseInvoiceViewModel(this) }, "HÓA ĐƠN MUA", "Quản lý hóa đơn nhập hàng từ NCC");
+            NavigateToView("PurchaseInvoice", () => new PurchaseInvoiceView { DataContext = new PurchaseInvoiceViewModel(CurrentUser!, ContextFactory) }, "HÓA ĐƠN MUA", "Quản lý hóa đơn nhập hàng từ NCC");
         }
 
         [RelayCommand(CanExecute = nameof(CanAccessSalesInvoices))]
         private void OpenSalesInvoiceView()
         {
-            NavigateToView("SalesInvoice", () => new SalesInvoiceView { DataContext = new SalesInvoiceViewModel(this) }, "HÓA ĐƠN BÁN", "Quản lý hóa đơn bán lẻ cho khách hàng");
+            NavigateToView("SalesInvoice", () => new SalesInvoiceView { DataContext = new SalesInvoiceViewModel(CurrentUser!, ContextFactory) }, "HÓA ĐƠN BÁN", "Quản lý hóa đơn bán lẻ cho khách hàng");
         }
 
         [RelayCommand(CanExecute = nameof(CanAccessWarranty))]
@@ -135,7 +198,7 @@ namespace QuanLyHangHoa.ViewModels
         {
             NavigateToView("Warranty", () => 
             {
-                var vm = new WarrantyViewModel(CurrentUser, ContextFactory);
+                var vm = new WarrantyViewModel(CurrentUser!, ContextFactory);
                 _ = vm.LoadData();
                 return new WarrantyView { DataContext = vm };
             }, "BẢO HÀNH", "Quản lý phiếu bảo hành và sửa chữa");
@@ -193,13 +256,13 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void OpenProductSerialView()
         {
-            NavigateToView("ProductSerial", () => new ProductSerialView { DataContext = new ProductSerialViewModel(ContextFactory, CurrentUser) }, "QUẢN LÝ SERIAL", "Quản lý số Serial và IMEI sản phẩm");
+            NavigateToView("ProductSerial", () => new ProductSerialView { DataContext = new ProductSerialViewModel(ContextFactory, CurrentUser!) }, "QUẢN LÝ SERIAL", "Quản lý số Serial và IMEI sản phẩm");
         }
 
         [RelayCommand(CanExecute = nameof(CanAccessStockAdjustment))]
         private void OpenOpeningBalanceImportView()
         {
-            NavigateToView("OpeningBalanceImport", () => new OpeningBalanceImportView { DataContext = new OpeningBalanceImportViewModel(CurrentUser.Id, ContextFactory) }, "NHẬP TỒN ĐẦU KỲ", "Import số dư đầu kỳ từ file Excel/CSV");
+            NavigateToView("OpeningBalanceImport", () => new OpeningBalanceImportView { DataContext = new OpeningBalanceImportViewModel(CurrentUser!.Id, ContextFactory) }, "NHẬP TỒN ĐẦU KỲ", "Import số dư đầu kỳ từ file Excel/CSV");
         }
 
         [RelayCommand(CanExecute = nameof(CanAccessReports))]
@@ -209,17 +272,10 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         // ── Administration ─────────────────────────────────────────────────────
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanManageUsers))]
         private void OpenAppUserView()
         {
-            if (IsAdmin)
-            {
-                NavigateToView("AppUser", () => new AppUserView { DataContext = new AppUserViewModel(CurrentUser, ContextFactory) }, "NGƯỜI DÙNG", "Quản lý tài khoản hệ thống");
-            }
-            else
-            {
-                System.Windows.MessageBox.Show("Bạn không có quyền truy cập!", "Thông báo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
-            }
+            NavigateToView("AppUser", () => new AppUserView { DataContext = new AppUserViewModel(CurrentUser!, ContextFactory) }, "NGƯỜI DÙNG", "Quản lý tài khoản hệ thống");
         }
 
         [RelayCommand]
@@ -237,7 +293,7 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void OpenChangePasswordView()
         {
-            NavigateToView("ChangePassword", () => new ChangePasswordView { DataContext = new ChangePasswordViewModel(CurrentUser, ContextFactory) }, "ĐỔI MẬT KHẨU", "Cập nhật mật khẩu truy cập");
+            NavigateToView("ChangePassword", () => new ChangePasswordView { DataContext = new ChangePasswordViewModel(CurrentUser!, ContextFactory) }, "ĐỔI MẬT KHẨU", "Cập nhật mật khẩu truy cập");
         }
 
         [RelayCommand]

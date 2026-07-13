@@ -120,14 +120,14 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private decimal _formTaxAmount;
         public decimal FormRemainingAmount => FormTotalAmount - PaidAmount;
 
-        private readonly MainViewModel? _mainViewModel;
+        private readonly AppUser _currentUser;
 
-        public SalesInvoiceViewModel() : this(null) { }
-
-        public SalesInvoiceViewModel(MainViewModel? mainViewModel)
+        public SalesInvoiceViewModel(AppUser currentUser, Func<AppDbContext> contextFactory)
         {
-            _mainViewModel = mainViewModel;
-            _contextFactory = _mainViewModel?.ContextFactory ?? (() => new AppDbContext());
+            ArgumentNullException.ThrowIfNull(currentUser);
+            ArgumentNullException.ThrowIfNull(contextFactory);
+            _currentUser = currentUser;
+            _contextFactory = contextFactory;
             _invoiceService = new InvoiceService(_contextFactory);
             _productService = new ProductService(_contextFactory);
             _refDataService = new ReferenceDataService(_contextFactory);
@@ -209,7 +209,7 @@ namespace QuanLyHangHoa.ViewModels
                     var customersTask = Task.Run(() => _refDataService.GetAllCustomers());
                     var stockOutsTask = Task.Run(() =>
                     {
-                        using var context = _mainViewModel?.ContextFactory?.Invoke() ?? new AppDbContext();
+                        using var context = _contextFactory();
                         return context.StockOuts
                             .AsNoTracking()
                             .Select(stockOut => new StockOut
@@ -244,7 +244,7 @@ namespace QuanLyHangHoa.ViewModels
                 // Thống kê đếm bất đồng bộ từ database (gộp thành 1 truy vấn duy nhất)
                 await Task.Run(() =>
                 {
-                    using var db = _mainViewModel?.ContextFactory?.Invoke() ?? new AppDbContext();
+                    using var db = _contextFactory();
                     var query = db.SalesInvoices.AsNoTracking().AsQueryable();
                     query = ApplySalesInvoiceFiltersStatic(query, SearchInvoiceCode, SearchCustomerName, FilterStartDate, FilterEndDate, paymentStatus ?? string.Empty, FilterMinTotal, FilterMaxTotal);
                     
@@ -457,7 +457,7 @@ namespace QuanLyHangHoa.ViewModels
                 if (invoice.Id == 0)
                 {
                     invoice.CreatedAt = DateTime.Now;
-                    invoice.CreatedBy = _mainViewModel?.CurrentUser?.Id ?? 1;
+                    invoice.CreatedBy = _currentUser.Id;
                 }
 
                 // IMPORTANT: Clear navigation properties to avoid EF tracking issues

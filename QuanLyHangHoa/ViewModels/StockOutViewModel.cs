@@ -169,9 +169,10 @@ namespace QuanLyHangHoa.ViewModels
             : IsAdminOrManager && (StockDocumentUiLifecycle.IsPendingApproval(Status) || StockDocumentUiLifecycle.IsApproved(Status));
         public bool CanUserEdit => _currentUser != null && (_currentUser.RoleCode == "Quản trị viên" || _currentUser.RoleCode == "Quản lý" || _currentUser.RoleCode == "Nhân viên kho");
 
-        public StockOutViewModel(AppUser? currentUser = null, Func<AppDbContext>? contextFactory = null)
+        public StockOutViewModel(AppUser currentUser, Func<AppDbContext>? contextFactory = null)
         {
-            _currentUser = currentUser ?? new AppUser { Id = 1, Username = "System", RoleCode = "Quản trị viên" }; // Default Admin role for safety
+            ArgumentNullException.ThrowIfNull(currentUser);
+            _currentUser = currentUser;
             _contextFactory = contextFactory ?? (() => new AppDbContext());
             _productService = new ProductService(_contextFactory);
             _stockOutService = new StockOutService(_contextFactory);

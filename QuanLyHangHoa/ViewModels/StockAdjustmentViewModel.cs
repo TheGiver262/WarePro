@@ -140,9 +140,10 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
-        public StockAdjustmentViewModel(AppUser? currentUser = null, Func<AppDbContext>? contextFactory = null)
+        public StockAdjustmentViewModel(AppUser currentUser, Func<AppDbContext>? contextFactory = null)
         {
-            _currentUser = currentUser ?? new AppUser { Id = 1, Username = "System", RoleCode = "Quản trị viên" };
+            ArgumentNullException.ThrowIfNull(currentUser);
+            _currentUser = currentUser;
             _contextFactory = contextFactory ?? (() => new AppDbContext());
             _productService = new ProductService(_contextFactory);
             _adjustmentService = new StockAdjustmentService(_contextFactory);

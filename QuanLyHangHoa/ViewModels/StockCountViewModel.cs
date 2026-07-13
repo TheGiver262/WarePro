@@ -92,9 +92,10 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private ObservableCollection<StockCountLine> _selectedSessionLines = new();
         [ObservableProperty] private bool _isSelectedSessionEditable = false;
 
-        public StockCountViewModel(AppUser? currentUser = null, Func<AppDbContext>? contextFactory = null)
+        public StockCountViewModel(AppUser currentUser, Func<AppDbContext>? contextFactory = null)
         {
-            _currentUser = currentUser ?? new AppUser { Id = 1, Username = "System" };
+            ArgumentNullException.ThrowIfNull(currentUser);
+            _currentUser = currentUser;
             _contextFactory = contextFactory ?? (() => new AppDbContext());
             _productService = new ProductService(_contextFactory);
             _stockCountService = new StockCountService(_contextFactory);

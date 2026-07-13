@@ -17,7 +17,7 @@ namespace QuanLyHangHoa.ViewModels
     {
         private readonly AppUserService _userService;
         private readonly DataImportManager _importManager = new();
-        private readonly AppUser? _currentUser;
+        private readonly AppUser _currentUser;
         private CancellationTokenSource? _filterDebounceCts;
 
         [ObservableProperty]
@@ -40,8 +40,9 @@ namespace QuanLyHangHoa.ViewModels
 
         private readonly Func<AppDbContext> _contextFactory;
 
-        public AppUserViewModel(AppUser? currentUser, Func<AppDbContext> contextFactory)
+        public AppUserViewModel(AppUser currentUser, Func<AppDbContext> contextFactory)
         {
+            ArgumentNullException.ThrowIfNull(currentUser);
             _currentUser = currentUser;
             _contextFactory = contextFactory;
             _userService = new AppUserService(_contextFactory);
@@ -168,7 +169,7 @@ namespace QuanLyHangHoa.ViewModels
                 }
                 else
                 {
-                    _userService.UpdateUser(CurrentInputUser, _currentUser.Id);
+                    _userService.UpdateUser(CurrentInputUser.Id, CurrentInputUser, _currentUser.Id);
                 }
 
                 LoadData();

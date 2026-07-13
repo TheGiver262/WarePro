@@ -166,9 +166,10 @@ namespace QuanLyHangHoa.ViewModels
         public bool IsAdminOrManager => AuthorizationService.CanPerform(_currentUser, PermissionAction.ApproveStock);
         public bool CanUserEdit => _currentUser != null && (_currentUser.RoleCode == "Quản trị viên" || _currentUser.RoleCode == "Quản lý" || _currentUser.RoleCode == "Nhân viên kho");
 
-        public StockInViewModel(AppUser? currentUser = null, Func<AppDbContext>? contextFactory = null)
+        public StockInViewModel(AppUser currentUser, Func<AppDbContext>? contextFactory = null)
         {
-            _currentUser = currentUser ?? new AppUser { Id = 1, Username = "System", RoleCode = "Quản trị viên" };
+            ArgumentNullException.ThrowIfNull(currentUser);
+            _currentUser = currentUser;
             _contextFactory = contextFactory ?? (() => new AppDbContext());
             _productService = new ProductService(_contextFactory);
             _stockInService = new StockInService(_contextFactory);

@@ -66,13 +66,30 @@ namespace QuanLyHangHoa.Services
             }
         }
 
-        public void UpdateUser(AppUser updatedUser, int performedByUserId)
+        public void UpdateUser(int targetUserId, AppUser updatedUser, int performedByUserId)
         {
             using var db = _contextFactory();
-            var existing = db.AppUsers.Find(updatedUser.Id);
+            var existing = db.AppUsers.Find(targetUserId);
             if (existing != null)
             {
                 using var transaction = db.Database.BeginTransaction();
+                var isSelf = targetUserId == performedByUserId;
+
+                if (isSelf && existing.IsActive && !updatedUser.IsActive)
+                {
+                    throw new InvalidOperationException("Bạn không thể tự dừng tài khoản của chính mình.");
+                }
+
+                if (isSelf && IsAdministrator(existing) && !IsAdministrator(updatedUser))
+                {
+                    throw new InvalidOperationException("Bạn không thể tự hạ quyền quản trị của chính mình.");
+                }
+
+                if (IsActiveAdministrator(existing) && !IsActiveAdministrator(updatedUser))
+                {
+                    EnsureAnotherActiveAdministrator(db, targetUserId);
+                }
+
                 // Capture old state
                 var oldState = new { existing.FullName, existing.RoleCode, existing.IsActive };
                 
@@ -105,6 +122,15 @@ namespace QuanLyHangHoa.Services
             if (user != null)
             {
                 using var transaction = db.Database.BeginTransaction();
+                if (user.IsActive && userId == performedByUserId)
+                {
+                    throw new InvalidOperationException("Bạn không thể tự dừng tài khoản của chính mình.");
+                }
+
+                if (IsActiveAdministrator(user))
+                {
+                    EnsureAnotherActiveAdministrator(db, userId);
+                }
                 var oldState = new { user.IsActive, user.Username };
                 user.IsActive = !user.IsActive;
                 
@@ -121,11 +147,6 @@ namespace QuanLyHangHoa.Services
 
         public void DeleteUser(int id, int performedByUserId)
         {
-            if (id == 1) // Prevent deleting super admin
-            {
-                throw new InvalidOperationException("Không thể xoá tài khoản quản trị hệ thống.");
-            }
-
             if (id == performedByUserId)
             {
                 throw new InvalidOperationException("Bạn không thể tự xoá tài khoản của chính mình.");
@@ -137,10 +158,15 @@ namespace QuanLyHangHoa.Services
             {
                 return;
             }
+            using var transaction = db.Database.BeginTransaction();
+
+            if (IsActiveAdministrator(user))
+            {
+                EnsureAnotherActiveAdministrator(db, id);
+            }
 
             try
             {
-                using var transaction = db.Database.BeginTransaction();
                 // Capture state before delete for audit
                 var oldState = new { user.Username, user.FullName, user.RoleCode, user.IsActive };
 
@@ -174,6 +200,25 @@ namespace QuanLyHangHoa.Services
             }
         }
 
+
+        private static bool IsAdministrator(AppUser user) =>
+            string.Equals(user.RoleCode, "Quản trị viên", StringComparison.OrdinalIgnoreCase);
+
+        private static bool IsActiveAdministrator(AppUser user) =>
+            user.IsActive && IsAdministrator(user);
+
+        private static void EnsureAnotherActiveAdministrator(AppDbContext db, int targetUserId)
+        {
+            var anotherActiveAdministratorExists = db.AppUsers.Any(user =>
+                user.Id != targetUserId &&
+                user.IsActive &&
+                user.RoleCode == "Quản trị viên");
+
+            if (!anotherActiveAdministratorExists)
+            {
+                throw new InvalidOperationException("Hệ thống phải luôn có ít nhất một quản trị viên đang hoạt động.");
+            }
+        }
         public bool HasDependencies(int userId)
         {
             using var db = _contextFactory();

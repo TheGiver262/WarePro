@@ -141,9 +141,10 @@ namespace QuanLyHangHoa.ViewModels
             ? CanUserEdit
             : IsAdminOrManager && (StockDocumentUiLifecycle.IsPendingApproval(Status) || StockDocumentUiLifecycle.IsApproved(Status));
 
-        public StockTransferViewModel(AppUser? currentUser = null, Func<AppDbContext>? contextFactory = null)
+        public StockTransferViewModel(AppUser currentUser, Func<AppDbContext>? contextFactory = null)
         {
-            _currentUser = currentUser ?? new AppUser { Id = 1, Username = "System", RoleCode = "Quản trị viên" };
+            ArgumentNullException.ThrowIfNull(currentUser);
+            _currentUser = currentUser;
             var factory = contextFactory ?? (() => new QuanLyHangHoa.Data.AppDbContext());
             _contextFactory = factory;
             _productService = new ProductService(factory);
