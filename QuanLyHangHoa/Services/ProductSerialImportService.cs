@@ -1,13 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
-using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Inventory;
+using QuanLyHangHoa.Models;
 
 namespace QuanLyHangHoa.Services
 {
@@ -27,173 +28,190 @@ namespace QuanLyHangHoa.Services
 
         public async Task<(int SuccessCount, string Message)> ImportFromExcelAsync(string filePath, int actorId)
         {
-            using var _context = _contextFactory();
-            AuthorizationService.RequireFreshActor(_context, actorId, PermissionAction.ManageMasterData);
             if (!File.Exists(filePath))
                 return (0, $"Lỗi: Không tìm thấy file Excel tại {filePath}");
 
+            List<(string SerialNumber, string ProductCode)> rows;
+            int skipCount;
             try
             {
-                using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                using var workbook = new XLWorkbook(stream);
-                
-                // 1. Prepare Product Mapping (Mongo ID -> ProductCode)
-                Console.WriteLine("[IMPORT] Reading 'Sản phẩm' sheet...");
-                var productSheet = workbook.Worksheet("Sản phẩm");
-                if (productSheet == null) {
-                    Console.WriteLine("[IMPORT] Error: 'Sản phẩm' sheet not found!");
-                    return (0, "Lỗi: Không tìm thấy sheet 'Sản phẩm'");
-                }
+                (rows, skipCount) = ParseWorkbook(filePath);
+            }
+            catch (Exception ex)
+            {
+                return (0, FormatError(ex));
+            }
 
-                var mongoToCodeMap = new Dictionary<string, string>();
-                var productRows = productSheet.RangeUsed()!.RowsUsed().Skip(1);
-                var pHeaders = productSheet.Row(1).CellsUsed().ToDictionary(c => c.Value.ToString(), c => c.Address.ColumnNumber, StringComparer.OrdinalIgnoreCase);
+            using var context = _contextFactory();
+            await using var transaction = await context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            AuthorizationService.RequireFreshActor(context, actorId, PermissionAction.ManageMasterData);
 
-                foreach (var row in productRows)
-                {
-                    string mongoId = pHeaders.TryGetValue("id", out int idCol) ? row.Cell(idCol).GetString() : "";
-                    string code = pHeaders.TryGetValue("ProductCode", out int codeCol) ? row.Cell(codeCol).GetString() : "";
-                    if (!string.IsNullOrEmpty(mongoId) && !string.IsNullOrEmpty(code))
-                    {
-                        mongoToCodeMap[mongoId] = code;
-                    }
-                }
-                Console.WriteLine($"[IMPORT] Mapped {mongoToCodeMap.Count} products.");
-
-                // 2. Prepare Serial Sheet
-                Console.WriteLine("[IMPORT] Reading 'Serial' sheet...");
-                var serialSheet = workbook.Worksheet("Serial");
-                if (serialSheet == null) {
-                    Console.WriteLine("[IMPORT] Error: 'Serial' sheet not found!");
-                    return (0, "Lỗi: Không tìm thấy sheet 'Serial'");
-                }
-
-                var sHeaders = serialSheet.Row(1).CellsUsed().ToDictionary(c => c.Value.ToString(), c => c.Address.ColumnNumber, StringComparer.OrdinalIgnoreCase);
-                var serialRows = serialSheet.RangeUsed()!.RowsUsed().Skip(1);
-                Console.WriteLine($"[IMPORT] Found {serialRows.Count()} rows in Serial sheet.");
-
-                // 3. Load Existing Data from DB
-                var dbProducts = await _context.Products.ToDictionaryAsync(p => p.ProductCode, p => p.Id);
-                var defaultWarehouse = await _context.Warehouses.FirstOrDefaultAsync(w => w.IsDefault && w.IsActive) 
-                                       ?? await _context.Warehouses.FirstOrDefaultAsync();
+            try
+            {
+                var products = (await context.Products.AsNoTracking().ToListAsync())
+                    .ToDictionary(product => product.ProductCode, StringComparer.OrdinalIgnoreCase);
+                var defaultWarehouse = await context.Warehouses
+                    .FirstOrDefaultAsync(warehouse => warehouse.IsDefault && warehouse.IsActive)
+                    ?? await context.Warehouses.FirstOrDefaultAsync();
 
                 if (defaultWarehouse == null)
                 {
-                    defaultWarehouse = new Warehouse { WarehouseCode = "WH001", DisplayName = "Kho chính", IsActive = true, IsDefault = true };
-                    _context.Warehouses.Add(defaultWarehouse);
-                    await _context.SaveChangesAsync();
+                    defaultWarehouse = new Warehouse
+                    {
+                        WarehouseCode = "WH001",
+                        DisplayName = "Kho chính",
+                        IsActive = true,
+                        IsDefault = true
+                    };
                 }
 
-                // 4. Create a StockIn document for the import
+                var mappedRows = new List<(string SerialNumber, Product Product)>();
+                foreach (var row in rows)
+                {
+                    if (products.TryGetValue(row.ProductCode, out var product))
+                        mappedRows.Add((row.SerialNumber, product));
+                    else
+                        skipCount++;
+                }
+
+                var requestedSerials = mappedRows
+                    .Select(row => row.SerialNumber)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+                var existingSerials = requestedSerials.Count == 0
+                    ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                    : new HashSet<string>(
+                        await context.ProductSerials
+                            .Where(serial => requestedSerials.Contains(serial.SerialNumber))
+                            .Select(serial => serial.SerialNumber)
+                            .ToListAsync(),
+                        StringComparer.OrdinalIgnoreCase);
+
                 var stockIn = new StockIn
                 {
                     DocumentCode = $"IMPORT_SR_{DateTime.Now:yyyyMMdd_HHmm}",
                     Status = "Posted",
                     PurposeCode = "OpeningBalance",
-                    WarehouseId = defaultWarehouse.Id,
+                    Warehouse = defaultWarehouse,
                     CreatedAt = DateTime.Now,
                     PostedAt = DateTime.Now,
                     CreatedBy = actorId,
                     PostedBy = actorId
                 };
-                _context.StockIns.Add(stockIn);
-                await _context.SaveChangesAsync();
 
                 int successCount = 0;
-                int skipCount = 0;
-                var productGroups = new Dictionary<int, List<string>>();
-
-                foreach (var row in serialRows)
+                foreach (var group in mappedRows.GroupBy(row => row.Product.Id))
                 {
-                    string serialNumber = sHeaders.TryGetValue("SerialCode", out int scCol) ? row.Cell(scCol).GetString() : "";
-                    string mongoProductId = sHeaders.TryGetValue("ProductId", out int piCol) ? row.Cell(piCol).GetString() : "";
-
-                    if (string.IsNullOrEmpty(serialNumber) || string.IsNullOrEmpty(mongoProductId)) 
-                    {
-                        Console.WriteLine($"[IMPORT] Skipping row: Serial={serialNumber}, MongoId={mongoProductId}");
-                        skipCount++;
+                    var product = group.First().Product;
+                    var serialNumbers = group
+                        .Select(row => row.SerialNumber)
+                        .Where(serialNumber => existingSerials.Add(serialNumber))
+                        .ToList();
+                    if (serialNumbers.Count == 0)
                         continue;
-                    }
-
-                    // Map Mongo ProductId to SQL ProductId via ProductCode
-                    if (mongoToCodeMap.TryGetValue(mongoProductId, out string? productCode) && productCode != null)
-                    {
-                        var matchedProduct = dbProducts.FirstOrDefault(p => string.Equals(p.Key, productCode, StringComparison.OrdinalIgnoreCase));
-                        
-                        if (matchedProduct.Key != null)
-                        {
-                            int productId = matchedProduct.Value;
-                            if (!productGroups.ContainsKey(productId))
-                                productGroups[productId] = new List<string>();
-                            
-                            productGroups[productId].Add(serialNumber);
-                        }
-                        else
-                        {
-                            Console.WriteLine($"[IMPORT] No DB match for ProductCode: {productCode}");
-                            skipCount++;
-                        }
-                    }
-                    else
-                    {
-                        Console.WriteLine($"[IMPORT] No Mongo mapping for ID: {mongoProductId}");
-                        skipCount++;
-                    }
-                }
-
-                // 5. Create StockInLines and ProductSerials
-                foreach (var group in productGroups)
-                {
-                    int productId = group.Key;
-                    var serials = group.Value;
-
-                    var product = await _context.Products.FindAsync(productId);
-                    if (product == null) continue;
 
                     var line = new StockInLine
                     {
-                        StockInId = stockIn.Id,
-                        ProductId = productId,
-                        Quantity = serials.Count,
-                        BaseQuantity = serials.Count,
+                        ProductId = product.Id,
+                        Quantity = serialNumbers.Count,
+                        BaseQuantity = serialNumbers.Count,
                         UnitPrice = product.DefaultPrice,
                         UnitId = product.DefaultUnitId
                     };
-                    _context.StockInLines.Add(line);
-                    await _context.SaveChangesAsync(); 
 
-                    Console.WriteLine($"[IMPORT] Processing product ID {productId} with {serials.Count} serials...");
-
-                    foreach (var sn in serials)
+                    foreach (var serialNumber in serialNumbers)
                     {
-                        if (await _context.ProductSerials.AnyAsync(s => s.SerialNumber == sn)) continue;
-
-                        var ps = new ProductSerial
+                        line.ProductSerials.Add(new ProductSerial
                         {
-                            SerialNumber = sn,
-                            ProductId = productId,
+                            SerialNumber = serialNumber,
+                            ProductId = product.Id,
                             CurrentStatus = "InStock",
-                            CurrentWarehouseId = defaultWarehouse.Id,
-                            LastStockInLineId = line.Id
-                        };
-                        _context.ProductSerials.Add(ps);
+                            CurrentWarehouse = defaultWarehouse
+                        });
                         successCount++;
                     }
+
+                    stockIn.Lines.Add(line);
                 }
 
-                Console.WriteLine($"[IMPORT] Finalizing changes. Saving {successCount} serials...");
-                await _context.SaveChangesAsync();
-                string summaryMessage = $"Đã nạp thành công {successCount} số serial.";
-                if (skipCount > 0) summaryMessage += $" (Bỏ qua {skipCount} dòng không hợp lệ hoặc thiếu sản phẩm).";
-                return (successCount, summaryMessage);
+                context.StockIns.Add(stockIn);
+                await context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                string message = $"Đã nạp thành công {successCount} số serial.";
+                if (skipCount > 0)
+                    message += $" (Bỏ qua {skipCount} dòng không hợp lệ hoặc thiếu sản phẩm).";
+                return (successCount, message);
             }
             catch (Exception ex)
             {
-                var msg = ex.Message;
-                if (ex.InnerException != null) msg += $" Inner: {ex.InnerException.Message}";
-                Console.WriteLine($"[IMPORT] FATAL ERROR: {msg}");
-                return (0, $"Lỗi Import: {msg}");
+                await transaction.RollbackAsync();
+                return (0, FormatError(ex));
             }
+        }
+
+        private static (List<(string SerialNumber, string ProductCode)> Rows, int SkipCount) ParseWorkbook(
+            string filePath)
+        {
+            using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var workbook = new XLWorkbook(stream);
+
+            if (!workbook.TryGetWorksheet("Sản phẩm", out var productSheet))
+                throw new InvalidDataException("Không tìm thấy sheet 'Sản phẩm'");
+            if (!workbook.TryGetWorksheet("Serial", out var serialSheet))
+                throw new InvalidDataException("Không tìm thấy sheet 'Serial'");
+
+            var productHeaders = productSheet.Row(1).CellsUsed().ToDictionary(
+                cell => cell.Value.ToString(),
+                cell => cell.Address.ColumnNumber,
+                StringComparer.OrdinalIgnoreCase);
+            var mongoToCode = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var row in productSheet.RangeUsed()!.RowsUsed().Skip(1))
+            {
+                string mongoId = productHeaders.TryGetValue("id", out int idColumn)
+                    ? row.Cell(idColumn).GetString()
+                    : string.Empty;
+                string productCode = productHeaders.TryGetValue("ProductCode", out int codeColumn)
+                    ? row.Cell(codeColumn).GetString()
+                    : string.Empty;
+                if (!string.IsNullOrWhiteSpace(mongoId) && !string.IsNullOrWhiteSpace(productCode))
+                    mongoToCode[mongoId] = productCode;
+            }
+
+            var serialHeaders = serialSheet.Row(1).CellsUsed().ToDictionary(
+                cell => cell.Value.ToString(),
+                cell => cell.Address.ColumnNumber,
+                StringComparer.OrdinalIgnoreCase);
+            var rows = new List<(string SerialNumber, string ProductCode)>();
+            int skipCount = 0;
+            foreach (var row in serialSheet.RangeUsed()!.RowsUsed().Skip(1))
+            {
+                string serialNumber = serialHeaders.TryGetValue("SerialCode", out int serialColumn)
+                    ? row.Cell(serialColumn).GetString()
+                    : string.Empty;
+                string mongoProductId = serialHeaders.TryGetValue("ProductId", out int productColumn)
+                    ? row.Cell(productColumn).GetString()
+                    : string.Empty;
+                if (string.IsNullOrWhiteSpace(serialNumber)
+                    || string.IsNullOrWhiteSpace(mongoProductId)
+                    || !mongoToCode.TryGetValue(mongoProductId, out var productCode))
+                {
+                    skipCount++;
+                    continue;
+                }
+
+                rows.Add((serialNumber, productCode));
+            }
+
+            return (rows, skipCount);
+        }
+
+        private static string FormatError(Exception exception)
+        {
+            var message = exception.Message;
+            if (exception.InnerException != null)
+                message += $" Inner: {exception.InnerException.Message}";
+            return $"Lỗi Import: {message}";
         }
     }
 }
