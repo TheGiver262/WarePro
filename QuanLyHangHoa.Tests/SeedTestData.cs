@@ -575,7 +575,10 @@ namespace QuanLyHangHoa.Tests
                 sb.AppendLine();
             }
 
-            System.IO.File.WriteAllText(@"C:\WarePro\Seeded_Detailed_Report.txt", sb.ToString(), System.Text.Encoding.UTF8);
+            System.IO.File.WriteAllText(
+                System.IO.Path.Combine(AppContext.BaseDirectory, "Seeded_Detailed_Report.txt"),
+                sb.ToString(),
+                System.Text.Encoding.UTF8);
         }
     }
 }

@@ -144,7 +144,7 @@ namespace QuanLyHangHoa.Tests.Services
                     results.Add($"Status '{sc.Status}': {sc.Count}");
                 }
                 
-                System.IO.File.WriteAllText("f:\\Codex Project\\ProductManagement_Antigravity\\SearchSerialsCount.txt", 
+                System.IO.File.WriteAllText(System.IO.Path.Combine(AppContext.BaseDirectory, "SearchSerialsCount.txt"),
                     string.Join("\n", results));
             }
         }
