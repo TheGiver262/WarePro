@@ -498,9 +498,9 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => new { e.WarehouseId, e.ProductId }, "UX_StockBalance_Warehouse_Product").IsUnique();
 
-            entity.Property(e => e.AvailableQuantity).HasColumnType("decimal(18, 2)");
-            entity.Property(e => e.OnHandQuantity).HasColumnType("decimal(18, 2)");
-            entity.Property(e => e.ReservedQuantity).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.AvailableQuantity).HasColumnType("decimal(18, 2)").IsConcurrencyToken();
+            entity.Property(e => e.OnHandQuantity).HasColumnType("decimal(18, 2)").IsConcurrencyToken();
+            entity.Property(e => e.ReservedQuantity).HasColumnType("decimal(18, 2)").IsConcurrencyToken();
 
             entity.HasOne(d => d.Product).WithMany(p => p.StockBalances)
                 .HasForeignKey(d => d.ProductId)

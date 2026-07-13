@@ -144,9 +144,15 @@ namespace QuanLyHangHoa.Services
                 var product = db.Products.Find(line.ProductId);
                 if (product != null && product.IsSerialTracked)
                 {
-                    if (line.ProductSerials.Count != (int)line.Quantity)
+                    if (line.BaseQuantity != decimal.Truncate(line.BaseQuantity))
                     {
-                        throw new Exception($"Sản phẩm {product.DisplayName} yêu cầu {(int)line.Quantity} serial, nhưng hiện có {line.ProductSerials.Count}.");
+                        throw new Exception($"Sản phẩm {product.DisplayName} theo dõi serial nên số lượng cơ sở phải là số nguyên.");
+                    }
+
+                    var requiredSerialCount = (int)line.BaseQuantity;
+                    if (line.ProductSerials.Count != requiredSerialCount)
+                    {
+                        throw new Exception($"Sản phẩm {product.DisplayName} yêu cầu {requiredSerialCount} serial, nhưng hiện có {line.ProductSerials.Count}.");
                     }
                 }
             }
@@ -172,7 +178,7 @@ namespace QuanLyHangHoa.Services
                     stockTransfer.ToWarehouseId,
                     StockDocumentStatus.Posted,
                     line.ProductId,
-                    (int)line.Quantity,
+                    line.BaseQuantity,
                     serials,
                     userId));
             }

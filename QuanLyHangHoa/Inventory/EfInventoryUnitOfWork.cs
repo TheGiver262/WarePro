@@ -29,7 +29,6 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
     public StockBalanceSnapshot? FindBalance(int productId, int warehouseId)
     {
         var balance = _context.StockBalances
-            .AsNoTracking()
             .SingleOrDefault(b => b.ProductId == productId && b.WarehouseId == warehouseId);
 
         return balance is null ? null : ToSnapshot(balance);
@@ -173,7 +172,14 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
 
     public void Commit()
     {
-        _context.SaveChanges();
+        try
+        {
+            _context.SaveChanges();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new InventoryDomainException("Tồn kho vừa thay đổi. Vui lòng tải lại và thử lại.");
+        }
     }
 
     private static StockBalanceSnapshot ToSnapshot(StockBalance balance)

@@ -805,15 +805,18 @@ namespace QuanLyHangHoa.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<decimal>("AvailableQuantity")
+                        .IsConcurrencyToken()
                         .HasColumnType("decimal(18, 2)");
 
                     b.Property<decimal>("OnHandQuantity")
+                        .IsConcurrencyToken()
                         .HasColumnType("decimal(18, 2)");
 
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
 
                     b.Property<decimal>("ReservedQuantity")
+                        .IsConcurrencyToken()
                         .HasColumnType("decimal(18, 2)");
 
                     b.Property<int>("WarehouseId")
