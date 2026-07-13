@@ -63,8 +63,8 @@ public sealed class InventoryPostingService
         var balance = _unitOfWork.GetOrCreateBalance(command.ProductId, warehouseId);
         _unitOfWork.SaveBalance(balance with
         {
-            OnHandQuantity = balance.OnHandQuantity + (int)command.Quantity,
-            AvailableQuantity = balance.AvailableQuantity + (int)command.Quantity
+            OnHandQuantity = balance.OnHandQuantity + command.Quantity,
+            AvailableQuantity = balance.AvailableQuantity + command.Quantity
         });
 
         foreach (var serialNumber in serialNumbers)
@@ -78,10 +78,11 @@ public sealed class InventoryPostingService
 
         _unitOfWork.AddLedger(new StockLedgerEntry(
             command.DocumentId,
+            "StockIn",
             command.ProductId,
             warehouseId,
             StockLedgerDirection.In,
-            (int)command.Quantity,
+            command.Quantity,
             _clock.Now,
             command.PostedByUserId));
 
@@ -160,8 +161,8 @@ public sealed class InventoryPostingService
 
         _unitOfWork.SaveBalance(balance with
         {
-            OnHandQuantity = balance.OnHandQuantity - (int)command.Quantity,
-            AvailableQuantity = balance.AvailableQuantity - (int)command.Quantity
+            OnHandQuantity = balance.OnHandQuantity - command.Quantity,
+            AvailableQuantity = balance.AvailableQuantity - command.Quantity
         });
 
         foreach (var serialNumber in serialNumbers)
@@ -176,10 +177,11 @@ public sealed class InventoryPostingService
 
         _unitOfWork.AddLedger(new StockLedgerEntry(
             command.DocumentId,
+            "StockOut",
             command.ProductId,
             warehouseId,
             StockLedgerDirection.Out,
-            (int)command.Quantity,
+            command.Quantity,
             _clock.Now,
             command.PostedByUserId));
 
@@ -232,16 +234,16 @@ public sealed class InventoryPostingService
 
         _unitOfWork.SaveBalance(fromBalance with
         {
-            OnHandQuantity = fromBalance.OnHandQuantity - (int)command.Quantity,
-            AvailableQuantity = fromBalance.AvailableQuantity - (int)command.Quantity
+            OnHandQuantity = fromBalance.OnHandQuantity - command.Quantity,
+            AvailableQuantity = fromBalance.AvailableQuantity - command.Quantity
         });
 
         // 2. Process To Warehouse (Stock In)
         var toBalance = _unitOfWork.GetOrCreateBalance(command.ProductId, command.ToWarehouseId);
         _unitOfWork.SaveBalance(toBalance with
         {
-            OnHandQuantity = toBalance.OnHandQuantity + (int)command.Quantity,
-            AvailableQuantity = toBalance.AvailableQuantity + (int)command.Quantity
+            OnHandQuantity = toBalance.OnHandQuantity + command.Quantity,
+            AvailableQuantity = toBalance.AvailableQuantity + command.Quantity
         });
 
         // 3. Update Serials
@@ -272,19 +274,21 @@ public sealed class InventoryPostingService
         // 4. Ledger Entries
         _unitOfWork.AddLedger(new StockLedgerEntry(
             command.DocumentId,
+            "StockTransfer",
             command.ProductId,
             command.FromWarehouseId,
             StockLedgerDirection.Out,
-            (int)command.Quantity,
+            command.Quantity,
             _clock.Now,
             command.PostedByUserId));
 
         _unitOfWork.AddLedger(new StockLedgerEntry(
             command.DocumentId,
+            "StockTransfer",
             command.ProductId,
             command.ToWarehouseId,
             StockLedgerDirection.In,
-            (int)command.Quantity,
+            command.Quantity,
             _clock.Now,
             command.PostedByUserId));
 

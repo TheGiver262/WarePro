@@ -15,16 +15,17 @@ public sealed record ProductSerialSnapshot(
 public sealed record StockBalanceSnapshot(
     int ProductId,
     int WarehouseId,
-    int OnHandQuantity,
-    int AvailableQuantity,
-    int ReservedQuantity);
+    decimal OnHandQuantity,
+    decimal AvailableQuantity,
+    decimal ReservedQuantity);
 
 public sealed record StockLedgerEntry(
     int DocumentId,
+    string SourceDocumentType,
     int ProductId,
     int WarehouseId,
     StockLedgerDirection Direction,
-    int Quantity,
+    decimal Quantity,
     DateTime PostedAt,
     int PostedByUserId,
     int? ProductSerialId = null);
@@ -41,7 +42,7 @@ public sealed record PostStockInCommand(
     StockInKind Kind,
     StockDocumentStatus Status,
     int ProductId,
-    int Quantity,
+    decimal Quantity,
     IReadOnlyCollection<string> SerialNumbers,
     int PostedByUserId);
 
@@ -51,14 +52,14 @@ public sealed record PostStockOutCommand(
     StockOutKind Kind,
     StockDocumentStatus Status,
     int ProductId,
-    int Quantity,
+    decimal Quantity,
     IReadOnlyCollection<string> SerialNumbers,
     int PostedByUserId);
 
 public sealed record StockAdjustmentLineCommand(
     int ProductId,
     StockLedgerDirection Direction,
-    int Quantity,
+    decimal Quantity,
     IReadOnlyCollection<string> SerialNumbers);
 
 public sealed record PostStockAdjustmentCommand(
@@ -75,6 +76,6 @@ public sealed record PostStockTransferCommand(
     int ToWarehouseId,
     StockDocumentStatus Status,
     int ProductId,
-    int Quantity,
+    decimal Quantity,
     IReadOnlyCollection<string> SerialNumbers,
     int PostedByUserId);

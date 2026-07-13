@@ -129,6 +129,7 @@ public sealed class InventoryAdjustmentService
 
             _unitOfWork.AddLedger(new StockLedgerEntry(
                 command.DocumentId,
+                "StockAdjustment",
                 line.ProductId,
                 warehouseId,
                 line.Direction,

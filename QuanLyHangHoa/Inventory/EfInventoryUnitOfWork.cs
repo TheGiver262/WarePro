@@ -124,7 +124,7 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
     {
         _context.StockLedgers.Add(new StockLedger
         {
-            SourceDocumentType = "InventoryDocument", 
+            SourceDocumentType = entry.SourceDocumentType,
             SourceDocumentId = entry.DocumentId,
             ProductId = entry.ProductId,
             WarehouseId = entry.WarehouseId,
@@ -181,9 +181,9 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
         return new StockBalanceSnapshot(
             balance.ProductId,
             balance.WarehouseId,
-            (int)balance.OnHandQuantity,
-            (int)balance.AvailableQuantity,
-            (int)balance.ReservedQuantity);
+            balance.OnHandQuantity,
+            balance.AvailableQuantity,
+            balance.ReservedQuantity);
     }
 
     private static ProductSerialSnapshot ToSnapshot(ProductSerial serial)
