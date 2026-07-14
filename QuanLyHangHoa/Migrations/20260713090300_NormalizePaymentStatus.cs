@@ -27,7 +27,7 @@ public sealed class NormalizePaymentStatus : Migration
         string table,
         string constraint)
     {
-        migrationBuilder.DropCheckConstraint(name: constraint, table: table);
+        DropConstraintIfExists(migrationBuilder, table, constraint);
         migrationBuilder.Sql($"""
             UPDATE [{table}] SET [PaymentStatus] = 'Unpaid' WHERE UPPER([PaymentStatus]) = 'UNPAID';
             UPDATE [{table}] SET [PaymentStatus] = 'PartiallyPaid' WHERE UPPER([PaymentStatus]) IN ('PARTIAL', 'PARTIALLYPAID');
@@ -45,7 +45,7 @@ public sealed class NormalizePaymentStatus : Migration
         string table,
         string constraint)
     {
-        migrationBuilder.DropCheckConstraint(name: constraint, table: table);
+        DropConstraintIfExists(migrationBuilder, table, constraint);
         migrationBuilder.Sql($"""
             UPDATE [{table}] SET [PaymentStatus] = 'Unpaid' WHERE UPPER([PaymentStatus]) = 'UNPAID';
             UPDATE [{table}] SET [PaymentStatus] = 'Partial' WHERE UPPER([PaymentStatus]) IN ('PARTIAL', 'PARTIALLYPAID');
@@ -56,5 +56,24 @@ public sealed class NormalizePaymentStatus : Migration
             name: constraint,
             table: table,
             sql: "[PaymentStatus] IN ('Unpaid', 'Partial', 'Paid', 'Overdue')");
+    }
+
+    private static void DropConstraintIfExists(
+        MigrationBuilder migrationBuilder,
+        string table,
+        string constraint)
+    {
+        migrationBuilder.Sql($"""
+            IF EXISTS
+            (
+                SELECT 1
+                FROM sys.check_constraints
+                WHERE [name] = N'{constraint}'
+                  AND [parent_object_id] = OBJECT_ID(N'[{table}]')
+            )
+            BEGIN
+                ALTER TABLE [{table}] DROP CONSTRAINT [{constraint}];
+            END;
+            """);
     }
 }

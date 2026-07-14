@@ -41,6 +41,8 @@ public sealed class ConstrainProductUnitFactor : Migration
               AND pu.[UnitId] = p.[DefaultUnitId];
             """);
 
+        DropConstraintIfExists(migrationBuilder);
+
         migrationBuilder.AddCheckConstraint(
             name: "CK_ProductUnit_ConversionFactor_Positive",
             table: "ProductUnit",
@@ -49,8 +51,23 @@ public sealed class ConstrainProductUnitFactor : Migration
 
     protected override void Down(MigrationBuilder migrationBuilder)
     {
-        migrationBuilder.DropCheckConstraint(
-            name: "CK_ProductUnit_ConversionFactor_Positive",
-            table: "ProductUnit");
+        DropConstraintIfExists(migrationBuilder);
+    }
+
+    private static void DropConstraintIfExists(MigrationBuilder migrationBuilder)
+    {
+        migrationBuilder.Sql("""
+            IF EXISTS
+            (
+                SELECT 1
+                FROM sys.check_constraints
+                WHERE [name] = N'CK_ProductUnit_ConversionFactor_Positive'
+                  AND [parent_object_id] = OBJECT_ID(N'[ProductUnit]')
+            )
+            BEGIN
+                ALTER TABLE [ProductUnit]
+                    DROP CONSTRAINT [CK_ProductUnit_ConversionFactor_Positive];
+            END;
+            """);
     }
 }
