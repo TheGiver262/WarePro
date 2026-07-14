@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Inventory;
+using QuanLyHangHoa.Services;
 using Xunit;
 
 namespace QuanLyHangHoa.Tests.Services
@@ -16,7 +17,7 @@ namespace QuanLyHangHoa.Tests.Services
         public void AddTenWarrantyRecords_To_RealDatabase()
         {
             var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlServer("Server=.\\SQLEXPRESS;Database=ProductManagementDb;Trusted_Connection=True;TrustServerCertificate=True;")
+                .UseSqlServer(AppDbContext.GetConnectionString())
                 .Options;
 
             using (var db = new AppDbContext(options))
@@ -76,54 +77,69 @@ namespace QuanLyHangHoa.Tests.Services
                 }
 
                 // 3. Tạo 10 ProductSerial mới để gán quyền bảo hành
-                var random = new Random();
                 var serialList = new List<ProductSerial>();
-                var firstStockInLineId = db.StockInLines.Select(s => s.Id).FirstOrDefault();
+                var firstWarehouseId = db.Warehouses.Select(w => w.Id).First();
+                var firstStockInLineId = db.StockInLines.Where(s => s.ProductId == product.Id).Select(s => s.Id).FirstOrDefault();
                 if (firstStockInLineId == 0)
                 {
                     var stockIn = new StockIn
                     {
                         DocumentCode = $"SI-TEMP-{Guid.NewGuid().ToString().Substring(0, 6).ToUpper()}",
                         ImportDate = DateTime.Now,
-                        Status = "Posted",
-                        CreatedBy = 1,
-                        WarehouseId = db.Warehouses.Select(w => w.Id).First(),
+                        WarehouseId = firstWarehouseId,
                         PurposeCode = "IM-PURCHASE"
                     };
-                    db.StockIns.Add(stockIn);
-                    db.SaveChanges();
-
                     var line = new StockInLine
                     {
-                        StockInId = stockIn.Id,
                         ProductId = product.Id,
                         Quantity = 10,
-                        BaseQuantity = 10,
                         UnitPrice = 100000m,
-                        UnitId = product.DefaultUnitId
+                        UnitId = product.DefaultUnitId,
+                        ProductSerials = Enumerable.Range(0, 10)
+                            .Select(_ => new ProductSerial
+                            {
+                                SerialNumber = $"SN-TEST-W-{Guid.NewGuid().ToString().Substring(0, 8).ToUpper()}"
+                            })
+                            .ToList()
                     };
-                    db.StockInLines.Add(line);
-                    db.SaveChanges();
-                    firstStockInLineId = line.Id;
+                    var stockInService = new StockInService(() => new AppDbContext(options));
+                    stockInService.SaveDraft(stockIn, new List<StockInLine> { line }, 1);
+                    stockInService.SubmitForApproval(stockIn.Id, 1);
+                    stockInService.Approve(stockIn.Id, 1);
+                    stockInService.Post(stockIn.Id, 1);
+                    firstStockInLineId = db.StockInLines
+                        .Where(stockInLine => stockInLine.StockInId == stockIn.Id)
+                        .Select(stockInLine => stockInLine.Id)
+                        .Single();
+                    serialList = db.ProductSerials
+                        .Where(serial => serial.LastStockInLineId == firstStockInLineId &&
+                            serial.SerialNumber.StartsWith("SN-TEST-W-"))
+                        .OrderBy(serial => serial.Id)
+                        .ToList();
                 }
-                
-                var firstWarehouseId = db.Warehouses.Select(w => w.Id).First();
-                for (int i = 1; i <= 10; i++)
+
+                if (serialList.Count == 0)
                 {
-                    string uniqueSerial = $"SN-TEST-W-{Guid.NewGuid().ToString().Substring(0, 8).ToUpper()}";
-                    var serial = new ProductSerial
+                    for (int i = 1; i <= 10; i++)
                     {
-                        ProductId = product.Id,
-                        SerialNumber = uniqueSerial,
-                        CurrentStatus = SerialStatus.Sold.ToString(),
-                        LastStockInLineId = firstStockInLineId,
-                        CurrentWarehouseId = firstWarehouseId
-                    };
-                    db.ProductSerials.Add(serial);
-                    serialList.Add(serial);
+                        var serial = new ProductSerial
+                        {
+                            ProductId = product.Id,
+                            SerialNumber = $"SN-TEST-W-{Guid.NewGuid().ToString().Substring(0, 8).ToUpper()}",
+                            LastStockInLineId = firstStockInLineId
+                        };
+                        db.ProductSerials.Add(serial);
+                        serialList.Add(serial);
+                    }
+                }
+
+                foreach (var serial in serialList)
+                {
+                    serial.CurrentStatus = SerialStatus.Sold.ToString();
+                    serial.CurrentWarehouseId = firstWarehouseId;
                 }
                 db.SaveChanges();
-
+                Assert.Equal(10, serialList.Count);
                 // 4. Tạo 10 WarrantyCoverage (Quyền bảo hành) tương ứng
                 var coverageList = new List<WarrantyCoverage>();
                 for (int i = 0; i < 10; i++)

@@ -216,6 +216,8 @@ namespace QuanLyHangHoa.Tests
                 }
 
                 stockInService.SaveDraft(initStockIn, initStockInLines, user.Id);
+                stockInService.SubmitForApproval(initStockIn.Id, user.Id);
+                stockInService.Approve(initStockIn.Id, user.Id);
                 stockInService.Post(initStockIn.Id, user.Id);
 
                 // Tạo hóa đơn nhập tương ứng
@@ -313,6 +315,8 @@ namespace QuanLyHangHoa.Tests
                 }
 
                 stockInService.SaveDraft(stockIn, stockInLines, user.Id);
+                stockInService.SubmitForApproval(stockIn.Id, user.Id);
+                stockInService.Approve(stockIn.Id, user.Id);
                 stockInService.Post(stockIn.Id, user.Id);
 
                 // Tạo Hóa đơn nhập tương ứng
@@ -443,6 +447,8 @@ namespace QuanLyHangHoa.Tests
 
                 // Lưu Draft và Post để ghi sổ xuất hàng
                 stockOutService.SaveDraft(stockOut, stockOutLines, user.Id);
+                stockOutService.SubmitForApproval(stockOut.Id, user.Id);
+                stockOutService.Approve(stockOut.Id, user.Id);
                 stockOutService.Post(stockOut.Id, user.Id);
 
                 // Tạo Hóa đơn bán tương ứng

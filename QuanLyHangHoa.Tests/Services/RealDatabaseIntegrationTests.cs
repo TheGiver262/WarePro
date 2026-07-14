@@ -16,7 +16,7 @@ namespace QuanLyHangHoa.Tests.Services
         public void Test_RealDatabase_UnitConversion()
         {
             var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlServer("Server=.\\SQLEXPRESS;Database=ProductManagementDb;Trusted_Connection=True;TrustServerCertificate=True;")
+                .UseSqlServer(AppDbContext.GetConnectionString())
                 .Options;
 
             using (var db = new AppDbContext(options))
@@ -63,6 +63,8 @@ namespace QuanLyHangHoa.Tests.Services
                 Assert.Equal(24m, draftLine.BaseQuantity);
 
                 // Post
+                service.SubmitForApproval(stockIn.Id, 1);
+                service.Approve(stockIn.Id, 1);
                 service.Post(stockIn.Id, 1);
 
                 // Verify stock balance increased by 24 (not 2)
@@ -109,7 +111,7 @@ namespace QuanLyHangHoa.Tests.Services
         public void Test_RealDatabase_SearchSerials()
         {
             var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlServer("Server=.\\SQLEXPRESS;Database=ProductManagementDb;Trusted_Connection=True;TrustServerCertificate=True;")
+                .UseSqlServer(AppDbContext.GetConnectionString())
                 .Options;
 
             using (var db = new AppDbContext(options))
