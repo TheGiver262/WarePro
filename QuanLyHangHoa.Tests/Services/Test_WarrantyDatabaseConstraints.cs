@@ -9,6 +9,7 @@ using Xunit;
 
 namespace QuanLyHangHoa.Tests.Services
 {
+    [Trait("Category", "RealDatabase")]
     public class Test_WarrantyDatabaseConstraints
     {
         [Fact]

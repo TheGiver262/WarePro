@@ -36,7 +36,7 @@ namespace QuanLyHangHoa.ViewModels
         partial void OnTaxRateChanged(decimal value) => OnPropertyChanged(nameof(TotalPrice));
     }
 
-    public partial class SalesInvoiceViewModel : ObservableObject
+    public partial class SalesInvoiceViewModel : ObservableObject, IRefreshable
     {
         private readonly InvoiceService _invoiceService;
         private readonly ProductService _productService;
@@ -52,7 +52,8 @@ namespace QuanLyHangHoa.ViewModels
 
         [ObservableProperty] private ObservableCollection<SalesInvoice> _invoices = new();
         [ObservableProperty] private SalesInvoice? _selectedInvoice;
-        
+        [ObservableProperty] private string? _loadErrorMessage;
+
         [ObservableProperty] private ObservableCollection<Product> _availableProducts = new();
         [ObservableProperty] private ObservableCollection<Customer> _availableCustomers = new();
         [ObservableProperty] private ObservableCollection<SalesInvoiceLineEditor> _lines = new();
@@ -65,9 +66,9 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private decimal _paidAmount;
         [ObservableProperty] private string _selectedPaymentStatus = "Chưa TT";
         [ObservableProperty] private string _notes = string.Empty;
-        
+
         [ObservableProperty] private ObservableCollection<StockOut> _availableStockOuts = new();
-        
+
         [ObservableProperty] private decimal _totalSalesAmount;
         [ObservableProperty] private int _totalSalesCount;
         [ObservableProperty] private int _paidCount;
@@ -103,7 +104,7 @@ namespace QuanLyHangHoa.ViewModels
             FilterMaxTotal = null;
             _isInitialized = true;
 
-            LoadData();
+            RefreshData();
         }
 
         partial void OnSearchInvoiceCodeChanged(string value) => ScheduleFilterReload();
@@ -132,7 +133,7 @@ namespace QuanLyHangHoa.ViewModels
             _productService = new ProductService(_contextFactory);
             _refDataService = new ReferenceDataService(_contextFactory);
 
-            Lines.CollectionChanged += (s, e) => 
+            Lines.CollectionChanged += (s, e) =>
             {
                 if (e.NewItems != null)
                 {
@@ -146,7 +147,7 @@ namespace QuanLyHangHoa.ViewModels
                 }
                 RecalculateTotal();
             };
-            
+
             LoadData();
             InitializeForm(); // Init form fields without switching tab
             SelectedFilterPaymentStatus = "Tất cả";
@@ -183,6 +184,12 @@ namespace QuanLyHangHoa.ViewModels
             _ = LoadDataAsync(true);
         }
 
+        public void RefreshData()
+        {
+            _referenceDataLoaded = false;
+            LoadData();
+        }
+
         private void ScheduleFilterReload()
         {
             if (_isInitialized)
@@ -197,12 +204,7 @@ namespace QuanLyHangHoa.ViewModels
             _isLoading = true;
             try
             {
-                if (reset)
-                {
-                    _skip = 0;
-                    Invoices.Clear();
-                }
-
+                var querySkip = reset ? 0 : _skip;
                 if (reset && !_referenceDataLoaded)
                 {
                     var productsTask = Task.Run(() => _productService.GetAllProducts());
@@ -221,63 +223,77 @@ namespace QuanLyHangHoa.ViewModels
                     });
 
                     await Task.WhenAll(productsTask, customersTask, stockOutsTask);
-
                     AvailableProducts = new ObservableCollection<Product>(await productsTask);
                     AvailableCustomers = new ObservableCollection<Customer>(await customersTask);
                     AvailableStockOuts = new ObservableCollection<StockOut>(await stockOutsTask);
                     _referenceDataLoaded = true;
                 }
 
-                var paymentStatus = SelectedFilterPaymentStatus != "Tất cả" && !string.IsNullOrEmpty(SelectedFilterPaymentStatus)
+                var paymentStatus = SelectedFilterPaymentStatus != "Tất cả"
+                    && !string.IsNullOrEmpty(SelectedFilterPaymentStatus)
                     ? StatusToEnglish(SelectedFilterPaymentStatus)
                     : null;
-
                 var data = await Task.Run(() => _invoiceService.GetSalesInvoicesPaged(
-                    SearchInvoiceCode, SearchCustomerName, FilterStartDate, FilterEndDate, paymentStatus ?? string.Empty, FilterMinTotal, FilterMaxTotal, _skip, PageSize));
-
-                foreach (var inv in data)
-                {
-                    Invoices.Add(inv);
-                }
-                _skip += data.Count;
-
-                // Thống kê đếm bất đồng bộ từ database (gộp thành 1 truy vấn duy nhất)
-                await Task.Run(() =>
+                    SearchInvoiceCode,
+                    SearchCustomerName,
+                    FilterStartDate,
+                    FilterEndDate,
+                    paymentStatus ?? string.Empty,
+                    FilterMinTotal,
+                    FilterMaxTotal,
+                    querySkip,
+                    PageSize));
+                var stats = await Task.Run(() =>
                 {
                     using var db = _contextFactory();
-                    var query = db.SalesInvoices.AsNoTracking().AsQueryable();
-                    query = ApplySalesInvoiceFiltersStatic(query, SearchInvoiceCode, SearchCustomerName, FilterStartDate, FilterEndDate, paymentStatus ?? string.Empty, FilterMinTotal, FilterMaxTotal);
-                    
+                    var query = ApplySalesInvoiceFiltersStatic(
+                        db.SalesInvoices.AsNoTracking().AsQueryable(),
+                        SearchInvoiceCode,
+                        SearchCustomerName,
+                        FilterStartDate,
+                        FilterEndDate,
+                        paymentStatus ?? string.Empty,
+                        FilterMinTotal,
+                        FilterMaxTotal);
                     var today = DateTime.Today;
-                    var stats = query.GroupBy(i => 1)
-                        .Select(g => new
+                    return query.GroupBy(invoice => 1)
+                        .Select(group => new
                         {
-                            TotalCount = g.Count(),
-                            TotalAmount = g.Sum(i => i.GrandTotal),
-                            Paid = g.Count(i => i.PaymentStatus == PaymentStatus.Paid),
-                            Partial = g.Count(i => i.PaymentStatus == PaymentStatus.PartiallyPaid
-                                && (!i.DueDate.HasValue || i.DueDate.Value >= today)),
-                            Unpaid = g.Count(i => i.PaymentStatus == PaymentStatus.Unpaid
-                                && (!i.DueDate.HasValue || i.DueDate.Value >= today)),
-                            Overdue = g.Count(i => i.PaymentStatus != PaymentStatus.Paid
-                                && i.DueDate.HasValue
-                                && i.DueDate.Value < today)
+                            TotalCount = group.Count(),
+                            TotalAmount = group.Sum(invoice => invoice.GrandTotal),
+                            Paid = group.Count(invoice => invoice.PaymentStatus == PaymentStatus.Paid),
+                            Partial = group.Count(invoice =>
+                                invoice.PaymentStatus == PaymentStatus.PartiallyPaid
+                                && (!invoice.DueDate.HasValue || invoice.DueDate.Value >= today)),
+                            Unpaid = group.Count(invoice =>
+                                invoice.PaymentStatus == PaymentStatus.Unpaid
+                                && (!invoice.DueDate.HasValue || invoice.DueDate.Value >= today)),
+                            Overdue = group.Count(invoice =>
+                                invoice.PaymentStatus != PaymentStatus.Paid
+                                && invoice.DueDate.HasValue
+                                && invoice.DueDate.Value < today)
                         })
-                        .FirstOrDefault() ?? new { TotalCount = 0, TotalAmount = 0m, Paid = 0, Partial = 0, Unpaid = 0, Overdue = 0 };
-
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        TotalSalesCount = stats.TotalCount;
-                        TotalSalesAmount = stats.TotalAmount;
-                        PaidCount = stats.Paid;
-                        PartialCount = stats.Partial;
-                        UnpaidCount = stats.Unpaid;
-                        OverdueCount = stats.Overdue;
-                    });
+                        .FirstOrDefault();
                 });
+
+                if (reset)
+                    Invoices = new ObservableCollection<SalesInvoice>(data);
+                else
+                    foreach (var invoice in data)
+                        Invoices.Add(invoice);
+
+                _skip = querySkip + data.Count;
+                TotalSalesCount = stats?.TotalCount ?? 0;
+                TotalSalesAmount = stats?.TotalAmount ?? 0m;
+                PaidCount = stats?.Paid ?? 0;
+                PartialCount = stats?.Partial ?? 0;
+                UnpaidCount = stats?.Unpaid ?? 0;
+                OverdueCount = stats?.Overdue ?? 0;
+                LoadErrorMessage = null;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                LoadErrorMessage = ex.Message;
             }
             finally
             {
@@ -285,6 +301,7 @@ namespace QuanLyHangHoa.ViewModels
                 if (_reloadRequested)
                 {
                     _reloadRequested = false;
+                    _referenceDataLoaded = false;
                     LoadData();
                 }
             }
@@ -404,7 +421,7 @@ namespace QuanLyHangHoa.ViewModels
             SelectedStockOut = AvailableStockOuts.FirstOrDefault(s => s.Id == invoice.StockOutId);
             SelectedPaymentStatus = StatusToVietnamese(invoice.PaymentStatus ?? PaymentStatus.Unpaid);
             Notes = invoice.Notes ?? string.Empty;
-            
+
             Lines.Clear();
             if (invoice.Lines != null)
             {
@@ -444,7 +461,7 @@ namespace QuanLyHangHoa.ViewModels
             try
             {
                 var invoice = _editingInvoice ?? new SalesInvoice();
-                
+
                 invoice.InvoiceCode = InvoiceCode;
                 invoice.CustomerId = SelectedCustomer.Id;
                 invoice.InvoiceDate = InvoiceDate;
@@ -453,7 +470,7 @@ namespace QuanLyHangHoa.ViewModels
                 invoice.Notes = Notes;
                 invoice.StockOutId = SelectedStockOut?.Id;
                 invoice.PaymentStatus = StatusToEnglish(SelectedPaymentStatus);
-                
+
                 if (invoice.Id == 0)
                 {
                     invoice.CreatedAt = DateTime.Now;
@@ -480,7 +497,7 @@ namespace QuanLyHangHoa.ViewModels
 
                 _invoiceService.SaveSalesInvoice(invoice, _currentUser.Id);
                 MessageBox.Show("Lưu hoá đơn thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
-                
+
                 ResetForm();
                 LoadData();
                 SelectedTabIndex = 0;

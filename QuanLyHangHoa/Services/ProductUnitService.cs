@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
@@ -11,7 +12,6 @@ namespace QuanLyHangHoa.Services
     {
         private readonly Func<AppDbContext> _contextFactory;
 
-
         public ProductUnitService(Func<AppDbContext> contextFactory)
         {
             _contextFactory = contextFactory;
@@ -21,92 +21,115 @@ namespace QuanLyHangHoa.Services
         {
             using var db = _contextFactory();
             var list = db.ProductUnits
-                .Include(pu => pu.Unit)
-                .Where(pu => pu.ProductId == productId)
+                .AsNoTracking()
+                .Include(productUnit => productUnit.Product)
+                .Include(productUnit => productUnit.Unit)
+                .Where(productUnit => productUnit.ProductId == productId)
                 .ToList();
 
             if (includeDefault)
             {
-                var product = db.Products.Include(p => p.DefaultUnit).FirstOrDefault(p => p.Id == productId);
-                if (product != null && product.DefaultUnit != null)
+                var product = db.Products
+                    .AsNoTracking()
+                    .Include(item => item.DefaultUnit)
+                    .FirstOrDefault(item => item.Id == productId);
+                if (product?.DefaultUnit != null
+                    && !list.Any(productUnit => productUnit.UnitId == product.DefaultUnitId))
                 {
-                    if (!list.Any(pu => pu.UnitId == product.DefaultUnitId))
+                    list.Insert(0, new ProductUnit
                     {
-                        list.Insert(0, new ProductUnit
-                        {
-                            ProductId = productId,
-                            UnitId = product.DefaultUnitId,
-                            Unit = product.DefaultUnit,
-                            ConversionFactor = 1,
-                            IsBaseUnit = true,
-                            IsPurchaseUnit = true,
-                            IsSalesUnit = true
-                        });
-                    }
+                        ProductId = productId,
+                        UnitId = product.DefaultUnitId,
+                        Product = product,
+                        Unit = product.DefaultUnit,
+                        ConversionFactor = 1,
+                        IsBaseUnit = true,
+                        IsPurchaseUnit = true,
+                        IsSalesUnit = true
+                    });
                 }
             }
+
             return list;
         }
 
-        public virtual void Add(ProductUnit pu)
+        public virtual void Add(ProductUnit productUnit, int actorId)
         {
-            ValidateConversionFactor(pu.ConversionFactor);
+            ValidateConversionFactor(productUnit.ConversionFactor);
             using var db = _contextFactory();
-            db.ProductUnits.Add(pu);
+            using var transaction = db.Database.BeginTransaction(IsolationLevel.Serializable);
+            AuthorizationService.RequireFreshActor(
+                db,
+                actorId,
+                PermissionAction.ManageMasterData);
+            db.ProductUnits.Add(productUnit);
             db.SaveChanges();
+            transaction.Commit();
         }
 
-        public virtual void Update(ProductUnit updated)
+        public virtual void Update(ProductUnit updated, int actorId)
         {
             ValidateConversionFactor(updated.ConversionFactor);
             using var db = _contextFactory();
-            var pu = db.ProductUnits.Find(updated.Id);
-            if (pu == null) return;
+            using var transaction = db.Database.BeginTransaction(IsolationLevel.Serializable);
+            AuthorizationService.RequireFreshActor(
+                db,
+                actorId,
+                PermissionAction.ManageMasterData);
+            var productUnit = db.ProductUnits.Find(updated.Id);
+            if (productUnit == null)
+                return;
 
-            pu.UnitId = updated.UnitId;
-            pu.ConversionFactor = updated.ConversionFactor;
-            pu.IsBaseUnit = updated.IsBaseUnit;
-            pu.IsPurchaseUnit = updated.IsPurchaseUnit;
-            pu.IsSalesUnit = updated.IsSalesUnit;
-
+            productUnit.UnitId = updated.UnitId;
+            productUnit.ConversionFactor = updated.ConversionFactor;
+            productUnit.IsBaseUnit = updated.IsBaseUnit;
+            productUnit.IsPurchaseUnit = updated.IsPurchaseUnit;
+            productUnit.IsSalesUnit = updated.IsSalesUnit;
             db.SaveChanges();
+            transaction.Commit();
         }
 
-        public virtual void Delete(int id)
+        public virtual void Delete(int id, int actorId)
         {
             using var db = _contextFactory();
-            var pu = db.ProductUnits.Find(id);
-            if (pu == null) return;
-            db.ProductUnits.Remove(pu);
+            using var transaction = db.Database.BeginTransaction(IsolationLevel.Serializable);
+            AuthorizationService.RequireFreshActor(
+                db,
+                actorId,
+                PermissionAction.ManageMasterData);
+            var productUnit = db.ProductUnits.Find(id);
+            if (productUnit == null)
+                return;
+
+            db.ProductUnits.Remove(productUnit);
             db.SaveChanges();
+            transaction.Commit();
         }
 
         public virtual decimal ConvertToBaseUnit(int productId, int sourceUnitId, decimal quantity)
         {
             using var db = _contextFactory();
-            var units = db.ProductUnits.Where(pu => pu.ProductId == productId).ToList();
-            var source = units.FirstOrDefault(u => u.UnitId == sourceUnitId);
-            
-            if (source == null) return quantity;
-            return quantity * source.ConversionFactor;
+            var units = db.ProductUnits.Where(productUnit => productUnit.ProductId == productId).ToList();
+            var source = units.FirstOrDefault(unit => unit.UnitId == sourceUnitId);
+
+            return source == null ? quantity : quantity * source.ConversionFactor;
         }
 
         public virtual decimal ConvertFromBaseUnit(int productId, int targetUnitId, decimal quantity)
         {
             using var db = _contextFactory();
-            var units = db.ProductUnits.Where(pu => pu.ProductId == productId).ToList();
-            var target = units.FirstOrDefault(u => u.UnitId == targetUnitId);
-            
-            if (target == null || target.ConversionFactor == 0) return quantity;
-            return quantity / target.ConversionFactor;
+            var units = db.ProductUnits.Where(productUnit => productUnit.ProductId == productId).ToList();
+            var target = units.FirstOrDefault(unit => unit.UnitId == targetUnitId);
+
+            return target == null || target.ConversionFactor == 0
+                ? quantity
+                : quantity / target.ConversionFactor;
         }
 
         private static void ValidateConversionFactor(decimal conversionFactor)
         {
             if (conversionFactor <= 0)
-            {
                 throw new InvalidOperationException("Conversion factor must be greater than zero.");
-            }
         }
     }
 }

@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 
 using System.Linq;
+using System.IO;
+using System.Security.Cryptography;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -182,5 +184,51 @@ public sealed class AuditLogService
         
     }
     
+
+    public AuditArchiveManifest ArchiveLogs(
+        DateTime start,
+        DateTime end,
+        int actorId,
+        string filePath,
+        Action<IReadOnlyList<AuditLog>, string> export)
+    {
+        if (end < start)
+            throw new ArgumentException("Archive end must be on or after archive start.");
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+        ArgumentNullException.ThrowIfNull(export);
+
+        using var db = _contextFactory();
+        var logs = db.AuditLogs
+            .Where(log => log.PerformedAt >= start && log.PerformedAt <= end)
+            .OrderBy(log => log.PerformedAt)
+            .ToList();
+        if (logs.Count == 0)
+            throw new InvalidOperationException("No audit logs exist in the selected range.");
+
+        export(logs, filePath);
+        if (!File.Exists(filePath))
+            throw new InvalidOperationException("Archive file was not created.");
+
+        string hash;
+        using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            hash = Convert.ToHexString(SHA256.HashData(stream));
+
+        using var transaction = db.Database.BeginTransaction();
+        var manifest = new AuditArchiveManifest
+        {
+            ActorId = actorId,
+            RangeStartUtc = start.Kind == DateTimeKind.Utc ? start : start.ToUniversalTime(),
+            RangeEndUtc = end.Kind == DateTimeKind.Utc ? end : end.ToUniversalTime(),
+            RowCount = logs.Count,
+            FileName = Path.GetFileName(filePath),
+            Sha256Hash = hash,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+        db.AuditArchiveManifests.Add(manifest);
+        db.AuditLogs.RemoveRange(logs);
+        db.SaveChanges();
+        transaction.Commit();
+        return manifest;
+    }
 }
 

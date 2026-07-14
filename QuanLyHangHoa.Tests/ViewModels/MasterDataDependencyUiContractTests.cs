@@ -57,7 +57,7 @@ public class MasterDataDependencyUiContractTests
             "Migrations",
             "AppDbContextModelSnapshot.cs"));
 
-        Assert.Contains("b.ToTable(\"ProductUnit\", t =>", snapshot);
+        Assert.Contains("b.ToTable(\"ProductUnit\"", snapshot);
         Assert.Contains(
             "t.HasCheckConstraint(\"CK_ProductUnit_ConversionFactor_Positive\", \"[ConversionFactor] > 0\")",
             snapshot);

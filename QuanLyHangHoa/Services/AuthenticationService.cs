@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Text.Json;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
 using BCrypt.Net;
@@ -15,23 +16,27 @@ namespace QuanLyHangHoa.Services
             _contextFactory = contextFactory;
         }
 
-        private void WriteAudit(AppDbContext db, string entityName, int entityId, string actionCode, int performedBy)
+        private static void WriteLoginAudit(
+            AppDbContext db,
+            string actionCode,
+            string attemptedUsername)
         {
             try
             {
                 db.AuditLogs.Add(new AuditLog
                 {
-                    EntityName = entityName,
-                    EntityId = entityId,
+                    EntityName = "Authentication",
+                    EntityId = 0,
                     ActionCode = actionCode,
-                    PerformedBy = performedBy,
-                    PerformedAt = DateTime.Now
+                    PerformedBy = null,
+                    PerformedAt = DateTime.Now,
+                    AfterJson = JsonSerializer.Serialize(new { attemptedUsername })
                 });
                 db.SaveChanges();
             }
             catch
             {
-                // Tránh lỗi ghi log làm gián đoạn luồng chính
+                // Audit failure must not disclose account existence or interrupt login.
             }
         }
 
@@ -44,12 +49,13 @@ namespace QuanLyHangHoa.Services
             // Strict case-sensitive check in application logic
             if (user == null || user.Username != username)
             {
+                WriteLoginAudit(db, "LoginFailed", username);
                 return LoginResult.Invalid(0);
             }
 
             if (!user.IsActive)
             {
-                WriteAudit(db, "AppUser", user.Id, "LoginFailed", user.Id);
+                WriteLoginAudit(db, "LoginFailed", username);
                 return LoginResult.Inactive();
             }
             
@@ -86,20 +92,20 @@ namespace QuanLyHangHoa.Services
                     {
                         user.LockoutUntil = DateTime.Now.AddMinutes(15);
                         db.SaveChanges();
-                        WriteAudit(db, "AppUser", user.Id, "SuspiciousLoginAttempt", user.Id);
+                        WriteLoginAudit(db, "SuspiciousLoginAttempt", username);
                         return LoginResult.Locked(user.LockoutUntil);
                     }
                     else if (user.FailedLoginCount >= 5)
                     {
                         user.LockoutUntil = DateTime.Now.AddMinutes(5);
                         db.SaveChanges();
-                        WriteAudit(db, "AppUser", user.Id, "LoginLocked", user.Id);
+                        WriteLoginAudit(db, "LoginLocked", username);
                         return LoginResult.Locked(user.LockoutUntil);
                     }
                     else
                     {
                         db.SaveChanges();
-                        WriteAudit(db, "AppUser", user.Id, "LoginFailed", user.Id);
+                        WriteLoginAudit(db, "LoginFailed", username);
                         return LoginResult.Invalid(user.FailedLoginCount);
                     }
                 }

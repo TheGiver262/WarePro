@@ -70,6 +70,7 @@
 
                         <TextBlock Text="SẢN PHẨM" Style="{StaticResource SidebarSectionHeader}"/>
                         <RadioButton Content="Danh sách sản phẩm" Tag="PackageVariant" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenProductViewCommand}"/>
+                        <RadioButton Content="Đơn vị quy đổi" Tag="SwapHorizontal" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenProductUnitViewCommand}"/>
                         <RadioButton Content="Quản lý Serial" Tag="BarcodeScan" Style="{StaticResource SidebarItemStyle}" Command="{Binding OpenProductSerialViewCommand}"/>
 
                         <TextBlock Text="KHO" Style="{StaticResource SidebarSectionHeader}"/>

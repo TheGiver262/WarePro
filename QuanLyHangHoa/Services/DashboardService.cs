@@ -69,7 +69,7 @@ namespace QuanLyHangHoa.Services
             _contextFactory = contextFactory;
         }
 
-        public async Task<DashboardStats> GetStatsAsync()
+        public virtual async Task<DashboardStats> GetStatsAsync()
         {
             var now = DateTime.Now;
             var startOfMonth = new DateTime(now.Year, now.Month, 1);

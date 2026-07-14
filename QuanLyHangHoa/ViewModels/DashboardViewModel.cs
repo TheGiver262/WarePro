@@ -1,3 +1,4 @@
+using System;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LiveChartsCore;
@@ -7,6 +8,7 @@ using QuanLyHangHoa.Services;
 using SkiaSharp;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace QuanLyHangHoa.ViewModels
@@ -18,7 +20,7 @@ namespace QuanLyHangHoa.ViewModels
         public decimal TotalValue { get; set; }
     }
 
-    public partial class DashboardViewModel : ObservableObject
+    public partial class DashboardViewModel : ObservableObject, IRefreshable
     {
         private static readonly SKColor[] InventoryPalette =
         {
@@ -43,12 +45,16 @@ namespace QuanLyHangHoa.ViewModels
         private readonly DashboardService _dashboardService;
         private readonly MainViewModel _mainViewModel;
         private Task? _initialLoadTask;
+        private int _loadGeneration;
 
         [ObservableProperty]
         private DashboardStats _stats = new();
 
         [ObservableProperty]
         private bool _isLoading;
+
+        [ObservableProperty]
+        private string? _loadErrorMessage;
 
         [ObservableProperty]
         private ISeries[] _revenueExpenseSeries = System.Array.Empty<ISeries>();
@@ -89,15 +95,27 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         public async Task LoadStatsAsync()
         {
+            var generation = Interlocked.Increment(ref _loadGeneration);
             IsLoading = true;
             try
             {
-                Stats = await _dashboardService.GetStatsAsync();
+                var stats = await _dashboardService.GetStatsAsync();
+                if (generation != Volatile.Read(ref _loadGeneration))
+                    return;
+
+                Stats = stats;
                 UpdateCharts();
+                LoadErrorMessage = null;
+            }
+            catch (Exception ex)
+            {
+                if (generation == Volatile.Read(ref _loadGeneration))
+                    LoadErrorMessage = ex.Message;
             }
             finally
             {
-                IsLoading = false;
+                if (generation == Volatile.Read(ref _loadGeneration))
+                    IsLoading = false;
             }
         }
 
@@ -127,12 +145,17 @@ namespace QuanLyHangHoa.ViewModels
                 };
                 RevenueExpenseXAxes = new Axis[]
                 {
-                    new Axis 
-                    { 
+                    new Axis
+                    {
                         Labels = months,
                         LabelsRotation = 15
                     }
                 };
+            }
+            else
+            {
+                RevenueExpenseSeries = Array.Empty<ISeries>();
+                RevenueExpenseXAxes = Array.Empty<Axis>();
             }
 
             // 2. Biểu đồ xu hướng nhập xuất kho (Line Chart)
@@ -166,6 +189,11 @@ namespace QuanLyHangHoa.ViewModels
                     new Axis { Labels = dates }
                 };
             }
+            else
+            {
+                StockMovementSeries = Array.Empty<ISeries>();
+                StockMovementXAxes = Array.Empty<Axis>();
+            }
 
             // 3. Biểu đồ cơ cấu tồn kho theo danh mục (Pie/Doughnut Chart)
             if (Stats.InventoryStructureChart != null && Stats.InventoryStructureChart.Any())
@@ -196,6 +224,11 @@ namespace QuanLyHangHoa.ViewModels
                         };
                     }));
             }
+            else
+            {
+                InventoryPieSeries = Array.Empty<ISeries>();
+                InventoryLegendItems = new ObservableCollection<InventoryLegendItem>();
+            }
 
             // 4. Biểu đồ top 5 sản phẩm bán chạy (Horizontal Bar / Row Chart)
             if (Stats.TopSellingProductsChart != null && Stats.TopSellingProductsChart.Any())
@@ -217,7 +250,14 @@ namespace QuanLyHangHoa.ViewModels
                     new Axis { Labels = productNames }
                 };
             }
+            else
+            {
+                TopProductsSeries = Array.Empty<ISeries>();
+                TopProductsYAxes = Array.Empty<Axis>();
+            }
         }
+
+        public void RefreshData() => _ = LoadStatsAsync();
 
         [RelayCommand]
         private void NavigateToProducts() => _mainViewModel.OpenProductViewCommand.Execute(null);

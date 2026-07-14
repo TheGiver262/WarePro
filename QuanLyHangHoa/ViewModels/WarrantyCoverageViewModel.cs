@@ -13,11 +13,12 @@ using QuanLyHangHoa.Services;
 
 namespace QuanLyHangHoa.ViewModels
 {
-    public partial class WarrantyCoverageViewModel : ObservableObject
+    public partial class WarrantyCoverageViewModel : ObservableObject, IRefreshable
     {
         private readonly Func<AppDbContext> _contextFactory;
         private CancellationTokenSource? _filterDebounceCts;
         private CancellationTokenSource? _loadCts;
+        private int _loadGeneration;
 
         [ObservableProperty] private ObservableCollection<WarrantyCoverage> _coverages = new();
         [ObservableProperty] private WarrantyCoverage? _selectedCoverage;
@@ -25,6 +26,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _searchCustomer = string.Empty;
         [ObservableProperty] private string _searchProduct = string.Empty;
         [ObservableProperty] private string _selectedStatusFilter = "Tất cả";
+        [ObservableProperty] private string? _loadErrorMessage;
 
         public ObservableCollection<string> StatusFilterOptions { get; } = new() { "Tất cả", "Active", "Expired", "Voided" };
 
@@ -91,6 +93,7 @@ namespace QuanLyHangHoa.ViewModels
             _loadCts?.Dispose();
             _loadCts = new CancellationTokenSource();
             var cancellationToken = _loadCts.Token;
+            var generation = Interlocked.Increment(ref _loadGeneration);
 
             try
             {
@@ -147,14 +150,23 @@ namespace QuanLyHangHoa.ViewModels
                     .OrderBy(coverage => coverage.ProductSerial.SerialNumber)
                     .ToList();
 
+                cancellationToken.ThrowIfCancellationRequested();
+                if (generation != Volatile.Read(ref _loadGeneration))
+                    throw new OperationCanceledException(cancellationToken);
                 TotalCount = allCoverages.Count;
                 ActiveCount = allCoverages.Count(coverage => coverage.EffectiveCoverageStatus == "Active");
                 ExpiredCount = allCoverages.Count(coverage => coverage.EffectiveCoverageStatus == "Expired");
                 VoidedCount = allCoverages.Count(coverage => coverage.EffectiveCoverageStatus == "Voided");
                 Coverages = new ObservableCollection<WarrantyCoverage>(coverages);
+                LoadErrorMessage = null;
             }
             catch (OperationCanceledException)
             {
+            }
+            catch (Exception ex)
+            {
+                if (!cancellationToken.IsCancellationRequested && generation == Volatile.Read(ref _loadGeneration))
+                    LoadErrorMessage = ex.Message;
             }
         }
 
@@ -231,6 +243,8 @@ namespace QuanLyHangHoa.ViewModels
                 DeleteCoverage(SelectedCoverage);
             }
         }
+
+        public void RefreshData() => _ = LoadData();
 
         partial void OnSelectedCoverageChanged(WarrantyCoverage? value)
         {

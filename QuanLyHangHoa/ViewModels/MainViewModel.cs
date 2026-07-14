@@ -92,6 +92,8 @@ namespace QuanLyHangHoa.ViewModels
 
         private bool CanManageAuditLogs() => RefreshAndAuthorize(PermissionAction.ManageAuditLogs);
 
+        private bool CanManageMasterData() => RefreshAndAuthorize(PermissionAction.ManageMasterData);
+
 
         private bool RefreshAndAuthorize(PermissionAction action)
         {
@@ -239,7 +241,7 @@ namespace QuanLyHangHoa.ViewModels
         private void OpenWarrantyView()
         {
             if (!RefreshAndAuthorize(PermissionAction.CreateWarrantyClaim)) return;
-            NavigateToView("Warranty", () => 
+            NavigateToView("Warranty", () =>
             {
                 var vm = new WarrantyViewModel(CurrentUser!, ContextFactory);
                 _ = vm.LoadData();
@@ -279,6 +281,32 @@ namespace QuanLyHangHoa.ViewModels
             NavigateToView("Unit", () => new UnitView { DataContext = new UnitViewModel(ContextFactory, CurrentUser!) }, "ĐƠN VỊ TÍNH", "Quản lý đơn vị đo lường");
         }
 
+        private void OpenUnitViewFromProductUnit()
+        {
+            if (RefreshAndAuthorize(PermissionAction.ManageMasterData))
+                OpenUnitView();
+        }
+
+        [RelayCommand(CanExecute = nameof(CanManageMasterData))]
+        private void OpenProductUnitView()
+        {
+            if (!RefreshAndAuthorize(PermissionAction.ManageMasterData))
+                return;
+
+            NavigateToView(
+                "ProductUnit",
+                () => new ProductUnitView
+                {
+                    DataContext = new ProductUnitViewModel(
+                        ContextFactory,
+                        CurrentUser!,
+                        openUnitManagement: OpenUnitViewFromProductUnit,
+                        canManage: CanManageMasterData)
+                },
+                "\u0110\u01a0N V\u1eca T\u00cdNH S\u1ea2N PH\u1ea8M",
+                "Qu\u1ea3n l\u00fd \u0111\u01a1n v\u1ecb quy \u0111\u1ed5i theo s\u1ea3n ph\u1ea9m");
+        }
+
         [RelayCommand]
         private void OpenSupplierView()
         {
@@ -314,7 +342,7 @@ namespace QuanLyHangHoa.ViewModels
         private void OpenReportView()
         {
             if (!RefreshAndAuthorize(PermissionAction.ViewReports)) return;
-            NavigateToView("Report", () => new ReportView { DataContext = new ReportViewModel() }, "BÁO CÁO", "Phân tích hiệu quả kinh doanh và tài chính");
+            NavigateToView("Report", () => new ReportView { DataContext = new ReportViewModel(ContextFactory) }, "BÁO CÁO", "Phân tích hiệu quả kinh doanh và tài chính");
         }
 
         // ── Administration ─────────────────────────────────────────────────────
@@ -330,7 +358,7 @@ namespace QuanLyHangHoa.ViewModels
         {
             if (RefreshAndAuthorize(PermissionAction.ManageAuditLogs))
             {
-                NavigateToView("AuditLog", () => new AuditLogView { DataContext = new AuditLogViewModel(ContextFactory) }, "NHẬT KÝ HỆ THỐNG", "Theo dõi lịch sử thay đổi dữ liệu toàn hệ thống");
+                NavigateToView("AuditLog", () => new AuditLogView { DataContext = new AuditLogViewModel(ContextFactory, CurrentUser!) }, "NHẬT KÝ HỆ THỐNG", "Theo dõi lịch sử thay đổi dữ liệu toàn hệ thống");
             }
             else if (!_sessionInvalidated)
             {

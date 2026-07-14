@@ -62,7 +62,7 @@
                     </Grid.RowDefinitions>
 
                     <DataGrid Grid.Row="0" ItemsSource="{Binding ProductUnits}" AutoGenerateColumns="False" CanUserAddRows="False" 
-                              IsReadOnly="True" BorderThickness="0" RowHeight="44">
+                              IsReadOnly="True" BorderThickness="0" RowHeight="44" SelectedItem="{Binding SelectedProductUnit}">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="STT" Width="70" CanUserSort="False"
                                                 Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Converter={StaticResource RowIndexConverter}}"
@@ -71,17 +71,17 @@
                             <DataGridTextColumn Header="SẢN PHẨM" Binding="{Binding Product.DisplayName}" Width="2*" 
                                                 ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
                             
-                            <DataGridTextColumn Header="ĐƠN VỊ QUY ĐỔI" Binding="{Binding Unit.Name}" Width="*" 
+                            <DataGridTextColumn Header="ĐƠN VỊ QUY ĐỔI" Binding="{Binding Unit.DisplayName}" Width="*"
                                                 ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
                             
-                            <DataGridTextColumn Header="TỶ LỆ (vs ĐƠN VỊ GỐC)" Binding="{Binding Ratio, StringFormat='1 : {0}'}" Width="*" 
+                            <DataGridTextColumn Header="TỶ LỆ (vs ĐƠN VỊ GỐC)" Binding="{Binding ConversionFactor, StringFormat='1 : {0}'}" Width="*"
                                                 ElementStyle="{StaticResource MaterialDesignDataGridTextColumnCenterElementStyle}"/>
                             
                             <DataGridTemplateColumn Header="THAO TÁC" Width="100">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Button Style="{StaticResource ProMaxIconButtonStyle}" 
-                                                Command="{Binding DataContext.DeleteUnitCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                                Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}" Foreground="{StaticResource AppErrorBrush}">
                                             <materialDesign:PackIcon Kind="Delete" Width="20" Height="20"/>
                                         </Button>

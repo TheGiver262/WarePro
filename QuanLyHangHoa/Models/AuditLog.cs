@@ -17,9 +17,9 @@ public partial class AuditLog
 
     public string? AfterJson { get; set; }
 
-    public int PerformedBy { get; set; }
+    public int? PerformedBy { get; set; }
 
     public DateTime PerformedAt { get; set; }
 
-    public virtual AppUser Performer { get; set; } = null!;
+    public virtual AppUser? Performer { get; set; }
 }

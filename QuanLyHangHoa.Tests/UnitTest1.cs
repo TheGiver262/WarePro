@@ -8,6 +8,8 @@ using Xunit;
 
 namespace QuanLyHangHoa.Tests;
 
+[Trait("Category", "RealDatabase")]
+
 public class UnitTest1
 {
     [Fact]

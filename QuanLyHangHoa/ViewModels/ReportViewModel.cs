@@ -17,17 +17,20 @@ using SkiaSharp;
 
 namespace QuanLyHangHoa.ViewModels
 {
-    public partial class ReportViewModel : ObservableObject
+    public partial class ReportViewModel : ObservableObject, IRefreshable
     {
         private readonly Func<AppDbContext> _contextFactory;
         private readonly ReportTraceService _traceService;
+        private CancellationTokenSource? _initializeCts;
         private CancellationTokenSource? _refreshCts;
         private CancellationTokenSource? _searchDebounceCts;
+        private int _refreshGeneration;
         private bool _isInitialized;
         // --- CHUNG ---
         [ObservableProperty] private DateTime _fromDate = DateTime.Today.AddDays(-30);
         [ObservableProperty] private DateTime _toDate = DateTime.Today;
         [ObservableProperty] private int _activeTabIndex = 0;
+        [ObservableProperty] private string? _loadErrorMessage;
 
         // --- TAB 1: DOANH THU & LỢI NHUẬN ---
         [ObservableProperty] private decimal _totalRevenue = 0;
@@ -59,10 +62,6 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private ObservableCollection<string> _serialStatuses = new(new[] { "All", "InStock", "Sold", "Transferred", "Reserved", "Warranty" });
         [ObservableProperty] private ObservableCollection<SerialTraceReportItem> _serialTraceReports = new();
 
-        public ReportViewModel() : this(() => new AppDbContext())
-        {
-        }
-
         public ReportViewModel(Func<AppDbContext> contextFactory)
         {
             _contextFactory = contextFactory;
@@ -72,9 +71,32 @@ namespace QuanLyHangHoa.ViewModels
 
         private async Task InitializeAsync()
         {
-            await LoadFilterDataAsync();
-            _isInitialized = true;
-            await Refresh();
+            _initializeCts?.Cancel();
+            _initializeCts?.Dispose();
+            var initializeCts = new CancellationTokenSource();
+            _initializeCts = initializeCts;
+            var cancellationToken = initializeCts.Token;
+            _isInitialized = false;
+            try
+            {
+                await LoadFilterDataAsync(cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
+                _isInitialized = true;
+                await Refresh();
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception ex)
+            {
+                if (!cancellationToken.IsCancellationRequested)
+                    LoadErrorMessage = ex.Message;
+            }
+            finally
+            {
+                if (ReferenceEquals(_initializeCts, initializeCts))
+                    _isInitialized = true;
+            }
         }
 
         partial void OnActiveTabIndexChanged(int value)
@@ -118,32 +140,31 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
-        private async Task LoadFilterDataAsync()
+        private async Task LoadFilterDataAsync(CancellationToken cancellationToken)
         {
-            try
-            {
-                using var db = _contextFactory();
-                var activeCategories = await db.Categories
-                    .AsNoTracking()
-                    .Where(category => category.IsActive)
-                    .OrderBy(category => category.DisplayName)
-                    .ToListAsync();
-                Categories = new ObservableCollection<Category>(activeCategories);
-                Categories.Insert(0, new Category { Id = 0, DisplayName = "Tất cả danh mục" });
-                SelectedCategory = Categories.FirstOrDefault();
+            using var db = _contextFactory();
+            var activeCategories = await db.Categories
+                .AsNoTracking()
+                .Where(category => category.IsActive)
+                .OrderBy(category => category.DisplayName)
+                .ToListAsync(cancellationToken);
+            var categories = new ObservableCollection<Category>(activeCategories);
+            categories.Insert(0, new Category { Id = 0, DisplayName = "Tất cả danh mục" });
 
-                var activeProducts = await db.Products
-                    .AsNoTracking()
-                    .Where(product => product.IsActive)
-                    .OrderBy(product => product.DisplayName)
-                    .ToListAsync();
-                Products = new ObservableCollection<Product>(activeProducts);
-                SelectedProduct = activeProducts.FirstOrDefault();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Lỗi nạp danh sách bộ lọc: {ex.Message}");
-            }
+            var activeProducts = await db.Products
+                .AsNoTracking()
+                .Where(product => product.IsActive)
+                .OrderBy(product => product.DisplayName)
+                .ToListAsync(cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            var selectedCategoryId = SelectedCategory?.Id;
+            var selectedProductId = SelectedProduct?.Id;
+            Categories = categories;
+            SelectedCategory = categories.FirstOrDefault(category => category.Id == selectedCategoryId)
+                ?? categories.FirstOrDefault();
+            Products = new ObservableCollection<Product>(activeProducts);
+            SelectedProduct = activeProducts.FirstOrDefault(product => product.Id == selectedProductId)
+                ?? activeProducts.FirstOrDefault();
         }
 
         [RelayCommand]
@@ -153,22 +174,23 @@ namespace QuanLyHangHoa.ViewModels
             _refreshCts?.Dispose();
             _refreshCts = new CancellationTokenSource();
             var cancellationToken = _refreshCts.Token;
+            var generation = Interlocked.Increment(ref _refreshGeneration);
 
             try
             {
                 switch (ActiveTabIndex)
                 {
                     case 0:
-                        await RefreshRevenueReport(cancellationToken);
+                        await RefreshRevenueReport(cancellationToken, generation);
                         break;
                     case 1:
-                        await RefreshStockInOutTonReport(cancellationToken);
+                        await RefreshStockInOutTonReport(cancellationToken, generation);
                         break;
                     case 2:
-                        await RefreshStockLedgerReport(cancellationToken);
+                        await RefreshStockLedgerReport(cancellationToken, generation);
                         break;
                     case 3:
-                        await RefreshSerialTraceReport(cancellationToken);
+                        await RefreshSerialTraceReport(cancellationToken, generation);
                         break;
                 }
             }
@@ -178,7 +200,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         // --- TAB 1: DOANH THU & LỢI NHUẬN ---
-        private async Task RefreshRevenueReport(CancellationToken cancellationToken)
+        private async Task RefreshRevenueReport(CancellationToken cancellationToken, int generation)
         {
             try
             {
@@ -196,40 +218,29 @@ namespace QuanLyHangHoa.ViewModels
                     .Select(p => new { p.InvoiceDate, p.GrandTotal })
                     .ToListAsync(cancellationToken);
 
-                TotalRevenue = sales.Sum(s => s.GrandTotal);
-                TotalCost = purchases.Sum(p => p.GrandTotal);
-                TotalProfit = TotalRevenue - TotalCost;
+                var totalRevenue = sales.Sum(s => s.GrandTotal);
+                var totalCost = purchases.Sum(p => p.GrandTotal);
+                var totalProfit = totalRevenue - totalCost;
 
                 var dailySales = sales
                     .GroupBy(s => s.InvoiceDate.Date)
                     .ToDictionary(g => g.Key, g => g.Sum(s => s.GrandTotal));
-
                 var dailyPurchases = purchases
                     .GroupBy(p => p.InvoiceDate.Date)
                     .ToDictionary(g => g.Key, g => g.Sum(p => p.GrandTotal));
-
                 var allDates = dailySales.Keys.Union(dailyPurchases.Keys).OrderBy(d => d).ToList();
-
-                DailyReports.Clear();
                 var tempReports = new List<DailyReportItem>();
                 foreach (var date in allDates)
                 {
-                    dailySales.TryGetValue(date, out decimal rev);
-                    dailyPurchases.TryGetValue(date, out decimal cost);
-                    tempReports.Add(new DailyReportItem
-                    {
-                        Date = date,
-                        Revenue = rev,
-                        Cost = cost
-                    });
+                    dailySales.TryGetValue(date, out var revenue);
+                    dailyPurchases.TryGetValue(date, out var cost);
+                    tempReports.Add(new DailyReportItem { Date = date, Revenue = revenue, Cost = cost });
                 }
-                DailyReports = new ObservableCollection<DailyReportItem>(tempReports);
 
-                // Cập nhật biểu đồ LiveCharts2
-                if (tempReports.Any())
-                {
-                    RevenueExpenseSeries = new ISeries[]
-                    {
+                ISeries[] series = tempReports.Count == 0
+                    ? Array.Empty<ISeries>()
+                    :
+                    [
                         new LineSeries<decimal>
                         {
                             Name = "Doanh thu",
@@ -248,31 +259,38 @@ namespace QuanLyHangHoa.ViewModels
                             GeometrySize = 6,
                             Fill = new SolidColorPaint(SKColors.Crimson.WithAlpha(30))
                         }
-                    };
-
-                    RevenueExpenseXAxes = new Axis[]
-                    {
+                    ];
+                Axis[] axes = tempReports.Count == 0
+                    ? Array.Empty<Axis>()
+                    :
+                    [
                         new Axis
                         {
                             Labels = tempReports.Select(r => r.Date.ToString("dd/MM")).ToArray(),
                             LabelsRotation = 15
                         }
-                    };
-                }
-                else
-                {
-                    RevenueExpenseSeries = Array.Empty<ISeries>();
-                    RevenueExpenseXAxes = Array.Empty<Axis>();
-                }
+                    ];
+
+                EnsureCurrentRefresh(cancellationToken, generation);
+                TotalRevenue = totalRevenue;
+                TotalCost = totalCost;
+                TotalProfit = totalProfit;
+                DailyReports = new ObservableCollection<DailyReportItem>(tempReports);
+                RevenueExpenseSeries = series;
+                RevenueExpenseXAxes = axes;
+                LoadErrorMessage = null;
             }
+            catch (OperationCanceledException) { throw; }
             catch (Exception ex)
             {
+                if (IsCurrentRefresh(cancellationToken, generation))
+                    LoadErrorMessage = ex.Message;
                 System.Diagnostics.Debug.WriteLine($"Lỗi tải báo cáo doanh thu: {ex.Message}");
             }
         }
 
         // --- TAB 2: XUẤT NHẬP TỒN TỔNG HỢP ---
-        private async Task RefreshStockInOutTonReport(CancellationToken cancellationToken)
+        private async Task RefreshStockInOutTonReport(CancellationToken cancellationToken, int generation)
         {
             try
             {
@@ -343,26 +361,29 @@ namespace QuanLyHangHoa.ViewModels
                     };
                 });
 
+                EnsureCurrentRefresh(cancellationToken, generation);
                 StockInOutTonReports = new ObservableCollection<StockInOutTonReportItem>(
                     reports.OrderBy(report => report.ProductName));
+                EnsureCurrentRefresh(cancellationToken, generation);
+                LoadErrorMessage = null;
             }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
+            catch (OperationCanceledException) { throw; }
             catch (Exception ex)
             {
+                if (IsCurrentRefresh(cancellationToken, generation))
+                    LoadErrorMessage = ex.Message;
                 System.Diagnostics.Debug.WriteLine($"Lỗi tải báo cáo XNT: {ex.Message}");
             }
         }
 
         // --- TAB 3: SỔ KHO / THẺ KHO CHI TIẾT ---
-        private async Task RefreshStockLedgerReport(CancellationToken cancellationToken)
+        private async Task RefreshStockLedgerReport(CancellationToken cancellationToken, int generation)
         {
             try
             {
                 if (SelectedProduct == null)
                 {
+                    EnsureCurrentRefresh(cancellationToken, generation);
                     LedgerReports.Clear();
                     LedgerStartQty = 0;
                     LedgerEndQty = 0;
@@ -372,6 +393,7 @@ namespace QuanLyHangHoa.ViewModels
                 var result = await Task.Run(() =>
                     _traceService.GetProductTimeline(SelectedProduct.Id, FromDate, ToDate),
                     cancellationToken);
+                EnsureCurrentRefresh(cancellationToken, generation);
                 LedgerStartQty = result.StartQuantity;
                 LedgerEndQty = result.EndQuantity;
                 LedgerReports = new ObservableCollection<StockLedgerReportItem>(
@@ -392,15 +414,20 @@ namespace QuanLyHangHoa.ViewModels
                             OutQty = r.OutQty,
                             BalanceQty = r.BalanceQty
                         }));
+                EnsureCurrentRefresh(cancellationToken, generation);
+                LoadErrorMessage = null;
             }
+            catch (OperationCanceledException) { throw; }
             catch (Exception ex)
             {
+                if (IsCurrentRefresh(cancellationToken, generation))
+                    LoadErrorMessage = ex.Message;
                 System.Diagnostics.Debug.WriteLine(ex.Message);
             }
         }
 
         // --- TAB 4: TRUY VẾT SERIAL ---
-        private async Task RefreshSerialTraceReport(CancellationToken cancellationToken)
+        private async Task RefreshSerialTraceReport(CancellationToken cancellationToken, int generation)
         {
             try
             {
@@ -415,6 +442,7 @@ namespace QuanLyHangHoa.ViewModels
                     ToDate = ToDate
                 }), cancellationToken);
 
+                EnsureCurrentRefresh(cancellationToken, generation);
                 SerialTraceReports = new ObservableCollection<SerialTraceReportItem>(
                     result.Select(r => new SerialTraceReportItem
                     {
@@ -439,11 +467,28 @@ namespace QuanLyHangHoa.ViewModels
                         WarrantyEndDate = r.WarrantyEndDate,
                         WarrantyCustomerName = r.WarrantyCustomerName
                     }));
+                EnsureCurrentRefresh(cancellationToken, generation);
+                LoadErrorMessage = null;
             }
+            catch (OperationCanceledException) { throw; }
             catch (Exception ex)
             {
+                if (IsCurrentRefresh(cancellationToken, generation))
+                    LoadErrorMessage = ex.Message;
                 System.Diagnostics.Debug.WriteLine(ex.Message);
             }
+        }
+
+        public void RefreshData() => _ = InitializeAsync();
+
+        private bool IsCurrentRefresh(CancellationToken token, int generation) =>
+            !token.IsCancellationRequested && generation == Volatile.Read(ref _refreshGeneration);
+
+        private void EnsureCurrentRefresh(CancellationToken token, int generation)
+        {
+            token.ThrowIfCancellationRequested();
+            if (generation != Volatile.Read(ref _refreshGeneration))
+                throw new OperationCanceledException(token);
         }
 
         [RelayCommand]

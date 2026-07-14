@@ -10,6 +10,7 @@ using Xunit.Abstractions;
 
 namespace QuanLyHangHoa.Tests
 {
+    [Trait("Category", "RealDatabase")]
     public class SeedTestData
     {
         private readonly ITestOutputHelper _output;

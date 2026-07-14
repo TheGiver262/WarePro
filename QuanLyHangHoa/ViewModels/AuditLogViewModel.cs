@@ -44,10 +44,13 @@ namespace QuanLyHangHoa.ViewModels
         public ObservableCollection<AppUser> Users { get; } = new();
 
         private readonly Func<AppDbContext> _contextFactory;
+        private readonly AppUser _currentUser;
 
-        public AuditLogViewModel(Func<AppDbContext> contextFactory)
+        public AuditLogViewModel(Func<AppDbContext> contextFactory, AppUser currentUser)
         {
+            ArgumentNullException.ThrowIfNull(currentUser);
             _contextFactory = contextFactory;
+            _currentUser = currentUser;
             _auditService = new AuditLogService(contextFactory);
             _userService = new AppUserService(contextFactory);
             LoadMetadata();
@@ -180,10 +183,13 @@ namespace QuanLyHangHoa.ViewModels
             {
                 try
                 {
-                    ExportLogsToExcel(oldLogs, saveFileDialog.FileName);
-
-                    // Step 2: Delete from DB
-                    int count = _auditService.DeleteLogs(oldLogs.Select(l => l.Id));
+                    var manifest = _auditService.ArchiveLogs(
+                        ArchiveFromDate,
+                        ArchiveToDate,
+                        _currentUser.Id,
+                        saveFileDialog.FileName,
+                        ExportLogsToExcel);
+                    int count = manifest.RowCount;
                     MessageBox.Show($"Đã xuất tệp thành công và xóa {count} bản ghi nhật ký khỏi hệ thống.", "Thành công", MessageBoxButton.OK, MessageBoxImage.Information);
                     IsArchiveDialogOpen = false;
                     LoadLogs();

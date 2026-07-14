@@ -34,6 +34,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<AuditLog> AuditLogs { get; set; }
 
+    public virtual DbSet<AuditArchiveManifest> AuditArchiveManifests { get; set; }
+
     public virtual DbSet<Brand> Brands { get; set; }
 
     public virtual DbSet<Category> Categories { get; set; }
@@ -135,10 +137,25 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.Performer).WithMany(p => p.AuditLogs)
                 .HasForeignKey(d => d.PerformedBy)
-                .OnDelete(DeleteBehavior.ClientSetNull)
+                .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("FK_AuditLog_PerformedBy");
         });
 
+        modelBuilder.Entity<AuditArchiveManifest>(entity =>
+        {
+            entity.ToTable("AuditArchiveManifest");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.FileName).HasMaxLength(260);
+            entity.Property(e => e.Sha256Hash).HasMaxLength(64).IsFixedLength();
+            entity.Property(e => e.RangeStartUtc).HasPrecision(0);
+            entity.Property(e => e.RangeEndUtc).HasPrecision(0);
+            entity.Property(e => e.CreatedAtUtc).HasPrecision(0);
+            entity.HasIndex(e => e.CreatedAtUtc);
+            entity.HasOne(e => e.Actor)
+                .WithMany()
+                .HasForeignKey(e => e.ActorId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
         modelBuilder.Entity<Brand>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__Brand__3214EC07FFE55213");
