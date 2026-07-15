@@ -10,7 +10,7 @@ actor "Nhà cung cấp" as Supplier
 actor "Hãng sản xuất" as Manufacturer
 actor "Người dùng (Admin/Nhân viên)" as User
 
-rectangle "Hệ thống Quản lý Hàng hóa & Bảo hành (WareHousePro)" as System #LightBlue
+rectangle "WarePro - Hệ thống Quản lý Hàng hóa & Bảo hành" as System #LightBlue
 
 ' Luồng dữ liệu với Khách hàng
 Customer --> System : (1) Yêu cầu mua sản phẩm\n(2) Thiết bị lỗi cần bảo hành

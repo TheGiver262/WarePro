@@ -7,7 +7,9 @@
     <TargetPlatformMinVersion>7.0</TargetPlatformMinVersion>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
-    <ApplicationIcon>Assets\WareHousePro.ico</ApplicationIcon>
+    <AssemblyName>WarePro</AssemblyName>
+    <RootNamespace>QuanLyHangHoa</RootNamespace>
+    <ApplicationIcon>Assets\WarePro.ico</ApplicationIcon>
     <NoWarn>$(NoWarn);NU1701;CA1416</NoWarn>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>

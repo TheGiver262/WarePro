@@ -7,7 +7,7 @@
         xmlns:vm="clr-namespace:QuanLyHangHoa.ViewModels"
         xmlns:converters="clr-namespace:QuanLyHangHoa.Converters"
         mc:Ignorable="d"
-        Title="Đăng Nhập - Inventory Pro Max" Height="600" Width="460"
+        Title="Đăng nhập - WarePro" Height="600" Width="460"
         WindowStartupLocation="CenterScreen" 
         WindowStyle="None" 
         AllowsTransparency="True" 
@@ -64,7 +64,7 @@
                         </Border.Effect>
                         <materialDesign:PackIcon Kind="Warehouse" Width="40" Height="40" Foreground="{StaticResource AppTertiaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
-                    <TextBlock Text="INVENTORY" Style="{StaticResource TypographyDisplay}" FontSize="24" HorizontalAlignment="Center"/>
+                    <TextBlock Text="WarePro" Style="{StaticResource TypographyDisplay}" FontSize="24" HorizontalAlignment="Center"/>
                     <TextBlock Text="PHẦN MỀM QUẢN LÝ KHO HÀNG" Style="{StaticResource TypographyLabel}" Foreground="{StaticResource AppSecondaryBrush}" HorizontalAlignment="Center" Margin="0,4,0,0"/>
                 </StackPanel>
 

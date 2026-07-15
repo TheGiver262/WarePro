@@ -47,7 +47,7 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <StackPanel>
-                            <TextBlock Text="WAREHOUSEPRO" FontSize="17" FontWeight="Bold" Foreground="#1A237E"/>
+                            <TextBlock Text="WarePro" FontSize="17" FontWeight="Bold" Foreground="#1A237E"/>
                             <TextBlock Text="PHẦN MỀM QUẢN LÝ HÀNG HÓA &amp; BẢO HÀNH"
                                        FontSize="10" Foreground="#5C6BC0"/>
                             <TextBlock Text="Địa chỉ: ........................................................"

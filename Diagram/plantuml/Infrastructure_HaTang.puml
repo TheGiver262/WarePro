@@ -1,7 +1,7 @@
 @startuml Infrastructure_HaTang
 title Real deployment infrastructure
 node Windows_Client {
-  artifact QuanLyHangHoa_exe as App
+  artifact WarePro_exe as App
   folder App_Binaries as Bin
   folder Import_Export_Files as Files
 }

@@ -168,6 +168,7 @@ namespace QuanLyHangHoa.ViewModels
             ? CanUserEdit
             : IsAdminOrManager && (StockDocumentUiLifecycle.IsPendingApproval(Status) || StockDocumentUiLifecycle.IsApproved(Status));
         public bool CanUserEdit => _currentUser != null && (_currentUser.RoleCode == "Quản trị viên" || _currentUser.RoleCode == "Quản lý" || _currentUser.RoleCode == "Nhân viên kho");
+        public Task InitializationTask { get; }
 
         public StockOutViewModel(AppUser currentUser, Func<AppDbContext>? contextFactory = null)
         {
@@ -198,7 +199,7 @@ namespace QuanLyHangHoa.ViewModels
                 RecalculateTotal();
             };
 
-            _ = InitializeAsync();
+            InitializationTask = InitializeAsync();
         }
 
         private async Task InitializeAsync()
@@ -218,7 +219,7 @@ namespace QuanLyHangHoa.ViewModels
                 AvailableProducts = new ObservableCollection<Product>(await productsTask);
                 AvailableCustomers = new ObservableCollection<Customer>(await customersTask);
                 AvailableWarehouses = new ObservableCollection<Warehouse>(await warehousesTask);
-                LoadData();
+                await LoadDataAsync(true);
                 _isInitialized = true;
             }
             catch (Exception ex)

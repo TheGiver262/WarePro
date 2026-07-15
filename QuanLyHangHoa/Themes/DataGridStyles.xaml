@@ -3,8 +3,8 @@
                     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
 
     <ResourceDictionary.MergedDictionaries>
-        <ResourceDictionary Source="pack://application:,,,/QuanLyHangHoa;component/Themes/Colors.xaml" />
-        <ResourceDictionary Source="pack://application:,,,/QuanLyHangHoa;component/Themes/Typography.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/WarePro;component/Themes/Colors.xaml" />
+        <ResourceDictionary Source="pack://application:,,,/WarePro;component/Themes/Typography.xaml" />
     </ResourceDictionary.MergedDictionaries>
 
     <!-- ==================================================================== -->

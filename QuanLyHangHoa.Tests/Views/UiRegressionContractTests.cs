@@ -291,6 +291,45 @@ public class UiRegressionContractTests
         Assert.Equal(expected, method.Invoke(null, new object?[] { hasStockOut, warranty }));
     }
 
+    [Fact]
+    public void User_facing_branding_uses_only_WarePro()
+    {
+        var brandedFiles = new[]
+        {
+            Path.Combine(RepoRoot, "QuanLyHangHoa", "MainWindow.xaml"),
+            Path.Combine(RepoRoot, "QuanLyHangHoa", "Views", "LoginView.xaml"),
+            Path.Combine(RepoRoot, "QuanLyHangHoa", "Views", "DocumentPrintWindow.xaml"),
+            Path.Combine(RepoRoot, "QuanLyHangHoa", "Views", "WarrantyPrintWindow.xaml")
+        };
+
+        foreach (var file in brandedFiles)
+        {
+            var content = File.ReadAllText(file);
+            Assert.Contains("WarePro", content, StringComparison.Ordinal);
+            Assert.DoesNotContain("Inventory Pro Max", content, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("Text=\"INVENTORY\"", content, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("WareHousePro", content, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("WarePro Management", content, StringComparison.OrdinalIgnoreCase);
+        }
+
+        var project = File.ReadAllText(Path.Combine(RepoRoot, "QuanLyHangHoa", "QuanLyHangHoa.csproj"));
+        Assert.Contains("<AssemblyName>WarePro</AssemblyName>", project, StringComparison.Ordinal);
+        Assert.Contains("<RootNamespace>QuanLyHangHoa</RootNamespace>", project, StringComparison.Ordinal);
+        Assert.Contains(@"Assets\WarePro.ico", project, StringComparison.Ordinal);
+        Assert.True(File.Exists(Path.Combine(RepoRoot, "QuanLyHangHoa", "Assets", "WarePro.ico")));
+
+        var app = File.ReadAllText(Path.Combine(RepoRoot, "QuanLyHangHoa", "App.xaml"));
+        Assert.Contains("/WarePro;component/", app, StringComparison.Ordinal);
+        foreach (var xamlFile in Directory.GetFiles(
+                     Path.Combine(RepoRoot, "QuanLyHangHoa"), "*.xaml", SearchOption.AllDirectories))
+        {
+            Assert.DoesNotContain(
+                "/QuanLyHangHoa;component/",
+                File.ReadAllText(xamlFile),
+                StringComparison.Ordinal);
+        }
+    }
+
     private static XDocument LoadView(string fileName) =>
         XDocument.Load(Path.Combine(RepoRoot, "QuanLyHangHoa", "Views", fileName));
 

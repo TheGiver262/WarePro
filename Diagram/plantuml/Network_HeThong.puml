@@ -1,5 +1,5 @@
 @startuml Network_HeThong
-title Sơ đồ thiết kế mạng (Network Diagram) hệ thống WareHousePro
+title Sơ đồ thiết kế mạng (Network Diagram) WarePro
 
 left to right direction
 skinparam ComponentStyle uml2

@@ -1,7 +1,7 @@
 @startuml Deployment_HeThong
 title Real deployment diagram
 node User_PC_Windows {
-  artifact QuanLyHangHoa_exe as Exe
+  artifact WarePro_exe as Exe
   artifact appsettings_json as Config
   artifact runtime_dlls as Dlls
 }

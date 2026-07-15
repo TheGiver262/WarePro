@@ -28,7 +28,7 @@
             <StackPanel Grid.Column="0">
                 <TextBlock x:Name="CompanyNameText" Text="CÔNG TY TNHH THƯƠNG MẠI DỊCH VỤ" 
                            FontSize="16" FontWeight="Bold" Foreground="#1A237E"/>
-                <TextBlock x:Name="CompanyBrandText" Text="WarePro Management" 
+                <TextBlock x:Name="CompanyBrandText" Text="WarePro" 
                            FontSize="12" Foreground="#5C6BC0"/>
                 <TextBlock x:Name="CompanyAddressText" Text="Địa chỉ: ..." 
                            FontSize="10" Foreground="#666"/>

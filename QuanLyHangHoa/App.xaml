@@ -9,18 +9,18 @@
                 <materialDesign:BundledTheme BaseTheme="Light" PrimaryColor="Indigo" SecondaryColor="Blue" />
                 <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Defaults.xaml" />
                 <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.DataGrid.xaml" />
-                <ResourceDictionary Source="pack://application:,,,/QuanLyHangHoa;component/Themes/Converters.xaml" />
-                <ResourceDictionary Source="pack://application:,,,/QuanLyHangHoa;component/Themes/Colors.xaml" />
-                <ResourceDictionary Source="pack://application:,,,/QuanLyHangHoa;component/Themes/Typography.xaml" />
-                <ResourceDictionary Source="pack://application:,,,/QuanLyHangHoa;component/Themes/Spacing.xaml" />
-                <ResourceDictionary Source="pack://application:,,,/QuanLyHangHoa;component/Themes/Radius.xaml" />
-                <ResourceDictionary Source="pack://application:,,,/QuanLyHangHoa;component/Themes/Buttons.xaml" />
-                <ResourceDictionary Source="pack://application:,,,/QuanLyHangHoa;component/Themes/Inputs.xaml" />
-                <ResourceDictionary Source="pack://application:,,,/QuanLyHangHoa;component/Themes/DataGridStyles.xaml" />
-                <ResourceDictionary Source="pack://application:,,,/QuanLyHangHoa;component/Themes/Tables.xaml" />
-                <ResourceDictionary Source="pack://application:,,,/QuanLyHangHoa;component/Themes/Cards.xaml" />
-                <ResourceDictionary Source="pack://application:,,,/QuanLyHangHoa;component/Themes/Dialogs.xaml" />
-                <ResourceDictionary Source="pack://application:,,,/QuanLyHangHoa;component/Themes/Navigation.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/WarePro;component/Themes/Converters.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/WarePro;component/Themes/Colors.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/WarePro;component/Themes/Typography.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/WarePro;component/Themes/Spacing.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/WarePro;component/Themes/Radius.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/WarePro;component/Themes/Buttons.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/WarePro;component/Themes/Inputs.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/WarePro;component/Themes/DataGridStyles.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/WarePro;component/Themes/Tables.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/WarePro;component/Themes/Cards.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/WarePro;component/Themes/Dialogs.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/WarePro;component/Themes/Navigation.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

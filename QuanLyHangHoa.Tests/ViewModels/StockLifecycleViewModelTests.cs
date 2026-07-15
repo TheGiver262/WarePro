@@ -1,4 +1,5 @@
 using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Inventory;
 using QuanLyHangHoa.Models;
@@ -12,13 +13,14 @@ public sealed class StockLifecycleViewModelTests
     [Theory]
     [InlineData(nameof(StockDocumentStatus.PendingApproval))]
     [InlineData(nameof(StockDocumentStatus.Approved))]
-    public void StockIn_resume_states_are_processable_but_not_editable(string status)
+    public async Task StockIn_resume_states_are_processable_but_not_editable(string status)
     {
         using var connection = OpenDatabase();
-        var viewModel = new StockInViewModel(Manager(), () => DatabaseHelper.CreateContext(connection))
+        var viewModel = new StockInViewModel(Manager(), () => CreateContext(connection.ConnectionString))
         {
             Status = status
         };
+        await viewModel.InitializationTask;
 
         Assert.False(viewModel.CanEdit);
         Assert.True(viewModel.CanApprove);
@@ -27,33 +29,36 @@ public sealed class StockLifecycleViewModelTests
     [Theory]
     [InlineData(nameof(StockDocumentStatus.PendingApproval))]
     [InlineData(nameof(StockDocumentStatus.Approved))]
-    public void StockOut_resume_states_are_processable_but_not_editable(string status)
+    public async Task StockOut_resume_states_are_processable_but_not_editable(string status)
     {
         using var connection = OpenDatabase();
-        var viewModel = new StockOutViewModel(Manager(), () => DatabaseHelper.CreateContext(connection))
+        var viewModel = new StockOutViewModel(Manager(), () => CreateContext(connection.ConnectionString))
         {
             Status = status
         };
+        await viewModel.InitializationTask;
 
         Assert.False(viewModel.CanEdit);
         Assert.True(viewModel.CanApprove);
     }
 
     [Fact]
-    public void StockIn_draft_can_be_submitted_by_warehouse_user()
+    public async Task StockIn_draft_can_be_submitted_by_warehouse_user()
     {
         using var connection = OpenDatabase();
-        var viewModel = new StockInViewModel(WarehouseUser(), () => DatabaseHelper.CreateContext(connection));
+        var viewModel = new StockInViewModel(WarehouseUser(), () => CreateContext(connection.ConnectionString));
+        await viewModel.InitializationTask;
 
         Assert.True(viewModel.CanEdit);
         Assert.True(viewModel.CanApprove);
     }
 
     [Fact]
-    public void StockOut_draft_can_be_submitted_by_warehouse_user()
+    public async Task StockOut_draft_can_be_submitted_by_warehouse_user()
     {
         using var connection = OpenDatabase();
-        var viewModel = new StockOutViewModel(WarehouseUser(), () => DatabaseHelper.CreateContext(connection));
+        var viewModel = new StockOutViewModel(WarehouseUser(), () => CreateContext(connection.ConnectionString));
+        await viewModel.InitializationTask;
 
         Assert.True(viewModel.CanEdit);
         Assert.True(viewModel.CanApprove);
@@ -108,10 +113,18 @@ public sealed class StockLifecycleViewModelTests
 
     private static SqliteConnection OpenDatabase()
     {
-        var connection = new SqliteConnection("Data Source=:memory:");
+        var connection = new SqliteConnection($"Data Source=stock-lifecycle-{Guid.NewGuid():N};Mode=Memory;Cache=Shared");
         connection.Open();
         using var db = DatabaseHelper.CreateContext(connection);
         DatabaseHelper.SeedBasicData(db);
         return connection;
+    }
+
+    private static AppDbContext CreateContext(string connectionString)
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseSqlite(connectionString)
+            .Options;
+        return new AppDbContext(options);
     }
 }

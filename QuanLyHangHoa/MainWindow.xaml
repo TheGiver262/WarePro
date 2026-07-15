@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         mc:Ignorable="d"
-        Title="Phần Mềm Quản Lý Hàng Hoá &amp; Bảo Hành" Height="900" Width="1440"
+        Title="WarePro" Height="900" Width="1440"
         WindowStartupLocation="CenterScreen"
         FontFamily="{StaticResource AppFontFamily}"
         Background="{StaticResource AppBackgroundBrush}">
@@ -52,7 +52,7 @@
                         </Style>
                     </StackPanel.Style>
                     <materialDesign:PackIcon Kind="ViewDashboard" Width="28" Height="28" Foreground="{StaticResource PrimaryPurpleBrush}"/>
-                    <TextBlock Text="WareHousePro" Foreground="{StaticResource TextOnPrimaryBrush}" FontWeight="Bold" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0"
+                    <TextBlock Text="WarePro" Foreground="{StaticResource TextOnPrimaryBrush}" FontWeight="Bold" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0"
                                Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
                 </StackPanel>
 
@@ -173,7 +173,7 @@
                             <materialDesign:PackIcon Kind="Menu" Width="24" Height="24"/>
                         </Button>
                         
-                        <TextBlock Text="Phần mềm Quản lý Hàng hóa &amp; Bảo hành" 
+                        <TextBlock Text="WarePro" 
                                    Foreground="{StaticResource TopBarTextBrush}" 
                                    FontSize="14" FontWeight="SemiBold" 
                                    VerticalAlignment="Center"/>

@@ -1,6 +1,6 @@
-# So do kien truc va thiet ke
+# So do kien truc va thiet ke WarePro
 
-Thu muc tong hop so do nghiep vu, du lieu va luong xu ly cua he thong quan ly hang hoa va bao hanh.
+Thu muc tong hop so do nghiep vu, du lieu va luong xu ly cua WarePro.
 
 - `ERD module mermaid.md`: ERD day du chia theo module.
 - `ERD module.html`: ban HTML mo truc tiep tren trinh duyet.

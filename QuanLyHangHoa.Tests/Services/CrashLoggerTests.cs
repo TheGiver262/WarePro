@@ -7,7 +7,7 @@ public class CrashLoggerTests : IDisposable
 {
     private readonly string _logDirectory = Path.Combine(
         Path.GetTempPath(),
-        "WareHousePro.Tests",
+        "WarePro.Tests",
         Guid.NewGuid().ToString("N"));
 
     [Fact]
