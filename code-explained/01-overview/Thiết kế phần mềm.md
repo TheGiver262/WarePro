@@ -1,4 +1,6 @@
-THIẾT KẾ PHẦN MỀM QUẢN LÝ HÀNG HÓA VÀ BẢO HÀNH
+THIẾT KẾ PHẦN MỀM WAREPRO - QUẢN LÝ HÀNG HÓA VÀ BẢO HÀNH
+
+Tên sản phẩm: WarePro.
 
 1. Mục tiêu hệ thống
 	1.1 Quản lý danh mục nền: người dùng, đơn vị tính, loại hàng, thương hiệu, nhà cung cấp, khách hàng và kho.

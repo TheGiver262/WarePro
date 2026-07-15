@@ -1,6 +1,6 @@
 # WarePro UI Design Guideline
 
-Tài liệu này dùng làm chỉ dẫn cho Google Antigravity hoặc AI coding agent khi thiết kế giao diện WPF/C# MVVM cho phần mềm **Quản lý hàng hóa & Bảo hành**. Mục tiêu là tái tạo phong cách giao diện giống các ảnh preview đã cung cấp: desktop admin dashboard, sidebar tím đậm, nội dung trắng/xám nhạt, bảng dữ liệu mật độ cao, thao tác CRUD rõ ràng.
+Tài liệu này dùng làm chỉ dẫn khi thiết kế giao diện WPF/C# MVVM cho **WarePro - phần mềm quản lý hàng hóa & bảo hành**. Mục tiêu là tái tạo phong cách giao diện giống các ảnh preview đã cung cấp: desktop admin dashboard, sidebar tím đậm, nội dung trắng/xám nhạt, bảng dữ liệu mật độ cao, thao tác CRUD rõ ràng.
 
 ---
 
@@ -379,7 +379,7 @@ Top bar trong app chỉ nên là thanh tiêu đề nội bộ, không bao gồm 
 ### Bố cục
 
 ```text
-[× hoặc menu toggle]  Phần mềm Quản lý Hàng hóa & Bảo hành                 [optional user/avatar]
+[× hoặc menu toggle]  WarePro                                               [optional user/avatar]
 ```
 
 ### Style

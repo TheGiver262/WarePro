@@ -1,158 +1,128 @@
-# INDEX — Tài liệu Giải thích Chi tiết Code
+# WarePro Knowledge Hub
 
-> Bộ tài liệu này giải thích **từng file, từng hàm, từng dòng code** của phần mềm WareHouse Pro. Đọc theo thứ tự từ 01 → 05 để hiểu từ tầng nền lên tầng giao diện.
+Đây là cổng đọc duy nhất cho tài liệu giải thích và học WarePro. Nội dung được chia theo mục đích; code, kế hoạch vận hành và artifact sinh ra không trộn lẫn với nhau.
 
----
+## Bắt đầu nhanh
 
-## Danh sách tài liệu
+- Muốn hiểu toàn bộ dự án: đọc [WarePro — Toàn cảnh dự án](./01-overview/WAREPRO_PROJECT_DEEP_DIVE.md).
+- Muốn học từ căn bản: mở [Lộ trình học WarePro](./02-learning/00_INDEX.md).
+- Muốn tra cứu một luồng nghiệp vụ: xem nhóm [Nghiệp vụ và luồng dữ liệu](#04-nghiệp-vụ-và-luồng-dữ-liệu).
+- Muốn áp dụng kinh nghiệm sang dự án khác: đọc [Reusable Engineering Playbook](./06-lessons/WAREPRO_REUSABLE_ENGINEERING_PLAYBOOK.md).
 
-| File | Nhóm | Nội dung |
-|---|---|---|
-| [01_khoi_dong_va_dieu_huong.md](./01_khoi_dong_va_dieu_huong.md) | Khởi động & Navigation | `App.xaml.cs`, `AppDbContext`, `AppUser`, `AuthenticationService`, `LoginViewModel`, `LoginView`, `MainWindow`, `MainViewModel` |
-| [02_models_va_database.md](./02_models_va_database.md) | Models & Database | Tất cả Models, quan hệ giữa các bảng, ý nghĩa từng field |
-| [03_services_nghiep_vu.md](./03_services_nghiep_vu.md) | Services | `StockInService`, `AuthorizationService`, `DashboardService`, pattern chung của các service |
-| [04_viewmodels_logic_giaodien.md](./04_viewmodels_logic_giaodien.md) | ViewModels | MVVM Toolkit internals, `StockInLineEditor`, `StockInViewModel` chi tiết, pattern chung |
-| [05_views_va_inventory_layer.md](./05_views_va_inventory_layer.md) | Views & Inventory | Code-behind Views, `SerialInputWindow`, `InventoryPostingService`, interface ports |
+## Lộ trình đọc đề xuất
 
----
+### Hiểu dự án để bảo trì
 
-## Sơ đồ kiến trúc tổng quan
+1. [Toàn cảnh WarePro](./01-overview/WAREPRO_PROJECT_DEEP_DIVE.md)
+2. [Kiến trúc hiện tại](./01-overview/ARCHITECTURE.md)
+3. [Mô hình và database](./03-code/02_models_va_database.md)
+4. [Lõi inventory](./04-business/inventory_core_engine.md)
+5. [Services nghiệp vụ](./03-code/business_services_detailed.md)
+6. [ViewModel và giao diện](./03-code/04_viewmodels_logic_giaodien.md)
+7. [Audit, import và kiểm thử](./04-business/08_audit_import_testing.md)
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                           SQL Server                            │
-│  ProductManagementDb (StockIn, StockLedger, StockBalance, ...)  │
-└───────────────────────────────┬─────────────────────────────────┘
-                                │ EF Core ORM
-                                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   Data/AppDbContext.cs                          │
-│  DbSet<Product>, DbSet<StockIn>, DbSet<StockLedger>, ...        │
-└───────────────────────────────┬─────────────────────────────────┘
-                                │ Func<AppDbContext> factory
-                                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                       Services/                                 │
-│  StockInService  StockOutService  AuthenticationService ...     │
-│       └──────────── Inventory/InventoryPostingService ──────┘   │
-└───────────────────────────────┬─────────────────────────────────┘
-                                │ gọi hàm service
-                                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                       ViewModels/                               │
-│  MainViewModel  StockInViewModel  DashboardViewModel ...        │
-│  (ObservableObject + RelayCommand + ObservableProperty)         │
-└───────────────────────────────┬─────────────────────────────────┘
-                                │ DataContext binding
-                                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                         Views/                                  │
-│  MainWindow.xaml  StockInView.xaml  SerialInputWindow.xaml ...  │
-│           (XAML binding + minimal code-behind)                  │
-└─────────────────────────────────────────────────────────────────┘
-```
+### Học để tự xây lại dự án
 
----
+1. [C# cần biết](./02-learning/01_ngon_ngu_csharp_can_biet.md)
+2. [WPF, XAML và MVVM](./02-learning/02_wpf_xaml_mvvm_can_biet.md)
+3. [EF Core và SQL Server](./02-learning/03_ef_core_sql_server_can_biet.md)
+4. [Kiến trúc WarePro](./02-learning/04_kien_truc_du_an_quan_ly_hang_hoa.md)
+5. [Nghiệp vụ và thuật toán](./02-learning/05_nghiep_vu_chinh_va_thuat_toan.md)
+6. [Tự code lại dự án](./02-learning/06_tu_code_lai_du_an_tu_dau.md)
+7. [Workbook thực hành](./02-learning/12_workbook_tu_code_app_mini.md)
 
-## Luồng thực thi cốt lõi khi "Ghi sổ phiếu nhập kho"
+## 01. Tổng quan
 
-```
-1. [User] Bấm nút "Xác nhận ghi sổ" trên StockInView.xaml
-2. [WPF]  Binding gọi StockInViewModel.ConfirmAndPostCommand
-3. [VM]   ValidateForm() — kiểm tra bắt buộc phải có kho, có dòng sản phẩm
-4. [VM]   StockInService.SaveDraft() — lưu draft mới nhất
-5. [VM]   MessageBox.Show("Xác nhận?") — hỏi người dùng
-6. [VM]   StockInService.Post(stockInId, userId)
-7. [Svc]  db.BeginTransaction()
-8. [Svc]  Validate: serial đủ số lượng, serial chưa tồn tại, không trùng trong phiếu
-9. [Svc]  stockIn.Status = "Posted"; db.SaveChanges()
-10.[Svc]  foreach line: InventoryPostingService.PostStockIn(command)
-11.[Inv]  GetOrCreateBalance() → StockBalance.OnHand += qty; Available += qty
-12.[Inv]  foreach serial: ProductSerial(Status=InStock) → INSERT vào DB
-13.[Inv]  StockLedger → INSERT record (SourceDoc=StockIn, Direction=IN)
-14.[Inv]  AuditLog → INSERT record (PostStockIn)
-15.[Inv]  Commit() → db.SaveChanges()
-16.[Svc]  Bind serial.LastStockInLineId = line.Id
-17.[Svc]  db.SaveChanges()
-18.[Svc]  AddAudit(db, "UPDATE", stockInId, beforeJson, afterJson)
-19.[Svc]  transaction.Commit() ← Toàn bộ commit vào SQL Server
-20.[VM]   IsPosted = true → CanEdit = false → UI lock form
-21.[WPF]  Binding cập nhật UI (nút Sửa bị disabled)
-22.[VM]   MessageBox.Show("Đã ghi sổ thành công")
-```
+| Tài liệu | Dùng khi |
+|---|---|
+| [WAREPRO_PROJECT_DEEP_DIVE.md](./01-overview/WAREPRO_PROJECT_DEEP_DIVE.md) | Cần hiểu dự án từ nghiệp vụ đến mã nguồn |
+| [Thiết kế phần mềm.md](./01-overview/Thiết%20kế%20phần%20mềm.md) | Cần phạm vi và quyết định thiết kế nền tảng |
+| [ARCHITECTURE.md](./01-overview/ARCHITECTURE.md) | Cần bản đồ kiến trúc code đang chạy |
+| [architecture_overview.md](./01-overview/architecture_overview.md) | Cần giải thích kiến trúc mở rộng |
+| [MODULE_MAP.md](./01-overview/MODULE_MAP.md) | Cần tìm điểm vào, service và test của module |
+| [FILE_STRUCTURE.md](./01-overview/FILE_STRUCTURE.md) | Cần hiểu cấu trúc file của project |
+| [diagrams_explained.md](./01-overview/diagrams_explained.md) | Cần hiểu ý nghĩa các sơ đồ |
 
----
+## 02. Lộ trình học
 
-## Các pattern quan trọng cần ghi nhớ
+| Thứ tự | Tài liệu |
+|---:|---|
+| 0 | [Mục lục lộ trình](./02-learning/00_INDEX.md) |
+| 1 | [Ngôn ngữ C# cần biết](./02-learning/01_ngon_ngu_csharp_can_biet.md) |
+| 2 | [WPF, XAML và MVVM cần biết](./02-learning/02_wpf_xaml_mvvm_can_biet.md) |
+| 3 | [EF Core và SQL Server cần biết](./02-learning/03_ef_core_sql_server_can_biet.md) |
+| 4 | [Kiến trúc dự án WarePro](./02-learning/04_kien_truc_du_an_quan_ly_hang_hoa.md) |
+| 5 | [Nghiệp vụ chính và thuật toán](./02-learning/05_nghiep_vu_chinh_va_thuat_toan.md) |
+| 6 | [Tự code lại dự án từ đầu](./02-learning/06_tu_code_lai_du_an_tu_dau.md) |
+| 7 | [Bài tập theo tuần](./02-learning/07_bai_tap_theo_tuan.md) |
+| 8 | [Thuật ngữ và phỏng vấn bảo vệ](./02-learning/08_bang_thuat_ngu_va_phong_van_bao_ve.md) |
+| 9 | [Học C# bằng code từ số 0](./02-learning/09_csharp_bang_code_tu_so_0.md) |
+| 10 | [Học WPF/MVVM bằng code từ số 0](./02-learning/10_wpf_mvvm_bang_code_tu_so_0.md) |
+| 11 | [Học EF Core/SQL bằng code từ số 0](./02-learning/11_efcore_sql_bang_code_tu_so_0.md) |
+| 12 | [Workbook tự code app mini](./02-learning/12_workbook_tu_code_app_mini.md) |
 
-| Pattern | Ví dụ | Mục đích |
-|---|---|---|
-| **Context Factory** | `Func<AppDbContext>` | Mỗi thao tác dùng connection riêng, tránh leak |
-| **`using var db`** | `using var db = _contextFactory()` | Tự động đóng connection sau khi xong |
-| **`AsNoTracking()`** | `.AsNoTracking().ToList()` | Tối ưu tốc độ đọc, không theo dõi thay đổi |
-| **Deferred Execution** | `.Where(...).Skip(...).Take(...).ToList()` | SQL chỉ chạy khi gọi `.ToList()` |
-| **Transaction** | `db.BeginTransaction(); ... transaction.Commit()` | Bảo đảm atomicity cho ghi sổ |
-| **`_isInitialized`** | Cờ trong ViewModel | Tránh filter chạy trước khi khởi tạo xong |
-| **`_isLoading`** | Cờ trong ViewModel | Tránh load trùng lặp khi đang load |
-| **`Dispatcher.Invoke()`** | Cập nhật UI từ thread nền | WPF chỉ cho update UI từ UI thread |
-| **`[ObservableProperty]`** | MVVM Toolkit attribute | Auto-gen property + PropertyChanged |
-| **`[RelayCommand]`** | MVVM Toolkit attribute | Auto-gen ICommand từ method |
-| **View Cache** | `Dictionary<string, UserControl>` | Tránh tạo lại View khi quay lại màn hình |
-| **DraftSerials** | `string? DraftSerials` trong StockInLine | Lưu serial tạm dưới dạng CSV trước khi Post |
-| **record with { }** | `balance with { OnHand = x + n }` | Cập nhật immutable record (copy-on-write) |
-| **IClock abstraction** | `IClock.Now` | Dễ test bằng fake time |
+## 03. Giải thích mã nguồn
 
----
+| Tài liệu | Phạm vi |
+|---|---|
+| [01 — Khởi động và điều hướng](./03-code/01_khoi_dong_va_dieu_huong.md) | Startup, login, shell và navigation |
+| [02 — Models và database](./03-code/02_models_va_database.md) | Entity, field và quan hệ dữ liệu |
+| [03 — Services nghiệp vụ](./03-code/03_services_nghiep_vu.md) | Pattern service và cách gọi dữ liệu |
+| [04 — ViewModels](./03-code/04_viewmodels_logic_giaodien.md) | State, command, validation và binding |
+| [05 — Views và inventory layer](./03-code/05_views_va_inventory_layer.md) | XAML, code-behind và inventory ports |
+| [AuthenticationService](./03-code/authentication_service.md) | Xác thực và phiên người dùng |
+| [Database và domain models](./03-code/database_and_domain_models.md) | Mapping dữ liệu chuyên sâu |
+| [Business services chi tiết](./03-code/business_services_detailed.md) | Logic các service cốt lõi |
+| [Presentation và ViewModels](./03-code/presentation_and_viewmodels.md) | Tầng presentation chuyên sâu |
+| [Startup và DbContext dễ hiểu](./03-code/13_startup_dbcontext_mapping_de_hieu.md) | App startup, DbSet, mapping và seed |
 
-## Bảng tra cứu: Khi bấm nút X → hàm Y được gọi
+## 04. Nghiệp vụ và luồng dữ liệu
 
-| Nút / Hành động | Command/Event | Hàm được gọi |
-|---|---|---|
-| Đăng nhập | `LoginCommand` | `LoginViewModel.Login()` → `AuthenticationService.Authenticate()` |
-| Menu "Nhập kho" | `OpenStockInViewCommand` | `MainViewModel.OpenStockInView()` |
-| Tạo phiếu mới | `CreateNewCommand` | `StockInViewModel.CreateNew()` |
-| Nhập serial | `OpenSerialInputCommand` | `StockInViewModel.OpenSerialInput()` → `SerialInputWindow.ShowDialog()` |
-| Lưu nháp | `SaveDraftCommand` | `StockInViewModel.SaveDraft()` → `StockInService.SaveDraft()` |
-| Ghi sổ | `ConfirmAndPostCommand` | `StockInViewModel.ConfirmAndPost()` → `StockInService.Post()` → `InventoryPostingService.PostStockIn()` |
-| Xuất Excel | `ExportExcelCommand` | `StockInViewModel.ExportExcel()` |
-| Đăng xuất | `LogoutCommand` | `MainViewModel.Logout()` |
-| Đổi mật khẩu | `OpenChangePasswordViewCommand` | `MainViewModel.OpenChangePasswordView()` |
-| Scroll xuống đáy | `ScrollChanged` event | `StockInView.xaml.cs` → `LoadMoreCommand` |
-| Gõ vào ô tìm kiếm | `OnSearchDocumentCodeChanged()` | `StockInViewModel.LoadData()` |
+| Tài liệu | Nghiệp vụ |
+|---|---|
+| [Execution và data flows](./04-business/execution_and_data_flows.md) | Luồng xuyên tầng của hệ thống |
+| [Inventory core engine](./04-business/inventory_core_engine.md) | Balance, serial, ledger và posting |
+| [Nhập/xuất kho dễ hiểu](./04-business/10_stockin_stockout_posting_de_hieu.md) | Draft, post, serial và transaction |
+| [Kiểm kê, chuyển và điều chỉnh](./04-business/06_kiem_ke_chuyen_kho_dieu_chinh.md) | Nghiệp vụ kho nâng cao |
+| [Opening balance import](./04-business/opening_balance_import.md) | Tồn đầu kỳ và import |
+| [Hóa đơn, dashboard và báo cáo](./04-business/07_hoa_don_dashboard_bao_cao.md) | Thương mại, KPI và truy vết |
+| [Audit, import và testing](./04-business/08_audit_import_testing.md) | Audit trail, nhập dữ liệu và test |
+| [Report, audit và import dễ hiểu](./04-business/12_report_audit_import_de_hieu.md) | Các file dài được bóc nhỏ |
+| [WarrantyClaimService](./04-business/warranty_claim_service.md) | Xử lý yêu cầu bảo hành |
+| [Bảo hành và đổi serial dễ hiểu](./04-business/11_warranty_claim_doi_serial_de_hieu.md) | State transition và replacement |
+| [Warranty tests](./04-business/warranty_tests.md) | Các trường hợp kiểm thử bảo hành |
 
----
+## 05. Giao diện
 
-## Phụ lục bổ sung sau rà soát codebase hiện tại
+| Tài liệu | Nội dung |
+|---|---|
+| [WarePro UI Design Guideline](./05-ui/warepro_ui_design_guideline.md) | Design system, layout, component và quy tắc WPF |
+| [UI Typography Guideline](./05-ui/UI_TYPOGRAPHY_GUIDELINE.md) | Cỡ chữ, hierarchy và mật độ hiển thị |
 
-Các file dưới đây được bổ sung để lấp các khoảng trống của bộ tài liệu cũ, đặc biệt phục vụ việc giải thích trước hội đồng bảo vệ đồ án:
+## 06. Bài học và rà soát
 
-| File | Nhóm | Nội dung |
-|---|---|---|
-| [DOC_COVERAGE_AUDIT.md](./DOC_COVERAGE_AUDIT.md) | Rà soát tài liệu | Ma trận đối chiếu tài liệu hiện có với code hiện tại, điểm thiếu và rủi ro cần nói khi bảo vệ |
-| [06_kiem_ke_chuyen_kho_dieu_chinh.md](./06_kiem_ke_chuyen_kho_dieu_chinh.md) | Kho nâng cao | Kiểm kê, xử lý chênh lệch, điều chỉnh kho trực tiếp, chuyển kho nội bộ |
-| [07_hoa_don_dashboard_bao_cao.md](./07_hoa_don_dashboard_bao_cao.md) | Hóa đơn và báo cáo | Hóa đơn mua bán, công nợ, tự sinh bảo hành, dashboard KPI, báo cáo xuất nhập tồn và truy vết serial |
-| [08_audit_import_testing.md](./08_audit_import_testing.md) | Audit, import, test | Audit log, stock ledger timeline, import Excel CSV, import tồn đầu kỳ, chiến lược kiểm thử |
-| [09_so_tay_bao_ve_hoi_dong.md](./09_so_tay_bao_ve_hoi_dong.md) | Ôn bảo vệ | Hỏi đáp nhanh để giải thích kiến trúc, nghiệp vụ, test và hạn chế trước hội đồng |
+| Tài liệu | Nội dung |
+|---|---|
+| [Reusable Engineering Playbook](./06-lessons/WAREPRO_REUSABLE_ENGINEERING_PLAYBOOK.md) | Kiến thức áp dụng cho dự án sau |
+| [Deep Research Report](./06-lessons/deep-research-report.md) | Nghiên cứu và đánh giá dự án |
+| [Documentation Coverage Audit](./06-lessons/DOC_COVERAGE_AUDIT.md) | Phần code đã/chưa được tài liệu hóa |
+| [Sổ tay bảo vệ hội đồng](./06-lessons/09_so_tay_bao_ve_hoi_dong.md) | Câu hỏi và cách giải thích đồ án |
 
-### Thứ tự đọc khuyến nghị để chuẩn bị bảo vệ
+## Tài liệu ngoài Knowledge Hub
 
-1. Đọc architecture_overview.md để nắm kiến trúc tổng thể.
-2. Đọc 01_khoi_dong_va_dieu_huong.md và 02_models_va_database.md để nắm startup, navigation và dữ liệu.
-3. Đọc 05_views_va_inventory_layer.md và inventory_core_engine.md để nắm lõi tồn kho.
-4. Đọc 06_kiem_ke_chuyen_kho_dieu_chinh.md để nắm nghiệp vụ kho nâng cao.
-5. Đọc 07_hoa_don_dashboard_bao_cao.md để nắm hóa đơn, bảo hành tự sinh và báo cáo.
-6. Đọc 08_audit_import_testing.md để nắm audit, import và kiểm thử.
-7. Đọc 09_so_tay_bao_ve_hoi_dong.md cuối cùng để luyện trả lời câu hỏi.
+Các nội dung sau được liên kết nhưng có vòng đời riêng:
 
----
+- [Diagram](../Diagram/README.md): Mermaid, PlantUML và SVG nguồn.
+- [Project plans](../docs/project-plans/): kế hoạch sản phẩm cũ ở root.
+- [Agent plans và specifications](../docs/superpowers/): tài liệu thực thi nội bộ.
+- [Session handoffs](../docs/handoffs/): bàn giao phiên làm việc.
+- [Diagnostics](../artifacts/diagnostics/): log, kiểm tra dữ liệu và đếm serial.
+- [Word reports](../artifacts/documents/): tài liệu báo cáo, gồm cả bản local-only.
 
-## Bổ sung: giải thích các phần code dài, khó, theo cách dễ hiểu
+## Quy tắc duy trì
 
-Các file dưới đây được thêm để đọc sau bộ 01-09. Mục tiêu là bóc nhỏ những file code dài, nhiều nghiệp vụ, dễ gây rối cho người mới:
-
-| File | Nên đọc khi | Nội dung |
-|---|---|---|
-| [10_stockin_stockout_posting_de_hieu.md](./10_stockin_stockout_posting_de_hieu.md) | Muốn hiểu ghi sổ nhập/xuất kho | `StockInService`, `StockOutService`, `InventoryPostingService`, serial, transaction, ledger |
-| [11_warranty_claim_doi_serial_de_hieu.md](./11_warranty_claim_doi_serial_de_hieu.md) | Muốn hiểu bảo hành đổi/trả serial | `WarrantyClaimService`, đổi serial từ kho, nhận serial mới từ hãng, cập nhật bảo hành |
-| [12_report_audit_import_de_hieu.md](./12_report_audit_import_de_hieu.md) | Muốn hiểu báo cáo, audit, import | `ReportTraceService`, `AuditLogViewModel`, `DynamicImportService`, `DataImportManager` |
-| [13_startup_dbcontext_mapping_de_hieu.md](./13_startup_dbcontext_mapping_de_hieu.md) | Muốn hiểu app khởi động và DB map thế nào | `App.xaml.cs`, `AppDbContext`, `DbSet`, `OnModelCreating`, seed data |
+- Tài liệu giúp hiểu hoặc học dự án phải vào một trong sáu nhóm trên.
+- Plan/spec/handoff không đưa vào thư viện kiến thức.
+- Log, báo cáo sinh tự động và Word không đặt ở root.
+- Diagram nguồn ở `Diagram/`; tài liệu giải thích diagram ở `01-overview/`.
+- Khi di chuyển file, cập nhật `INDEX.md` và kiểm tra toàn bộ link tương đối.

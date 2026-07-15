@@ -1,6 +1,6 @@
-# Roadmap học và tự code lại dự án QuanLyHangHoa
+# Roadmap học và tự code lại WarePro
 
-Bộ tài liệu này dành cho mục tiêu: hiểu nhanh công nghệ dự án đang dùng, đọc được code hiện tại, rồi tự code lại một phiên bản từ đầu đến cuối.
+Bộ tài liệu này dành cho mục tiêu: hiểu nhanh công nghệ WarePro đang dùng, đọc được code hiện tại trong project `QuanLyHangHoa`, rồi tự code lại một phiên bản từ đầu đến cuối.
 
 Dự án là ứng dụng desktop Windows viết bằng:
 

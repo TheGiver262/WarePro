@@ -1,6 +1,6 @@
 # Giải thích chi tiết Hệ thống Sơ đồ (Diagrams Explanation)
 
-Hệ thống quản lý hàng hóa và bảo hành **QuanLyHangHoa** (WareHousePro) được thiết kế và mô hình hóa thông qua bộ sơ đồ chuẩn UML (triển khai bằng Mermaid và PlantUML). Các sơ đồ này mô tả chi tiết từ kiến trúc phân lớp, các ca sử dụng (Use Cases), quy trình nghiệp vụ (Activity), tương tác giữa các thành phần (Sequence), cho đến cấu trúc dữ liệu thực thể (ERD) và vòng đời của các đối tượng cốt lõi (State Machine).
+**WarePro** (project kỹ thuật `QuanLyHangHoa`) được thiết kế và mô hình hóa thông qua bộ sơ đồ chuẩn UML (triển khai bằng Mermaid và PlantUML). Các sơ đồ này mô tả chi tiết từ kiến trúc phân lớp, các ca sử dụng (Use Cases), quy trình nghiệp vụ (Activity), tương tác giữa các thành phần (Sequence), cho đến cấu trúc dữ liệu thực thể (ERD) và vòng đời của các đối tượng cốt lõi (State Machine).
 
 Tài liệu này giải thích chi tiết ý nghĩa, luồng xử lý và các quyết định thiết kế then chốt đằng sau mỗi sơ đồ.
 

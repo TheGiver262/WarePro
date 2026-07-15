@@ -1,6 +1,6 @@
 # Phân tích Chi tiết: Luồng Thực thi & Luồng Dữ liệu (Execution & Data Flows)
 
-Tài liệu này cung cấp cái nhìn chi tiết và chuyên sâu nhất về cách thức hoạt động của hệ thống quản lý hàng hóa và bảo hành **WareHousePro** (QuanLyHangHoa). Tài liệu sẽ mô tả hành trình từ khi người dùng click chuột trên giao diện (WPF View), qua các tầng xử lý (ViewModel, Service) xuống cơ sở dữ liệu (SQL Server) và cách EF Core 8 quản lý dữ liệu.
+Tài liệu này cung cấp cái nhìn chi tiết và chuyên sâu nhất về cách thức hoạt động của **WarePro** (project kỹ thuật `QuanLyHangHoa`). Tài liệu sẽ mô tả hành trình từ khi người dùng click chuột trên giao diện (WPF View), qua các tầng xử lý (ViewModel, Service) xuống cơ sở dữ liệu (SQL Server) và cách EF Core 8 quản lý dữ liệu.
 
 ---
 
@@ -84,7 +84,7 @@ Nghiệp vụ này bắt đầu khi thủ kho hoàn tất nhập liệu thông t
      * Cập nhật trạng thái phiếu nhập: `stockIn.Status = DocumentStatus.Posted`, cập nhật người duyệt và ngày duyệt.
 4. **Inventory Posting Service:**
    * `StockInService` khởi tạo `InventoryPostingService` và gọi `postingService.PostStockIn(command)`.
-   * Tại [InventoryPostingService.cs](file:///f:/Codex%20Project/ProductManagement_Antigravity/QuanLyHangHoa/Services/InventoryPostingService.cs) (hoặc thông qua Unit of Work):
+   * Tại [InventoryPostingService.cs](file:///f:/Codex%20Project/ProductManagement_Antigravity/QuanLyHangHoa/Inventory/InventoryPostingService.cs) (hoặc thông qua Unit of Work):
      * **Tăng tồn kho (`StockBalance`):** Lấy hoặc tạo mới số dư tồn kho của sản phẩm tại kho đó. Thực hiện cộng dồn:
        * `OnHandQuantity += quantity` (Tồn vật lý thực tế tăng).
        * `AvailableQuantity += quantity` (Tồn khả dụng tăng).
@@ -238,7 +238,7 @@ Quy trình bảo mật đảm bảo tài khoản được xác thực và gán q
 
 ## 3. Quy Tắc Bất Biến Của Tồn Kho (Inventory Invariants)
 
-Để dữ liệu tồn kho luôn chính xác và không bao giờ xảy ra lỗi logic, hệ thống WareHousePro tuân thủ nghiêm ngặt hai quy tắc bất biến sau:
+Để dữ liệu tồn kho luôn chính xác và không bao giờ xảy ra lỗi logic, WarePro tuân thủ nghiêm ngặt hai quy tắc bất biến sau:
 
 ### 3.1 Tồn kho Thực tế (OnHand) vs Tồn kho Khả dụng (Available)
 Trong bảng `StockBalance`, mỗi sản phẩm tại một kho hàng luôn có hai chỉ số số lượng:

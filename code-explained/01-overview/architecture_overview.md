@@ -1,6 +1,6 @@
 # Tổng quan Kiến trúc Hệ thống (Architecture Overview)
 
-Dự án **QuanLyHangHoa** (WareHousePro) được xây dựng trên nền tảng **.NET 8 (Windows Presentation Foundation - WPF)**, áp dụng mô hình kiến trúc phân lớp (Layered Architecture) kết hợp mô hình thiết kế **MVVM (Model-View-ViewModel)** và sử dụng **Entity Framework Core (EF Core)** để truy xuất cơ sở dữ liệu SQL Server.
+**WarePro** (project kỹ thuật `QuanLyHangHoa`) được xây dựng trên nền tảng **.NET 8 (Windows Presentation Foundation - WPF)**, áp dụng mô hình kiến trúc phân lớp (Layered Architecture) kết hợp mô hình thiết kế **MVVM (Model-View-ViewModel)** và sử dụng **Entity Framework Core (EF Core)** để truy xuất cơ sở dữ liệu SQL Server.
 
 Tài liệu này giải thích chi tiết cấu trúc phân lớp, nguyên lý giao tiếp giữa các thành phần và các cơ chế xử lý hệ thống cốt lõi.
 

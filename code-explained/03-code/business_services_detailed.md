@@ -1,6 +1,6 @@
 # Giải thích chi tiết mã nguồn: Phân hệ Dịch vụ Nghiệp vụ (Business Services)
 
-Hệ thống **QuanLyHangHoa** (WareHousePro) tổ chức toàn bộ logic xử lý nghiệp vụ tại thư mục `Services/`. Các lớp dịch vụ này nhận dữ liệu từ lớp Presentation (ViewModels), thực hiện kiểm tra quy tắc nghiệp vụ (Business Rules), điều phối dữ liệu qua các Unit of Work và ghi nhận kết quả xuống cơ sở dữ liệu.
+**WarePro** (project kỹ thuật `QuanLyHangHoa`) tổ chức toàn bộ logic xử lý nghiệp vụ tại thư mục `Services/`. Các lớp dịch vụ này nhận dữ liệu từ lớp Presentation (ViewModels), thực hiện kiểm tra quy tắc nghiệp vụ (Business Rules), điều phối dữ liệu qua các Unit of Work và ghi nhận kết quả xuống cơ sở dữ liệu.
 
 Tài liệu này giải thích chi tiết các dịch vụ nghiệp vụ cốt lõi của toàn bộ dự án.
 
