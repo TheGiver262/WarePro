@@ -153,6 +153,8 @@ namespace QuanLyHangHoa.Services.DataImport
                     if (item.DefaultUnitId == 0) item.DefaultUnitId = _unitMap.Values.FirstOrDefault();
                 }, _productMap, log);
 
+                await SeedProductUnitsAsync(workbook, log);
+
                 // 7. StockIn (Opening Balances)
                 await SeedTableWithMappingAsync<StockIn>(workbook, "StockIn", "DocumentCode", "Id", (row, item) =>
                 {
@@ -443,6 +445,77 @@ namespace QuanLyHangHoa.Services.DataImport
                 return $"Lỗi Seeding: {ex.Message}";
             }
         }
+
+        private async Task SeedProductUnitsAsync(XLWorkbook workbook, System.Text.StringBuilder log)
+        {
+            if (!workbook.Worksheets.TryGetWorksheet("ProductUnit", out var sheet))
+            {
+                log.AppendLine("Bỏ qua sheet 'ProductUnit': Không tìm thấy.");
+                return;
+            }
+
+            var headers = sheet.Row(1).CellsUsed().ToDictionary(
+                cell => cell.Value.ToString().Trim(),
+                cell => cell.Address.ColumnNumber,
+                StringComparer.OrdinalIgnoreCase);
+            var existingRows = await _context.ProductUnits.AsNoTracking().ToListAsync();
+            var existingPairs = existingRows
+                .Select(row => (row.ProductId, row.UnitId))
+                .ToHashSet();
+            var baseUnitProducts = existingRows
+                .Where(row => row.IsBaseUnit)
+                .Select(row => row.ProductId)
+                .ToHashSet();
+            var inserted = 0;
+
+            foreach (var row in sheet.RangeUsed()!.RowsUsed().Skip(1))
+            {
+                var wrapper = new ExcelRowWrapper(row, headers);
+                var productReference = wrapper.GetString("ProductId") ?? string.Empty;
+                var unitReference = wrapper.GetString("UnitId") ?? string.Empty;
+                if (!_productMap.TryGetValue(productReference, out var productId)
+                    || !_unitMap.TryGetValue(unitReference, out var unitId))
+                {
+                    throw new InvalidDataException(
+                        $"ProductUnit không resolve được ProductId '{productReference}' hoặc UnitId '{unitReference}'.");
+                }
+
+                var conversionFactor = wrapper.GetDecimal("ConversionFactor") ?? 0;
+                if (conversionFactor <= 0)
+                {
+                    throw new InvalidDataException("ProductUnit.ConversionFactor phải lớn hơn 0.");
+                }
+
+                var isBaseUnit = IsTrue(wrapper.GetString("IsBaseUnit"));
+                if (existingPairs.Contains((productId, unitId))
+                    || (isBaseUnit && baseUnitProducts.Contains(productId)))
+                {
+                    continue;
+                }
+
+                _context.ProductUnits.Add(new ProductUnit
+                {
+                    ProductId = productId,
+                    UnitId = unitId,
+                    ConversionFactor = conversionFactor,
+                    IsBaseUnit = isBaseUnit,
+                    IsPurchaseUnit = IsTrue(wrapper.GetString("IsPurchaseUnit")),
+                    IsSalesUnit = IsTrue(wrapper.GetString("IsSalesUnit"))
+                });
+                existingPairs.Add((productId, unitId));
+                if (isBaseUnit)
+                {
+                    baseUnitProducts.Add(productId);
+                }
+                inserted++;
+            }
+
+            await _context.SaveChangesAsync();
+            log.AppendLine($"Đã đồng bộ bảng 'ProductUnit': thêm {inserted} dòng.");
+        }
+
+        private static bool IsTrue(string? value) =>
+            string.Equals(value, "true", StringComparison.OrdinalIgnoreCase) || value == "1";
 
         private async Task SeedTableWithMappingAsync<T>(XLWorkbook workbook, string sheetName, string codeHeader, string idHeader, Action<ExcelRowWrapper, T> mapAction, Dictionary<string, int> idMap, System.Text.StringBuilder log) where T : class, new()
         {
