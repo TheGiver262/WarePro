@@ -64,6 +64,7 @@ namespace QuanLyHangHoa.ViewModels
             RefreshData();
         }
 
+        // giữ product id đang chọn qua lần reload, rồi nạp lại units và quan hệ product-unit
         public void RefreshData()
         {
             var selectedProductId = SelectedProduct?.Id;
@@ -129,6 +130,7 @@ namespace QuanLyHangHoa.ViewModels
 
         private bool CanManage() => _canManage();
 
+        // CanExecute hỗ trợ UI, nhưng handler vẫn kiểm tra lại quyền trước khi thay dữ liệu
         private bool EnsureCanManage()
         {
             if (CanManage())
@@ -146,6 +148,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand(CanExecute = nameof(CanManage))]
+        // ConversionFactor là số đơn vị cơ sở trên một đơn vị chọn; service kiểm tra dương, trùng và base-unit invariant
         private void Save()
         {
             if (!EnsureCanManage())
@@ -194,6 +197,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand(CanExecute = nameof(CanManage))]
+        // service chặn xóa đơn vị cơ sở hoặc quan hệ cần thiết; chỉ reload sau khi xóa thành công
         private void Delete(ProductUnit? productUnit)
         {
             if (!EnsureCanManage())

@@ -6,6 +6,9 @@ using System.Text.Json.Serialization;
 
 namespace QuanLyHangHoa.Configuration;
 
+/// <summary>
+/// bọc lỗi JSON và lỗi phiên bản bằng một mã cấu hình ổn định cho luồng startup.
+/// </summary>
 public sealed class WareProConfigurationException : Exception
 {
     public WareProConfigurationException(string configurationPath, Exception? innerException = null)
@@ -19,6 +22,9 @@ public sealed class WareProConfigurationException : Exception
     public string ConfigurationPath { get; }
 }
 
+/// <summary>
+/// đọc, kiểm tra và ghi file cấu hình máy mà không để lại file chính ở trạng thái dở dang.
+/// </summary>
 public sealed class WareProSettingsStore
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -45,6 +51,9 @@ public sealed class WareProSettingsStore
         _configurationPath = Path.GetFullPath(configurationPath);
     }
 
+    /// <summary>
+    /// trả null khi bộ cài chưa tạo cấu hình; nội dung đã tồn tại thì phải hợp lệ hoàn toàn.
+    /// </summary>
     public WareProSettings? Load()
     {
         if (!File.Exists(_configurationPath))
@@ -73,10 +82,12 @@ public sealed class WareProSettingsStore
 
         var directory = Path.GetDirectoryName(_configurationPath)!;
         Directory.CreateDirectory(directory);
+        // luôn ghi sang file cùng thư mục để bước replace không đi qua ổ đĩa hoặc volume khác.
         var temporaryPath = _configurationPath + ".tmp";
 
         try
         {
+            // WriteThrough và flushToDisk hoàn tất dữ liệu file tạm trước khi thay file cấu hình đang dùng.
             using (var stream = new FileStream(
                 temporaryPath,
                 FileMode.Create,
@@ -91,6 +102,7 @@ public sealed class WareProSettingsStore
                 stream.Flush(flushToDisk: true);
             }
 
+            // replace giữ thao tác thay file hiện có nguyên tử; lần ghi đầu dùng move sau khi file tạm đã flush.
             if (File.Exists(_configurationPath))
             {
                 File.Replace(temporaryPath, _configurationPath, destinationBackupFileName: null, ignoreMetadataErrors: true);
@@ -100,6 +112,7 @@ public sealed class WareProSettingsStore
                 File.Move(temporaryPath, _configurationPath);
             }
         }
+        // file tạm được dọn ở mọi nhánh nhưng lỗi ghi hoặc replace ban đầu vẫn được giữ nguyên.
         finally
         {
             if (File.Exists(temporaryPath))
@@ -118,6 +131,7 @@ public sealed class WareProSettingsStore
     public static WareProSettings Deserialize(string json) =>
         DeserializeAndValidate(json, "<memory>");
 
+    // deserialize và validate đi cùng nhau để caller không bao giờ nhận một cấu hình chỉ hợp lệ một phần.
     private static WareProSettings DeserializeAndValidate(string json, string configurationPath)
     {
         try
@@ -137,6 +151,7 @@ public sealed class WareProSettingsStore
         }
     }
 
+    // kiểm tra tập trung giúp mọi entry point dùng cùng điều kiện về schema và trường bắt buộc.
     private static void Validate(WareProSettings settings, string configurationPath)
     {
         if (settings.SchemaVersion != WareProSettings.CurrentSchemaVersion

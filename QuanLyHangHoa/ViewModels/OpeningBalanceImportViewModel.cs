@@ -107,6 +107,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
+        // đọc file một lần và giữ raw header/row xuyên suốt các bước mapping, preview và confirm
         private void ProcessSelectedFile()
         {
             if (string.IsNullOrWhiteSpace(FilePath)) return;
@@ -144,6 +145,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
+        // tạo một dòng ánh xạ cho mỗi field đích và thử ghép header tốt nhất để người dùng chỉ sửa trường hợp sai
         private void InitializeMappings(ImportFileType type)
         {
             var fields = DynamicImportService.GetFieldDefinitions(type);
@@ -166,6 +168,7 @@ namespace QuanLyHangHoa.ViewModels
             GeneratePreview();
         }
 
+        // ưu tiên khớp chuẩn hóa chính xác, chỉ dùng contains khi không có kết quả rõ ràng
         private string FindBestHeaderMatch(string dbName, string dbKey, List<string> excelHeaders)
         {
             var normalizedDbName = dbName.ToLowerInvariant().Replace(" ", "").Replace("/", "").Replace("-", "");
@@ -193,6 +196,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // không cho sang preview nếu bất kỳ field bắt buộc nào chưa có cột nguồn
         private void NextToPreview()
         {
             // Validate that required fields are mapped
@@ -220,6 +224,7 @@ namespace QuanLyHangHoa.ViewModels
             ActiveStep = 1;
         }
 
+        // chỉ dựng 5 dòng đầu để xem nhanh; dữ liệu import thật vẫn dùng toàn bộ _rawRows
         private void GeneratePreview()
         {
             var dt = new DataTable();
@@ -252,6 +257,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private bool _autoCreateReferences = true;
 
         [RelayCommand]
+        // StockIn đi qua OpeningBalanceImportService để áp invariant tồn đầu kỳ; loại khác dùng pipeline dynamic
         private void ConfirmImport()
         {
             if (!_rawRows.Any())
@@ -286,6 +292,7 @@ namespace QuanLyHangHoa.ViewModels
 
                 StatusMessage = $"Import thành công {SuccessCount} dòng. Thất bại {Errors.Count} dòng.";
 
+                // audit là best-effort sau import; lỗi ghi audit không đảo dữ liệu đã được service commit
                 if (SuccessCount > 0)
                 {
                     try
@@ -330,6 +337,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
+        // resolve mã sản phẩm và parse số lượng trước khi gửi cả batch cho service atomic
         private List<OpeningBalanceImportRow> BuildOpeningBalanceRows(
             IReadOnlyDictionary<string, string> mappings)
         {
@@ -367,6 +375,7 @@ namespace QuanLyHangHoa.ViewModels
             return result;
         }
 
+        // một helper duy nhất xử lý cột không map, ô trống và trường bắt buộc để báo lỗi nhất quán
         private static string GetMappedValue(
             IReadOnlyDictionary<string, string> rawRow,
             IReadOnlyDictionary<string, string> mappings,

@@ -4,6 +4,9 @@ using Microsoft.Data.SqlClient;
 
 namespace QuanLyHangHoa.Services;
 
+/// <summary>
+/// báo mã trả về âm từ sp_getapplock để startup phân loại lỗi chờ khóa schema.
+/// </summary>
 public sealed class SchemaUpgradeLockException : Exception
 {
     public SchemaUpgradeLockException(int resultCode)
@@ -17,8 +20,12 @@ public sealed class SchemaUpgradeLockException : Exception
     public int ResultCode { get; }
 }
 
+/// <summary>
+/// khóa nâng cấp theo tên database để chỉ một tiến trình được tạo, backup, migrate và seed cùng lúc.
+/// </summary>
 public sealed class SchemaUpgradeLock : IDisposable
 {
+    // khóa thuộc session nên tồn tại qua nhiều transaction và tự mất nếu connection bị đóng.
     private const string AcquireSql = """
         DECLARE @result INT;
         DECLARE @resource NVARCHAR(255) = CONCAT(N'WarePro.SchemaUpgrade:', @databaseName);
@@ -59,10 +66,12 @@ public sealed class SchemaUpgradeLock : IDisposable
             throw new InvalidOperationException("SQL connection must be open before acquiring the schema lock.");
         }
 
+        // connection phải mở tới master để khóa tồn tại ngay cả trước khi database đích được tạo.
         using var command = connection.CreateCommand();
         command.CommandText = AcquireSql;
         command.Parameters.AddWithValue("@databaseName", databaseName);
         command.Parameters.AddWithValue("@lockTimeout", timeoutMilliseconds);
+        // sp_getapplock trả số không âm khi lấy được khóa và số âm cho timeout, hủy hoặc lỗi.
         var result = Convert.ToInt32(command.ExecuteScalar());
         if (result < 0)
         {
@@ -74,11 +83,13 @@ public sealed class SchemaUpgradeLock : IDisposable
 
     public void Dispose()
     {
+        // Dispose có thể gọi lặp mà không gửi thêm lệnh release cho cùng session.
         if (_disposed)
         {
             return;
         }
 
+        // đánh dấu trước khi gọi SQL để lần dispose sau không cố release lại nếu lệnh này ném lỗi.
         _disposed = true;
         using var command = _connection.CreateCommand();
         command.CommandText = ReleaseSql;

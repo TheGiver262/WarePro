@@ -34,6 +34,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
+        // chép snapshot form vào target; service phía danh sách chịu audit và dependency
         public void ApplyTo(Supplier supplier)
         {
             supplier.SupplierCode = SupplierCode;

@@ -20,6 +20,7 @@ public enum WarrantyClaimAction
 
 public static class WarrantyClaimTransitions
 {
+    // bảng này là state machine duy nhất; Closed và Rejected có tập rỗng nên là trạng thái cuối
     private static readonly IReadOnlyDictionary<string, HashSet<WarrantyClaimAction>> AllowedActions =
         new Dictionary<string, HashSet<WarrantyClaimAction>>(StringComparer.OrdinalIgnoreCase)
         {
@@ -54,6 +55,7 @@ public static class WarrantyClaimTransitions
             && actions.Contains(action);
     }
 
+    // thay trực tiếp từ kho còn yêu cầu ResolutionType=Replace ngoài điều kiện status
     public static bool IsAllowed(WarrantyClaim claim, WarrantyClaimAction action)
     {
         ArgumentNullException.ThrowIfNull(claim);
@@ -65,6 +67,7 @@ public static class WarrantyClaimTransitions
                     StringComparison.OrdinalIgnoreCase));
     }
 
+    // service gọi EnsureAllowed trước khi sửa entity để lỗi không để lại trạng thái dở dang
     public static void EnsureAllowed(string currentStatus, WarrantyClaimAction action)
     {
         if (!IsAllowed(currentStatus, action))
@@ -85,6 +88,7 @@ public static class WarrantyClaimTransitions
         }
     }
 
+    // claim cuối chỉ đọc; các trường mô tả cũng không được sửa sau khi đóng hoặc từ chối
     public static void EnsureMutable(string currentStatus)
     {
         if (IsTerminal(currentStatus))

@@ -65,6 +65,7 @@ public partial class UpdateViewModel : ObservableObject
 
     public event Action<bool>? UpdateAvailabilityChanged;
 
+    // ghép cấu hình, client, verifier và launcher tại một điểm; ViewModel phía dưới chỉ điều phối trạng thái UI
     public static UpdateViewModel CreateDefault()
     {
         var assembly = typeof(UpdateViewModel).Assembly;
@@ -112,6 +113,7 @@ public partial class UpdateViewModel : ObservableObject
         await CheckCoreAsync(manual: true);
     }
 
+    // _busy khóa hai command; manual quyết định có bỏ qua giới hạn kiểm tra tự động 24 giờ hay không
     private async Task CheckCoreAsync(bool manual)
     {
         if (_busy)
@@ -126,6 +128,7 @@ public partial class UpdateViewModel : ObservableObject
         NotifyCommandState();
         try
         {
+            // check chỉ lấy metadata và kiểm tra tương thích schema, chưa tải hoặc chạy bộ cài
             var result = await _operations.CheckAsync(
                 CurrentVersion,
                 _currentSchemaVersion,
@@ -154,6 +157,7 @@ public partial class UpdateViewModel : ObservableObject
     private bool CanDownloadAndInstall() => !_busy && _candidate is not null;
 
     [RelayCommand(CanExecute = nameof(CanDownloadAndInstall))]
+    // tải + xác thực chữ ký hoàn tất trước khi launch; chỉ shutdown app sau khi tiến trình installer đã mở thành công
     private async Task DownloadAndInstall()
     {
         if (_busy || _candidate is null)
@@ -193,6 +197,7 @@ public partial class UpdateViewModel : ObservableObject
         }
     }
 
+    // candidate chỉ tồn tại khi có bản mới hợp lệ; mandatory được hiển thị riêng vì liên quan tương thích dữ liệu
     private void ApplyCheckResult(UpdateCheckResult result)
     {
         _candidate = result.Candidate;
@@ -230,6 +235,7 @@ public partial class UpdateViewModel : ObservableObject
         }
     }
 
+    // mỗi lần _busy/candidate đổi phải báo lại CanExecute để tránh click lặp
     private void NotifyCommandState()
     {
         CheckForUpdatesCommand.NotifyCanExecuteChanged();

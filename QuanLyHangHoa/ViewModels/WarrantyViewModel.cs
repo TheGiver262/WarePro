@@ -90,6 +90,7 @@ namespace QuanLyHangHoa.ViewModels
         public bool IsSelectedWarrantyMutable => SelectedWarranty != null
             && !WarrantyClaimTransitions.IsTerminal(SelectedWarranty.Status);
 
+        // trạng thái nút dùng cùng WarrantyClaimTransitions với service để UI và backend không lệch luật
         private bool IsActionAllowed(WarrantyClaimAction action) =>
             SelectedWarranty != null
             && WarrantyClaimTransitions.IsAllowed(SelectedWarranty, action);
@@ -149,6 +150,7 @@ namespace QuanLyHangHoa.ViewModels
         partial void OnSearchFromDateChanged(DateTime? value) => ScheduleFilterReload();
         partial void OnSearchToDateChanged(DateTime? value) => ScheduleFilterReload();
 
+        // debounce filter danh sách claim, hủy lượt chờ cũ khi người dùng tiếp tục nhập
         private void ScheduleFilterReload()
         {
             _filterDebounceCts?.Cancel();
@@ -170,6 +172,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // tải claim và thống kê ở worker, sau đó thay collection một lần để giảm nhấp nháy UI
         public async Task LoadData()
         {
             _loadCts?.Cancel();
@@ -278,6 +281,7 @@ namespace QuanLyHangHoa.ViewModels
             createClaimWindow.ShowDialog();
         }
 
+        // chỉ lấy serial có coverage còn hiệu lực làm lựa chọn tạo claim
         public void LoadAvailableSerials()
         {
             try
@@ -301,6 +305,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // lấy serial đã chọn và input hiện tại thành snapshot rồi giao CreateClaim kiểm tra coverage lần cuối
         private void CreateWarrantyClaim(object? parameter)
         {
             if (!Validate()) return;
@@ -336,6 +341,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand(CanExecute = nameof(IsSelectedWarrantyMutable))]
+        // sửa mô tả/ngày dự kiến; status không đi qua form edit mà phải dùng action riêng
         private void SaveWarranty()
         {
             if (SelectedWarranty == null) return;
@@ -352,6 +358,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand(CanExecute = nameof(IsSelectedWarrantyMutable))]
+        // service chỉ cho xóa claim chưa terminal và chưa phát sinh chứng từ kho
         private void DeleteWarranty()
         {
             if (SelectedWarranty == null) return;
@@ -405,6 +412,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand(CanExecute = nameof(CanReceiveManufacturerReplaced))]
+        // action này có thể nhập + xuất serial mới và chuyển coverage trong một transaction service
         private void ReceiveManufacturerReplaced()
         {
             if (SelectedWarranty == null) return;
@@ -432,6 +440,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand(CanExecute = nameof(CanReplaceWarrantySerial))]
+        // thay trực tiếp yêu cầu serial cùng sản phẩm đang InStock; hết hàng phải chuyển luồng gửi hãng
         private void ReplaceWarrantySerial()
         {
             if (SelectedWarranty == null) return;
@@ -485,6 +494,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // copy claim đang chọn sang field chi tiết và cập nhật CanExecute của toàn bộ action
         private void ViewDetail()
         {
             if (SelectedWarranty == null) return;
@@ -561,6 +571,7 @@ namespace QuanLyHangHoa.ViewModels
             ProblemDescription = string.Empty;
         }
 
+        // wrapper thống nhất try/catch, thông báo và reload; rollback thuộc service của từng action
         private void RunWarrantyAction(Action action, string successMessage)
         {
             try

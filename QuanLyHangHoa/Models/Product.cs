@@ -37,6 +37,7 @@ public partial class Product
     public string UnitName => DefaultUnit?.DisplayName ?? "N/A";
     public string ProductName => DisplayName;
 
+    // các field dưới là projection hiển thị từ tổng OnHand mọi kho; giá trị tồn ưu tiên CostPrice
     public decimal StockQuantity => StockBalances?.Sum(b => b.OnHandQuantity) ?? 0;
     public bool IsLowStock => StockQuantity < 10; // Threshold for low stock
     public string Status => IsLowStock ? "lowstock" : "instock";

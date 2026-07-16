@@ -8,6 +8,9 @@ using QuanLyHangHoa.Models;
 
 namespace QuanLyHangHoa.Services
 {
+    /// <summary>
+    /// quản lý lifecycle phiếu điều chỉnh và chuyển line đã duyệt sang InventoryAdjustmentService để ghi tồn.
+    /// </summary>
     public class StockAdjustmentService
     {
         private readonly Func<AppDbContext> _contextFactory;
@@ -41,6 +44,7 @@ namespace QuanLyHangHoa.Services
                 .FirstOrDefault(s => s.Id == id);
         }
 
+        // draft có thể thay toàn bộ line; lifecycle chặn sửa khi đã submit hoặc post.
         public virtual void SaveDraft(StockAdjustment adjustment, List<StockAdjustmentLine> lines, int userId)
         {
             using var db = _contextFactory();
@@ -122,6 +126,7 @@ namespace QuanLyHangHoa.Services
             db.SaveChanges();
         }
 
+        // transaction bao phủ trạng thái chứng từ và mọi balance, serial, ledger do domain service tạo.
         public void Post(int adjustmentId, int userId)
         {
             using var db = _contextFactory();
@@ -144,6 +149,7 @@ namespace QuanLyHangHoa.Services
                 throw new InventoryDomainException("Phiếu điều chỉnh phải có ít nhất một dòng hàng.");
             }
 
+            // SaveChanges này vẫn nằm trong transaction và sẽ rollback nếu validation/posting line thất bại.
             adjustment.PostedBy = userId;
             adjustment.PostedAt = DateTime.UtcNow;
             db.SaveChanges();
@@ -163,6 +169,7 @@ namespace QuanLyHangHoa.Services
             transaction.Commit();
         }
 
+        // quantity command luôn dương; Direction là nguồn quyết định tăng/giảm trong domain service.
         private static IReadOnlyCollection<StockAdjustmentLineCommand> BuildLineCommands(
             AppDbContext db,
             IEnumerable<StockAdjustmentLine> lines)
@@ -173,6 +180,7 @@ namespace QuanLyHangHoa.Services
                     .Select(serial => serial.Trim())
                     .Where(serial => serial.Length > 0)
                     .ToList();
+                // dòng legacy có FK serial nhưng chưa có DraftSerials được chuyển lại thành serial number.
                 if (line.ProductSerialId.HasValue && serialNumbers.Count == 0)
                 {
                     var serial = db.ProductSerials.Find(line.ProductSerialId.Value)

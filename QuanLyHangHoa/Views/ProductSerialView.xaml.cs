@@ -13,6 +13,7 @@ namespace QuanLyHangHoa.Views
         {
             InitializeComponent();
 
+            // chỉ subscribe khi View đang trong visual tree và tháo ở Unloaded để cache View không giữ handler lặp
             Loaded += (s, e) =>
             {
                 if (SerialDataGrid?.Items is INotifyCollectionChanged notifyCollection)
@@ -42,6 +43,7 @@ namespace QuanLyHangHoa.Views
                     var scrollViewer = border?.Child as ScrollViewer;
                     if (scrollViewer != null)
                     {
+                        // đợi DataGrid xử lý Reset xong rồi mới cuộn đầu trang
                         Dispatcher.BeginInvoke(new Action(() =>
                         {
                             scrollViewer.ScrollToTop();

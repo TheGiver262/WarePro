@@ -4,17 +4,26 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace QuanLyHangHoa.Updates;
 
+/// <summary>
+/// tách kết quả chữ ký, chuỗi chứng chỉ, timestamp và danh tính publisher để báo đúng lỗi.
+/// </summary>
 public sealed record AuthenticodeVerificationResult(
     bool SignatureValid,
     bool ChainValid,
     bool TimestampValid,
     string Thumbprint);
 
+/// <summary>
+/// ranh giới kiểm tra chữ ký để UpdateService không phụ thuộc trực tiếp vào WinTrust.
+/// </summary>
 public interface IAuthenticodeVerifier
 {
     AuthenticodeVerificationResult Verify(string filePath);
 }
 
+/// <summary>
+/// dùng chính sách Authenticode của Windows và giữ state đủ lâu để đọc countersigner timestamp.
+/// </summary>
 public sealed class AuthenticodeVerifier : IAuthenticodeVerifier
 {
     private static readonly Guid GenericVerifyV2 =
@@ -30,6 +39,7 @@ public sealed class AuthenticodeVerifier : IAuthenticodeVerifier
             throw new ArgumentException("File path cannot be empty.", nameof(filePath));
         }
 
+        // WinTrust nhận cấu trúc native chứa đường dẫn; vùng nhớ này phải sống hết lần verify.
         var fileInfo = new WinTrustFileInfo(filePath);
         var fileInfoPointer = Marshal.AllocHGlobal(Marshal.SizeOf<WinTrustFileInfo>());
         try
@@ -40,6 +50,7 @@ public sealed class AuthenticodeVerifier : IAuthenticodeVerifier
             {
                 var action = GenericVerifyV2;
                 // giữ StateData đến lúc đọc countersigner, rồi đóng để WinTrust trả bộ nhớ.
+                // cửa sổ giả -1 buộc kiểm tra im lặng, không hiện hộp thoại xác nhận cho người dùng.
                 var trustStatus = WinVerifyTrust(new IntPtr(-1), ref action, ref trustData);
                 var trusted = trustStatus == 0;
                 var thumbprint = ReadSignerThumbprint(filePath);
@@ -54,6 +65,7 @@ public sealed class AuthenticodeVerifier : IAuthenticodeVerifier
             {
                 if (trustData.StateData != IntPtr.Zero)
                 {
+                    // đóng state bằng chính API WinTrust trước khi giải phóng cấu trúc file bên ngoài.
                     trustData.StateAction = StateActionClose;
                     var action = GenericVerifyV2;
                     _ = WinVerifyTrust(new IntPtr(-1), ref action, ref trustData);
@@ -62,6 +74,7 @@ public sealed class AuthenticodeVerifier : IAuthenticodeVerifier
         }
         finally
         {
+            // hủy phần marshal của cấu trúc rồi mới trả vùng nhớ HGlobal.
             Marshal.DestroyStructure<WinTrustFileInfo>(fileInfoPointer);
             Marshal.FreeHGlobal(fileInfoPointer);
         }
@@ -89,6 +102,7 @@ public sealed class AuthenticodeVerifier : IAuthenticodeVerifier
             return false;
         }
 
+        // signer chính phải khai báo countersigner; countersigner đó mới là bằng chứng timestamp.
         var signer = Marshal.PtrToStructure<CryptProviderSigner>(signerPointer);
         var counterSignerPointer = WTHelperGetProvSignerFromChain(
             providerData, signerIndex: 0, counterSigner: true, counterSignerIndex: 0);
@@ -101,6 +115,7 @@ public sealed class AuthenticodeVerifier : IAuthenticodeVerifier
         return counterSigner.Error == 0 && counterSigner.CertificateChainCount > 0;
     }
 
+    // thumbprint được đọc riêng để ghim publisher; lỗi đọc trả chuỗi rỗng và sẽ bị UpdateService từ chối.
     private static string ReadSignerThumbprint(string filePath)
     {
         try
@@ -131,6 +146,7 @@ public sealed class AuthenticodeVerifier : IAuthenticodeVerifier
         [MarshalAs(UnmanagedType.Bool)] bool counterSigner,
         uint counterSignerIndex);
 
+    // các cấu trúc dưới đây phải giữ đúng thứ tự trường theo WinTrust ABI.
     [StructLayout(LayoutKind.Sequential)]
     private struct CryptProviderSigner
     {

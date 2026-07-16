@@ -8,6 +8,9 @@ using QuanLyHangHoa.Models;
 
 namespace QuanLyHangHoa.Services;
 
+/// <summary>
+/// đảo phiếu đã post bằng adjustment và ledger ngược để giữ nguyên lịch sử nguồn.
+/// </summary>
 public sealed class StockReversalService
 {
     private const string ReversalType = "Reversal";
@@ -18,6 +21,7 @@ public sealed class StockReversalService
         _contextFactory = contextFactory ?? throw new ArgumentNullException(nameof(contextFactory));
     }
 
+    // transaction giữ kiểm tra idempotency, balance, serial, chứng từ bù và trạng thái nguồn thành một đơn vị.
     public int ReverseDocument(string sourceType, int sourceId, int userId)
     {
         var normalizedSourceType = NormalizeSourceType(sourceType);
@@ -37,6 +41,7 @@ public sealed class StockReversalService
 
         try
         {
+            // kiểm tra trước kết hợp unique filtered index trong database để chặn reversal lặp do cạnh tranh.
             if (db.StockAdjustments.Any(adjustment =>
                     adjustment.AdjustmentType == ReversalType &&
                     adjustment.ReferenceDocumentType == normalizedSourceType &&
@@ -45,6 +50,7 @@ public sealed class StockReversalService
                 throw new InventoryDomainException("Chứng từ kho này đã được đảo trước đó.");
             }
 
+            // ledger nguồn là cơ sở tính lượng đảo; không dựng lại từ line có thể đã mang dữ liệu hiển thị cũ.
             var entries = db.StockLedgers
                 .Where(entry =>
                     entry.SourceDocumentType == normalizedSourceType &&
@@ -57,6 +63,7 @@ public sealed class StockReversalService
                 throw new InventoryDomainException("Không tìm thấy chứng từ kho đã ghi sổ.");
             }
 
+            // toàn bộ điều kiện nguồn được xác minh trước khi thay đổi balance hoặc serial đầu tiên.
             var warehouseId = GetSingleWarehouse(entries);
             EnsureSourceIsPosted(db, normalizedSourceType, sourceId, warehouseId);
             ValidateLedgerDirections(entries, normalizedSourceType);
@@ -82,6 +89,7 @@ public sealed class StockReversalService
             db.StockAdjustments.Add(reversal);
             db.SaveChanges();
 
+            // mỗi entry nguồn sinh một entry ngược chiều, cùng quantity và vị trí để audit có thể đối chiếu 1-1.
             foreach (var entry in entries)
             {
                 db.StockLedgers.Add(new StockLedger
@@ -211,11 +219,13 @@ public sealed class StockReversalService
         }
     }
 
+    // gom ledger theo sản phẩm-kho trước khi cập nhật; đảo StockIn phải chống âm vì hàng có thể đã phát sinh sau đó.
     private static void ApplyInverseBalances(
         AppDbContext db,
         IEnumerable<StockLedger> entries,
         string sourceType)
     {
+        // quantity ledger luôn dương; source type quyết định phép cộng hoặc trừ bù.
         var movements = entries
             .GroupBy(entry => new { entry.ProductId, entry.WarehouseId })
             .Select(group => new
@@ -261,6 +271,7 @@ public sealed class StockReversalService
         }
     }
 
+    // chỉ đảo serial chưa có nghiệp vụ tiếp theo; nếu lịch sử đã tiến triển thì từ chối toàn bộ reversal.
     private static void RestoreSerials(
         AppDbContext db,
         string sourceType,
@@ -325,6 +336,7 @@ public sealed class StockReversalService
         }
     }
 
+    // số serial thực tế phải khớp tổng BaseQuantity nguyên của từng sản phẩm trước khi đổi trạng thái.
     private static void EnsureSerialCountsMatch(
         IEnumerable<(int ProductId, decimal Quantity)> expectedLines,
         IReadOnlyCollection<ProductSerial> serials)
@@ -347,6 +359,7 @@ public sealed class StockReversalService
         }
     }
 
+    // source được giữ nguyên dữ liệu và chỉ đổi trạng thái để mọi tham chiếu lịch sử vẫn còn hiệu lực.
     private static void MarkSourceReversed(
         AppDbContext db,
         string sourceType,

@@ -1,7 +1,11 @@
 namespace QuanLyHangHoa.Inventory;
 
+/// <summary>
+/// giữ state machine chung để submit, approve, post và edit không đi tắt trạng thái.
+/// </summary>
 public sealed class StockDocumentLifecycleService
 {
+    // submit chốt nội dung draft để chuyển sang bước người có quyền phê duyệt.
     public StockDocumentStatus SubmitForApproval(StockDocumentStatus current)
     {
         if (current != StockDocumentStatus.Draft)
@@ -17,6 +21,7 @@ public sealed class StockDocumentLifecycleService
         return Approve(current, isAuthorized: true);
     }
 
+    // kiểm tra permission trước transition để caller không nhận trạng thái Approved trái quyền.
     public StockDocumentStatus Approve(StockDocumentStatus current, bool isAuthorized)
     {
         if (!isAuthorized)
@@ -40,6 +45,7 @@ public sealed class StockDocumentLifecycleService
         }
     }
 
+    // chứng từ đã post phải sửa bằng reversal hoặc chứng từ bù; chỉnh trực tiếp sẽ phá ledger và audit trail.
     public void EnsureCanEditDetails(StockDocumentStatus current)
     {
         if (current == StockDocumentStatus.Posted)

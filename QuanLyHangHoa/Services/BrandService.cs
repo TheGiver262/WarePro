@@ -17,12 +17,14 @@ namespace QuanLyHangHoa.Services
             _contextFactory = contextFactory;
         }
 
+        // AsNoTracking phù hợp danh sách chỉ đọc, tránh EF giữ bản sao không cần thiết trong context
         public List<Brand> GetAll()
         {
             using var db = _contextFactory();
             return db.Brands.AsNoTracking().OrderBy(b => b.BrandCode).ToList();
         }
 
+        // dữ liệu và audit nằm chung transaction để không có thay đổi nào thiếu dấu vết
         public void Add(Brand brand, int performedBy)
         {
             using var db = _contextFactory();
@@ -51,6 +53,7 @@ namespace QuanLyHangHoa.Services
             {
                 using var transaction = db.Database.BeginTransaction();
                 var beforeJson = Serialize(brand);
+                // thương hiệu đã được sản phẩm tham chiếu chỉ được ngừng hoạt động; xóa cứng sẽ làm mất quan hệ lịch sử
                 if (db.Products.Any(product => product.BrandId == id))
                 {
                     brand.IsActive = false;
@@ -73,6 +76,7 @@ namespace QuanLyHangHoa.Services
             return JsonSerializer.Serialize(new { b.Id, b.BrandCode, b.DisplayName, b.OriginCountry, b.IsActive });
         }
 
+        // before/after là snapshot gọn dùng khi tra cứu lịch sử chỉnh sửa
         private void AddAudit(AppDbContext db, string action, int entityId, string? before, string? after, int performedBy)
         {
             db.AuditLogs.Add(new AuditLog

@@ -6,6 +6,9 @@ using QuanLyHangHoa.Models;
 
 namespace QuanLyHangHoa.Data;
 
+/// <summary>
+/// ánh xạ mô hình WarePro sang database và giữ các ràng buộc dữ liệu không thể chỉ dựa vào service.
+/// </summary>
 public partial class AppDbContext : DbContext
 {
     public AppDbContext()
@@ -87,6 +90,7 @@ public partial class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // test SQLite và SQL Server dùng cú pháp timestamp mặc định khác nhau nhưng cùng ý nghĩa UTC hiện tại.
         var isSqlite = Database.ProviderName?.Contains("Sqlite") ?? false;
         var defaultDateTime = isSqlite ? "CURRENT_TIMESTAMP" : "sysutcdatetime()";
         modelBuilder.Entity<AppUser>(entity =>
@@ -215,6 +219,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.OriginCountry).HasMaxLength(100);
             entity.Property(e => e.ProductCode).HasMaxLength(50);
 
+            // master data đang được tham chiếu không cascade delete sản phẩm hoặc chứng từ lịch sử.
             entity.HasOne(d => d.Brand).WithMany(p => p.Products)
                 .HasForeignKey(d => d.BrandId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -278,6 +283,7 @@ public partial class AppDbContext : DbContext
             entity.ToTable("ProductUnit", table =>
                 table.HasCheckConstraint("CK_ProductUnit_ConversionFactor_Positive", "[ConversionFactor] > 0"));
 
+            // filtered unique index đảm bảo mỗi sản phẩm chỉ có một đơn vị cơ sở.
             entity.HasIndex(e => e.ProductId, "UX_ProductUnit_BaseUnit")
                 .IsUnique()
                 .HasFilter("IsBaseUnit = 1");
@@ -517,6 +523,7 @@ public partial class AppDbContext : DbContext
 
             entity.ToTable("StockBalance");
 
+            // mỗi cặp kho-sản phẩm có đúng một dòng tổng tồn; ba quantity là optimistic concurrency token.
             entity.HasIndex(e => new { e.WarehouseId, e.ProductId }, "UX_StockBalance_Warehouse_Product").IsUnique();
 
             entity.Property(e => e.AvailableQuantity).HasColumnType("decimal(18, 2)").IsConcurrencyToken();
@@ -597,6 +604,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.SupplierId, "IX_StockIn_SupplierId");
             entity.HasIndex(e => e.StockCountSessionId, "IX_StockIn_StockCountSessionId");
+            // một dòng kiểm kê thiếu chỉ sinh tối đa một phiếu nhập điều chỉnh.
             entity.HasIndex(e => e.StockCountLineId, "UX_StockIn_StockCountLineId")
                 .IsUnique()
                 .HasFilter("[StockCountLineId] IS NOT NULL");
@@ -689,6 +697,7 @@ public partial class AppDbContext : DbContext
 
             entity.ToTable("StockLedger");
 
+            // index nguồn giúp đối chiếu posting/reversal và dựng lại audit trail của một chứng từ.
             entity.HasIndex(e => new { e.SourceDocumentType, e.SourceDocumentId }, "IX_StockLedger_SourceDocument");
 
             entity.HasIndex(e => new { e.WarehouseId, e.ProductId, e.PostedAt }, "IX_StockLedger_Warehouse_Product_PostedAt");
@@ -728,6 +737,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.CustomerId, "IX_StockOut_CustomerId");
             entity.HasIndex(e => e.StockCountSessionId, "IX_StockOut_StockCountSessionId");
+            // một dòng kiểm kê thừa chỉ sinh tối đa một phiếu xuất điều chỉnh.
             entity.HasIndex(e => e.StockCountLineId, "UX_StockOut_StockCountLineId")
                 .IsUnique()
                 .HasFilter("[StockCountLineId] IS NOT NULL");
@@ -912,6 +922,7 @@ public partial class AppDbContext : DbContext
 
             entity.ToTable("Warehouse");
 
+            // filtered unique index cho phép nhiều kho thường nhưng chỉ một kho mặc định.
             entity.HasIndex(e => e.IsDefault, "UX_Warehouse_SingleDefault")
                 .IsUnique()
                 .HasFilter("IsDefault = 1");
@@ -987,6 +998,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.CustomerId, "IX_WarrantyCoverage_CustomerId");
 
+            // lịch sử coverage được giữ lại, nhưng mỗi serial chỉ có một coverage Active tại một thời điểm.
             entity.HasIndex(e => e.ProductSerialId, "UX_WarrantyCoverage_Active_PerSerial")
                 .IsUnique()
                 .HasFilter("CoverageStatus = 'Active'");

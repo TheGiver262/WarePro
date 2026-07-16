@@ -13,6 +13,7 @@ public partial class WarrantyCoverage
 
     public int? SalesInvoiceId { get; set; }
 
+    // coverage là snapshot theo serial/khách/hóa đơn; khi thay serial chỉ chuyển phần thời hạn còn lại
     public DateTime WarrantyStartDate { get; set; }
 
     public DateTime WarrantyEndDate { get; set; }
@@ -20,6 +21,7 @@ public partial class WarrantyCoverage
     public string CoverageStatus { get; set; } = null!;
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    // field hiển thị không lưu database; Expired được suy ra theo ngày hiện tại
     public string EffectiveCoverageStatus { get; set; } = string.Empty;
 
     public virtual Customer Customer { get; set; } = null!;

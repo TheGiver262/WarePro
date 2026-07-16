@@ -8,6 +8,9 @@ using System.Text.Json;
 
 namespace QuanLyHangHoa.Services
 {
+    /// <summary>
+    /// quản lý đơn vị đo và giữ an toàn lịch sử bằng cách deactivate khi đã có dữ liệu tham chiếu.
+    /// </summary>
     public class UnitService
     {
         private readonly Func<AppDbContext> _contextFactory;
@@ -49,6 +52,7 @@ namespace QuanLyHangHoa.Services
             return GetDependencies(db, unitId);
         }
 
+        // kiểm tra cả master data và line chứng từ vì mọi quan hệ đều dùng delete restriction.
         private static IReadOnlyList<(string Name, int Count)> GetDependencies(
             AppDbContext db,
             int unitId)
@@ -73,6 +77,7 @@ namespace QuanLyHangHoa.Services
             {
                 using var transaction = db.Database.BeginTransaction();
                 var beforeJson = Serialize(unit);
+                // có tham chiếu thì soft-delete bằng IsActive; chỉ record chưa từng dùng mới được xóa vật lý.
                 var hasDependencies = GetDependencies(db, id).Any(dependency => dependency.Count > 0);
                 if (hasDependencies)
                 {
@@ -96,6 +101,7 @@ namespace QuanLyHangHoa.Services
             return JsonSerializer.Serialize(new { u.Id, u.DisplayName, u.IsActive });
         }
 
+        // audit được SaveChanges trong transaction của mutation để trạng thái và lịch sử cùng commit.
         private void AddAudit(AppDbContext db, string action, int entityId, string? before, string? after, int performedBy)
         {
             db.AuditLogs.Add(new AuditLog

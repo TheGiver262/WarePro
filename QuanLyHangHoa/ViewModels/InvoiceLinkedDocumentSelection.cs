@@ -18,6 +18,7 @@ public partial class PurchaseInvoiceLineEditor
 
 public partial class SalesInvoiceViewModel
 {
+    // chỉ map sau khi lookup đã tải xong; selection mới thay toàn bộ dòng form và khóa khách theo phiếu xuất
     partial void OnSelectedStockOutChanged(StockOut? value)
     {
         if (value == null || value.Id == 0 || !_referenceDataLoaded)
@@ -46,6 +47,7 @@ public partial class SalesInvoiceViewModel
 
 public partial class PurchaseInvoiceViewModel
 {
+    // đọc snapshot no-tracking của phiếu nhập rồi thay dòng form và nhà cung cấp tương ứng
     partial void OnSelectedStockInChanged(StockIn? value)
     {
         if (value == null || value.Id == 0 || !_referenceDataLoaded)

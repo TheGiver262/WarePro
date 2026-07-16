@@ -18,6 +18,7 @@ namespace QuanLyHangHoa.Services.DataImport
 
     public class FileClassificationService
     {
+        // mỗi loại file có các tên cột tiếng việt và tên kỹ thuật thường gặp; danh sách rộng giúp nhận cả mẫu cũ
         private static readonly Dictionary<ImportFileType, List<string>> TypeKeywords = new()
         {
             {
@@ -86,11 +87,13 @@ namespace QuanLyHangHoa.Services.DataImport
             };
         }
 
+        // chấm điểm toàn bộ header rồi chọn loại cao nhất; thứ tự dictionary chỉ quyết định khi hai loại bằng điểm
         public ImportFileType Classify(IEnumerable<string> headers)
         {
             if (headers == null || !headers.Any())
                 return ImportFileType.Unknown;
 
+            // chuẩn hóa một lần để các phép so phía dưới không phụ thuộc hoa thường hoặc khoảng trắng ngoài
             var normalizedHeaders = headers
                 .Select(h => h.Trim().ToLowerInvariant())
                 .ToList();
@@ -105,11 +108,12 @@ namespace QuanLyHangHoa.Services.DataImport
                 {
                     if (normalizedHeaders.Any(h => h.Contains(keyword) || keyword.Contains(h)))
                     {
+                        // khớp chứa hai chiều để nhận cả tiêu đề đầy đủ và tên rút gọn
                         score += 2; // Direct/Fuzzy match
                     }
                 }
 
-                // Extra weight for very specific keywords
+                // cột đặc trưng được cộng thêm điểm để không bị các từ chung như mã hoặc ngày lấn át
                 if (kvp.Key == ImportFileType.ProductSerial && normalizedHeaders.Any(h => h == "serial" || h == "số serial" || h == "serialnumber"))
                 {
                     score += 5;
@@ -138,7 +142,7 @@ namespace QuanLyHangHoa.Services.DataImport
                 }
             }
 
-            // Fallback to Product if we found some headers but score is very low
+            // file có header nhưng không khớp mẫu cũ được đưa về Product để người dùng vẫn có thể tự ánh xạ cột
             if (bestType == ImportFileType.Unknown && normalizedHeaders.Any())
             {
                 bestType = ImportFileType.Product;

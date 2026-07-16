@@ -15,7 +15,7 @@ namespace QuanLyHangHoa.Services.DataImport
         private readonly AppDbContext _context;
         private readonly string _excelPath;
         
-        // Maps to store Excel ID (hex string) -> Database ID (int)
+        // mỗi map nối id dạng chuỗi trong excel với id số do database sinh; các bảng con dùng map này để giữ đúng khóa ngoại
         private readonly Dictionary<string, int> _unitMap = new();
         private readonly Dictionary<string, int> _categoryMap = new();
         private readonly Dictionary<string, int> _brandMap = new();
@@ -34,6 +34,7 @@ namespace QuanLyHangHoa.Services.DataImport
             _excelPath = excelPath;
         }
 
+        // thứ tự seed đi từ bảng gốc đến chứng từ và dòng chi tiết vì mỗi bước sau cần id của bước trước
         public async Task<string> SeedAsync()
         {
             Console.WriteLine($"[SEED] Starting seed from: {Path.GetFullPath(_excelPath)}");
@@ -72,6 +73,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     }
                 }
 
+                // cho phép người dùng vẫn mở workbook khi seed; ClosedXML chỉ đọc snapshot của file tại thời điểm này
                 using var stream = new FileStream(_excelPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
                 using var workbook = new XLWorkbook(stream);
                 var log = new System.Text.StringBuilder();
@@ -153,6 +155,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     if (item.DefaultUnitId == 0) item.DefaultUnitId = _unitMap.Values.FirstOrDefault();
                 }, _productMap, log);
 
+                // quan hệ sản phẩm - đơn vị chỉ được tạo sau khi cả hai map khóa đã đầy đủ
                 await SeedProductUnitsAsync(workbook, log);
 
                 // 7. StockIn (Opening Balances)
@@ -183,7 +186,7 @@ namespace QuanLyHangHoa.Services.DataImport
                         var headers = serialSheet.Row(1).CellsUsed().ToDictionary(c => c.Value.ToString().Trim(), c => c.Address.ColumnNumber, StringComparer.OrdinalIgnoreCase);
                         int imported = 0;
 
-                        // To avoid duplicate StockInLines, we'll keep a map of (StockInId, ProductId)
+                        // mỗi cặp phiếu nhập - sản phẩm chỉ có một dòng kho; lineMap giúp dùng lại dòng đó cho nhiều serial
                         var lineMap = new Dictionary<(int, int), StockInLine>();
                         var justCreatedLines = new HashSet<int>();
                         var justCreatedOutLines = new HashSet<int>();
@@ -210,16 +213,15 @@ namespace QuanLyHangHoa.Services.DataImport
                                     if (line == null)
                                     {
                                         line = new StockInLine { StockInId = stockInId, ProductId = productId, Quantity = 0, BaseQuantity = 0, UnitId = 1 };
-                                        // We need to increment BEFORE saving to satisfy the > 0 constraint
+                                        // dòng mới phải có số lượng 1 trước lần lưu đầu tiên để thỏa ràng buộc số lượng dương
                                         line.Quantity = 1;
                                         line.BaseQuantity = 1;
                                         _context.StockInLines.Add(line);
                                         await _context.SaveChangesAsync();
                                         
-                                        // Mark as already incremented for this first serial
+                                        // serial đầu tiên đã được tính vào số lượng khi tạo dòng
                                         lineMap[(stockInId, productId)] = line;
-                                        // We'll use a local set to track which lines were JUST created in this loop
-                                        // to avoid double-incrementing them at the end of the loop
+                                        // tập id này phân biệt dòng vừa tạo để cuối vòng lặp không cộng serial đầu tiên thêm lần nữa
                                         justCreatedLines.Add(line.Id);
                                     }
                                     else
@@ -243,7 +245,7 @@ namespace QuanLyHangHoa.Services.DataImport
 
                                     if (stockOutId > 0)
                                     {
-                                        // Find or create StockOutLine
+                                        // serial đã bán cần dòng xuất tương ứng để giữ được lịch sử nhập - xuất
                                         var sol = await _context.StockOutLines.FirstOrDefaultAsync(l => l.StockOutId == stockOutId && l.ProductId == productId);
                                         if (sol == null)
                                         {
@@ -288,7 +290,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     }
                     item.Status = status;
                     
-                    // Map Excel 'StockOutType' to DB 'PurposeCode'
+                    // quy đổi tên mục đích trong file cũ về các giá trị PurposeCode mà database hiện tại cho phép
                     string type = row.GetString("StockOutType") ?? row.GetString("PurposeCode") ?? "Sale";
                     if (type == "Sales" || type == "Sale") item.PurposeCode = "Sale";
                     else if (type == "WarrantyReplacement") item.PurposeCode = "WarrantyReplacement";
@@ -446,6 +448,7 @@ namespace QuanLyHangHoa.Services.DataImport
             }
         }
 
+        // cặp product-unit và đơn vị cơ sở được kiểm tra bằng hash set để bỏ qua dữ liệu đã tồn tại trong thời gian hằng số
         private async Task SeedProductUnitsAsync(XLWorkbook workbook, System.Text.StringBuilder log)
         {
             if (!workbook.Worksheets.TryGetWorksheet("ProductUnit", out var sheet))
@@ -458,6 +461,7 @@ namespace QuanLyHangHoa.Services.DataImport
                 cell => cell.Value.ToString().Trim(),
                 cell => cell.Address.ColumnNumber,
                 StringComparer.OrdinalIgnoreCase);
+            // chỉ đọc dữ liệu hiện có để lập bộ khóa; không cần EF theo dõi vì các dòng này không bị sửa
             var existingRows = await _context.ProductUnits.AsNoTracking().ToListAsync();
             var existingPairs = existingRows
                 .Select(row => (row.ProductId, row.UnitId))
@@ -517,6 +521,7 @@ namespace QuanLyHangHoa.Services.DataImport
         private static bool IsTrue(string? value) =>
             string.Equals(value, "true", StringComparison.OrdinalIgnoreCase) || value == "1";
 
+        // hàm chung dùng mã nghiệp vụ để upsert nhẹ: có rồi thì chỉ dựng map id, chưa có mới gọi mapAction và insert
         private async Task SeedTableWithMappingAsync<T>(XLWorkbook workbook, string sheetName, string codeHeader, string idHeader, Action<ExcelRowWrapper, T> mapAction, Dictionary<string, int> idMap, System.Text.StringBuilder log) where T : class, new()
         {
             if (!workbook.Worksheets.TryGetWorksheet(sheetName, out var sheet))
@@ -528,8 +533,7 @@ namespace QuanLyHangHoa.Services.DataImport
             var headers = sheet.Row(1).CellsUsed().ToDictionary(c => c.Value.ToString().Trim(), c => c.Address.ColumnNumber, StringComparer.OrdinalIgnoreCase);
             var rows = sheet.RangeUsed()!.RowsUsed().Skip(1);
             
-            // Build idMap from existing data if possible
-            // We use the 'codeHeader' to match Excel rows with DB rows
+            // nạp cả dữ liệu cũ để mã trong excel vẫn resolve được dù bản ghi đã có từ lần seed trước
             var existingItems = await _context.Set<T>().ToListAsync();
             var codeProp = typeof(T).GetProperty(codeHeader.Contains("Code") ? codeHeader : (typeof(T).Name + "Code"));
             if (codeProp == null) codeProp = typeof(T).GetProperty("DocumentCode") ?? typeof(T).GetProperty("DisplayName");
@@ -568,13 +572,14 @@ namespace QuanLyHangHoa.Services.DataImport
             log.AppendLine($"\u0110\u00E3 \u0111\u1ED3ng b\u1ED9/n\u1EA1p b\u1EA3ng '{typeof(T).Name}'.");
         }
 
+        // chuẩn hóa xuất xứ về một cách viết thống nhất; bảng từ điển xử lý trường hợp rõ ràng trước, heuristic chỉ là đường lui
         private string? TranslateOrigin(string? input)
         {
             if (string.IsNullOrWhiteSpace(input)) return null;
 
             string normalized = input.Trim();
             
-            // Dictionary for translation
+            // các tên tiếng anh và biến thể viết hoa thường gặp được đổi sang tên hiển thị tiếng việt
             var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
                 { "USA", "M\u1EF9" },
@@ -603,7 +608,7 @@ namespace QuanLyHangHoa.Services.DataImport
                 return translated;
             }
 
-            // Heuristic for corrupted Vietnamese characters or specific mappings
+            // nhận diện một số chuỗi bị lỗi dấu từ workbook cũ khi không khớp từ điển
             if (normalized.Contains("?Ai Loan") || (normalized.Contains("A") && normalized.Contains("i Loan"))) return "Đài Loan";
             if (normalized.Contains("HA Lan") || (normalized.StartsWith("H") && normalized.EndsWith(" Lan"))) return "Hà Lan";
             if (normalized.Contains("Qu`c") || normalized.Contains("Quoc") || normalized.Contains("Qu`c"))
@@ -616,7 +621,7 @@ namespace QuanLyHangHoa.Services.DataImport
             if (normalized.Contains("Th") && normalized.Contains("S")) return "Thụy Sĩ";
             if (normalized.StartsWith("D") && normalized.EndsWith("c")) return "Đức";
 
-            // Fallback: Standardize casing (Title Case)
+            // không nhận diện được thì chỉ chuẩn hóa chữ đầu, không tự đoán quốc gia khác
             if (normalized.Length > 0)
             {
                 return char.ToUpper(normalized[0]) + normalized.Substring(1).ToLower();
@@ -625,6 +630,7 @@ namespace QuanLyHangHoa.Services.DataImport
             return normalized;
         }
 
+        // wrapper giấu việc tìm chỉ số cột và trả null cho ô trống, giúp các hàm map tập trung vào nghiệp vụ
         private class ExcelRowWrapper
         {
             private readonly IXLRangeRow _row;

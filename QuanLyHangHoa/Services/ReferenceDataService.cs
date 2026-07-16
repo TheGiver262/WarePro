@@ -16,6 +16,7 @@ namespace QuanLyHangHoa.Services
             _contextFactory = contextFactory;
         }
 
+        // các hàm lookup cùng một mẫu: no-tracking, tùy chọn lọc active, rồi sắp theo tên hiển thị
         public virtual List<Category> GetAllCategories(bool onlyActive = true)
         {
             using var db = _contextFactory();
@@ -56,6 +57,7 @@ namespace QuanLyHangHoa.Services
             return query.OrderBy(s => s.DisplayName).ToList();
         }
 
+        // loại khách kỹ thuật CUS-ADJ ở tầng dữ liệu để mọi combobox dùng service đều không thấy bản ghi này
         public virtual List<Customer> GetAllCustomers(bool onlyActive = true)
         {
             using var db = _contextFactory();

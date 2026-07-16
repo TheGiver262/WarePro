@@ -17,12 +17,14 @@ namespace QuanLyHangHoa.Services
             _contextFactory = contextFactory;
         }
 
+        // CUS-ADJ là khách kỹ thuật cho nghiệp vụ điều chỉnh, không hiển thị trong danh mục người dùng
         public List<Customer> GetAll()
         {
             using var db = _contextFactory();
             return db.Customers.AsNoTracking().Where(c => c.CustomerCode != "CUS-ADJ").OrderBy(c => c.CustomerCode).ToList();
         }
 
+        // thay đổi khách hàng và audit được khóa trong cùng transaction
         public void Add(Customer customer, int performedBy)
         {
             using var db = _contextFactory();
@@ -51,6 +53,7 @@ namespace QuanLyHangHoa.Services
             {
                 using var transaction = db.Database.BeginTransaction();
                 var beforeJson = Serialize(customer);
+                // kiểm tra mọi bảng giữ lịch sử khách hàng; có tham chiếu thì chỉ vô hiệu hóa
                 var hasDependencies = db.SalesInvoices.Any(invoice => invoice.CustomerId == id) ||
                                       db.StockOuts.Any(stockOut => stockOut.CustomerId == id) ||
                                       db.WarrantyCoverages.Any(coverage => coverage.CustomerId == id);
@@ -76,6 +79,7 @@ namespace QuanLyHangHoa.Services
             return JsonSerializer.Serialize(new { c.Id, c.CustomerCode, c.DisplayName, c.Phone, c.Email, c.Address, c.IsActive });
         }
 
+        // snapshot chỉ chứa trường nghiệp vụ cần đọc, không serialize navigation của EF
         private void AddAudit(AppDbContext db, string action, int entityId, string? before, string? after, int performedBy)
         {
             db.AuditLogs.Add(new AuditLog

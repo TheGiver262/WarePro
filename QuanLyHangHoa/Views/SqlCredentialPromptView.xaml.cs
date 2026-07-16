@@ -14,6 +14,7 @@ public partial class SqlCredentialPromptView : Window
 
     public SqlCredential? Credential { get; private set; }
 
+    // copy SecureString, khóa read-only rồi chuyển quyền sở hữu cho SqlCredential; chỉ dispose bản copy nếu chưa chuyển
     private void Save_Click(object sender, RoutedEventArgs e)
     {
         var userName = UserNameInput.Text.Trim();

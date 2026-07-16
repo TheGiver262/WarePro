@@ -87,12 +87,14 @@ namespace QuanLyHangHoa.ViewModels
             IsLoading = true;
         }
 
+        // giữ lại task load đầu tiên để MainWindow có thể chờ mà không khởi chạy query trùng
         public Task EnsureLoadedAsync()
         {
             return _initialLoadTask ??= LoadStatsAsync();
         }
 
         [RelayCommand]
+        // generation ngăn lượt refresh cũ hoàn tất muộn ghi đè dashboard mới
         public async Task LoadStatsAsync()
         {
             var generation = Interlocked.Increment(ref _loadGeneration);
@@ -119,6 +121,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
+        // chuyển DTO service thành series/axis bind UI; không truy vấn database trong bước vẽ
         private void UpdateCharts()
         {
             // 1. Biểu đồ doanh thu & chi phí (Bar Chart)

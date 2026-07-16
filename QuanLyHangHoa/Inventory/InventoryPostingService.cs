@@ -4,6 +4,9 @@ using System.Collections.Generic;
 
 namespace QuanLyHangHoa.Inventory;
 
+/// <summary>
+/// kiểm tra quyền và invariant tồn kho trước khi ghi balance, serial, ledger, audit và trạng thái trong một commit.
+/// </summary>
 public sealed class InventoryPostingService
 {
     private readonly IInventoryUnitOfWork _unitOfWork;
@@ -20,6 +23,7 @@ public sealed class InventoryPostingService
         _clock = clock;
     }
 
+    // số lượng của command đã ở đơn vị tồn kho; serial được chuẩn hóa trước mọi thay đổi dữ liệu.
     public void PostStockIn(PostStockInCommand command)
     {
         EnsureApprovedAndAuthorized(command.Status, command.PostedByUserId, "stock-in",
@@ -57,6 +61,7 @@ public sealed class InventoryPostingService
             }
         }
 
+        // balance là số hiện tại; ledger phía dưới giữ lịch sử phát sinh dẫn tới số mới.
         var balance = _unitOfWork.GetOrCreateBalance(command.ProductId, warehouseId);
         _unitOfWork.SaveBalance(balance with
         {
@@ -89,12 +94,12 @@ public sealed class InventoryPostingService
             _clock.Now,
             command.PostedByUserId));
 
-        // Note: Marking document posted should ideally be handled by the caller or a higher-level orchestration
-        // but we keep it here for now as part of the atomic posting action.
+        // trạng thái Posted được lưu cùng balance, serial, ledger và audit để không có chứng từ nửa ghi sổ.
         _unitOfWork.MarkDocumentPosted(command.DocumentId, "StockIn");
         _unitOfWork.Commit();
     }
 
+    // chỉ các loại xuất kho đã định nghĩa mới được dùng chung luồng trừ tồn và chuyển trạng thái serial.
     public void PostStockOut(PostStockOutCommand command)
     {
         EnsureApprovedAndAuthorized(command.Status, command.PostedByUserId, "stock-out",
@@ -130,6 +135,7 @@ public sealed class InventoryPostingService
             throw new InventoryDomainException("Non-serial products cannot be issued with serial numbers.");
         }
 
+        // AvailableQuantity là cổng chống âm kho; OnHand và Available cùng giảm khi chưa có reservation riêng.
         var balance = _unitOfWork.FindBalance(command.ProductId, warehouseId);
         if (balance is null || balance.AvailableQuantity < command.Quantity)
         {
@@ -191,6 +197,7 @@ public sealed class InventoryPostingService
         _unitOfWork.Commit();
     }
 
+    // chuyển kho là một giao dịch kép: trừ kho nguồn, cộng kho đích và giữ tổng tồn toàn hệ thống.
     public void PostStockTransfer(PostStockTransferCommand command)
     {
         EnsureApprovedAndAuthorized(command.Status, command.PostedByUserId, "stock-transfer", allowWarrantyPermission: false);
@@ -218,7 +225,7 @@ public sealed class InventoryPostingService
             throw new InventoryDomainException("Serial count must match transfer quantity.");
         }
 
-        // 1. Process From Warehouse (Stock Out)
+        // kho nguồn phải đủ available trước khi tạo snapshot số lượng mới.
         var fromBalance = _unitOfWork.FindBalance(command.ProductId, command.FromWarehouseId);
         if (fromBalance is null || fromBalance.AvailableQuantity < command.Quantity)
         {
@@ -231,7 +238,7 @@ public sealed class InventoryPostingService
             AvailableQuantity = fromBalance.AvailableQuantity - command.Quantity
         });
 
-        // 2. Process To Warehouse (Stock In)
+        // kho đích nhận đúng lượng đã trừ ở nguồn.
         var toBalance = _unitOfWork.GetOrCreateBalance(command.ProductId, command.ToWarehouseId);
         _unitOfWork.SaveBalance(toBalance with
         {
@@ -239,7 +246,7 @@ public sealed class InventoryPostingService
             AvailableQuantity = toBalance.AvailableQuantity + command.Quantity
         });
 
-        // 3. Update Serials
+        // serial giữ nguyên trạng thái InStock, chỉ đổi kho hiện tại.
         foreach (var serialNumber in serialNumbers)
         {
             var serial = _unitOfWork.GetSerial(serialNumber);
@@ -264,7 +271,7 @@ public sealed class InventoryPostingService
             });
         }
 
-        // 4. Ledger Entries
+        // hai ledger Out/In cùng document id tạo dấu vết cân bằng cho lần chuyển.
         _unitOfWork.AddLedger(new StockLedgerEntry(
             command.DocumentId,
             "StockTransfer",
@@ -295,6 +302,7 @@ public sealed class InventoryPostingService
         _unitOfWork.Commit();
     }
 
+    // lifecycle và permission đều phải đạt; quyền warranty chỉ mở cho đúng loại chứng từ bảo hành.
     private void EnsureApprovedAndAuthorized(
         StockDocumentStatus status,
         int userId,
@@ -315,6 +323,7 @@ public sealed class InventoryPostingService
         }
     }
 
+    // so sánh không phân biệt hoa thường vì serial khác casing vẫn là cùng một định danh vật lý.
     private static void EnsureNoDuplicateSerials(string[] serialNumbers)
     {
         if (serialNumbers.Length != serialNumbers.Distinct(System.StringComparer.OrdinalIgnoreCase).Count())

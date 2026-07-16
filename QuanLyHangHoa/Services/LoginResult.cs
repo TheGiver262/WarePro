@@ -11,6 +11,7 @@ namespace QuanLyHangHoa.Services
         Inactive
     }
 
+    // kết quả có kiểu rõ giúp giao diện phân biệt sai mật khẩu, bị khóa và inactive mà không dựa vào chuỗi lỗi
     public class LoginResult
     {
         public LoginStatus Status { get; set; }

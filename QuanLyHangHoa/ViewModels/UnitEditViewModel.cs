@@ -28,6 +28,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
+        // entity danh sách chỉ nhận thay đổi sau khi dialog trả kết quả xác nhận
         public void ApplyTo(Unit unit)
         {
             unit.UnitCode = UnitCode;

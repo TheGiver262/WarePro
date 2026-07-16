@@ -17,6 +17,7 @@ namespace QuanLyHangHoa.Services
             _contextFactory = contextFactory;
         }
 
+        // Include nạp đủ dữ liệu hiển thị và số dư trong một lần; AsNoTracking vì kết quả không sửa trực tiếp
         public virtual List<Product> GetAllProducts(bool onlyActive = false)
         {
             using var db = _contextFactory();
@@ -33,6 +34,7 @@ namespace QuanLyHangHoa.Services
                 .ToList();
         }
 
+        // query phân trang và query đếm dùng chung ApplyProductFilters để tổng số luôn khớp danh sách
         public virtual List<Product> GetProductsPaged(
             string searchCode,
             string searchName,
@@ -80,6 +82,7 @@ namespace QuanLyHangHoa.Services
             return query.Count();
         }
 
+        // chỉ nối điều kiện khi người dùng nhập bộ lọc; IQueryable giữ mọi phép lọc ở phía database
         private IQueryable<Product> ApplyProductFilters(
             IQueryable<Product> query,
             string searchCode,
@@ -144,6 +147,7 @@ namespace QuanLyHangHoa.Services
             return query;
         }
 
+        // cần SaveChanges lần đầu để lấy Product.Id rồi mới tạo audit tham chiếu đúng id
         public virtual void AddProduct(Product p, int userId)
         {
             using var db = _contextFactory();
@@ -156,6 +160,7 @@ namespace QuanLyHangHoa.Services
             transaction.Commit();
         }
 
+        // tải entity đang được EF theo dõi rồi chép từng trường cho phép, tránh ghi đè navigation hoặc dữ liệu ngoài form
         public virtual void UpdateProduct(Product updated, int userId)
         {
             using var db = _contextFactory();
@@ -208,6 +213,7 @@ namespace QuanLyHangHoa.Services
             return GetDependencies(db, productId);
         }
 
+        // liệt kê đủ bảng nghiệp vụ có ProductId; tên bảng và số dòng còn được dùng để giải thích lý do không xóa cứng
         private static IReadOnlyList<(string Name, int Count)> GetDependencies(
             AppDbContext db,
             int productId)
@@ -236,6 +242,7 @@ namespace QuanLyHangHoa.Services
             using var transaction = db.Database.BeginTransaction();
 
             var oldState = new { p.ProductCode, p.DisplayName };
+            // sản phẩm có lịch sử chỉ chuyển inactive; sản phẩm chưa từng dùng mới được xóa khỏi database
             var hasDependencies = GetDependencies(db, id).Any(dependency => dependency.Count > 0);
 
             if (hasDependencies)
@@ -255,6 +262,7 @@ namespace QuanLyHangHoa.Services
             transaction.Commit();
         }
 
+        // tồn đầu kỳ đi qua InventoryPostingService để số dư, ledger và trạng thái serial được cập nhật cùng quy tắc nhập kho
         public virtual void AddInitialStock(int productId, List<string> serialNumbers, int userId)
         {
             using var db = _contextFactory();
@@ -334,6 +342,7 @@ namespace QuanLyHangHoa.Services
             return query.Count();
         }
 
+        // rawData chỉ lấy hai giá trị cần tính; CostPrice được ưu tiên, thiếu giá vốn mới dùng giá bán mặc định
         public virtual (int lowStockCount, decimal totalValue) GetInventoryStats(
             string searchCode,
             string searchName,
@@ -352,12 +361,14 @@ namespace QuanLyHangHoa.Services
                 })
                 .ToList();
 
+            // ngưỡng 10 phải giống bộ lọc sắp hết để thẻ thống kê và danh sách không lệch nhau
             int lowStock = rawData.Count(x => x.OnHandQuantity < 10);
             decimal totalVal = rawData.Sum(x => x.OnHandQuantity * x.Price);
 
             return (lowStock, totalVal);
         }
 
+        // tổng tồn dùng nullable decimal để sản phẩm chưa có StockBalance vẫn được xem là tồn 0
         private IQueryable<Product> ApplyInventoryFilters(
             IQueryable<Product> query,
             string searchCode,
@@ -401,6 +412,7 @@ namespace QuanLyHangHoa.Services
             return query;
         }
 
+        // chỉ thêm log vào context; method gọi quyết định thời điểm SaveChanges và transaction
         private void AddAudit(AppDbContext db, string entityName, int entityId, string action, int userId, object? oldValues = null, object? newValues = null)
         {
             var log = new AuditLog

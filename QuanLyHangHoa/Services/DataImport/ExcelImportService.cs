@@ -9,6 +9,7 @@ namespace QuanLyHangHoa.Services.DataImport
 {
     public class ExcelImportService
     {
+        // cột được ghép với property không phân biệt hoa thường; reflection giúp một bộ đọc dùng cho nhiều model
         public ImportResult<T> Import<T>(string filePath) where T : new()
         {
             var result = new ImportResult<T>();
@@ -22,6 +23,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     return result;
                 }
 
+                // bỏ dòng tiêu đề, chỉ tạo object từ các dòng dữ liệu
                 var rows = usedRange.RowsUsed().Skip(1); // Skip header row
                 var headers = worksheet.Row(1).CellsUsed().ToDictionary(c => c.Address.ColumnNumber, c => c.Value.ToString().Trim());
 
@@ -69,13 +71,14 @@ namespace QuanLyHangHoa.Services.DataImport
             return result;
         }
 
+        // ClosedXML giữ kiểu ô gốc; hàm này đổi sang kiểu property, kể cả Nullable<T>, trước khi reflection gán giá trị
         private object? ConvertValue(XLCellValue value, Type targetType)
         {
             if (value.IsBlank) return targetType.IsValueType ? Activator.CreateInstance(targetType) : null;
 
             var strValue = value.ToString();
             
-            // Handle Nullable types
+            // lấy kiểu lõi để int? và int đi chung một nhánh chuyển đổi
             Type underlyingType = Nullable.GetUnderlyingType(targetType) ?? targetType;
 
             if (underlyingType == typeof(string)) return strValue;

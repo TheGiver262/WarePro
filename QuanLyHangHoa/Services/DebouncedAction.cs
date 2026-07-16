@@ -14,6 +14,7 @@ public sealed class DebouncedAction : IDisposable
         _delay = TimeSpan.FromMilliseconds(delayMilliseconds);
     }
 
+    // lần gọi mới hủy và dispose timer cũ; chỉ action cuối cùng sau khoảng chờ được chạy
     public void Schedule(Action action)
     {
         _cancellation?.Cancel();
@@ -22,6 +23,7 @@ public sealed class DebouncedAction : IDisposable
         _ = ExecuteAsync(action, _cancellation.Token);
     }
 
+    // OperationCanceledException là kết quả bình thường khi người dùng tiếp tục gõ, không phải lỗi cần hiển thị
     private async Task ExecuteAsync(Action action, CancellationToken cancellationToken)
     {
         try
@@ -34,6 +36,7 @@ public sealed class DebouncedAction : IDisposable
         }
     }
 
+    // owner phải dispose khi ViewModel đóng để action đang chờ không chạy vào object đã hết vòng đời
     public void Dispose()
     {
         _cancellation?.Cancel();

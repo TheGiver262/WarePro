@@ -64,6 +64,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
+        // lấy snapshot người dùng mới rồi lọc trong bộ nhớ; thao tác CRUD thành công luôn gọi lại để phản ánh rule service
         private void LoadData()
         {
             var list = _userService.GetAllUsers();
@@ -128,6 +129,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // copy row được chọn vào field form, không sửa trực tiếp object trong collection
         private void EditUser(AppUser? user)
         {
             if (user == null) return;
@@ -146,6 +148,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // service đọc lại actor và target trong serializable transaction; ViewModel chỉ validate field và hiển thị lỗi
         private void SaveUser()
         {
             if (string.IsNullOrWhiteSpace(CurrentInputUser.FullName) || string.IsNullOrWhiteSpace(CurrentInputUser.Username))
@@ -182,6 +185,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // dependency quyết định lời xác nhận xóa cứng hay inactive; service kiểm tra lại trước khi commit
         private void DeleteUser(AppUser? user)
         {
             if (user == null) return;
@@ -213,6 +217,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // không đổi IsActive trực tiếp trên row; gọi service để giữ rule admin cuối và audit
         private void ToggleStatus(AppUser? user)
         {
             if (user == null) return;
@@ -238,6 +243,7 @@ namespace QuanLyHangHoa.ViewModels
         partial void OnSearchStatusChanged(string? value) => ScheduleFilterReload();
         partial void OnSearchDateChanged(DateTime? value) => ScheduleFilterReload();
 
+        // debounce filter trong bộ nhớ để nhiều thay đổi liên tiếp chỉ chạy LoadData một lần
         private void ScheduleFilterReload()
         {
             _filterDebounceCts?.Cancel();

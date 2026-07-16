@@ -110,6 +110,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand(CanExecute = nameof(CanManage))]
+        // dialog sửa bản sao field; chỉ ApplyTo và gọi service khi người dùng xác nhận
         private void EditCategory(Category category)
         {
             var beforeJson = Serialize(category);
@@ -125,6 +126,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand(CanExecute = nameof(CanManage))]
+        // category có product sẽ inactive để giữ khóa ngoại; danh sách reload sau service commit
         private void DeleteCategory(Category category)
         {
             using var db = _contextFactory();

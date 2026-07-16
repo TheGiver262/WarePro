@@ -13,6 +13,7 @@ public partial class SalesInvoiceLine
 
     public int UnitId { get; set; }
 
+    // link nguồn dùng để đối soát một-một với dòng xuất và tạo coverage cho serial bán ra
     public int? StockOutLineId { get; set; }
 
     public decimal Quantity { get; set; }

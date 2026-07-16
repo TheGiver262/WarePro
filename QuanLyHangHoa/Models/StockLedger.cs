@@ -13,10 +13,12 @@ public partial class StockLedger
 
     public int? ProductSerialId { get; set; }
 
+    // SourceDocumentType + SourceDocumentId là khóa tham chiếu đa hình về chứng từ sinh biến động
     public string SourceDocumentType { get; set; } = null!;
 
     public int SourceDocumentId { get; set; }
 
+    // Quantity luôn dương; MovementType In/Out quyết định cộng hay trừ khi tính số dư chạy
     public string MovementType { get; set; } = null!;
 
     public decimal Quantity { get; set; }

@@ -44,6 +44,7 @@ namespace QuanLyHangHoa.Views
 
             TxtExportCode.Text = serial.LastStockOutLine?.StockOut?.DocumentCode ?? "---";
 
+            // entity serial không luôn nạp hóa đơn; lookup nhẹ theo StockOutId và giữ fallback nếu database lỗi
             string invoiceCode = "---";
             if (serial.LastStockOutLine?.StockOut != null)
             {

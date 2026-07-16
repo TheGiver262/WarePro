@@ -39,6 +39,7 @@ namespace QuanLyHangHoa.ViewModels
         public string Username => _currentUser.Username;
 
         [RelayCommand]
+        // mật khẩu hiện tại/mới chỉ giữ trong form đến khi service hoàn tất; thành công xóa cả ba field ngay
         private void ChangePassword()
         {
             if (string.IsNullOrWhiteSpace(CurrentPassword))

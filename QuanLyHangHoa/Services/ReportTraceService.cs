@@ -150,6 +150,7 @@ public sealed class ReportTraceService
     
 
 
+    // timeline lấy cả ledger trước ngày bắt đầu để tính StartQuantity, nhưng chỉ tạo item trong khoảng được chọn
     public ProductTimelineResult GetProductTimeline(int productId, DateTime fromDate, DateTime toDate)
     
     {
@@ -158,6 +159,7 @@ public sealed class ReportTraceService
         
         var start = fromDate.Date;
         
+        // tick cuối ngày giữ lại mọi giao dịch có giờ phút trong ngày kết thúc
         var end = toDate.Date.AddDays(1).AddTicks(-1);
         
 
@@ -180,6 +182,7 @@ public sealed class ReportTraceService
             
 
 
+        // currentQty là số dư chạy: bắt đầu bằng tổng lịch sử trước kỳ rồi cộng/trừ từng ledger theo thứ tự
         var currentQty = ledgers
         
             .Where(l => l.PostedAt < start)
@@ -196,6 +199,7 @@ public sealed class ReportTraceService
             
 
 
+        // context chứng từ được tải theo lô để vòng lặp không phát sinh một query cho mỗi ledger
         var contexts = LoadDocumentContexts(db, currentLedgers);
         
         var items = new List<ProductTimelineItem>();
@@ -266,6 +270,7 @@ public sealed class ReportTraceService
     
 
 
+    // phần text/status lọc ở database; projection và lọc ngày đa trường thực hiện sau khi giới hạn 500 serial
     public IReadOnlyList<SerialTraceItem> SearchSerialTrace(SerialTraceFilter filter)
     
     {
@@ -384,6 +389,7 @@ public sealed class ReportTraceService
         
 
 
+        // Take bảo vệ màn hình khỏi truy vấn không giới hạn; ToList kết thúc SQL trước khi dùng helper C#
         return query
         
             .OrderBy(s => s.SerialNumber)
@@ -402,6 +408,7 @@ public sealed class ReportTraceService
     
 
 
+    // serial đạt nếu ít nhất một mốc nhập, xuất, bán hoặc bảo hành nằm trong khoảng ngày
     private static bool IsWithinDateRange(SerialTraceItem item, DateTime? start, DateTime? end)
     
     {
@@ -430,6 +437,7 @@ public sealed class ReportTraceService
     
 
 
+    // ưu tiên hóa đơn gắn với coverage, nếu thiếu mới lấy hóa đơn bán đầu tiên của phiếu xuất
     private static SerialTraceItem ToSerialTraceItem(Models.ProductSerial serial)
     
     {
@@ -492,6 +500,7 @@ public sealed class ReportTraceService
     
 
 
+    // chưa xuất kho khác với đã bán nhưng không có bảo hành; hai trường hợp cần nhãn riêng trên báo cáo
     private static string GetWarrantyStatus(bool hasStockOut, Models.WarrantyCoverage? warranty)
     
     {
@@ -526,6 +535,7 @@ public sealed class ReportTraceService
     
 
 
+    // khóa kép loại chứng từ + id tránh trùng id giữa StockIn, StockOut, Adjustment và Transfer
     private static Dictionary<(string Type, int Id), DocumentContext> LoadDocumentContexts(AppDbContext db, IReadOnlyCollection<Models.StockLedger> ledgers)
     
     {
@@ -616,6 +626,7 @@ public sealed class ReportTraceService
     
 
 
+    // ledger cũ thiếu chứng từ vẫn có nhãn fallback để báo cáo không bị lỗi toàn bộ
     private static DocumentContext GetDocumentContext(Dictionary<(string Type, int Id), DocumentContext> contexts, string type, int id)
     
     {

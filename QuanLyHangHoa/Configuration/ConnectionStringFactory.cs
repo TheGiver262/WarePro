@@ -6,6 +6,9 @@ using Microsoft.Data.SqlClient;
 
 namespace QuanLyHangHoa.Configuration;
 
+/// <summary>
+/// báo riêng trường hợp chế độ SQL password chưa có credential trong kho Windows.
+/// </summary>
 public sealed class WareProCredentialException : Exception
 {
     public WareProCredentialException()
@@ -16,6 +19,9 @@ public sealed class WareProCredentialException : Exception
     public string Code => "CFG-CREDENTIAL-MISSING";
 }
 
+/// <summary>
+/// dựng connection string từ cấu hình máy mà không để mật khẩu tồn tại lâu trong bộ nhớ thường.
+/// </summary>
 public sealed class ConnectionStringFactory
 {
     private readonly ISqlCredentialStore _credentialStore;
@@ -37,6 +43,9 @@ public sealed class ConnectionStringFactory
         () => Environment.GetEnvironmentVariable("WAREPRO_CONNECTION_STRING"),
         () => new WareProSettingsStore().Load());
 
+    /// <summary>
+    /// nạp cấu hình mặc định và vẫn ưu tiên connection string do môi trường triển khai cung cấp.
+    /// </summary>
     public string Resolve()
     {
         // biến môi trường được ưu tiên để CI và máy hỗ trợ có thể kết nối tạm
@@ -61,6 +70,7 @@ public sealed class ConnectionStringFactory
         return ResolveSettings(settings ?? WareProSettings.CreateDefault());
     }
 
+    // từ đây chỉ xử lý cấu hình máy; quyền ghi đè của môi trường đã được giải quyết ở hai hàm public.
     private string ResolveSettings(WareProSettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings.Database);
@@ -71,12 +81,14 @@ public sealed class ConnectionStringFactory
             TrustServerCertificate = settings.Database.TrustServerCertificate
         };
 
+        // Windows authentication dùng danh tính tiến trình nên không đọc kho credential của người dùng.
         if (settings.Database.Authentication == DatabaseAuthentication.Windows)
         {
             builder.IntegratedSecurity = true;
             return builder.ConnectionString;
         }
 
+        // SQL password bắt buộc có credential; thiếu dữ liệu được phân loại trước khi mở kết nối.
         var credential = _credentialStore.Read() ?? throw new WareProCredentialException();
         // SecureString chỉ được mở đúng lúc SqlClient cần mật khẩu và luôn bị xóa trong finally.
         // cách này tránh giữ mật khẩu dạng chuỗi thường lâu hơn mức cần thiết.
@@ -102,6 +114,9 @@ public sealed class ConnectionStringFactory
     }
 }
 
+/// <summary>
+/// lọc thông tin xác thực trước khi chi tiết kỹ thuật được ghi log hoặc đưa vào kết quả startup.
+/// </summary>
 public static partial class SensitiveDataRedactor
 {
     // giữ lại tên khóa để log còn dễ đọc, chỉ thay phần giá trị nhạy cảm.

@@ -7,6 +7,9 @@ using QuanLyHangHoa.Services;
 
 namespace QuanLyHangHoa.Inventory;
 
+/// <summary>
+/// chuyển snapshot inventory sang entity EF; context do caller sở hữu và một SaveChanges là ranh giới commit.
+/// </summary>
 public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
 {
     private readonly AppDbContext _context;
@@ -47,6 +50,7 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
         return balance is null ? null : ToSnapshot(balance);
     }
 
+    // ưu tiên entity đã track để nhiều dòng cùng giao dịch dùng chung một bản balance trong bộ nhớ.
     public StockBalanceSnapshot GetOrCreateBalance(int productId, int warehouseId)
     {
         var balance = FindTrackedOrPersistedBalance(productId, warehouseId);
@@ -64,6 +68,7 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
         return ToSnapshot(balance);
     }
 
+    // snapshot chứa kết quả nghiệp vụ; entity chỉ được cập nhật tại adapter này.
     public void SaveBalance(StockBalanceSnapshot snapshot)
     {
         var balance = FindTrackedOrPersistedBalance(snapshot.ProductId, snapshot.WarehouseId);
@@ -106,6 +111,7 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
         var serial = _context.ProductSerials.SingleOrDefault(s => s.SerialNumber == snapshot.SerialNumber);
         if (serial is null)
         {
+            // schema cũ yêu cầu LastStockInLineId; lấy dòng nhập gần nhất của sản phẩm làm liên kết tương thích.
             var stockInLineId = _context.StockInLines
                 .Where(l => l.ProductId == snapshot.ProductId)
                 .OrderByDescending(l => l.Id)
@@ -132,6 +138,7 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
         serial.StockTransferLineId = snapshot.StockTransferLineId;
     }
 
+    // ledger là lịch sử bất biến của phát sinh; balance là số tổng hợp hiện tại.
     public void AddLedger(StockLedgerEntry entry)
     {
         _context.StockLedgers.Add(new StockLedger
@@ -160,6 +167,7 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
         });
     }
 
+    // đổi trạng thái trên entity đang track để được lưu cùng các thay đổi inventory khác.
     public void MarkDocumentPosted(int documentId, string documentType)
     {
         switch (documentType)
@@ -183,6 +191,7 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
         }
     }
 
+    // SaveChanges của EF gói toàn bộ lệnh trong một transaction; lỗi concurrency được đổi sang lỗi nghiệp vụ dễ xử lý.
     public void Commit()
     {
         try
@@ -220,6 +229,7 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
             serial.StockTransferLineId);
     }
 
+    // tìm Local trước để không tạo hai entity cùng khóa khi balance vừa được thêm nhưng chưa commit.
     private StockBalance? FindTrackedOrPersistedBalance(int productId, int warehouseId)
     {
         return _context.StockBalances.Local

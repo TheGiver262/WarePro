@@ -14,6 +14,7 @@ public sealed class DocumentPrintService
         _contextFactory = contextFactory;
     }
 
+    // no-tracking và Include đầy đủ tạo snapshot chỉ đọc trong một lần trước khi context bị dispose
     public DocumentPrintModel LoadPurchaseInvoice(int id)
     {
         using var db = _contextFactory();
@@ -28,6 +29,7 @@ public sealed class DocumentPrintService
         return DocumentPrintModel.FromPurchaseInvoice(invoice);
     }
 
+    // nạp chứng từ kho liên kết để bản in có mã phiếu và tên kho nguồn
     public DocumentPrintModel LoadSalesInvoice(int id)
     {
         using var db = _contextFactory();
@@ -42,6 +44,7 @@ public sealed class DocumentPrintService
         return DocumentPrintModel.FromSalesInvoice(invoice);
     }
 
+    // chỉ nạp các navigation model in cần, không nạp toàn bộ đồ thị chứng từ
     public DocumentPrintModel LoadStockIn(int id)
     {
         using var db = _contextFactory();
@@ -56,6 +59,7 @@ public sealed class DocumentPrintService
         return DocumentPrintModel.FromStockIn(stockIn);
     }
 
+    // lỗi không tìm thấy được chặn tại service để cửa sổ in không nhận model rỗng
     public DocumentPrintModel LoadStockOut(int id)
     {
         using var db = _contextFactory();

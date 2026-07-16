@@ -56,6 +56,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // màn hình này chỉ sửa ghi chú; trạng thái và số serial không được thay ngoài nghiệp vụ kho/bảo hành
         private void Save()
         {
             try
@@ -77,6 +78,7 @@ namespace QuanLyHangHoa.ViewModels
             CloseWindow();
         }
 
+        // DialogResult báo cho màn hình cha có cần reload danh sách hay không
         private void CloseWindow()
         {
             foreach (Window window in Application.Current.Windows)

@@ -8,6 +8,7 @@ namespace QuanLyHangHoa.Converters
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     public class SafePackIconKindConverter : IValueConverter
     {
+        // tên icon không hợp lệ trả Help để binding không ném lỗi khi dữ liệu cũ có giá trị lạ
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value == null) return PackIconKind.Help;

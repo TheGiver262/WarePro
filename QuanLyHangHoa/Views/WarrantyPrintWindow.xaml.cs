@@ -59,6 +59,7 @@ namespace QuanLyHangHoa.Views
             CustomerSignNameText.Text = customer?.DisplayName ?? "—";
         }
 
+        // ButtonPanel nằm trong visual cần in nên tạm ẩn và khôi phục trong finally
         private void PrintButton_Click(object sender, RoutedEventArgs e)
         {
             try

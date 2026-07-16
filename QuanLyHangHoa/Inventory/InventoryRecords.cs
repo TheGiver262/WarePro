@@ -12,6 +12,9 @@ public sealed record ProductSerialSnapshot(
     SerialStatus Status,
     int? StockTransferLineId = null);
 
+/// <summary>
+/// số lượng theo đơn vị tồn kho gốc tại một cặp sản phẩm-kho.
+/// </summary>
 public sealed record StockBalanceSnapshot(
     int ProductId,
     int WarehouseId,

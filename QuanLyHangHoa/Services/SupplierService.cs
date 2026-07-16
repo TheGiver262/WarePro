@@ -17,12 +17,14 @@ namespace QuanLyHangHoa.Services
             _contextFactory = contextFactory;
         }
 
+        // query chỉ đọc và sắp theo mã giúp kết quả ổn định giữa các lần tải
         public List<Supplier> GetAll()
         {
             using var db = _contextFactory();
             return db.Suppliers.AsNoTracking().OrderBy(s => s.SupplierCode).ToList();
         }
 
+        // dữ liệu chính và audit dùng cùng context, cùng transaction
         public void Add(Supplier supplier, int performedBy)
         {
             using var db = _contextFactory();
@@ -51,6 +53,7 @@ namespace QuanLyHangHoa.Services
             {
                 using var transaction = db.Database.BeginTransaction();
                 var beforeJson = Serialize(supplier);
+                // hóa đơn mua và phiếu nhập là lịch sử bắt buộc giữ, nên nhà cung cấp liên quan chỉ được inactive
                 var hasDependencies = db.PurchaseInvoices.Any(invoice => invoice.SupplierId == id) ||
                                       db.StockIns.Any(stockIn => stockIn.SupplierId == id);
                 if (hasDependencies)
@@ -75,6 +78,7 @@ namespace QuanLyHangHoa.Services
             return JsonSerializer.Serialize(new { s.Id, s.SupplierCode, s.DisplayName, s.Phone, s.Email, s.Address, s.IsActive });
         }
 
+        // ghi audit ngay trong service để mọi đường CRUD đều tuân một quy tắc
         private void AddAudit(AppDbContext db, string action, int entityId, string? before, string? after, int performedBy)
         {
             db.AuditLogs.Add(new AuditLog

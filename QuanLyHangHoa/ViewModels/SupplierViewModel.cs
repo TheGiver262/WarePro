@@ -121,6 +121,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand(CanExecute = nameof(CanManage))]
+        // dialog tách state edit khỏi danh sách; reload chỉ sau update thành công
         private void EditSupplier(Supplier supplier)
         {
             var beforeJson = Serialize(supplier);
@@ -135,6 +136,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand(CanExecute = nameof(CanManage))]
+        // supplier đã có nhập/hóa đơn mua không xóa cứng để giữ lịch sử
         private void DeleteSupplier(Supplier supplier)
         {
             using var db = _contextFactory();

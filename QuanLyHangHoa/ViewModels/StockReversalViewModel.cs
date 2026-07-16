@@ -40,6 +40,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // ViewModel chỉ kiểm tra input và hiển thị kết quả; transaction đảo kho nằm hoàn toàn trong StockReversalService
         private void ReverseDocument()
         {
             if (!int.TryParse(DocumentIdText, out var documentId))

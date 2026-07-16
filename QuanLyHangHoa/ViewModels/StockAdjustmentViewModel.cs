@@ -76,6 +76,7 @@ namespace QuanLyHangHoa.ViewModels
             OnPropertyChanged(nameof(SerialDisplay));
         }
 
+        // quantity điều chỉnh được quy đổi về đơn vị cơ sở; dấu âm/dương thể hiện giảm/tăng tồn
         private void UpdateBaseQuantity()
         {
             BaseQuantity = Quantity * (SelectedUnit?.ConversionFactor ?? 1);
@@ -231,6 +232,7 @@ namespace QuanLyHangHoa.ViewModels
             LoadForEditing(item.Id, true);
         }
 
+        // tải snapshot đầy đủ theo id rồi khóa editor nếu chỉ xem hoặc chứng từ không còn Draft
         private void LoadForEditing(int id, bool editMode)
         {
             var adj = _adjustmentService.GetById(id);
@@ -285,6 +287,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // serial chọn phải phù hợp hướng điều chỉnh: giảm lấy serial đang trong kho, tăng nhận serial mới
         private void OpenSerialWindow(StockAdjustmentLineEditor? line)
         {
             if (line?.SelectedProduct == null || !line.IsSerialTracked || !IsEditMode)
@@ -338,6 +341,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // draft lưu header/dòng nhưng chưa cập nhật balance, ledger hoặc serial
         private void SaveDraft()
         {
             if (!Validate()) return;
@@ -377,6 +381,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // service kiểm tra quyền, lifecycle, số lượng và serial rồi mới ghi sổ trong một transaction
         private void ConfirmAndPost()
         {
             if (StockDocumentUiLifecycle.IsPosted(Status)) return;
@@ -513,6 +518,7 @@ namespace QuanLyHangHoa.ViewModels
             LoadData();
         }
 
+        // ViewModel báo sớm lỗi form; service vẫn là lớp bảo vệ cuối cho nghiệp vụ
         private bool Validate()
         {
             if (string.IsNullOrWhiteSpace(DocumentCode))

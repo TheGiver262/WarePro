@@ -2,6 +2,9 @@ using System.Linq;
 
 namespace QuanLyHangHoa.Inventory;
 
+/// <summary>
+/// ghi chênh lệch kiểm kê như phát sinh In hoặc Out để giữ dấu vết thay vì sửa số tồn trực tiếp.
+/// </summary>
 public sealed class InventoryAdjustmentService
 {
     private readonly IInventoryUnitOfWork _unitOfWork;
@@ -40,6 +43,7 @@ public sealed class InventoryAdjustmentService
             throw new InventoryDomainException("Stock adjustment must contain at least one line.");
         }
 
+        // mọi line dùng cùng kho mặc định và chỉ commit sau khi toàn bộ line đã qua validation.
         var warehouseId = _warehouseProvider.GetDefaultWarehouseId();
         foreach (var line in command.Lines)
         {
@@ -48,6 +52,7 @@ public sealed class InventoryAdjustmentService
                 throw new InventoryDomainException("Stock adjustment quantity must be greater than zero.");
             }
 
+            // serial được chuẩn hóa và kiểm tra theo hướng điều chỉnh trước khi tạo snapshot balance mới.
             var product = _unitOfWork.GetProduct(line.ProductId);
             var serialNumbers = line.SerialNumbers
                 .Select(s => s.Trim())
@@ -104,6 +109,7 @@ public sealed class InventoryAdjustmentService
                 }
             }
 
+            // delta dương cho nhập bù, âm cho xuất giảm; ledger vẫn lưu quantity dương kèm Direction.
             var signedQuantity = line.Direction == StockLedgerDirection.In ? line.Quantity : -line.Quantity;
             _unitOfWork.SaveBalance(balance with
             {
@@ -143,6 +149,7 @@ public sealed class InventoryAdjustmentService
                 command.PostedByUserId));
         }
 
+        // một audit ở cấp chứng từ bao phủ toàn bộ ledger line và trạng thái Posted trong cùng commit.
         _unitOfWork.AddAudit(new AuditLogEntry(
             command.DocumentId,
             AuditActionCode.PostStockAdjustment,

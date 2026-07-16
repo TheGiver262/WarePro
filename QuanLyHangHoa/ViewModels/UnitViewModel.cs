@@ -109,6 +109,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand(CanExecute = nameof(CanManage))]
+        // form edit là snapshot; service nhận before JSON để audit thay đổi
         private void EditUnit(Unit unit)
         {
             var beforeJson = Serialize(unit);
@@ -123,6 +124,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand(CanExecute = nameof(CanManage))]
+        // service quyết định inactive hay xóa theo quan hệ product-unit/chứng từ, rồi ViewModel reload
         private void DeleteUnit(Unit unit)
         {
             var dependencies = _service.GetDependencies(unit.Id)

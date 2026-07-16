@@ -2,6 +2,7 @@ using System.Windows;
 
 namespace QuanLyHangHoa.Helpers
 {
+    // Freezable nhận inheritance context, cho phép resource ngoài visual tree bind tới DataContext của View
     public class BindingProxy : Freezable
     {
         protected override Freezable CreateInstanceCore()

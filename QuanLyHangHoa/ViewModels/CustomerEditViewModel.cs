@@ -34,6 +34,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
+        // ApplyTo tách state dialog khỏi entity danh sách và chỉ chạy khi validation của View thành công
         public void ApplyTo(Customer customer)
         {
             customer.CustomerCode = CustomerCode;

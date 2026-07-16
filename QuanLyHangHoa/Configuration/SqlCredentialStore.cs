@@ -6,6 +6,9 @@ using Microsoft.Data.SqlClient;
 
 namespace QuanLyHangHoa.Configuration;
 
+/// <summary>
+/// ranh giới lưu trữ credential để logic startup không phụ thuộc trực tiếp vào API Windows.
+/// </summary>
 public interface ISqlCredentialStore
 {
     SqlCredential? Read();
@@ -13,6 +16,9 @@ public interface ISqlCredentialStore
     void Delete();
 }
 
+/// <summary>
+/// lưu credential theo tài khoản Windows hiện tại bằng Windows Credential Manager.
+/// </summary>
 public sealed class SqlCredentialStore : ISqlCredentialStore
 {
     public const string CredentialTarget = "WarePro/Database";
@@ -23,6 +29,7 @@ public sealed class SqlCredentialStore : ISqlCredentialStore
 
     public SqlCredential? Read()
     {
+        // CredRead cấp phát vùng nhớ native; nếu đọc thành công thì mọi nhánh đều phải đi qua CredFree.
         if (!CredRead(CredentialTarget, GenericCredential, 0, out var credentialPointer))
         {
             var error = Marshal.GetLastWin32Error();
@@ -37,11 +44,13 @@ public sealed class SqlCredentialStore : ISqlCredentialStore
         try
         {
             var native = Marshal.PtrToStructure<NativeCredential>(credentialPointer);
+            // mật khẩu được lưu dạng UTF-16 nên kích thước blob phải chia hết cho kích thước char.
             if (native.CredentialBlobSize % sizeof(char) != 0)
             {
                 throw new InvalidOperationException("Stored WarePro credential has an invalid size.");
             }
 
+            // hai mảng này chỉ là vùng đệm chuyển đổi và phải được xóa trước khi phương thức kết thúc.
             var bytes = new byte[native.CredentialBlobSize];
             var characters = new char[native.CredentialBlobSize / sizeof(char)];
             try
@@ -63,12 +72,14 @@ public sealed class SqlCredentialStore : ISqlCredentialStore
             }
             finally
             {
+                // GC không đảm bảo thời điểm thu hồi, vì vậy xóa ngay các bản sao managed của mật khẩu.
                 Array.Clear(bytes);
                 Array.Clear(characters);
             }
         }
         finally
         {
+            // con trỏ và blob gốc thuộc quyền sở hữu của Credential Manager.
             CredFree(credentialPointer);
         }
     }
@@ -76,6 +87,7 @@ public sealed class SqlCredentialStore : ISqlCredentialStore
     public void Write(SqlCredential credential)
     {
         ArgumentNullException.ThrowIfNull(credential);
+        // SecureString chỉ được mở tại ranh giới P/Invoke cần con trỏ mật khẩu UTF-16.
         var passwordPointer = Marshal.SecureStringToGlobalAllocUnicode(credential.Password);
         try
         {
@@ -96,10 +108,12 @@ public sealed class SqlCredentialStore : ISqlCredentialStore
         }
         finally
         {
+            // vừa xóa nội dung vừa giải phóng vùng nhớ native, kể cả khi CredWrite trả lỗi.
             Marshal.ZeroFreeGlobalAllocUnicode(passwordPointer);
         }
     }
 
+    // thao tác xóa có tính lặp lại: credential không tồn tại vẫn được xem là trạng thái mong muốn.
     public void Delete()
     {
         if (CredDelete(CredentialTarget, GenericCredential, 0))
@@ -114,6 +128,7 @@ public sealed class SqlCredentialStore : ISqlCredentialStore
         }
     }
 
+    // bố cục và chữ ký dưới đây phải khớp Win32 Credential API; không đổi thứ tự các trường.
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct NativeCredential
     {

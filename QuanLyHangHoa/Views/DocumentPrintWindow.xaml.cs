@@ -22,6 +22,7 @@ public partial class DocumentPrintWindow : Window
         }
     }
 
+    // ẩn nút khỏi vùng PrintVisual và luôn hiện lại trong finally kể cả người dùng hủy hoặc in lỗi
     private void PrintButton_Click(object sender, RoutedEventArgs e)
     {
         try

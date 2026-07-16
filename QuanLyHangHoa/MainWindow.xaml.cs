@@ -14,6 +14,7 @@ namespace QuanLyHangHoa
             ContentRendered += OnContentRendered;
         }
 
+        // chạy một lần sau khi cửa sổ đã render: chờ dashboard đầu tiên, còn kiểm tra update chạy nền không chặn UI
         private async void OnContentRendered(object? sender, EventArgs e)
         {
             ContentRendered -= OnContentRendered;

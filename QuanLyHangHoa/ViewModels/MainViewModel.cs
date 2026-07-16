@@ -43,6 +43,7 @@ namespace QuanLyHangHoa.ViewModels
 
         public Func<Data.AppDbContext> ContextFactory { get; }
         private readonly DashboardService _dashboardService;
+        // cache giữ một View/ViewModel cho mỗi màn hình trong đúng phiên đăng nhập; đổi role hoặc logout sẽ xóa toàn bộ
         private readonly System.Collections.Generic.Dictionary<string, UserControl> _viewCache = new();
         private readonly int _authenticatedUserId;
         private readonly Action _invalidateSession;
@@ -99,6 +100,7 @@ namespace QuanLyHangHoa.ViewModels
         private bool CanManageMasterData() => RefreshAndAuthorize(PermissionAction.ManageMasterData);
 
 
+        // đọc lại user từ database trước mỗi command nhạy cảm để việc khóa tài khoản hoặc đổi role có hiệu lực ngay
         private bool RefreshAndAuthorize(PermissionAction action)
         {
             if (_sessionInvalidated)
@@ -111,6 +113,7 @@ namespace QuanLyHangHoa.ViewModels
             var refreshedUser = db.AppUsers
                 .AsNoTracking()
                 .SingleOrDefault(user => user.Id == _authenticatedUserId);
+            // identityChanged chỉ xét trạng thái và role vì đây là hai field quyết định quyền/session
             var identityChanged = previousUser?.IsActive != refreshedUser?.IsActive ||
                 !string.Equals(previousUser?.RoleCode, refreshedUser?.RoleCode, StringComparison.OrdinalIgnoreCase);
 
@@ -151,6 +154,7 @@ namespace QuanLyHangHoa.ViewModels
             OnPropertyChanged(nameof(CanAccessReports));
         }
 
+        // chỉ invalidate một lần, bỏ View cache rồi chuyển về luồng logout do owner cung cấp
         private void InvalidateSession()
         {
             if (_sessionInvalidated) return;
@@ -160,6 +164,7 @@ namespace QuanLyHangHoa.ViewModels
             _invalidateSession();
         }
 
+        // lần đầu tạo và cache View; lần quay lại gọi IRefreshable để giữ state màn hình nhưng nạp dữ liệu mới
         private void NavigateToView<TView>(string cacheKey, Func<TView> viewFactory, string title, string subtitle) where TView : UserControl
         {
             if (!_viewCache.TryGetValue(cacheKey, out var view))
@@ -390,6 +395,7 @@ namespace QuanLyHangHoa.ViewModels
                 "Kiểm tra và cài bản vá hoặc tính năng mới");
         }
 
+        // dùng một UpdateViewModel suốt session để trạng thái check/download và badge không bị mất khi đổi màn hình
         private UpdateViewModel GetUpdateViewModel()
         {
             if (_updateViewModel is null)
@@ -409,6 +415,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // mở cửa sổ login mới rồi đóng MainWindow; toàn bộ cache và user state của session cũ theo đó được giải phóng
         private void Logout()
         {
             new LoginView().Show();

@@ -1,5 +1,8 @@
 namespace QuanLyHangHoa.Inventory;
 
+/// <summary>
+/// trạng thái chuẩn trong domain trước khi ánh xạ sang chuỗi lưu trữ.
+/// </summary>
 public enum StockDocumentStatus
 {
     Draft,

@@ -24,6 +24,7 @@ namespace QuanLyHangHoa.Services
             return db.AppUsers.AsNoTracking().ToList();
         }
 
+        // serializable giữ kiểm tra trùng tên và kiểm tra quyền trong cùng ảnh chụp dữ liệu khi nhiều quản trị viên thao tác đồng thời
         public void AddUser(AppUser user, int performedByUserId)
         {
             using var db = _contextFactory();
@@ -31,13 +32,13 @@ namespace QuanLyHangHoa.Services
             var actor = db.AppUsers.SingleOrDefault(existingUser => existingUser.Id == performedByUserId);
             EnsureActorCanManageUsers(actor);
             
-            // Check for duplicate username
+            // chặn trùng trước để trả thông báo rõ; unique constraint trong database vẫn là lớp bảo vệ cuối
             if (db.AppUsers.Any(u => u.Username == user.Username))
             {
                 throw new InvalidOperationException($"Tên tài khoản '{user.Username}' đã tồn tại trong hệ thống. Vui lòng chọn tên khác.");
             }
 
-            // Default password is username if not set
+            // mật khẩu đầu vào chỉ tồn tại trong bộ nhớ; trước khi lưu luôn được đổi thành BCrypt hash
             if (string.IsNullOrWhiteSpace(user.PasswordHash))
             {
                 user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.Username);
@@ -56,7 +57,7 @@ namespace QuanLyHangHoa.Services
                 db.AppUsers.Add(user);
                 db.SaveChanges();
 
-                // Capture the new user state for audit using anonymous object to avoid serialization cycles
+                // snapshot ẩn danh chỉ giữ trường cần audit, tránh serialize navigation vòng của EF
                 var newState = new { user.Username, user.FullName, user.RoleCode, user.IsActive };
                 AddAudit(db, "AppUser", user.Id, "CREATE", performedByUserId, null, newState);
                 db.SaveChanges();
@@ -69,6 +70,7 @@ namespace QuanLyHangHoa.Services
             }
         }
 
+        // không cho tự khóa hoặc tự hạ quyền; mọi đường làm mất admin đang hoạt động cuối cùng đều bị chặn
         public void UpdateUser(int targetUserId, AppUser updatedUser, int performedByUserId)
         {
             using var db = _contextFactory();
@@ -95,14 +97,14 @@ namespace QuanLyHangHoa.Services
                     EnsureAnotherActiveAdministrator(db, targetUserId);
                 }
 
-                // Capture old state
+                // chụp trạng thái trước khi sửa để audit thể hiện đúng thay đổi
                 var oldState = new { existing.FullName, existing.RoleCode, existing.IsActive };
                 
                 existing.FullName = updatedUser.FullName;
                 existing.RoleCode = updatedUser.RoleCode;
                 existing.IsActive = updatedUser.IsActive;
 
-                // Optional: update password if provided in plaintext (handle with care in UI)
+                // chuỗi không có tiền tố BCrypt được xem là mật khẩu mới dạng rõ và phải hash trước khi lưu
                 if (!string.IsNullOrWhiteSpace(updatedUser.PasswordHash) && !updatedUser.PasswordHash.StartsWith("$2"))
                 {
                     existing.PasswordHash = BCrypt.Net.BCrypt.HashPassword(updatedUser.PasswordHash);
@@ -111,7 +113,7 @@ namespace QuanLyHangHoa.Services
                 
                 db.SaveChanges();
                 
-                // Capture new state
+                // trạng thái sau không chứa password hash
                 var newState = new { existing.FullName, existing.RoleCode, existing.IsActive };
                 
                 AddAudit(db, "AppUser", existing.Id, "UPDATE", performedByUserId, oldState, newState);
@@ -120,6 +122,7 @@ namespace QuanLyHangHoa.Services
             }
         }
 
+        // bật/tắt tài khoản cũng phải kiểm tra actor mới từ database, không tin user object cũ trên giao diện
         public void ToggleUserStatus(int userId, int performedByUserId)
         {
             using var db = _contextFactory();
@@ -177,7 +180,7 @@ namespace QuanLyHangHoa.Services
 
             try
             {
-                // Capture state before delete for audit
+                // giữ snapshot trước khi xóa hoặc chuyển inactive để lịch sử vẫn đọc được
                 var oldState = new { user.Username, user.FullName, user.RoleCode, user.IsActive };
 
                 if (HasDependencies(db, id))
@@ -225,6 +228,7 @@ namespace QuanLyHangHoa.Services
         private static bool IsActiveAdministrator(AppUser user) =>
             user.IsActive && IsAdministrator(user);
 
+        // truy vấn loại tài khoản mục tiêu ra khỏi tập đếm; phải còn ít nhất một quản trị viên khác đang active
         private static void EnsureAnotherActiveAdministrator(AppDbContext db, int targetUserId)
         {
             var anotherActiveAdministratorExists = db.AppUsers.Any(user =>
@@ -243,6 +247,7 @@ namespace QuanLyHangHoa.Services
             return HasDependencies(db, userId);
         }
 
+        // tài khoản đã ký tạo/duyệt/ghi sổ dữ liệu nghiệp vụ chỉ được vô hiệu hóa, không xóa khóa ngoại lịch sử
         private static bool HasDependencies(AppDbContext db, int userId)
         {
             return db.AppUsers.Any(user => user.CreatedBy == userId) ||
@@ -264,6 +269,7 @@ namespace QuanLyHangHoa.Services
                        claim.ApprovedBy == userId || claim.ProcessedBy == userId);
         }
 
+        // method chỉ add log vào cùng context; transaction của thao tác chính quyết định commit hoặc rollback cả hai
         private void AddAudit(AppDbContext db, string entityName, int entityId, string action, int userId, object? oldValues = null, object? newValues = null)
         {
             var log = new AuditLog

@@ -14,6 +14,7 @@ public partial class StockCountLine : ObservableObject
 
     public decimal SystemQuantity { get; set; }
 
+    // variance luôn bằng số đếm thực tế trừ snapshot hệ thống tại lúc lập phiên kiểm kê
     private decimal _countedQuantity;
     public decimal CountedQuantity
     {
@@ -49,6 +50,7 @@ public partial class StockCountLine : ObservableObject
         set => SetProperty(ref _serialNumbers, value);
     }
 
+    // sản phẩm theo serial chỉ cần mở đối soát serial khi số đếm khác hệ thống
     public bool ShowSerialButton => Product != null && Product.IsSerialTracked && (CountedQuantity != SystemQuantity);
 
     private Product _product = null!;

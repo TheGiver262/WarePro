@@ -78,6 +78,7 @@ namespace QuanLyHangHoa.ViewModels
             _ = ApplyFiltersAsync(true);
         }
 
+        // mỗi thay đổi filter hủy lượt chờ cũ; chỉ truy vấn sau 300 ms không còn thao tác
         private void ScheduleFilterReload()
         {
             if (!_isInitialized || _isUpdatingFilters)
@@ -103,6 +104,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
+        // chụp toàn bộ filter và skip trước await để một lần tải dùng một bộ điều kiện nhất quán
         private async Task ApplyFiltersAsync(bool reset)
         {
             if (_isLoading) return;
@@ -121,6 +123,7 @@ namespace QuanLyHangHoa.ViewModels
                 var searchStatus = SearchStatus;
                 var skip = _skip;
 
+                // danh sách và thống kê chạy song song nhưng dùng context riêng do service tự tạo
                 var listTask = Task.Run(() => _productService.GetInventoryProductsPaged(
                     searchCode, searchName, categoryId, searchStatus, skip, PageSize));
                 var statsTask = Task.Run(() => _productService.GetInventoryStats(
@@ -146,6 +149,7 @@ namespace QuanLyHangHoa.ViewModels
             finally
             {
                 _isLoading = false;
+                // filter đổi trong lúc đang tải được gom thành đúng một lượt reset tiếp theo
                 if (_reloadRequested)
                 {
                     _reloadRequested = false;
@@ -167,6 +171,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // _isUpdatingFilters ngăn từng property reset tự tạo nhiều query debounce
         private void Refresh()
         {
             _isUpdatingFilters = true;
@@ -186,6 +191,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // xuất snapshot đang hiển thị; không truy vấn lại nên file khớp đúng bộ lọc người dùng đang xem
         private void Export()
         {
             if (InventoryItems == null || !InventoryItems.Any())

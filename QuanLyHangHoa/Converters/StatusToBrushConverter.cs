@@ -6,6 +6,7 @@ using System.Windows.Media;
 
 namespace QuanLyHangHoa.Converters
 {
+    // status tiếng anh và nhãn tiếng việt cũ được gom về cùng nhóm màu; thiếu resource dùng màu an toàn
     public class StatusToFgBrushConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
@@ -54,6 +55,7 @@ namespace QuanLyHangHoa.Converters
         }
     }
 
+    // chuẩn hóa status lưu trong database thành nhãn ngắn trên UI, giá trị lạ giữ nguyên để dễ phát hiện
     public class StatusToTextConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
@@ -117,6 +119,7 @@ namespace QuanLyHangHoa.Converters
         }
     }
 
+    // parameter PrimaryIfTrue là nhánh riêng cho bool; còn lại chọn brush theo status
     public class StatusToBrushConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)

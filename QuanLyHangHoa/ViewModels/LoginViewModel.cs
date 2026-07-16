@@ -30,6 +30,7 @@ namespace QuanLyHangHoa.ViewModels
             LoginCommand.NotifyCanExecuteChanged();
         }
 
+        // khóa nút đăng nhập đến khi startup hoàn tất kết nối/migration, tránh lỗi giả do database chưa sẵn sàng
         private async Task ObserveDatabaseReadyAsync()
         {
             try
@@ -46,6 +47,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand(CanExecute = nameof(CanLogin))]
+        // password chỉ đi vào AuthenticationService; session mới chỉ giữ AppUser từ LoginResult và cửa sổ login đóng khi thành công
         private async Task Login(Window currentWindow)
         {
             if (string.IsNullOrWhiteSpace(Username) || string.IsNullOrWhiteSpace(Password))
@@ -54,6 +56,7 @@ namespace QuanLyHangHoa.ViewModels
                 return;
             }
 
+            // BCrypt chạy ở worker để không khóa UI; mọi lỗi đăng nhập dùng thông báo chung, không lộ tài khoản tồn tại
             var result = await Task.Run(() => _authService.Authenticate(Username, Password));
             switch (result.Status)
             {

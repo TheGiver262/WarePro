@@ -15,6 +15,7 @@ public partial class StockTransferLine
 
     public decimal Quantity { get; set; }
 
+    // cùng một base quantity được trừ kho nguồn và cộng kho đích
     public decimal BaseQuantity { get; set; }
 
     public virtual Product Product { get; set; } = null!;

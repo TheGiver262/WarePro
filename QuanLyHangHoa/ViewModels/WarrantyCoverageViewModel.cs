@@ -66,6 +66,7 @@ namespace QuanLyHangHoa.ViewModels
             ScheduleFilterReload();
         }
 
+        // debounce tìm kiếm; token mới hủy lần chờ cũ
         private void ScheduleFilterReload()
         {
             _filterDebounceCts?.Cancel();
@@ -87,6 +88,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // chụp filter rồi tải snapshot coverage; trạng thái Expired được suy ra theo ngày hiện tại
         public async Task LoadData()
         {
             _loadCts?.Cancel();
@@ -171,6 +173,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // copy ngày/status vào form chi tiết, không sửa entity trong danh sách trước khi Save
         private void EditCoverage(WarrantyCoverage coverage)
         {
             SelectedCoverage = coverage;
@@ -188,6 +191,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // ViewModel kiểm tra ngày và gọi service; service bảo vệ quan hệ serial/hóa đơn
         private void SaveCoverage()
         {
             if (SelectedCoverage == null) return;
@@ -214,6 +218,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // xóa dùng id snapshot đã chọn và reload sau khi database thành công
         private void DeleteCoverage(WarrantyCoverage coverage)
         {
             if (coverage == null) return;

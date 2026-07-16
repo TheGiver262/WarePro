@@ -17,6 +17,7 @@ namespace QuanLyHangHoa.Services
             _contextFactory = contextFactory;
         }
 
+        // so theo Date vì bảo hành tính theo ngày, không để phần giờ làm một ngày hợp lệ thành sai
         public static void EnsureValidCoverageDates(DateTime startDate, DateTime endDate)
         {
             if (endDate.Date < startDate.Date)
@@ -26,6 +27,7 @@ namespace QuanLyHangHoa.Services
             }
         }
 
+        // Expired được suy ra theo ngày xem báo cáo; storedStatus vẫn giữ Active để không cần job cập nhật mỗi đêm
         public static string GetEffectiveCoverageStatus(
             string storedStatus,
             DateTime warrantyEndDate,
@@ -37,6 +39,7 @@ namespace QuanLyHangHoa.Services
                     : storedStatus;
         }
 
+        // chỉnh sửa thường chỉ được đổi mô tả và ngày dự kiến; đổi status bắt buộc đi qua action hợp lệ
         public void UpdateClaim(WarrantyClaim claim)
         {
             using var db = _contextFactory();
@@ -54,6 +57,7 @@ namespace QuanLyHangHoa.Services
             db.SaveChanges();
         }
 
+        // resolve chốt hướng xử lý và đưa claim sang Ready, chưa tự xuất serial thay thế
         public void ResolveClaim(int claimId, string resolutionType, string technicalConclusion, int approverId)
         {
             using var db = _contextFactory();
@@ -68,6 +72,7 @@ namespace QuanLyHangHoa.Services
             db.SaveChanges();
         }
 
+        // khi đóng, trạng thái serial được tính lại từ mọi claim còn mở thay vì gán Sold một cách mù quáng
         public void CloseClaim(int claimId, string note)
         {
             using var db = _contextFactory();
@@ -89,6 +94,7 @@ namespace QuanLyHangHoa.Services
         /// Creates a new warranty claim from serial number lookup.
         /// Sets serial status to InWarrantyProcess.
         /// </summary>
+        // chỉ tạo claim khi serial có coverage active bao phủ ngày hiện tại; claim và trạng thái serial lưu cùng context
         public int CreateClaim(string claimCode, string serialNumber, string problemDescription, int userId)
         {
             using var db = _contextFactory();
@@ -96,6 +102,7 @@ namespace QuanLyHangHoa.Services
                 ?? throw new InvalidOperationException($"Serial {serialNumber} không tồn tại.");
 
             var today = DateTime.Today;
+            // điều kiện gồm status, ngày bắt đầu và ngày kết thúc để không nhận coverage chưa hiệu lực hoặc đã hết hạn
             var coverage = db.WarrantyCoverages.FirstOrDefault(c =>
                 c.ProductSerialId == serial.Id
                 && c.CoverageStatus == "Active"
@@ -135,6 +142,7 @@ namespace QuanLyHangHoa.Services
             return claim.Id;
         }
 
+        // sửa tại cửa hàng kết thúc xử lý kỹ thuật ở trạng thái Ready; bước Close xác nhận trả hàng cho khách
         public void CompleteRepair(int claimId, string technicalConclusion, int userId)
         {
             using var db = _contextFactory();
@@ -160,6 +168,7 @@ namespace QuanLyHangHoa.Services
         /// Send defective item to manufacturer for warranty processing.
         /// Sets serial status to ReturnedToManufacturer and populates tracking fields.
         /// </summary>
+        // gửi hãng lưu đủ đơn vị nhận, mã theo dõi và ngày dự kiến; serial chuyển ReturnedToManufacturer
         public void SendToManufacturer(int claimId, string manufacturerName, string trackingCode,
             DateTime? expectedReturnDate, string note, int userId)
         {
@@ -194,6 +203,7 @@ namespace QuanLyHangHoa.Services
         /// Receive repaired item from manufacturer (same serial).
         /// Marks serial as Sold (returned to customer).
         /// </summary>
+        // hãng trả lại đúng serial nên không phát sinh chứng từ kho thay thế; claim đóng và serial được tính lại
         public void ReceiveFromManufacturerRepaired(int claimId, string conclusion, int userId)
         {
             using var db = _contextFactory();
@@ -223,6 +233,7 @@ namespace QuanLyHangHoa.Services
         /// - Creates StockOut for new serial (PurposeCode = WarrantyReplace, WarrantyReplacement kind).
         /// - Both documents are auto-posted.
         /// </summary>
+        // toàn bộ đổi từ hãng chạy serializable: đánh dấu serial lỗi, nhập serial mới, xuất cho khách, chuyển coverage và đóng claim
         public void ReceiveFromManufacturerReplaced(int claimId, string newSerialNumber,
             string conclusion, int userId)
         {
@@ -251,10 +262,10 @@ namespace QuanLyHangHoa.Services
 
             var unitId = GetBaseUnitId(db, product);
 
-            // 1. Mark defective serial as Replaced
+            // serial lỗi không còn được dùng cho tồn hoặc một lần thay thế khác
             defectiveSerial.CurrentStatus = "Replaced";
 
-            // 2. Create StockIn for new serial (WarrantyReceive, cost = 0, auto-posted)
+            // nhận serial mới từ hãng với giá vốn 0 và ghi sổ ngay vào kho mặc định
             var stockIn = new StockIn
             {
                 DocumentCode = $"WRI-{DateTime.Now:yyyyMMddHHmmss}",
@@ -284,7 +295,7 @@ namespace QuanLyHangHoa.Services
             db.StockIns.Add(stockIn);
             db.SaveChanges();
 
-            // Post inventory for StockIn
+            // posting service tạo serial và cập nhật số dư/ledger theo cùng quy tắc nhập kho chuẩn
             var postingService = CreatePostingService(db);
 
             postingService.PostStockIn(new PostStockInCommand(
@@ -297,7 +308,7 @@ namespace QuanLyHangHoa.Services
                 new[] { newSerialNumber },
                 userId));
 
-            // 3. Create StockOut for new serial (WarrantyReplace, auto-posted)
+            // sau khi nhập thành công mới lấy serial vừa tạo để xuất bảo hành cho đúng khách
             var newSerial = db.ProductSerials.FirstOrDefault(s => s.SerialNumber == newSerialNumber)
                 ?? throw new InvalidOperationException($"Serial mới {newSerialNumber} không tìm thấy sau khi nhập kho.");
 
@@ -358,6 +369,7 @@ namespace QuanLyHangHoa.Services
             transaction.Commit();
         }
 
+        // reject là trạng thái cuối; vẫn phải xét claim khác trước khi trả serial về Sold
         public void RejectClaim(int claimId, string reason, int userId)
         {
             using var db = _contextFactory();
@@ -381,6 +393,7 @@ namespace QuanLyHangHoa.Services
         /// Direct replacement from stock. Only allowed if the product is in stock.
         /// If out of stock, throws exception prompting the user to send to manufacturer.
         /// </summary>
+        // thay trực tiếp chỉ dùng serial cùng sản phẩm đang InStock tại kho mặc định; mọi bước nằm trong một transaction
         public void ReplaceSerial(int claimId, string replacementSerial, string conclusion, int userId)
         {
             using var db = _contextFactory();
@@ -481,6 +494,7 @@ namespace QuanLyHangHoa.Services
             transaction.Commit();
         }
 
+        // chỉ claim chưa ở trạng thái cuối và chưa sinh chứng từ kho mới được xóa
         public void DeleteClaim(int claimId)
         {
             using var db = _contextFactory();
@@ -506,6 +520,7 @@ namespace QuanLyHangHoa.Services
             db.SaveChanges();
         }
 
+        // hai khóa này là idempotency guard, chặn một claim xuất serial thay thế lần thứ hai
         private static void EnsureReplacementNotApplied(WarrantyClaim claim)
         {
             if (claim.ReplacementSerialId.HasValue || claim.ReplacementStockOutId.HasValue)
@@ -520,6 +535,7 @@ namespace QuanLyHangHoa.Services
             return new DbDefaultWarehouseProvider(db).GetDefaultWarehouseId();
         }
 
+        // posting dùng đơn vị cơ sở; thiếu cấu hình mới lùi về DefaultUnitId của sản phẩm
         private static int GetBaseUnitId(AppDbContext db, Product product)
         {
             var unitId = db.ProductUnits
@@ -537,6 +553,7 @@ namespace QuanLyHangHoa.Services
                 new SystemClock());
         }
 
+        // coverage cũ chuyển Inactive; serial mới chỉ nhận khoảng thời gian còn lại, không được gia hạn từ đầu
         private static void TransferRemainingCoverage(
             AppDbContext db,
             WarrantyCoverage? oldCoverage,
@@ -566,6 +583,7 @@ namespace QuanLyHangHoa.Services
             });
         }
 
+        // bỏ claim đang đóng khỏi truy vấn; claim ManufacturerWait khác có ưu tiên trạng thái ReturnedToManufacturer
         private void UpdateSerialStatusOnClaimClosure(AppDbContext db, int productSerialId, int currentClaimId)
         {
             var serial = db.ProductSerials.Find(productSerialId);
@@ -594,6 +612,7 @@ namespace QuanLyHangHoa.Services
             }
         }
 
+        // lookup chỉ trả coverage active và còn nằm trong khoảng ngày hiệu lực
         public WarrantyCoverage? GetCoverageBySerial(string serialNumber)
         {
             using var db = _contextFactory();
@@ -611,6 +630,7 @@ namespace QuanLyHangHoa.Services
                     && c.WarrantyEndDate.Date >= today);
         }
 
+        // adapter giữ mọi thay đổi tồn kho đi qua InventoryPostingService thay vì sửa số dư trực tiếp
         private sealed class DbDefaultWarehouseProvider : IDefaultWarehouseProvider
         {
             private readonly AppDbContext _context;

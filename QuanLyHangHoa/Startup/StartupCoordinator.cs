@@ -10,6 +10,9 @@ using QuanLyHangHoa.Services;
 
 namespace QuanLyHangHoa.Startup;
 
+/// <summary>
+/// tách các thao tác phụ thuộc file và SQL khỏi coordinator để kiểm thử được thứ tự khởi động.
+/// </summary>
 public interface IStartupRuntime
 {
     WareProSettings? LoadSettings();
@@ -19,6 +22,9 @@ public interface IStartupRuntime
     string GetLogPath();
 }
 
+/// <summary>
+/// điều phối toàn bộ điều kiện bắt buộc trước khi giao diện được phép dùng cơ sở dữ liệu.
+/// </summary>
 public sealed class StartupCoordinator
 {
     private readonly IStartupRuntime _runtime;
@@ -35,6 +41,7 @@ public sealed class StartupCoordinator
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
+            // thứ tự là bất biến: cấu hình quyết định kết nối, probe xác nhận SQL, rồi initializer mới nâng cấp dữ liệu.
             var settings = _runtime.LoadSettings();
             cancellationToken.ThrowIfCancellationRequested();
             var connectionString = _runtime.ResolveConnectionString(settings);
@@ -44,6 +51,7 @@ public sealed class StartupCoordinator
             cancellationToken.ThrowIfCancellationRequested();
             return StartupResult.Succeeded(GetLogPathSafely());
         }
+        // cancellation do caller yêu cầu có mã riêng, không bị ghi nhận nhầm thành lỗi hệ thống.
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return Failure(
@@ -51,6 +59,7 @@ public sealed class StartupCoordinator
                 "Khởi động đã bị hủy. Mở lại WarePro để thử lại.",
                 "Startup was cancelled.");
         }
+        // các exception có kiểu riêng giữ mã lỗi và hướng xử lý phù hợp cho từng nguyên nhân.
         catch (StartupFailureException ex)
         {
             return Failure(ex.Code, ex.UserMessage, ex.ToString());
@@ -104,6 +113,7 @@ public sealed class StartupCoordinator
                 "Kiểm tra quyền cập nhật database hoặc liên hệ quản trị viên SQL.",
                 ex.ToString());
         }
+        // lỗi ngoài dự kiến được gom về mã chung; chi tiết vẫn được lọc trước khi rời coordinator.
         catch (Exception ex)
         {
             return Failure(
@@ -113,6 +123,7 @@ public sealed class StartupCoordinator
         }
     }
 
+    // userMessage có thể hiển thị; technicalDetail chỉ dùng chẩn đoán và luôn qua bộ lọc credential.
     private StartupResult Failure(string code, string userMessage, string technicalDetail) =>
         StartupResult.Failed(
             code,
@@ -120,6 +131,7 @@ public sealed class StartupCoordinator
             SensitiveDataRedactor.Redact(technicalDetail),
             GetLogPathSafely());
 
+    // lỗi khi tính đường dẫn log không được che kết quả startup ban đầu.
     private string GetLogPathSafely()
     {
         try
@@ -133,6 +145,9 @@ public sealed class StartupCoordinator
     }
 }
 
+/// <summary>
+/// runtime thật nối coordinator với cấu hình máy, SqlClient và bộ khởi tạo cơ sở dữ liệu.
+/// </summary>
 public sealed class DefaultStartupRuntime : IStartupRuntime
 {
     public WareProSettings? LoadSettings() => new WareProSettingsStore().Load();
@@ -147,6 +162,7 @@ public sealed class DefaultStartupRuntime : IStartupRuntime
             await using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync(cancellationToken);
         }
+        // mã SQL 18456 xác nhận credential bị từ chối và cho phép App hỏi lại đúng một lần.
         catch (SqlException ex) when (ex.Number == 18456)
         {
             throw new StartupFailureException(
@@ -167,8 +183,10 @@ public sealed class DefaultStartupRuntime : IStartupRuntime
 
     public Task InitializeDatabaseAsync(string connectionString, CancellationToken cancellationToken)
     {
+        // DatabaseInitializer là API đồng bộ; chạy nền để phần nâng cấp dài không khóa UI thread lúc startup.
         return Task.Run(() =>
         {
+            // context mới chỉ phục vụ lần khởi tạo này, không mang tracking state sang màn hình đăng nhập.
             var options = new DbContextOptionsBuilder<AppDbContext>()
                 .UseSqlServer(connectionString)
                 .Options;

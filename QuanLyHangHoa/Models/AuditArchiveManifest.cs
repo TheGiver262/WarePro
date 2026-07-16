@@ -2,6 +2,7 @@ using System;
 
 namespace QuanLyHangHoa.Models;
 
+// biên nhận archive giữ khoảng UTC, số dòng và SHA-256 để kiểm tra file không bị thay đổi
 public sealed class AuditArchiveManifest
 {
     public int Id { get; set; }

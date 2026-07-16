@@ -8,6 +8,9 @@ using System.Threading.Tasks;
 
 namespace QuanLyHangHoa.Updates;
 
+/// <summary>
+/// lỗi xác minh gói cập nhật có mã riêng để giao diện báo đúng nguyên nhân từ chối.
+/// </summary>
 public sealed class UpdateSecurityException : Exception
 {
     public UpdateSecurityException(string code, string message)
@@ -19,6 +22,9 @@ public sealed class UpdateSecurityException : Exception
     public string Code { get; }
 }
 
+/// <summary>
+/// ranh giới mở tiến trình bộ cài để logic cập nhật có thể kiểm thử mà không chạy file thật.
+/// </summary>
 public interface IInstallerLauncher
 {
     void Launch(string fileName, string arguments);
@@ -37,6 +43,9 @@ public sealed class ProcessInstallerLauncher : IInstallerLauncher
     }
 }
 
+/// <summary>
+/// kiểm tra release, xác minh installer theo nhiều lớp rồi mới cho phép mở chế độ nâng cấp.
+/// </summary>
 public sealed class UpdateService
 {
     private static readonly TimeSpan AutomaticCheckInterval = TimeSpan.FromHours(24);
@@ -70,6 +79,7 @@ public sealed class UpdateService
         bool manual,
         CancellationToken cancellationToken)
     {
+        // lấy thời gian qua provider để nhánh giới hạn tần suất có thể kiểm thử ổn định.
         var now = _utcNowProvider().ToUniversalTime();
         if (!manual)
         {
@@ -80,10 +90,12 @@ public sealed class UpdateService
                 return new UpdateCheckResult(UpdateCheckStatus.Skipped);
             }
 
+            // ghi mốc trước khi gọi mạng để máy offline không lặp request ở mỗi lần mở màn hình.
             state.LastAutomaticCheckUtc = now;
             _stateStore.Save(state);
         }
 
+        // timeout do HttpClient nhưng token của caller chưa hủy được coi là trạng thái offline, không phải lỗi ứng dụng.
         UpdateRelease? release;
         try
         {
@@ -105,11 +117,13 @@ public sealed class UpdateService
 
         try
         {
+            // parse toàn bộ phiên bản trước, sau đó đối chiếu metadata GitHub, manifest và schema đang cài.
             var manifest = release.Manifest;
             var manifestVersion = SemanticVersion.Parse(manifest.Version);
             var minimumClientVersion = SemanticVersion.Parse(manifest.MinimumClientVersion);
             var installedVersion = SemanticVersion.Parse(currentVersion);
 
+            // chỉ chấp nhận release chính thức, asset đúng tên/size và phạm vi schema chứa database hiện tại.
             if (release.Draft
                 || release.Prerelease
                 || manifest.SchemaVersion != 1
@@ -126,11 +140,13 @@ public sealed class UpdateService
                 return new UpdateCheckResult(UpdateCheckStatus.InvalidRelease, ErrorCode: "UPD-RELEASE-INVALID");
             }
 
+            // không hạ phiên bản và không cài lại cùng phiên bản qua luồng update.
             if (release.Version.CompareTo(installedVersion) <= 0)
             {
                 return new UpdateCheckResult(UpdateCheckStatus.NoUpdate);
             }
 
+            // bản cập nhật bắt buộc nếu manifest yêu cầu hoặc client hiện tại thấp hơn mức tối thiểu hỗ trợ.
             var mandatory = manifest.Mandatory || installedVersion.CompareTo(minimumClientVersion) < 0;
             return new UpdateCheckResult(
                 UpdateCheckStatus.UpdateAvailable,
@@ -151,8 +167,10 @@ public sealed class UpdateService
     {
         ArgumentNullException.ThrowIfNull(candidate);
         Directory.CreateDirectory(downloadDirectory);
+        // tên file theo phiên bản giúp cache nhiều bản; đuôi .partial phân biệt file chưa được xác minh.
         var version = candidate.Version.ToString();
         var finalPath = Path.Combine(downloadDirectory, $"WarePro-Setup-{version}.exe");
+        // lần tải mới xóa file dở cũ; mọi nhánh lỗi phía dưới cũng dọn đúng đường dẫn này.
         var partialPath = finalPath + ".partial";
 
         if (File.Exists(partialPath))
@@ -169,6 +187,7 @@ public sealed class UpdateService
             cancellationToken.ThrowIfCancellationRequested();
             // so cả API GitHub và manifest để phát hiện asset bị thay hoặc manifest bị lệch.
 
+            // size phải khớp cả API GitHub lẫn manifest trước khi đọc toàn bộ file để băm.
             var actualSize = new FileInfo(partialPath).Length;
             if (actualSize != candidate.Release.InstallerSize
                 || actualSize != candidate.Release.Manifest.InstallerSize)
@@ -217,9 +236,11 @@ public sealed class UpdateService
                 throw new UpdateSecurityException("UPD-PUBLISHER-MISMATCH", "Installer publisher is not trusted.");
             }
 
+            // chỉ đổi sang tên .exe cuối cùng sau khi mọi lớp kiểm tra bảo mật đều thành công.
             File.Move(partialPath, finalPath, overwrite: true);
             return new PreparedUpdate(version, finalPath);
         }
+        // mọi lỗi tải hoặc xác minh đều xóa file .partial để nó không thể được dùng lại như gói hợp lệ.
         catch
         {
             if (File.Exists(partialPath))
@@ -234,11 +255,13 @@ public sealed class UpdateService
     public void LaunchPreparedInstaller(PreparedUpdate update, string logPath)
     {
         ArgumentNullException.ThrowIfNull(update);
+        // app-only giữ nguyên SQL Server; upgrade cho phép bộ cài thay file ứng dụng và ghi log riêng.
         var arguments =
             $"/CLOSEAPPLICATIONS /NORESTART /WAREPROMODE=upgrade /TYPE=app-only /LOG=\"{Path.GetFullPath(logPath)}\"";
         _installerLauncher.Launch(Path.GetFullPath(update.InstallerPath), arguments);
     }
 
+    // bỏ khoảng trắng để thumbprint từ certificate và giá trị ghim so sánh theo cùng định dạng.
     private static string NormalizeThumbprint(string? value) =>
         (value ?? string.Empty).Replace(" ", string.Empty, StringComparison.Ordinal).Trim();
 }

@@ -16,6 +16,7 @@ namespace QuanLyHangHoa.Services
             _contextFactory = contextFactory;
         }
 
+        // log đăng nhập không gắn PerformedBy vì chưa có danh tính đã xác thực; chỉ lưu username đã thử
         private static void WriteLoginAudit(
             AppDbContext db,
             string actionCode,
@@ -36,17 +37,18 @@ namespace QuanLyHangHoa.Services
             }
             catch
             {
-                // Audit failure must not disclose account existence or interrupt login.
+                // lỗi audit không được làm lộ tài khoản có tồn tại hay chặn luồng đăng nhập
             }
         }
 
+        // mọi nhánh thất bại trả LoginResult chung; mật khẩu không bao giờ được ghi log
         public LoginResult Authenticate(string username, string password)
         {
             using var db = _contextFactory();
-            // Query user (DB might be case-insensitive depending on collation)
+            // database có thể so tên không phân biệt hoa thường, nên lấy ứng viên trước
             var user = db.AppUsers.FirstOrDefault(u => u.Username == username);
             
-            // Strict case-sensitive check in application logic
+            // kiểm tra lại đúng chữ hoa thường tại ứng dụng để chính sách username không phụ thuộc collation
             if (user == null || user.Username != username)
             {
                 WriteLoginAudit(db, "LoginFailed", username);
@@ -59,7 +61,7 @@ namespace QuanLyHangHoa.Services
                 return LoginResult.Inactive();
             }
             
-            // Check lockout
+            // tài khoản còn thời gian khóa được trả về ngay, không chạy BCrypt
             if (user.LockoutUntil.HasValue && user.LockoutUntil.Value > DateTime.Now)
                 return LoginResult.Locked(user.LockoutUntil);
 
@@ -68,7 +70,7 @@ namespace QuanLyHangHoa.Services
 
             try 
             {
-                // Standard BCrypt verification
+                // chỉ verify chuỗi có hình dạng BCrypt; hash lỗi không được coi là mật khẩu hợp lệ
                 if (stored.StartsWith("$2") && stored.Contains('$'))
                 {
                     verified = BCrypt.Net.BCrypt.Verify(password, stored);
@@ -84,7 +86,7 @@ namespace QuanLyHangHoa.Services
                 }
                 else
                 {
-                    // Increment failed attempts and handle lockout
+                    // đếm lỗi liên tiếp: từ 5 lần khóa 5 phút, từ 10 lần khóa 15 phút và đánh dấu đáng ngờ
                     user.FailedLoginCount++;
                     user.LastFailedLoginAt = DateTime.Now;
                     
@@ -112,12 +114,13 @@ namespace QuanLyHangHoa.Services
             }
             catch
             {
-                // In case of invalid hash format or other errors
+                // hash hỏng hoặc lỗi verify được xử lý như sai thông tin, không đẩy chi tiết bảo mật ra giao diện
             }
 
             return LoginResult.Invalid(user?.FailedLoginCount ?? 0);
         }
 
+        // phải verify mật khẩu hiện tại rồi tạo hash mới; cờ đổi mật khẩu lần đầu chỉ tắt sau khi lưu thành công
         public void ChangePassword(int userId, string currentPassword, string newPassword)
         {
             if (string.IsNullOrWhiteSpace(newPassword))

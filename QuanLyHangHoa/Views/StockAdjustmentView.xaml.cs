@@ -11,6 +11,7 @@ namespace QuanLyHangHoa.Views
             InitializeComponent();
         }
 
+        // chặn ComboBox tự mở danh sách; click được chuyển sang dialog chọn serial có kiểm tra nghiệp vụ
         private void SerialSelector_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (sender is not ComboBox { DataContext: StockAdjustmentLineEditor line } ||

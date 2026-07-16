@@ -121,6 +121,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand(CanExecute = nameof(CanManage))]
+        // selection được chụp vào dialog; Cancel không thay row trong collection
         private void EditCustomer(Customer customer)
         {
             var beforeJson = Serialize(customer);
@@ -135,6 +136,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand(CanExecute = nameof(CanManage))]
+        // lịch sử hóa đơn/xuất/bảo hành khiến customer chỉ inactive; service kiểm tra dependency lần cuối
         private void DeleteCustomer(Customer customer)
         {
             using var db = _contextFactory();

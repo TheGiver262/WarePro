@@ -24,6 +24,7 @@ namespace QuanLyHangHoa.ViewModels
         private CancellationTokenSource? _initializeCts;
         private CancellationTokenSource? _refreshCts;
         private CancellationTokenSource? _searchDebounceCts;
+        // generation tăng mỗi lần refresh; kết quả của request cũ không được ghi đè filter mới
         private int _refreshGeneration;
         private bool _isInitialized;
         // --- CHUNG ---
@@ -69,6 +70,7 @@ namespace QuanLyHangHoa.ViewModels
             _ = InitializeAsync();
         }
 
+        // nạp lookup một lần rồi chạy refresh; lần gọi mới hủy token của lần trước
         private async Task InitializeAsync()
         {
             _initializeCts?.Cancel();
@@ -128,6 +130,7 @@ namespace QuanLyHangHoa.ViewModels
             _ = RefreshAfterDelayAsync(_searchDebounceCts.Token);
         }
 
+        // debounce filter để nhiều property đổi gần nhau chỉ tạo một bộ truy vấn báo cáo
         private async Task RefreshAfterDelayAsync(CancellationToken cancellationToken)
         {
             try
@@ -140,6 +143,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
+        // lookup chạy ngoài UI thread rồi kiểm tra token trước khi thay collection bind
         private async Task LoadFilterDataAsync(CancellationToken cancellationToken)
         {
             using var db = _contextFactory();
@@ -168,6 +172,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // chụp generation/token chung cho bốn tab để toàn bộ kết quả thuộc cùng một lượt refresh
         public async Task Refresh()
         {
             _refreshCts?.Cancel();
@@ -200,6 +205,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         // --- TAB 1: DOANH THU & LỢI NHUẬN ---
+        // truy vấn doanh thu/giá vốn theo ngày; chỉ publish DTO khi generation vẫn là mới nhất
         private async Task RefreshRevenueReport(CancellationToken cancellationToken, int generation)
         {
             try
@@ -290,6 +296,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         // --- TAB 2: XUẤT NHẬP TỒN TỔNG HỢP ---
+        // tồn cuối = đầu kỳ + nhập - xuất; quantity và value được tổng hợp riêng theo sản phẩm
         private async Task RefreshStockInOutTonReport(CancellationToken cancellationToken, int generation)
         {
             try
@@ -377,6 +384,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         // --- TAB 3: SỔ KHO / THẺ KHO CHI TIẾT ---
+        // timeline từ service đã có số dư chạy và context chứng từ; ViewModel chỉ map sang DTO bind
         private async Task RefreshStockLedgerReport(CancellationToken cancellationToken, int generation)
         {
             try
@@ -427,6 +435,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         // --- TAB 4: TRUY VẾT SERIAL ---
+        // chụp toàn bộ text/status/ngày thành SerialTraceFilter trước worker để kết quả nhất quán
         private async Task RefreshSerialTraceReport(CancellationToken cancellationToken, int generation)
         {
             try
@@ -484,6 +493,7 @@ namespace QuanLyHangHoa.ViewModels
         private bool IsCurrentRefresh(CancellationToken token, int generation) =>
             !token.IsCancellationRequested && generation == Volatile.Read(ref _refreshGeneration);
 
+        // kiểm tra cả cancellation và generation vì request cũ có thể hoàn tất dù token chưa kịp hủy
         private void EnsureCurrentRefresh(CancellationToken token, int generation)
         {
             token.ThrowIfCancellationRequested();

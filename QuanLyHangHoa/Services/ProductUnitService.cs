@@ -8,6 +8,9 @@ using QuanLyHangHoa.Models;
 
 namespace QuanLyHangHoa.Services
 {
+    /// <summary>
+    /// quản lý hệ số quy đổi; mỗi hệ số là số đơn vị gốc trên một đơn vị được chọn.
+    /// </summary>
     public class ProductUnitService
     {
         private readonly Func<AppDbContext> _contextFactory;
@@ -27,6 +30,7 @@ namespace QuanLyHangHoa.Services
                 .Where(productUnit => productUnit.ProductId == productId)
                 .ToList();
 
+            // dựng mapping factor 1 tạm cho dữ liệu cũ chưa có ProductUnit của DefaultUnit.
             if (includeDefault)
             {
                 var product = db.Products
@@ -53,6 +57,7 @@ namespace QuanLyHangHoa.Services
             return list;
         }
 
+        // các mutation dùng Serializable cùng unique index để chống base unit/mapping trùng do cạnh tranh.
         public virtual void Add(ProductUnit productUnit, int actorId)
         {
             ValidateConversionFactor(productUnit.ConversionFactor);
@@ -106,6 +111,7 @@ namespace QuanLyHangHoa.Services
             transaction.Commit();
         }
 
+        // sang đơn vị gốc dùng phép nhân; thiếu mapping được coi là factor 1 để tương thích dữ liệu cũ.
         public virtual decimal ConvertToBaseUnit(int productId, int sourceUnitId, decimal quantity)
         {
             using var db = _contextFactory();
@@ -115,6 +121,7 @@ namespace QuanLyHangHoa.Services
             return source == null ? quantity : quantity * source.ConversionFactor;
         }
 
+        // từ đơn vị gốc dùng phép chia; factor 0 bị chặn cả ở service và check constraint database.
         public virtual decimal ConvertFromBaseUnit(int productId, int targetUnitId, decimal quantity)
         {
             using var db = _contextFactory();

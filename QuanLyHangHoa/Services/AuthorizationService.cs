@@ -24,6 +24,7 @@ namespace QuanLyHangHoa.Services
 
     public class AuthorizationService
     {
+        // bảng quyền là nguồn duy nhất ở tầng service; giao diện ẩn nút chỉ là hỗ trợ, không thay thế kiểm tra này
         private static readonly Dictionary<string, HashSet<PermissionAction>> RolePermissions = new(StringComparer.OrdinalIgnoreCase)
         {
             ["Quản trị viên"] = AllPermissions(),
@@ -57,6 +58,7 @@ namespace QuanLyHangHoa.Services
             };
         }
 
+        // tài khoản null, inactive hoặc role lạ mặc định không có quyền
         public static bool CanPerform(AppUser? user, PermissionAction action)
         {
             if (user == null || !user.IsActive || string.IsNullOrWhiteSpace(user.RoleCode))
@@ -69,6 +71,7 @@ namespace QuanLyHangHoa.Services
         }
 
 
+        // đọc actor mới bằng no-tracking ngay trong context nghiệp vụ để thay đổi role/status có hiệu lực tức thì
         public static AppUser RequireFreshActor(
             AppDbContext db,
             int actorId,
@@ -87,6 +90,7 @@ namespace QuanLyHangHoa.Services
             return new HashSet<PermissionAction>((PermissionAction[])Enum.GetValues(typeof(PermissionAction)));
         }
 
+        // tạo tập mới rồi loại quyền, tránh sửa nhầm tập quyền dùng chung của role khác
         private static HashSet<PermissionAction> AllPermissionsExcept(params PermissionAction[] excluded)
         {
             var permissions = AllPermissions();

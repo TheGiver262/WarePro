@@ -11,10 +11,12 @@ public partial class PurchaseInvoice
 
     public int SupplierId { get; set; }
 
+    // có StockInId thì dòng hóa đơn phải khớp tuyệt đối phiếu nhập Purchase đã posted
     public int? StockInId { get; set; }
 
     public DateTime InvoiceDate { get; set; }
 
+    // các tổng tiền dùng decimal và luôn được InvoiceService tính lại từ Lines
     public decimal SubTotal { get; set; }
 
     public decimal TaxAmount { get; set; }

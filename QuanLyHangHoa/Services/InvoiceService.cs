@@ -16,6 +16,7 @@ namespace QuanLyHangHoa.Services
             _contextFactory = contextFactory;
         }
 
+        // serializable giữ kiểm tra quyền, chứng từ kho, hóa đơn và bảo hành trong một transaction không bị chen dữ liệu
         public void SaveSalesInvoice(SalesInvoice invoice, int actorId)
         {
             using var db = _contextFactory();
@@ -44,6 +45,7 @@ namespace QuanLyHangHoa.Services
             }
         }
 
+        // actor được đọc mới từ database ngay trong transaction; object từ UI không quyết định quyền
         public void SavePurchaseInvoice(PurchaseInvoice invoice, int actorId)
         {
             using var db = _contextFactory();
@@ -71,6 +73,7 @@ namespace QuanLyHangHoa.Services
             }
         }
 
+        // tổng hóa đơn luôn tính lại từ dòng bằng decimal, không tin các tổng số gửi từ giao diện
         private static void CalculateSalesInvoice(SalesInvoice invoice)
         {
             if (invoice.Lines == null || invoice.Lines.Count == 0)
@@ -92,6 +95,7 @@ namespace QuanLyHangHoa.Services
             UpdateSalesPaymentStatus(invoice);
         }
 
+        // trạng thái thanh toán được suy ra từ PaidAmount, GrandTotal và hạn; lớp gọi không được tự gán tùy ý
         private static void UpdateSalesPaymentStatus(SalesInvoice invoice)
         {
             if (invoice.PaidAmount == invoice.GrandTotal && invoice.GrandTotal > 0)
@@ -105,6 +109,7 @@ namespace QuanLyHangHoa.Services
                 invoice.PaymentStatus = PaymentStatus.Overdue;
         }
 
+        // hóa đơn mua dùng cùng công thức dòng và kiểm tra thanh toán như hóa đơn bán
         private static void CalculatePurchaseInvoice(PurchaseInvoice invoice)
         {
             if (invoice.Lines == null || invoice.Lines.Count == 0)
@@ -139,6 +144,7 @@ namespace QuanLyHangHoa.Services
                 invoice.PaymentStatus = PaymentStatus.Overdue;
         }
 
+        // không cho số đã trả âm hoặc vượt tổng tiền, tránh trạng thái và công nợ mâu thuẫn
         private static void ValidatePayment(decimal paidAmount, decimal grandTotal)
         {
             if (paidAmount < 0)
@@ -147,6 +153,7 @@ namespace QuanLyHangHoa.Services
                 throw new InvalidOperationException("Invoice paid amount cannot exceed the grand total.");
         }
 
+        // taxRate lưu dạng tỷ lệ thập phân, ví dụ 0.1 là 10%; grandTotal = quantity * unitPrice + thuế
         private static void CalculateLine(
             decimal quantity,
             decimal unitPrice,
@@ -189,6 +196,7 @@ namespace QuanLyHangHoa.Services
             return invoices;
         }
 
+        // danh sách chỉ đọc dùng no-tracking; sau khi materialize mới gắn trạng thái Overdue hiệu lực theo ngày hiện tại
         public List<SalesInvoice> GetSalesInvoicesPaged(
             string code,
             string customerName,
@@ -234,6 +242,7 @@ namespace QuanLyHangHoa.Services
             return query.Count();
         }
 
+        // query đếm và query phân trang dùng cùng bộ lọc để số trang không lệch dữ liệu
         private IQueryable<SalesInvoice> ApplySalesInvoiceFilters(
             IQueryable<SalesInvoice> query,
             string code,
@@ -263,7 +272,7 @@ namespace QuanLyHangHoa.Services
 
             if (endDate.HasValue)
             {
-                // To include the whole end date
+                // đổi ngày kết thúc thành tick cuối ngày để không bỏ hóa đơn có giờ phút trong ngày đó
                 var endOfDay = endDate.Value.Date.AddDays(1).AddTicks(-1);
                 query = query.Where(i => i.InvoiceDate <= endOfDay);
             }
@@ -300,6 +309,7 @@ namespace QuanLyHangHoa.Services
             return invoices;
         }
 
+        // Include chỉ nạp đối tác, người tạo và dòng cần cho màn hình; không theo dõi vì không sửa tại đây
         public List<PurchaseInvoice> GetPurchaseInvoicesPaged(
             string code,
             string supplierName,
@@ -345,6 +355,7 @@ namespace QuanLyHangHoa.Services
             return query.Count();
         }
 
+        // giữ điều kiện ở IQueryable để database lọc trước khi phân trang
         private IQueryable<PurchaseInvoice> ApplyPurchaseInvoiceFilters(
             IQueryable<PurchaseInvoice> query,
             string code,

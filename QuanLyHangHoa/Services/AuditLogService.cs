@@ -38,6 +38,7 @@ public sealed class AuditLogService
     
 
 
+    // query chỉ đọc, có performer để hiển thị và giới hạn 1000 dòng mới nhất tránh tải toàn bộ lịch sử
     public IReadOnlyList<AuditLog> GetAllAuditLogs(
     
         string? entityName = null,
@@ -104,6 +105,7 @@ public sealed class AuditLogService
     
 
 
+    // cutoff tách chính sách lưu trữ khỏi giao diện; log được sắp cũ đến mới để xuất archive
     public IReadOnlyList<AuditLog> GetOldLogs(int years = 1)
     
     {
@@ -166,6 +168,7 @@ public sealed class AuditLogService
     
 
 
+    // xóa trực tiếp chỉ dùng cho tập id đã được lớp gọi xác nhận; nghiệp vụ archive nên dùng ArchiveLogs
     public int DeleteLogs(IEnumerable<int> logIds)
     
     {
@@ -185,6 +188,7 @@ public sealed class AuditLogService
     }
     
 
+    // quy trình archive: xuất file trước, xác nhận file tồn tại, tính SHA-256 rồi mới xóa log trong transaction
     public AuditArchiveManifest ArchiveLogs(
         DateTime start,
         DateTime end,
@@ -209,10 +213,12 @@ public sealed class AuditLogService
         if (!File.Exists(filePath))
             throw new InvalidOperationException("Archive file was not created.");
 
+        // hash cho phép kiểm tra file archive có bị thay đổi sau khi rời database hay không
         string hash;
         using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
             hash = Convert.ToHexString(SHA256.HashData(stream));
 
+        // manifest và việc xóa log phải cùng commit; không để database mất log mà thiếu dấu vết file archive
         using var transaction = db.Database.BeginTransaction();
         var manifest = new AuditArchiveManifest
         {

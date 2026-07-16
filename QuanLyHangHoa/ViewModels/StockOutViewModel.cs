@@ -49,6 +49,7 @@ namespace QuanLyHangHoa.ViewModels
         partial void OnQuantityChanged(decimal value) => UpdateBaseQuantity();
         partial void OnSelectedUnitChanged(Unit? value) => UpdateBaseQuantity();
 
+        // quy đổi số lượng theo unit đã chọn; serial count và tồn khả dụng đều so bằng base quantity
         private void UpdateBaseQuantity()
         {
             if (SelectedProduct != null && SelectedUnit != null)
@@ -202,6 +203,7 @@ namespace QuanLyHangHoa.ViewModels
             InitializationTask = InitializeAsync();
         }
 
+        // chờ lookup và dữ liệu đầu tiên xong trước khi đánh dấu ViewModel đã sẵn sàng
         private async Task InitializeAsync()
         {
             try
@@ -255,6 +257,7 @@ namespace QuanLyHangHoa.ViewModels
             _ = LoadDataAsync(true);
         }
 
+        // snapshot filter giúp trang dữ liệu và số thống kê dùng cùng điều kiện trong một lượt tải
         private async Task LoadDataAsync(bool reset)
         {
             if (_isLoading) return;
@@ -433,6 +436,7 @@ namespace QuanLyHangHoa.ViewModels
             LoadData();
         }
 
+        // nạp header, line và serial từ database thành editor tách biệt cho view/edit
         private void LoadToForm(StockOut so)
         {
             StockOutId = so.Id;
@@ -482,6 +486,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // dialog chỉ cho chọn serial InStock đúng sản phẩm/kho; kết quả phải đủ theo quantity
         private void OpenSerialInput(StockOutLineEditor line)
         {
             if (line == null || line.SelectedProduct == null) return;
@@ -566,6 +571,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
+        // chặn dòng thiếu sản phẩm, quantity không hợp lệ và serial không đủ trước khi gọi service
         private bool ValidateForm()
         {
             if (SelectedCustomer == null || !Lines.Any())
@@ -597,6 +603,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // lưu draft không trừ tồn; model header và line được dựng mới từ form
         private void SaveStockOut()
         {
             if (!ValidateForm()) return;
@@ -620,6 +627,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // quyền/lifecycle quyết định submit, approve hay post; service kiểm tra tồn lần cuối và commit atomic
         private void ConfirmAndPost()
         {
             if (IsPosted || StockDocumentUiLifecycle.IsPosted(Status)) return;
@@ -703,6 +711,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // không dùng object đang bind để ghi trực tiếp; chuyển id và actor cho service xử lý
         private void ApproveDocument(StockOut document)
         {
             if (document == null) return;
@@ -751,6 +760,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
+        // header chỉ chứa khóa ngoại và field nghiệp vụ, tránh attach navigation UI
         private StockOut CreateModel()
         {
             return new StockOut
@@ -768,6 +778,7 @@ namespace QuanLyHangHoa.ViewModels
             };
         }
 
+        // map editor sang line gồm cả BaseQuantity và DraftSerials để posting service đối soát
         private List<StockOutLine> CreateLines()
         {
             return Lines.Select(l => {
@@ -796,6 +807,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // bản in được tải lại đầy đủ thay vì dùng row phân trang thiếu navigation
         private void Print(StockOut? stockOut)
         {
             if (stockOut == null) return;
@@ -812,6 +824,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
 
+        // đưa form về Draft, bỏ id và serial của chứng từ trước
         private void ResetForm()
         {
             StockOutId = 0;

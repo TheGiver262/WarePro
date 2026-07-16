@@ -73,6 +73,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // mọi filter được đẩy vào AuditLogService; kết quả là snapshot tối đa 1000 log mới nhất
         private void LoadLogs()
         {
             var results = _auditService.GetAllAuditLogs(
@@ -143,6 +144,7 @@ namespace QuanLyHangHoa.ViewModels
         private void CloseArchiveDialog() => IsArchiveDialogOpen = false;
 
         [RelayCommand]
+        // service xuất file, hash SHA-256, tạo manifest và chỉ sau đó mới xóa log trong transaction
         private void ConfirmArchive()
         {
             ArchiveValidationMessage = string.Empty;
@@ -257,6 +259,7 @@ namespace QuanLyHangHoa.ViewModels
             DiffResult = GenerateDetailedResult(value);
         }
 
+        // chuyển before/after JSON thành mô tả đọc được; dữ liệu gốc trong log không bị sửa
         private string GenerateDetailedResult(AuditLog? log)
         {
             if (log == null) return "Chọn một bản ghi để xem chi tiết.";
@@ -346,6 +349,7 @@ namespace QuanLyHangHoa.ViewModels
             return "không xác định";
         }
 
+        // so theo tên property để chỉ hiển thị field thay đổi thay vì hai khối JSON đầy đủ
         private string GenerateDiff(string? before, string? after)
         {
             if (string.IsNullOrEmpty(before) && string.IsNullOrEmpty(after)) return "Không có dữ liệu chi tiết.";

@@ -5,6 +5,9 @@ using System.Linq;
 
 namespace QuanLyHangHoa.Updates;
 
+/// <summary>
+/// biểu diễn và so sánh phiên bản theo core major/minor/patch cùng nhãn prerelease.
+/// </summary>
 public readonly record struct SemanticVersion(
     int Major,
     int Minor,
@@ -18,6 +21,7 @@ public readonly record struct SemanticVersion(
             throw new FormatException("Semantic version cannot be empty.");
         }
 
+        // tag GitHub có thể bắt đầu bằng v; phần core vẫn bắt buộc đủ ba số không âm.
         var normalized = value.Trim().TrimStart('v', 'V');
         var sections = normalized.Split('-', 2);
         var core = sections[0].Split('.');
@@ -32,6 +36,7 @@ public readonly record struct SemanticVersion(
             throw new FormatException($"Invalid semantic version: {value}");
         }
 
+        // dấu gạch nối đã xuất hiện thì phải có ít nhất một định danh prerelease hợp lệ.
         var prerelease = sections.Length == 2
             ? sections[1].Split('.', StringSplitOptions.RemoveEmptyEntries)
             : [];
@@ -45,15 +50,18 @@ public readonly record struct SemanticVersion(
 
     public int CompareTo(SemanticVersion other)
     {
+        // so core trước; chỉ khi bằng nhau mới xét quy tắc prerelease.
         var core = Major.CompareTo(other.Major);
         if (core == 0) core = Minor.CompareTo(other.Minor);
         if (core == 0) core = Patch.CompareTo(other.Patch);
         if (core != 0) return core;
 
+        // cùng core thì bản chính thức luôn mới hơn mọi bản prerelease.
         if (Prerelease.Count == 0 && other.Prerelease.Count == 0) return 0;
         if (Prerelease.Count == 0) return 1;
         if (other.Prerelease.Count == 0) return -1;
 
+        // định danh số so theo giá trị số và đứng trước định danh chữ; thiếu đoạn đứng trước chuỗi dài hơn.
         for (var index = 0; index < Math.Max(Prerelease.Count, other.Prerelease.Count); index++)
         {
             if (index >= Prerelease.Count) return -1;
@@ -82,6 +90,9 @@ public readonly record struct SemanticVersion(
             : $"{Major}.{Minor}.{Patch}-{string.Join('.', Prerelease)}";
 }
 
+/// <summary>
+/// metadata release dùng để đối chiếu phiên bản, phạm vi schema, size và SHA-256 của installer.
+/// </summary>
 public sealed class UpdateManifest
 {
     public int SchemaVersion { get; set; }
@@ -104,11 +115,17 @@ public sealed record UpdateRelease(
     long InstallerSize,
     UpdateManifest Manifest);
 
+/// <summary>
+/// release đã qua kiểm tra metadata cùng cờ bắt buộc dùng cho quyết định của giao diện.
+/// </summary>
 public sealed record UpdateCandidate(UpdateRelease Release, bool Mandatory)
 {
     public SemanticVersion Version => Release.Version;
 }
 
+/// <summary>
+/// installer đã vượt qua size, hash, chữ ký, timestamp và publisher pinning.
+/// </summary>
 public sealed record PreparedUpdate(string Version, string InstallerPath);
 
 public enum UpdateCheckStatus

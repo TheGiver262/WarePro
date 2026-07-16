@@ -48,6 +48,7 @@ namespace QuanLyHangHoa.ViewModels
         partial void OnQuantityChanged(decimal value) => UpdateBaseQuantity();
         partial void OnSelectedUnitChanged(Unit? value) => UpdateBaseQuantity();
 
+        // quy đổi về base quantity để hai kho giảm/tăng đúng cùng một lượng
         private void UpdateBaseQuantity()
         {
             if (SelectedProduct != null && SelectedUnit != null)
@@ -238,6 +239,7 @@ namespace QuanLyHangHoa.ViewModels
             LoadData();
         }
 
+        // dựng editor từ snapshot transfer; trạng thái posted khóa mọi thay đổi form
         private void LoadFromModel(StockTransfer st)
         {
             StockTransferId = st.Id;
@@ -289,6 +291,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // chỉ chọn serial InStock ở kho nguồn và đúng sản phẩm; serial sẽ đổi kho khi post
         private void OpenSerialInput(StockTransferLineEditor line)
         {
             if (line == null || line.SelectedProduct == null) return;
@@ -353,6 +356,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // draft chưa di chuyển tồn hoặc serial giữa kho
         private void SaveDraft()
         {
             if (!ValidateForm()) return;
@@ -376,6 +380,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // service kiểm tra kho nguồn khác kho đích, tồn đủ, serial hợp lệ và lifecycle trước commit
         private void ConfirmAndPost()
         {
             if (IsPosted || StockDocumentUiLifecycle.IsPosted(Status)) return;
@@ -520,6 +525,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
+        // báo sớm lỗi header, dòng, quantity và serial; không thay invariant phía service
         private bool ValidateForm()
         {
             if (string.IsNullOrWhiteSpace(DocumentCode) || !Lines.Any())
@@ -583,6 +589,7 @@ namespace QuanLyHangHoa.ViewModels
             BackToList();
         }
 
+        // bỏ id, hai kho và line cũ để lần sau tạo transfer Draft mới
         private void ResetForm()
         {
             StockTransferId = 0;

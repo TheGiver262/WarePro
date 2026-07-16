@@ -2,6 +2,9 @@ using System;
 
 namespace QuanLyHangHoa.Inventory;
 
+/// <summary>
+/// lỗi vi phạm quy tắc tồn kho có thể trả cho caller mà không lộ lỗi hạ tầng.
+/// </summary>
 public sealed class InventoryDomainException : InvalidOperationException
 {
     public InventoryDomainException(string message) : base(message)

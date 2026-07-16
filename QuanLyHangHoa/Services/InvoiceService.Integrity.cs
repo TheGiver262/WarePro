@@ -11,6 +11,7 @@ namespace QuanLyHangHoa.Services;
 
 public partial class InvoiceService
 {
+    // hóa đơn độc lập dùng dòng người dùng nhập; hóa đơn liên kết phải lấy số lượng, đơn vị và giá từ phiếu xuất đã ghi sổ
     private static StockOut? PrepareSalesInvoice(AppDbContext db, SalesInvoice invoice)
     {
         if (!invoice.StockOutId.HasValue)
@@ -20,6 +21,7 @@ public partial class InvoiceService
             return null;
         }
 
+        // nạp product và serial vì vừa đối soát dòng vừa tạo phạm vi bảo hành cho từng serial bán ra
         var stockOut = db.StockOuts
             .Include(document => document.Lines)
                 .ThenInclude(line => line.Product)
@@ -57,6 +59,7 @@ public partial class InvoiceService
         return stockOut;
     }
 
+    // phiếu nhập chỉ được dùng một lần, phải là loại Purchase đã posted và cùng nhà cung cấp với hóa đơn
     private static StockIn? PreparePurchaseInvoice(AppDbContext db, PurchaseInvoice invoice)
     {
         if (!invoice.StockInId.HasValue)
@@ -93,6 +96,7 @@ public partial class InvoiceService
         return stockIn;
     }
 
+    // unmatched là bản sao các dòng UI chưa ghép; mỗi dòng kho phải lấy đúng một dòng và cuối cùng danh sách phải rỗng
     private static List<SalesInvoiceLine> DeriveSalesLines(
         AppDbContext db,
         IEnumerable<SalesInvoiceLine>? requestedLines,
@@ -129,6 +133,7 @@ public partial class InvoiceService
         return result;
     }
 
+    // chỉ TaxRate được lấy từ hóa đơn; product, unit, quantity và unit price lấy từ chứng từ kho làm nguồn chuẩn
     private static List<PurchaseInvoiceLine> DerivePurchaseLines(
         AppDbContext db,
         IEnumerable<PurchaseInvoiceLine>? requestedLines,
@@ -165,6 +170,7 @@ public partial class InvoiceService
         return result;
     }
 
+    // Remove sau khi khớp ngăn một dòng hóa đơn được dùng cho hai dòng xuất giống nhau
     private static SalesInvoiceLine TakeMatchingLine(
         List<SalesInvoiceLine> lines,
         int sourceLineId,
@@ -199,6 +205,7 @@ public partial class InvoiceService
         return match;
     }
 
+    // kiểm tra quantity * conversionFactor đúng bằng baseQuantity để hóa đơn không che lỗi quy đổi đơn vị của chứng từ kho
     private static void ValidateBaseQuantity(
         AppDbContext db,
         Product product,
@@ -220,6 +227,7 @@ public partial class InvoiceService
         }
     }
 
+    // clone bỏ id và navigation do UI mang về, tránh EF attach nhầm entity cũ khi lưu
     private static List<SalesInvoiceLine> CloneUnlinkedSalesLines(IEnumerable<SalesInvoiceLine>? lines) =>
         lines?.Select(line => new SalesInvoiceLine
         {
@@ -240,6 +248,7 @@ public partial class InvoiceService
             TaxRate = line.TaxRate
         }).ToList() ?? new List<PurchaseInvoiceLine>();
 
+    // khi sửa, xóa toàn bộ dòng cũ rồi tạo lại từ tập đã kiểm tra để không còn dòng thừa
     private static void UpsertSalesInvoice(AppDbContext db, SalesInvoice invoice)
     {
         if (invoice.Id == 0)
@@ -264,6 +273,7 @@ public partial class InvoiceService
         db.SaveChanges();
     }
 
+    // header dùng SetValues, còn line luôn nhận id mới và khóa ngoại của hóa đơn hiện có
     private static void UpsertPurchaseInvoice(AppDbContext db, PurchaseInvoice invoice)
     {
         if (invoice.Id == 0)
@@ -288,6 +298,7 @@ public partial class InvoiceService
         db.SaveChanges();
     }
 
+    // desired là serial đáng được bảo hành theo phiếu xuất hiện tại; existing là coverage từng do hóa đơn này tạo
     private static void ReconcileWarrantyCoverages(
         AppDbContext db,
         SalesInvoice invoice,
@@ -306,6 +317,7 @@ public partial class InvoiceService
         var existing = db.WarrantyCoverages
             .Where(coverage => coverage.SalesInvoiceId == invoice.Id)
             .ToList();
+        // coverage đã chuyển sang serial thay thế hoặc inactive là lịch sử, không được hóa đơn cũ kích hoạt lại
         var replacementSerialIds = db.WarrantyClaims
             .Where(claim => claim.ReplacementSerialId.HasValue)
             .Select(claim => claim.ReplacementSerialId!.Value)
@@ -335,6 +347,7 @@ public partial class InvoiceService
             }
         }
 
+        // serial còn thiếu coverage được tạo mới, nhưng không được có coverage active từ hóa đơn khác
         foreach (var item in desired)
         {
             if (db.WarrantyCoverages.Any(coverage =>
@@ -357,6 +370,7 @@ public partial class InvoiceService
         db.SaveChanges();
     }
 
+    // thời hạn bắt đầu từ ngày hóa đơn bán và kết thúc sau đúng số tháng bảo hành của sản phẩm
     private static void SetCoverageValues(WarrantyCoverage coverage, SalesInvoice invoice, int months)
     {
         coverage.CustomerId = invoice.CustomerId;
@@ -365,6 +379,7 @@ public partial class InvoiceService
         coverage.CoverageStatus = "Active";
     }
 
+    // Overdue là trạng thái hiệu lực theo hôm nay; có thể hiển thị mà không cần ghi lại mọi hóa đơn mỗi ngày
     private static void MarkEffectivePaymentStatus(IEnumerable<SalesInvoice> invoices)
     {
         foreach (var invoice in invoices)

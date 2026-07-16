@@ -13,6 +13,7 @@ public partial class PurchaseInvoiceLine
 
     public int UnitId { get; set; }
 
+    // link nguồn khóa product, unit, quantity và unit price theo dòng nhập; hóa đơn chỉ bổ sung tax rate
     public int? StockInLineId { get; set; }
 
     public decimal Quantity { get; set; }

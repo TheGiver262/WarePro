@@ -12,11 +12,17 @@ using QuanLyHangHoa.Models;
 
 namespace QuanLyHangHoa.Services
 {
+    /// <summary>
+    /// hợp đồng import workbook serial cũ và trả số dòng thực sự được tạo.
+    /// </summary>
     public interface IProductSerialImportService
     {
         Task<(int SuccessCount, string Message)> ImportFromExcelAsync(string filePath, int actorId);
     }
 
+    /// <summary>
+    /// chuyển workbook sản phẩm/serial thành một phiếu nhập opening balance trong transaction Serializable.
+    /// </summary>
     public class ProductSerialImportService : IProductSerialImportService
     {
         private readonly Func<AppDbContext> _contextFactory;
@@ -43,11 +49,13 @@ namespace QuanLyHangHoa.Services
             }
 
             using var context = _contextFactory();
+            // Serializable ngăn batch khác chèn cùng serial trong khoảng kiểm tra tồn tại và SaveChanges.
             await using var transaction = await context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
             AuthorizationService.RequireFreshActor(context, actorId, PermissionAction.ManageMasterData);
 
             try
             {
+                // cache theo ProductCode để map row không phát sinh một query cho mỗi serial.
                 var products = (await context.Products.AsNoTracking().ToListAsync())
                     .ToDictionary(product => product.ProductCode, StringComparer.OrdinalIgnoreCase);
                 var defaultWarehouse = await context.Warehouses
@@ -65,6 +73,7 @@ namespace QuanLyHangHoa.Services
                     };
                 }
 
+                // row thiếu product được đếm skip; chỉ row map được mới đi vào kiểm tra duplicate toàn batch/database.
                 var mappedRows = new List<(string SerialNumber, Product Product)>();
                 foreach (var row in rows)
                 {
@@ -74,6 +83,7 @@ namespace QuanLyHangHoa.Services
                         skipCount++;
                 }
 
+                // Distinct giảm tập query; HashSet existingSerials đồng thời loại duplicate trong file khi Add trả false.
                 var requestedSerials = mappedRows
                     .Select(row => row.SerialNumber)
                     .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -87,6 +97,7 @@ namespace QuanLyHangHoa.Services
                             .ToListAsync(),
                         StringComparer.OrdinalIgnoreCase);
 
+                // một StockIn giữ nguồn gốc của toàn batch và nhóm line theo sản phẩm.
                 var stockIn = new StockIn
                 {
                     DocumentCode = $"IMPORT_SR_{DateTime.Now:yyyyMMdd_HHmm}",
@@ -150,6 +161,7 @@ namespace QuanLyHangHoa.Services
             }
         }
 
+        // sheet Sản phẩm đổi id nguồn sang ProductCode; sheet Serial dùng id đó để nối hai tập dữ liệu.
         private static (List<(string SerialNumber, string ProductCode)> Rows, int SkipCount) ParseWorkbook(
             string filePath)
         {
@@ -165,6 +177,7 @@ namespace QuanLyHangHoa.Services
                 cell => cell.Value.ToString(),
                 cell => cell.Address.ColumnNumber,
                 StringComparer.OrdinalIgnoreCase);
+            // dictionary là bảng tra cứu in-memory, tránh phụ thuộc thứ tự hai sheet.
             var mongoToCode = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (var row in productSheet.RangeUsed()!.RowsUsed().Skip(1))
             {

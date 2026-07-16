@@ -6,6 +6,9 @@ using QuanLyHangHoa.Configuration;
 
 namespace QuanLyHangHoa.Services;
 
+/// <summary>
+/// gom các nguồn thời gian, phiên bản và đường dẫn để logger kiểm thử được cả nhánh fallback.
+/// </summary>
 public sealed class CrashLogOptions
 {
     public required Func<string> PrimaryDirectoryProvider { get; init; }
@@ -14,6 +17,7 @@ public sealed class CrashLogOptions
     public required Func<string> CorrelationIdProvider { get; init; }
     public required Func<string> AppVersionProvider { get; init; }
 
+    // log chính nằm theo người dùng; thư mục temp là đường lui khi profile không ghi được.
     public static CrashLogOptions CreateDefault(Func<WareProPaths>? pathsProvider = null)
     {
         pathsProvider ??= () => WareProPaths.Current;
@@ -36,6 +40,9 @@ public sealed class CrashLogOptions
     }
 }
 
+/// <summary>
+/// ghi lỗi theo kiểu best-effort và không bao giờ ném thêm ngoại lệ vào luồng đang gặp sự cố.
+/// </summary>
 public static class CrashLogger
 {
     private static readonly Encoding Utf8WithoutBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
@@ -62,6 +69,7 @@ public static class CrashLogger
         try
         {
             var timestamp = options.UtcNowProvider().ToUniversalTime();
+            // mọi trường có thể đến từ môi trường chạy đều được lọc trước khi ghép vào log.
             var entry = new StringBuilder()
                 .AppendLine($"timestampUtc={timestamp:O}")
                 .AppendLine($"correlationId={SensitiveDataRedactor.Redact(options.CorrelationIdProvider())}")
@@ -71,11 +79,13 @@ public static class CrashLogger
                 .AppendLine(new string('-', 80))
                 .ToString();
 
+            // chỉ dùng fallback khi đường dẫn chính không tạo hoặc không ghi được.
             if (TryAppend(options.PrimaryDirectoryProvider(), timestamp, entry))
             {
                 return;
             }
 
+            // lỗi ở cả hai đường dẫn được bỏ qua vì logger không được che ngoại lệ gốc.
             TryAppend(options.FallbackDirectoryProvider(), timestamp, entry);
         }
         catch
@@ -83,6 +93,7 @@ public static class CrashLogger
         }
     }
 
+    // mỗi ngày dùng một file và append để giữ các correlation id trong cùng dòng thời gian.
     private static bool TryAppend(string directory, DateTimeOffset timestamp, string entry)
     {
         try

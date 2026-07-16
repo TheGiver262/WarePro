@@ -10,6 +10,9 @@ using System.Threading.Tasks;
 
 namespace QuanLyHangHoa.Updates;
 
+/// <summary>
+/// cung cấp metadata release và tải đúng installer mà UpdateService sẽ kiểm tra bảo mật.
+/// </summary>
 public interface IReleaseClient
 {
     Task<UpdateRelease?> GetLatestAsync(CancellationToken cancellationToken);
@@ -19,6 +22,9 @@ public interface IReleaseClient
         CancellationToken cancellationToken);
 }
 
+/// <summary>
+/// đọc release mới nhất từ GitHub và ghép installer với manifest đi kèm cùng release.
+/// </summary>
 public sealed class GitHubReleaseClient : IReleaseClient
 {
     public const string InstallerAssetName = "WarePro-Setup.exe";
@@ -39,6 +45,7 @@ public sealed class GitHubReleaseClient : IReleaseClient
             : repository.Trim('/');
     }
 
+    // timeout ngắn giữ kiểm tra cập nhật nền không treo ứng dụng khi mạng có vấn đề.
     public static GitHubReleaseClient CreateDefault(string repository, string appVersion)
     {
         var client = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
@@ -51,6 +58,7 @@ public sealed class GitHubReleaseClient : IReleaseClient
 
     public async Task<UpdateRelease?> GetLatestAsync(CancellationToken cancellationToken)
     {
+        // API latest chỉ chọn release đã công bố; trạng thái draft và prerelease vẫn được kiểm tra lại phía service.
         var endpoint = $"https://api.github.com/repos/{_repository}/releases/latest";
         using var response = await _httpClient.GetAsync(endpoint, cancellationToken);
         response.EnsureSuccessStatusCode();
@@ -64,6 +72,7 @@ public sealed class GitHubReleaseClient : IReleaseClient
             return null;
         }
 
+        // yêu cầu đúng một asset theo từng tên cố định để không chọn nhầm gói hoặc manifest.
         var installer = release.Assets.SingleOrDefault(asset =>
             string.Equals(asset.Name, InstallerAssetName, StringComparison.Ordinal));
         var manifestAsset = release.Assets.SingleOrDefault(asset =>
@@ -73,6 +82,7 @@ public sealed class GitHubReleaseClient : IReleaseClient
             return null;
         }
 
+        // manifest được tải từ chính asset của release và là nguồn checksum, size, schema compatibility.
         using var manifestResponse = await _httpClient.GetAsync(
             manifestAsset.BrowserDownloadUrl,
             cancellationToken);
@@ -87,6 +97,7 @@ public sealed class GitHubReleaseClient : IReleaseClient
             return null;
         }
 
+        // giữ cả metadata GitHub và manifest để lớp bảo mật đối chiếu hai nguồn trước khi tải.
         return new UpdateRelease(
             SemanticVersion.Parse(release.TagName),
             release.Draft,
@@ -101,6 +112,7 @@ public sealed class GitHubReleaseClient : IReleaseClient
         string destinationPath,
         CancellationToken cancellationToken)
     {
+        // chỉ giữ response headers trong bộ nhớ; nội dung installer được stream thẳng xuống file đích.
         using var response = await _httpClient.GetAsync(
             release.InstallerUri,
             HttpCompletionOption.ResponseHeadersRead,
@@ -114,6 +126,7 @@ public sealed class GitHubReleaseClient : IReleaseClient
             FileShare.None,
             bufferSize: 81920,
             useAsync: true);
+        // flush hoàn tất dữ liệu đã tải trước khi UpdateService bắt đầu đo size và băm file.
         await source.CopyToAsync(destination, cancellationToken);
         await destination.FlushAsync(cancellationToken);
     }

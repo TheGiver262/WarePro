@@ -53,6 +53,7 @@ namespace QuanLyHangHoa.ViewModels
                 Title = "CHỈNH SỬA SẢN PHẨM";
                 _beforeJson = Serialize(product);
 
+                // clone giữ cửa sổ chỉnh sửa độc lập; Cancel không làm đổi row đang bind
                 // Clone for editing
                 Product = new Product
                 {
@@ -72,6 +73,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // form kiểm tra mã/tên; service xử lý insert/update, audit và transaction theo actor hiện tại
         private void Confirm(Window window)
         {
             if (string.IsNullOrWhiteSpace(Product.ProductCode) || string.IsNullOrWhiteSpace(Product.DisplayName))

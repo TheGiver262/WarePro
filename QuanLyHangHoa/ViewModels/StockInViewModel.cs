@@ -48,6 +48,7 @@ namespace QuanLyHangHoa.ViewModels
         partial void OnQuantityChanged(decimal value) => UpdateBaseQuantity();
         partial void OnSelectedUnitChanged(Unit? value) => UpdateBaseQuantity();
 
+        // BaseQuantity = Quantity * hệ số đơn vị; service dùng giá trị này cho số dư kho và số serial
         private void UpdateBaseQuantity()
         {
             if (SelectedProduct != null && SelectedUnit != null)
@@ -199,6 +200,7 @@ namespace QuanLyHangHoa.ViewModels
             InitializationTask = InitializeAsync(refDataService);
         }
 
+        // nạp lookup trước rồi mới bật reload filter, tránh property khởi tạo tạo nhiều query
         private async Task InitializeAsync(ReferenceDataService refDataService)
         {
             try
@@ -251,6 +253,7 @@ namespace QuanLyHangHoa.ViewModels
             _ = LoadDataAsync(true);
         }
 
+        // phân trang chụp filter/skip trước worker; reset xóa collection, load more nối thêm
         private async Task LoadDataAsync(bool reset)
         {
             if (_isLoading) return;
@@ -446,6 +449,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
+        // chuyển snapshot chứng từ thành editor line và nạp serial đã lưu để view/edit cùng một nguồn
         private void LoadFromModel(StockIn si)
         {
             StockInId = si.Id;
@@ -499,6 +503,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // chỉ sản phẩm theo serial mới mở dialog; số serial phải khớp số lượng quy đổi trước khi post
         private void OpenSerialInput(StockInLineEditor line)
         {
             if (line == null || line.SelectedProduct == null) return;
@@ -531,6 +536,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // draft lưu nội dung để sửa tiếp, chưa thay số dư kho hoặc trạng thái serial
         private void SaveDraft()
         {
             if (!ValidateForm()) return;
@@ -554,6 +560,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // command chọn submit/approve/post theo quyền và trạng thái; service là nơi kiểm tra lại lifecycle trong transaction
         private void ConfirmAndPost()
         {
             if (IsPosted || StockDocumentUiLifecycle.IsPosted(Status)) return;
@@ -637,6 +644,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // approve dùng actor hiện tại và refresh lại danh sách sau khi service commit
         private void ApproveDocument(StockIn document)
         {
             if (document == null) return;
@@ -685,6 +693,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
+        // kiểm tra trường bắt buộc, số lượng dương và serial đủ trước khi gọi service
         private bool ValidateForm()
         {
             if (string.IsNullOrWhiteSpace(DocumentCode) || !Lines.Any())
@@ -716,6 +725,7 @@ namespace QuanLyHangHoa.ViewModels
             return true;
         }
 
+        // tạo header mới từ state form, không mang navigation đang bind sang context service
         private StockIn CreateModel()
         {
             return new StockIn
@@ -733,6 +743,7 @@ namespace QuanLyHangHoa.ViewModels
             };
         }
 
+        // mỗi editor trở thành dòng service với unit, quantity, base quantity, giá và chuỗi serial nháp
         private List<StockInLine> CreateLines()
         {
             return Lines.Select(l => new StockInLine
@@ -758,6 +769,7 @@ namespace QuanLyHangHoa.ViewModels
             ResetForm();
         }
 
+        // reset id/status/view mode để lần tạo tiếp theo bắt đầu ở Draft
         private void ResetForm()
         {
             StockInId = 0;

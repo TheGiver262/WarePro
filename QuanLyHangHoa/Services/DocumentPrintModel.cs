@@ -21,6 +21,7 @@ public sealed class DocumentPrintModel
     public string CreatedByName { get; init; } = "—";
     public string StatusText { get; init; } = "—";
     public string Notes { get; init; } = "—";
+    // các giá trị tiền giữ decimal gốc; XAML quyết định định dạng tiền tệ khi hiển thị
     public decimal SubTotal { get; init; }
     public decimal TaxAmount { get; init; }
     public decimal GrandTotal { get; init; }
@@ -31,6 +32,7 @@ public sealed class DocumentPrintModel
     public string RightSignatureTitle { get; init; } = "ĐỐI TÁC";
     public IReadOnlyList<DocumentPrintLine> Lines { get; init; } = Array.Empty<DocumentPrintLine>();
 
+    // tạo snapshot phẳng để cửa sổ in không còn phụ thuộc DbContext sau khi service đóng
     public static DocumentPrintModel FromPurchaseInvoice(PurchaseInvoice invoice) => new()
     {
         Title = "HÓA ĐƠN MUA HÀNG",
@@ -85,6 +87,7 @@ public sealed class DocumentPrintModel
             line.TaxRate, line.GrandTotal)).ToList()
     };
 
+    // phiếu kho không có tóm tắt thanh toán; tổng dòng tính từ quantity và unit price
     public static DocumentPrintModel FromStockIn(StockIn stockIn)
     {
         var lines = stockIn.Lines.Select((line, index) => StockLine(
@@ -137,6 +140,7 @@ public sealed class DocumentPrintModel
         };
     }
 
+    // taxRate là tỷ lệ thập phân, ví dụ 0.1 được hiển thị thành 10%
     private static DocumentPrintLine InvoiceLine(
         int index, Product? product, Unit? unit, decimal quantity,
         decimal unitPrice, decimal taxRate, decimal total) => new()
@@ -151,6 +155,7 @@ public sealed class DocumentPrintModel
         LineTotal = total
     };
 
+    // serials giữ dạng chuỗi đã chốt trên dòng chứng từ để bản in phản ánh đúng snapshot
     private static DocumentPrintLine StockLine(
         int index, Product? product, Unit? unit, decimal quantity,
         decimal unitPrice, string? serials) => new()
@@ -186,6 +191,7 @@ public sealed class DocumentPrintModel
     };
 }
 
+// một dòng in đã phẳng hóa tên sản phẩm/đơn vị, số lượng, đơn giá và tổng tiền
 public sealed class DocumentPrintLine
 {
     public int Number { get; init; }

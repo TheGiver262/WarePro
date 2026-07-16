@@ -17,12 +17,14 @@ namespace QuanLyHangHoa.Services
             _contextFactory = contextFactory;
         }
 
+        // danh sách được sắp theo mã để màn hình và file xuất có thứ tự ổn định
         public List<Category> GetAll()
         {
             using var db = _contextFactory();
             return db.Categories.AsNoTracking().OrderBy(c => c.CategoryCode).ToList();
         }
 
+        // insert và audit phải cùng thành công hoặc cùng rollback
         public void Add(Category category, int performedBy)
         {
             using var db = _contextFactory();
@@ -51,6 +53,7 @@ namespace QuanLyHangHoa.Services
             {
                 using var transaction = db.Database.BeginTransaction();
                 var beforeJson = Serialize(category);
+                // nhóm hàng đang có sản phẩm được chuyển inactive thay vì xóa khóa ngoại
                 if (db.Products.Any(product => product.CategoryId == id))
                 {
                     category.IsActive = false;
@@ -73,6 +76,7 @@ namespace QuanLyHangHoa.Services
             return JsonSerializer.Serialize(new { c.Id, c.CategoryCode, c.DisplayName, c.IsActive });
         }
 
+        // lưu người thao tác và hai trạng thái để có thể đối chiếu khi cần
         private void AddAudit(AppDbContext db, string action, int entityId, string? before, string? after, int performedBy)
         {
             db.AuditLogs.Add(new AuditLog

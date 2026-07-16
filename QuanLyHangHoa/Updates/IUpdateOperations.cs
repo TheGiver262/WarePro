@@ -3,6 +3,9 @@ using System.Threading.Tasks;
 
 namespace QuanLyHangHoa.Updates;
 
+/// <summary>
+/// hợp đồng ba bước mà ViewModel dùng: kiểm tra, chuẩn bị gói đã xác minh và mở bộ cài.
+/// </summary>
 public interface IUpdateOperations
 {
     Task<UpdateCheckResult> CheckAsync(
@@ -19,6 +22,9 @@ public interface IUpdateOperations
     void LaunchPreparedInstaller(PreparedUpdate update, string logPath);
 }
 
+/// <summary>
+/// adapter giữ ViewModel phụ thuộc interface trong khi toàn bộ quy tắc vẫn nằm ở UpdateService.
+/// </summary>
 public sealed class UpdateOperationsAdapter : IUpdateOperations
 {
     private readonly UpdateService _service;

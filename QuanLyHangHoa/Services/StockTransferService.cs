@@ -9,6 +9,9 @@ using QuanLyHangHoa.Models;
 
 namespace QuanLyHangHoa.Services
 {
+    /// <summary>
+    /// quản lý lifecycle chuyển kho và giữ việc trừ nguồn, cộng đích, đổi vị trí serial trong một transaction.
+    /// </summary>
     public class StockTransferService
     {
         private readonly Func<AppDbContext> _contextFactory;
@@ -52,7 +55,7 @@ namespace QuanLyHangHoa.Services
             using var db = _contextFactory();
             AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockAdjustment);
             
-            // Map transient ProductSerial objects to database-tracked ones to avoid UNIQUE KEY constraint errors
+            // nối serial tạm từ giao diện về entity đã có để EF không cố insert lại cùng SerialNumber.
             foreach (var line in lines)
             {
                 var serials = line.ProductSerials.Select(ps => ps.SerialNumber).ToList();
@@ -85,7 +88,7 @@ namespace QuanLyHangHoa.Services
 
                 var beforeJson = Serialize(existing);
 
-                // Update properties
+                // chỉ draft được thay header và danh sách line.
                 existing.FromWarehouseId = stockTransfer.FromWarehouseId;
                 existing.ToWarehouseId = stockTransfer.ToWarehouseId;
                 existing.TransferDate = stockTransfer.TransferDate;
@@ -93,7 +96,7 @@ namespace QuanLyHangHoa.Services
                 existing.UpdatedAt = DateTime.Now;
                 existing.UpdatedBy = userId;
 
-                // Simple strategy: Remove old lines and add new ones
+                // thay line theo lô để loại bỏ hoàn toàn selection serial cũ.
                 db.StockTransferLines.RemoveRange(existing.Lines);
                 existing.Lines = lines;
                 
@@ -158,6 +161,7 @@ namespace QuanLyHangHoa.Services
             AddAudit(db, "APPROVE", transfer.Id, beforeJson, Serialize(transfer), userId);
         }
 
+        // transaction bao phủ cả hai kho, serial, hai ledger entry, trạng thái và audit.
         public virtual void Post(int stockTransferId, int userId)
         {
             using var db = _contextFactory();
@@ -186,6 +190,7 @@ namespace QuanLyHangHoa.Services
                 throw new InventoryDomainException("Kho đi và kho đến phải khác nhau.");
             }
 
+            // kiểm tra đủ serial theo BaseQuantity trước khi bất kỳ balance nào được lưu.
             var beforeJson = Serialize(stockTransfer);
             foreach (var line in stockTransfer.Lines)
             {
@@ -210,6 +215,7 @@ namespace QuanLyHangHoa.Services
                 }
             }
 
+            // trạng thái posting được lưu trong transaction và sẽ rollback nếu một line chuyển thất bại.
             stockTransfer.PostedBy = userId;
             stockTransfer.PostedAt = DateTime.UtcNow;
             db.SaveChanges();
@@ -219,6 +225,7 @@ namespace QuanLyHangHoa.Services
                 new DbDefaultWarehouseProvider(db),
                 new SystemClock());
 
+            // thứ tự ProductId nhất quán giảm nguy cơ deadlock khi nhiều phiếu chạm cùng các balance.
             foreach (var line in stockTransfer.Lines.OrderBy(item => item.ProductId))
             {
                 postingService.PostStockTransfer(new PostStockTransferCommand(
@@ -236,6 +243,7 @@ namespace QuanLyHangHoa.Services
             transaction.Commit();
         }
 
+        // hỗ trợ chuỗi legacy nhưng mọi transition phía trên đều dùng enum chuẩn.
         private static StockDocumentStatus ParseStatus(string status)
         {
             if (status == "nháp" || status == DocumentStatus.Draft)
@@ -329,6 +337,7 @@ namespace QuanLyHangHoa.Services
             });
         }
 
+        // audit POST dùng cùng transaction với phát sinh tồn kho; không tạo lịch sử thành công nếu transfer rollback.
         private void AddAudit(AppDbContext db, string action, int entityId, string? before, string? after, int performedBy)
         {
             db.AuditLogs.Add(new AuditLog

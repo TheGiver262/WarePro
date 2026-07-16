@@ -11,6 +11,7 @@ public partial class ProductSerial
 
     public string SerialNumber { get; set; } = null!;
 
+    // status serial chỉ thay qua nghiệp vụ kho/bảo hành; setter giữ nguyên mã ReturnedToManufacturer chuẩn
     private string _currentStatus = null!;
     public string CurrentStatus
     {
@@ -24,6 +25,7 @@ public partial class ProductSerial
 
     public int? CurrentWarehouseId { get; set; }
 
+    // các link dòng nhập/xuất/chuyển là nguồn truy vết vòng đời serial, không phải lịch sử đầy đủ thay cho ledger
     public int LastStockInLineId { get; set; }
 
     public int? LastStockOutLineId { get; set; }

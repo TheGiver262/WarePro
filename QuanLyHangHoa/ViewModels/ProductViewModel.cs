@@ -81,6 +81,7 @@ namespace QuanLyHangHoa.ViewModels
             _ = InitializeAsync();
         }
 
+        // nạp lookup/count/list ban đầu trước khi bật debounce filter
         private async Task InitializeAsync()
         {
             try
@@ -114,6 +115,7 @@ namespace QuanLyHangHoa.ViewModels
             _ = LoadCountsAsync();
         }
 
+        // số active/inactive/serial được tính riêng từ database và publish sau khi worker hoàn tất
         public async Task LoadCountsAsync()
         {
             await Task.Run(() =>
@@ -153,6 +155,7 @@ namespace QuanLyHangHoa.ViewModels
             _ = ApplyFiltersAsync(true);
         }
 
+        // token debounce mới hủy lần chờ cũ để không query mỗi ký tự
         private void ScheduleFilterReload()
         {
             if (!_isInitialized || _isUpdatingFilters)
@@ -178,6 +181,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
+        // chụp filter và skip; reset thay collection, load more nối trang kế tiếp
         private async Task ApplyFiltersAsync(bool reset)
         {
             if (_isLoading) return;
@@ -241,6 +245,7 @@ namespace QuanLyHangHoa.ViewModels
         private void Search() => ApplyFilters();
 
         [RelayCommand]
+        // khóa callback filter trong lúc reset nhiều property rồi chỉ chạy một lần ApplyFilters
         private void Refresh()
         {
             _isUpdatingFilters = true;
@@ -277,6 +282,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand(CanExecute = nameof(CanManage))]
+        // dialog nhận bản clone; danh sách reload chỉ khi DialogResult=true
         private void OpenEditProductWindow(Product? product)
         {
             if (product == null) return;
@@ -290,6 +296,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand(CanExecute = nameof(CanManage))]
+        // lấy dependency để giải thích deactivate/xóa cứng; service kiểm tra lại và audit khi commit
         private void DeleteProduct(Product? product)
         {
             if (product == null) return;

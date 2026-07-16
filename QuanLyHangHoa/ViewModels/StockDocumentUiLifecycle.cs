@@ -3,6 +3,7 @@ using QuanLyHangHoa.Inventory;
 
 namespace QuanLyHangHoa.ViewModels;
 
+// chuẩn hóa status tiếng anh và nhãn cũ để mọi ViewModel khóa/mở command giống nhau
 internal static class StockDocumentUiLifecycle
 {
     public static bool IsDraft(string? status) =>

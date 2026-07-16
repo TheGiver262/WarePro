@@ -52,6 +52,7 @@ namespace QuanLyHangHoa.Views
         }
 
         public ObservableCollection<AvailableSerialItem> AvailableSerials { get; } = new();
+        // chặn TextChanged và CheckBox tự gọi qua lại khi đồng bộ hai cách nhập serial
         private bool _isUpdating;
         private bool _hasAvailableSource;
         private readonly bool _requireNonEmptySerials;
@@ -110,6 +111,7 @@ namespace QuanLyHangHoa.Views
                 DragMove();
         }
 
+        // dùng cùng parser với service để số lượng xem trước khớp dữ liệu sẽ lưu
         private void UpdatePreview()
         {
             if (PreviewLabel == null) return;
@@ -180,6 +182,7 @@ namespace QuanLyHangHoa.Views
             }
         }
 
+        // một số nghiệp vụ bắt buộc ít nhất một serial; DialogResult=true chỉ đặt sau khi qua kiểm tra
         private void Confirm_Click(object sender, RoutedEventArgs e)
         {
             var serials = StockInService.ParseSerialRange(SerialTextBox.Text);

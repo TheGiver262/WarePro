@@ -163,6 +163,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
+        // tổng trên form chỉ để phản hồi nhanh; InvoiceService sẽ tính lại toàn bộ trước khi lưu
         private void RecalculateTotal()
         {
             FormSubTotal = Lines.Sum(l => l.Quantity * l.UnitPrice);
@@ -190,6 +191,7 @@ namespace QuanLyHangHoa.ViewModels
             LoadData();
         }
 
+        // DebouncedAction gom các thay đổi filter liên tiếp thành một lần tải lại
         private void ScheduleFilterReload()
         {
             if (_isInitialized)
@@ -198,6 +200,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
+        // reset xóa trang cũ; filter và skip được chụp trước Task.Run để request không đổi giữa chừng
         private async Task LoadDataAsync(bool reset)
         {
             if (_isLoading) return;
@@ -411,6 +414,7 @@ namespace QuanLyHangHoa.ViewModels
             SelectedTabIndex = 1; // Switch to form tab
         }
 
+        // copy entity đã chọn thành state form tách biệt, không sửa trực tiếp object trong danh sách
         private void PopulateForm(PurchaseInvoice invoice)
         {
             InvoiceCode = invoice.InvoiceCode;
@@ -442,6 +446,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // ViewModel dựng DTO hóa đơn và dòng; quyền, đối soát phiếu nhập, tính tiền và transaction nằm trong InvoiceService
         private void SaveInvoice()
         {
             if (IsViewMode) return;
@@ -469,6 +474,7 @@ namespace QuanLyHangHoa.ViewModels
                 invoice.PaymentStatus = StatusToEnglish(SelectedPaymentStatus);
                 invoice.Notes = Notes;
 
+                // CreatedBy của bản mới được service chốt theo actor hiện tại
                 // Set audit fields
                 if (invoice.Id == 0)
                 {
@@ -476,11 +482,13 @@ namespace QuanLyHangHoa.ViewModels
                     invoice.CreatedBy = _currentUser.Id;
                 }
 
+                // bỏ navigation từ form để EF không attach lại customer/supplier/product đang detached
                 // IMPORTANT: Clear navigation properties to avoid EF tracking issues with detached entities
                 invoice.Supplier = null!;
                 invoice.StockIn = null;
                 invoice.Creator = null!;
 
+                // giữ SourceLineId/SourceUnitId nếu hóa đơn được tạo từ phiếu nhập để service khớp đúng nguồn
                 // Map lines
                 invoice.Lines = Lines.Where(l => l.SelectedProduct != null).Select(l => new PurchaseInvoiceLine
                 {
@@ -509,6 +517,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         /// <summary>Initializes form fields without switching the active tab. Used on ViewModel init.</summary>
+        // khởi tạo form không đổi tab, dùng khi ViewModel vừa được tạo
         private void InitializeForm()
         {
             _editingInvoice = null;
@@ -575,6 +584,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // reset sạch id và selection liên kết để lần lưu sau chắc chắn là hóa đơn mới
         public void ResetForm()
         {
             InitializeForm();
@@ -582,6 +592,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // mở form tạo mới; khi người dùng chọn phiếu nhập, partial handler sẽ khóa nhà cung cấp và map dòng
         private void CreateFromStockIn()
         {
             InitializeForm();
@@ -613,6 +624,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // service nạp snapshot in riêng; không dùng entity phân trang có thể thiếu navigation
         private void PrintInvoice(PurchaseInvoice? invoice)
         {
             if (invoice == null) return;

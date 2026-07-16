@@ -9,6 +9,7 @@ namespace QuanLyHangHoa.Views
             InitializeComponent();
         }
 
+        // PasswordBox không bind Password; đồng bộ ba ô vào ViewModel để command kiểm tra và xóa sau khi đổi thành công
         private void PasswordBox_PasswordChanged(object sender, System.Windows.RoutedEventArgs e)
         {
             if (this.DataContext is ViewModels.ChangePasswordViewModel vm)

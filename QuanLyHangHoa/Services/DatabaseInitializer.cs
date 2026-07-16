@@ -12,10 +12,14 @@ using System.Threading.Tasks;
 
 namespace QuanLyHangHoa.Services;
 
+/// <summary>
+/// chuẩn bị database theo một luồng có khóa: kiểm tra compatibility, backup, nâng schema rồi seed khi cần.
+/// </summary>
 public sealed class DatabaseInitializer
 {
     private const int CurrentSchemaVersion = DatabaseCompatibilityService.CurrentSchemaVersion;
 
+    // bảng metadata là nguồn quyết định schema hiện tại và client tối thiểu được phép mở database.
     private const string SchemaMetadataSql = """
         IF OBJECT_ID(N'[dbo].[__WareProSchemaVersion]', N'U') IS NULL
         BEGIN
@@ -37,6 +41,7 @@ public sealed class DatabaseInitializer
             ALTER TABLE [dbo].[__WareProSchemaVersion] ADD [AppliedByAppVersion] NVARCHAR(64) NULL;
         """;
 
+    // phiên bản 1 bổ sung các cột nghiệp vụ còn thiếu và có thể chạy lặp an toàn.
     private const string SchemaVersion1Sql = """
         IF COL_LENGTH('Product', 'Description') IS NULL ALTER TABLE Product ADD Description NVARCHAR(MAX);
         IF COL_LENGTH('Product', 'CostPrice') IS NULL ALTER TABLE Product ADD CostPrice DECIMAL(18,2);
@@ -69,6 +74,7 @@ public sealed class DatabaseInitializer
         IF COL_LENGTH('StockTransfer', 'UpdatedBy') IS NULL ALTER TABLE StockTransfer ADD UpdatedBy INT;
         """;
 
+    // phiên bản 2 thêm index cho các truy vấn kho, công nợ và bảo hành thường dùng.
     private const string SchemaVersion2Sql = """
         IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_ProductSerial_Product_Warehouse_Status' AND object_id = OBJECT_ID('ProductSerial'))
             CREATE INDEX IX_ProductSerial_Product_Warehouse_Status ON ProductSerial (ProductId, CurrentWarehouseId, CurrentStatus);
@@ -88,12 +94,14 @@ public sealed class DatabaseInitializer
             CREATE INDEX IX_WarrantyClaim_Status ON WarrantyClaim (Status);
         """;
 
+    // phiên bản 3 thay unique index cũ để quy tắc một claim mở được xử lý ở lớp nghiệp vụ.
     private const string SchemaVersion3Sql = """
         IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UX_WarrantyClaim_OpenClaim_PerSerial' AND object_id = OBJECT_ID('WarrantyClaim'))
             DROP INDEX UX_WarrantyClaim_OpenClaim_PerSerial ON WarrantyClaim;
         IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_WarrantyClaim_ProductSerialId' AND object_id = OBJECT_ID('WarrantyClaim'))
             CREATE INDEX IX_WarrantyClaim_ProductSerialId ON WarrantyClaim (ProductSerialId);
         """;
+    // phiên bản 4 lưu riêng thời điểm phê duyệt và ghi sổ của chứng từ kho.
     private const string SchemaVersion4Sql = """
         IF COL_LENGTH('StockIn', 'ApprovedAt') IS NULL ALTER TABLE StockIn ADD ApprovedAt DATETIME2(0) NULL;
         IF COL_LENGTH('StockIn', 'PostedAt') IS NULL ALTER TABLE StockIn ADD PostedAt DATETIME2(0) NULL;
@@ -104,6 +112,7 @@ public sealed class DatabaseInitializer
         IF COL_LENGTH('StockTransfer', 'ApprovedAt') IS NULL ALTER TABLE StockTransfer ADD ApprovedAt DATETIME2(0) NULL;
         IF COL_LENGTH('StockTransfer', 'PostedAt') IS NULL ALTER TABLE StockTransfer ADD PostedAt DATETIME2(0) NULL;
         """;
+    // phiên bản 5 chuẩn hóa trạng thái thanh toán trước khi đặt check constraint mới.
     private const string SchemaVersion5Sql = """
         IF OBJECT_ID(N'[dbo].[SalesInvoice]', N'U') IS NOT NULL
         BEGIN
@@ -159,21 +168,27 @@ public sealed class DatabaseInitializer
         _connectionString = connectionString ?? AppDbContext.GetConnectionString();
     }
 
+    /// <summary>
+    /// dùng fast path khi database đã sẵn sàng; mọi thay đổi thật đều chạy sau khi giữ schema lock.
+    /// </summary>
     public void Initialize(CancellationToken cancellationToken = default)
     {
         // lượt đọc đầu chỉ dùng để đi đường nhanh khi database đã sẵn sàng.
         // quyết định thay đổi schema sẽ được đọc lại sau khi giữ khóa vì máy khác
         // có thể vừa nâng database trong khoảng thời gian này.
         cancellationToken.ThrowIfCancellationRequested();
+        // forceSeed đến từ thao tác hỗ trợ; appVersion dùng cho compatibility và tên backup.
         var stopwatch = Stopwatch.StartNew();
         var forceSeed = StartupSeedPolicy.IsForceSeedEnabled();
         var compatibilityService = new DatabaseCompatibilityService();
         var appVersion = GetAppVersion();
         // false thường là database chưa tồn tại hoặc chưa đọc được bảng metadata.
+        // bốn giá trị là snapshot không khóa chỉ để quyết định đường nhanh; chúng sẽ được đọc lại trước khi thay đổi.
         var stateAvailable = TryGetDatabaseState(
             out var schemaVersion, out var minimumClientVersion,
             out var hasAnyUsers, out var hasExistingBusinessTables);
 
+        // client quá cũ phải dừng ngay cả khi schema không cần nâng, tránh mở mô hình dữ liệu mới hơn.
         if (stateAvailable)
         {
             var initialCompatibility = compatibilityService.Evaluate(schemaVersion, minimumClientVersion, appVersion);
@@ -193,14 +208,17 @@ public sealed class DatabaseInitializer
             }
         }
 
+        // từ đây bắt đầu đường thay đổi: context, connection đích và connection khóa có vòng đời riêng.
         using var db = _contextFactory();
         var connection = (SqlConnection)db.Database.GetDbConnection();
         var shouldClose = connection.State != ConnectionState.Open;
+        // target giữ tên database đích; lock connection chuyển sang master để khóa tồn tại trước cả EnsureCreated.
         var target = new SqlConnectionStringBuilder(connection.ConnectionString);
         var lockConnectionString = new SqlConnectionStringBuilder(connection.ConnectionString)
         {
             InitialCatalog = "master"
         }.ConnectionString;
+        // session này phải sống suốt backup, migration và seed vì application lock thuộc session.
         using var lockConnection = new SqlConnection(lockConnectionString);
         lockConnection.Open();
 
@@ -218,6 +236,7 @@ public sealed class DatabaseInitializer
             }
             // chỉ trạng thái đọc dưới khóa mới được phép quyết định backup và nâng phiên bản.
 
+            // snapshot dưới khóa là nguồn quyết định cuối cùng vì tiến trình khác có thể vừa nâng schema xong.
             var lockedState = GetCurrentSchemaState(db);
             var lockedCompatibility = compatibilityService.Evaluate(
                 lockedState.SchemaVersion, lockedState.MinimumClientVersion, appVersion);
@@ -229,6 +248,7 @@ public sealed class DatabaseInitializer
             // chỉ backup database có bảng nghiệp vụ và sắp bị thay đổi;
             // database mới không cần tạo một file backup rỗng.
 
+            // chỉ database có bảng nghiệp vụ và schema cũ mới cần backup trước khi thay đổi.
             if (compatibilityService.RequiresBackup(
                 lockedState.SchemaVersion, stateAvailable && hasExistingBusinessTables))
             {
@@ -240,6 +260,7 @@ public sealed class DatabaseInitializer
             }
 
             cancellationToken.ThrowIfCancellationRequested();
+            // migration commit xong mới được seed để workbook luôn ghi vào cấu trúc mới nhất.
             ApplySchemaUpdates(db);
             // seed chạy sau schema để workbook luôn ghi vào cấu trúc mới nhất.
             Trace.WriteLine($"[STARTUP] Schema ready: {stopwatch.ElapsedMilliseconds} ms");
@@ -259,12 +280,16 @@ public sealed class DatabaseInitializer
     private static string GetAppVersion() =>
         typeof(DatabaseInitializer).Assembly.GetName().Version?.ToString() ?? "unknown";
 
+    /// <summary>
+    /// đọc snapshot best-effort cho fast path; lỗi SQL trả false để luồng có khóa xử lý đầy đủ.
+    /// </summary>
     private bool TryGetDatabaseState(
         out int schemaVersion,
         out string minimumClientVersion,
         out bool hasAnyUsers,
         out bool hasExistingBusinessTables)
     {
+        // giá trị mặc định đại diện database chưa có metadata, người dùng hoặc bảng nghiệp vụ.
         schemaVersion = 0;
         minimumClientVersion = "1.0.0";
         hasAnyUsers = false;
@@ -321,12 +346,16 @@ public sealed class DatabaseInitializer
             hasExistingBusinessTables = reader.GetBoolean(3);
             return true;
         }
+        // không kết luận từ lỗi đọc sớm; initializer sẽ thử lại qua context và báo lỗi đúng ở bước chính.
         catch (SqlException)
         {
             return false;
         }
     }
 
+    /// <summary>
+    /// áp dụng tuần tự các phiên bản còn thiếu và cập nhật metadata trong cùng transaction.
+    /// </summary>
     private static void ApplySchemaUpdates(AppDbContext db)
     {
         // mỗi đoạn SQL kiểm tra sự tồn tại trước khi sửa để có thể chạy lại an toàn
@@ -336,6 +365,7 @@ public sealed class DatabaseInitializer
             return;
         }
 
+        // SQL tự kiểm tra version và sự tồn tại của từng đối tượng nên có thể chạy lại sau lần khởi động gián đoạn.
         var sql = $$"""
             {{SchemaMetadataSql}}
 
@@ -379,6 +409,7 @@ public sealed class DatabaseInitializer
 
         // metadata phiên bản và thay đổi nghiệp vụ phải commit cùng nhau.
         // nếu một lệnh lỗi, phiên bản database không được ghi nhận sai.
+        // metadata chỉ được tăng phiên bản khi toàn bộ thay đổi nghiệp vụ đã thực thi thành công.
         using var transaction = db.Database.BeginTransaction();
         try
         {
@@ -397,8 +428,10 @@ public sealed class DatabaseInitializer
         return GetCurrentSchemaState(db).SchemaVersion;
     }
 
+    // hàm này giữ nguyên trạng thái mở/đóng connection mà caller đã truyền vào.
     private static (int SchemaVersion, string MinimumClientVersion) GetCurrentSchemaState(AppDbContext db)
     {
+        // shouldClose ghi lại quyền sở hữu: chỉ đóng connection nếu chính hàm này đã mở nó.
         var connection = db.Database.GetDbConnection();
         var shouldClose = connection.State != ConnectionState.Open;
 
@@ -448,12 +481,17 @@ public sealed class DatabaseInitializer
         }
     }
 
+    /// <summary>
+    /// seed database mới hoặc lần hỗ trợ có force flag; database đang dùng không bị seed lại mặc định.
+    /// </summary>
     private void SeedIfNeeded(AppDbContext db)
     {
+        // hasAnyUsers là dấu hiệu dữ liệu nền đã được tạo; forceSeed ghi đè dấu hiệu này có chủ đích.
         var excelPath = Path.Combine(_baseDirectory, "Database", "warepro_database_seed.xlsx");
         var forceSeed = StartupSeedPolicy.IsForceSeedEnabled();
         var hasAnyUsers = db.AppUsers.AsNoTracking().Any();
 
+        // thiếu workbook chỉ là lỗi bắt buộc với database mới hoặc khi người vận hành yêu cầu seed lại.
         if (!File.Exists(excelPath))
         {
             if (!hasAnyUsers || forceSeed)
@@ -464,11 +502,13 @@ public sealed class DatabaseInitializer
             return;
         }
 
+        // database đã có người dùng đi qua nhánh này mà không chạm dữ liệu hiện hữu.
         if (!StartupSeedPolicy.ShouldSeed(seedFileExists: true, hasAnyUsers, forceSeed))
         {
             return;
         }
 
+        // seeder dùng cùng context đang nằm trong schema lock để không có tiến trình startup khác chạy song song.
         var seeder = new DatabaseSeeder(db, excelPath);
         var log = Task.Run(seeder.SeedAsync).GetAwaiter().GetResult();
         Console.WriteLine($"[SEED] Result: {log}");

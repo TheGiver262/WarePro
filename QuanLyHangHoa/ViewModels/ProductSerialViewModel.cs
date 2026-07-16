@@ -156,6 +156,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // chụp collection hiện tại và tạo workbook ở worker thread để không khóa giao diện
         private async Task ExportToExcel()
         {
             if (Serials == null || !Serials.Any())
@@ -258,6 +259,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // import dùng file seed chuẩn, chỉ reload số đếm/danh sách khi có ít nhất một dòng thành công
         private async Task Import()
         {
             try 
@@ -335,6 +337,7 @@ namespace QuanLyHangHoa.ViewModels
             _ = LoadCountsAsync();
         }
 
+        // group status trong một query, sau đó marshal kết quả về dispatcher trước khi sửa property bind UI
         public async Task LoadCountsAsync()
         {
             await Task.Run(() =>
@@ -372,6 +375,7 @@ namespace QuanLyHangHoa.ViewModels
 
         private CancellationTokenSource? _cts;
 
+        // debounce filter; lượt mới hủy token chờ của lượt cũ
         private void ScheduleFilterReload()
         {
             if (!_isInitialized || _isUpdatingFilters)
@@ -402,6 +406,7 @@ namespace QuanLyHangHoa.ViewModels
             _ = LoadSerialsAsync(true);
         }
 
+        // reset hủy request cũ, chụp filter/skip rồi tải trang và tổng số song song
         private async Task LoadSerialsAsync(bool reset)
         {
             if (reset)
@@ -449,6 +454,7 @@ namespace QuanLyHangHoa.ViewModels
                 var searchNote = SearchNote;
                 var skip = _skip;
 
+                // token được kiểm tra cả trước query và trước khi thêm từng item để kết quả cũ không chen vào collection mới
                 var dataTask = Task.Run(() =>
                 {
                     token.ThrowIfCancellationRequested();
@@ -481,6 +487,7 @@ namespace QuanLyHangHoa.ViewModels
                 var data = await dataTask;
                 token.ThrowIfCancellationRequested();
 
+                // test delegate không có database nên dùng số dòng trả về; runtime chạy query count thật
                 if (isTestEnv)
                 {
                     totalFilteredCount = data.Count;

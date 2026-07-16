@@ -38,6 +38,7 @@ namespace QuanLyHangHoa.Services.DataImport
             _contextFactory = contextFactory;
         }
 
+        // danh sách này là hợp đồng giữa màn hình ánh xạ cột và từng luồng import
         public static List<ImportFieldDefinition> GetFieldDefinitions(ImportFileType type)
         {
             return type switch
@@ -124,6 +125,7 @@ namespace QuanLyHangHoa.Services.DataImport
             };
         }
 
+        // đưa excel và csv về cùng một cấu trúc để phần xử lý phía sau không phụ thuộc định dạng file
         public static (List<string> headers, List<Dictionary<string, string>> rows) ReadFile(string filePath)
         {
             string extension = Path.GetExtension(filePath).ToLowerInvariant();
@@ -201,6 +203,7 @@ namespace QuanLyHangHoa.Services.DataImport
             return (headers, rows);
         }
 
+        // phiếu nhập và phiếu xuất tự quản lý transaction theo từng chứng từ; các loại còn lại dùng một transaction cho cả file
         public DynamicImportResult ExecuteImport(
             List<Dictionary<string, string>> rawRows,
             ImportFileType type,
@@ -235,6 +238,7 @@ namespace QuanLyHangHoa.Services.DataImport
                 return result;
             }
 
+            // một lỗi hệ thống sẽ rollback toàn bộ nhóm import này; lỗi từng dòng được giữ lại trong result để tiếp tục các dòng sau
             using var db = _contextFactory();
             using var transaction = db.Database.BeginTransaction();
 
@@ -277,6 +281,7 @@ namespace QuanLyHangHoa.Services.DataImport
 
         #region Entity Import Methods
 
+        // category dùng mã làm khóa upsert: trùng mã thì cập nhật tên, chưa có thì tạo mới
         private void ImportCategories(
             List<Dictionary<string, string>> rawRows,
             Dictionary<string, string> mappings,
@@ -341,6 +346,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     string brandName = GetMappedString(rawRow, mappings, "BrandName", required: true);
                     string unitName = GetMappedString(rawRow, mappings, "DefaultUnitName", required: true);
 
+                    // các bảng tham chiếu phải có id trước khi gán vào product; tùy chọn auto-create quyết định tạo mới hay báo lỗi
                     // Resolve category
                     var category = db.Categories.FirstOrDefault(c => c.DisplayName == categoryName);
                     if (category == null)
@@ -445,6 +451,7 @@ namespace QuanLyHangHoa.Services.DataImport
             }
         }
 
+        // serial có thể cập nhật lại sản phẩm, kho và trạng thái; kho trống dùng kho mặc định đang hoạt động
         private void ImportProductSerials(
             List<Dictionary<string, string>> rawRows,
             Dictionary<string, string> mappings,
@@ -516,6 +523,7 @@ namespace QuanLyHangHoa.Services.DataImport
             }
         }
 
+        // bản ghi tạm giữ dữ liệu đã kiểm tra; chỉ sau khi cả chứng từ hợp lệ mới bắt đầu ghi xuống database
         private sealed record PreparedStockInImportLine(
             Product Product,
             decimal Quantity,
@@ -536,6 +544,7 @@ namespace QuanLyHangHoa.Services.DataImport
             bool autoCreateReferences,
             ref int rowIdx)
         {
+            // mọi dòng cùng mã được xem là một chứng từ; mã trống được gom vào một phiếu tự sinh
             var grouped = rawRows.GroupBy(row =>
             {
                 var code = GetMappedString(row, mappings, "DocumentCode", required: false);
@@ -596,6 +605,8 @@ namespace QuanLyHangHoa.Services.DataImport
                         throw new InventoryDomainException($"Mã phiếu nhập '{documentCode}' đã tồn tại.");
                     }
 
+                    // preparedLines tách bước kiểm tra khỏi bước ghi; documentSerials chặn serial lặp giữa nhiều dòng của cùng phiếu
+                    // baseQuantity là số lượng sau quy đổi về đơn vị cơ sở, dùng cho tồn kho và số lượng serial
                     var preparedLines = new List<PreparedStockInImportLine>();
                     var documentSerials = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                     foreach (var itemRow in groupRows)
@@ -654,6 +665,7 @@ namespace QuanLyHangHoa.Services.DataImport
                             serialNumbers));
                     }
 
+                    // import tạo phiếu ở trạng thái đã duyệt và đã ghi sổ để dữ liệu chứng từ khớp ngay với số dư kho
                     var now = DateTime.UtcNow;
                     var stockIn = new StockIn
                     {
@@ -692,6 +704,7 @@ namespace QuanLyHangHoa.Services.DataImport
                         persistedLines.Add((prepared, line));
                     }
 
+                    // cần lưu phiếu và các dòng trước để lấy id thật cho sổ kho và liên kết LastStockInLineId
                     db.SaveChanges();
                     var postingService = new InventoryPostingService(
                         new EfInventoryUnitOfWork(db),
@@ -738,6 +751,7 @@ namespace QuanLyHangHoa.Services.DataImport
             }
         }
 
+        // mỗi phiếu xuất có transaction riêng: một phiếu lỗi không làm mất các phiếu hợp lệ khác trong file
         private void ImportStockOutDocuments(
             List<Dictionary<string, string>> rawRows,
             Dictionary<string, string> mappings,
@@ -812,6 +826,7 @@ namespace QuanLyHangHoa.Services.DataImport
                         throw new InventoryDomainException($"Mã phiếu xuất '{documentCode}' đã tồn tại.");
                     }
 
+                    // kiểm tra đủ tồn và trạng thái từng serial trước khi tạo phiếu, tránh ghi dở dang rồi mới phát hiện thiếu hàng
                     var preparedLines = new List<PreparedStockOutImportLine>();
                     var documentSerials = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                     foreach (var itemRow in groupRows)
@@ -876,6 +891,7 @@ namespace QuanLyHangHoa.Services.DataImport
                             serialNumbers));
                     }
 
+                    // cộng nhu cầu theo sản phẩm vì một sản phẩm có thể xuất ở nhiều dòng trong cùng chứng từ
                     foreach (var productGroup in preparedLines.GroupBy(item => item.Product.Id))
                     {
                         var requiredQuantity = productGroup.Sum(item => item.BaseQuantity);
@@ -972,6 +988,7 @@ namespace QuanLyHangHoa.Services.DataImport
             }
         }
 
+        // các dòng cùng InvoiceCode tạo một phần đầu hóa đơn và nhiều dòng chi tiết
         private void ImportPurchaseInvoices(
             List<Dictionary<string, string>> rawRows,
             Dictionary<string, string> mappings,
@@ -1064,6 +1081,7 @@ namespace QuanLyHangHoa.Services.DataImport
             }
         }
 
+        // cách nhóm giống hóa đơn mua nhưng tham chiếu khách hàng và giá bán
         private void ImportSalesInvoices(
             List<Dictionary<string, string>> rawRows,
             Dictionary<string, string> mappings,
@@ -1160,6 +1178,7 @@ namespace QuanLyHangHoa.Services.DataImport
 
         #region Safe Value Parsers
 
+        // mappings nối tên trường hệ thống với tiêu đề thật trong file; lỗi bắt buộc được báo ngay tại dòng đang đọc
         private static string GetMappedString(Dictionary<string, string> row, Dictionary<string, string> mappings, string dbKey, bool required)
         {
             if (!mappings.TryGetValue(dbKey, out string? excelHeader) || string.IsNullOrWhiteSpace(excelHeader))
@@ -1182,6 +1201,7 @@ namespace QuanLyHangHoa.Services.DataImport
             return val.Trim();
         }
 
+        // chuẩn hóa dấu phân cách trước rồi parse bằng invariant culture để máy có vùng miền khác nhau vẫn cho cùng kết quả
         private static decimal GetMappedDecimal(Dictionary<string, string> row, Dictionary<string, string> mappings, string dbKey, bool required)
         {
             string val = GetMappedString(row, mappings, dbKey, required);
@@ -1226,6 +1246,7 @@ namespace QuanLyHangHoa.Services.DataImport
             throw new ArgumentException($"Giá trị '{val}' không đúng định dạng số nguyên.");
         }
 
+        // ưu tiên các định dạng được công bố; current culture chỉ là đường lui cho file do người dùng nhập thủ công
         private static DateTime GetMappedDateTime(Dictionary<string, string> row, Dictionary<string, string> mappings, string dbKey, bool required)
         {
             string val = GetMappedString(row, mappings, dbKey, required);
@@ -1245,6 +1266,7 @@ namespace QuanLyHangHoa.Services.DataImport
             throw new ArgumentException($"Giá trị ngày tháng '{val}' không đúng định dạng (VD: dd/MM/yyyy hoặc yyyy-MM-dd).");
         }
 
+        // chấp nhận các cách ghi phổ biến trong excel; ô trống trả null để bên gọi tự chọn giá trị mặc định
         private static bool? GetMappedBool(Dictionary<string, string> row, Dictionary<string, string> mappings, string dbKey)
         {
             string val = GetMappedString(row, mappings, dbKey, required: false);
@@ -1257,6 +1279,7 @@ namespace QuanLyHangHoa.Services.DataImport
             return false;
         }
 
+        // mục tiêu cuối là chuỗi dùng dấu chấm thập phân và không còn dấu phân nhóm hàng nghìn
         private static string NormalizeNumberString(string val)
         {
             // Remove group separators if comma is used as thousand separator, and dot as decimal
@@ -1286,6 +1309,7 @@ namespace QuanLyHangHoa.Services.DataImport
 
         #endregion
 
+        // adapter nhỏ này cho phép dùng chung InventoryPostingService mà không để dịch vụ import tự sửa số dư kho
         private sealed class DbDefaultWarehouseProvider : IDefaultWarehouseProvider
         {
             private readonly AppDbContext _context;

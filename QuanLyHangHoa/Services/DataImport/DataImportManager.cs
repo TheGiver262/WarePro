@@ -15,6 +15,7 @@ namespace QuanLyHangHoa.Services.DataImport
         private readonly ExcelImportService _excelService = new();
         private readonly CsvImportService _csvService = new();
 
+        // bước đọc chỉ tạo model và lỗi dòng; có ít nhất một model hợp lệ mới mở context để upsert
         public ImportResult<T> ProcessFile<T>(string filePath) where T : class, new()
         {
             string extension = Path.GetExtension(filePath).ToLower();
@@ -41,13 +42,14 @@ namespace QuanLyHangHoa.Services.DataImport
             return result;
         }
 
+        // upsert tổng quát dựng biểu thức LINQ từ các property đánh dấu ImportKey, không cần viết query riêng cho từng model
         private void UpsertToDatabase<T>(ImportResult<T> result) where T : class
         {
             using var db = new AppDbContext();
             var dbSet = db.Set<T>();
             var keyProps = typeof(T).GetProperties().Where(p => p.GetCustomAttribute<ImportKeyAttribute>() != null).ToList();
 
-            // Fallback to 'Id' if no ImportKey is defined
+            // model không khai báo ImportKey thì dùng Id làm khóa cuối cùng
             if (!keyProps.Any())
             {
                 var idProp = typeof(T).GetProperty("Id");
@@ -63,7 +65,7 @@ namespace QuanLyHangHoa.Services.DataImport
             {
                 try
                 {
-                    // Build a dynamic filter for existing records
+                    // predicate ghép nhiều khóa bằng AND, ví dụ cùng mã sản phẩm và mã kho
                     var parameter = Expression.Parameter(typeof(T), "x");
                     Expression? predicate = null;
 
@@ -88,12 +90,12 @@ namespace QuanLyHangHoa.Services.DataImport
 
                     if (existing != null)
                     {
-                        // Update existing entry (excluding Id and Keys)
+                        // giữ nguyên id và khóa import, chỉ chép các trường dữ liệu có thể ghi
                         foreach (var prop in typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance))
                         {
                             if (prop.Name == "Id" || keyProps.Contains(prop) || !prop.CanWrite) continue;
                             
-                            // Don't update navigation properties or collections
+                            // bỏ navigation và collection để không vô tình thay cả đồ thị quan hệ EF
                             if (prop.PropertyType.IsClass && prop.PropertyType != typeof(string)) continue;
 
                             var newValue = prop.GetValue(item);
@@ -102,7 +104,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     }
                     else
                     {
-                        // Insert new entry
+                        // không tìm thấy khóa tương ứng thì thêm bản ghi mới
                         dbSet.Add(item);
                     }
                     
@@ -114,6 +116,7 @@ namespace QuanLyHangHoa.Services.DataImport
                 }
             }
 
+            // lưu một lần sau toàn bộ vòng lặp; lỗi gán từng item vẫn được giữ trong result trước khi lưu
             db.SaveChanges();
         }
     }

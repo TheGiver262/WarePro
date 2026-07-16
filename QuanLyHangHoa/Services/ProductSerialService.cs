@@ -7,6 +7,9 @@ using QuanLyHangHoa.Models;
 
 namespace QuanLyHangHoa.Services
 {
+    /// <summary>
+    /// tra cứu lịch sử/vị trí serial và cập nhật note kèm audit nguyên tử.
+    /// </summary>
     public class ProductSerialService
     {
         private readonly Func<AppDbContext> _contextFactory;
@@ -70,6 +73,7 @@ namespace QuanLyHangHoa.Services
             return query.Count();
         }
 
+        // thay note và audit nằm cùng transaction để không có thay đổi thiếu lịch sử hoặc lịch sử giả.
         public void UpdateNote(int serialId, string? note, int userId)
         {
             using var db = _contextFactory();
@@ -102,6 +106,7 @@ namespace QuanLyHangHoa.Services
             }
         }
 
+        // cùng filter dùng cho danh sách, phân trang và count để tổng số không lệch dữ liệu hiển thị.
         private IQueryable<ProductSerial> ApplySerialFilters(IQueryable<ProductSerial> query, string serial, string product, string brand, string status, DateTime? fromDate, DateTime? toDate, string note)
         {
             if (!string.IsNullOrWhiteSpace(status) && status != "All")
@@ -133,6 +138,7 @@ namespace QuanLyHangHoa.Services
                 query = query.Where(s => s.Note != null && s.Note.Contains(keyword));
             }
 
+            // khoảng ngày dựa trên CreatedAt của phiếu nhập gần nhất, không phải ngày sửa note.
             if (fromDate.HasValue)
             {
                 query = query.Where(s => s.LastStockInLine != null && s.LastStockInLine.StockIn != null && s.LastStockInLine.StockIn.CreatedAt >= fromDate.Value);

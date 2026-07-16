@@ -9,6 +9,7 @@ namespace QuanLyHangHoa.Converters
 {
     public class StockSumConverter : IValueConverter
     {
+        // cộng OnHandQuantity của mọi kho và hiển thị số nguyên; collection null trả 0
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value is IEnumerable<StockBalance> balances)

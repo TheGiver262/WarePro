@@ -27,6 +27,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // form chỉ thu thập tên/role; service kiểm tra actor, tên trùng, hash mật khẩu mặc định và audit
         private void Confirm(Window? window)
         {
             if (string.IsNullOrWhiteSpace(FullName) || string.IsNullOrWhiteSpace(Username))

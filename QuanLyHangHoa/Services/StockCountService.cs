@@ -9,6 +9,9 @@ using QuanLyHangHoa.Models;
 
 namespace QuanLyHangHoa.Services
 {
+    /// <summary>
+    /// chốt kiểm kê bằng các phiếu điều chỉnh liên kết, không sửa StockBalance trực tiếp.
+    /// </summary>
     public partial class StockCountService
     {
         private const string CountedStatus = "đã kiểm kê";
@@ -30,6 +33,7 @@ namespace QuanLyHangHoa.Services
             AddAudit(db, "CREATE", session.Id, null, Serialize(session), session.CreatedBy);
         }
 
+        // transaction bao phủ session, chứng từ bù, posting, serial và audit của toàn bộ kết quả.
         public void ProcessResults(int sessionId, int userId)
         {
             using var db = _contextFactory();
@@ -41,6 +45,7 @@ namespace QuanLyHangHoa.Services
                 .SingleOrDefault(item => item.Id == sessionId)
                 ?? throw new InventoryDomainException("Không tìm thấy phiên kiểm kê.");
 
+            // phiên đã hoàn thành trả ngay để thao tác gọi lại không tạo thêm chứng từ điều chỉnh.
             if (session.Status == CompletedStatus)
             {
                 return;
@@ -56,6 +61,7 @@ namespace QuanLyHangHoa.Services
                 throw new InventoryDomainException("You are not authorized to approve stock documents.");
             }
 
+            // kiểm tra liên kết là lớp idempotency thứ hai ngoài status, phòng lần chạy trước dở ở client.
             if (db.StockIns.Any(item => item.StockCountSessionId == sessionId) ||
                 db.StockOuts.Any(item => item.StockCountSessionId == sessionId))
             {
@@ -70,9 +76,11 @@ namespace QuanLyHangHoa.Services
                     throw new InventoryDomainException("Số lượng kiểm kê thực tế không được âm.");
                 }
 
+                // variance dương nghĩa là thiếu trên hệ thống cần nhập; âm nghĩa là thừa hệ thống cần xuất.
                 line.VarianceQuantity = line.CountedQuantity - line.SystemQuantity;
             }
 
+            // chốt và sắp line trước; tất cả sản phẩm, quantity, serial phải hợp lệ trước khi tạo chứng từ đầu tiên.
             var correctionLines = session.Lines
                 .Where(item => item.VarianceQuantity != 0)
                 .OrderBy(item => item.Id)
@@ -94,6 +102,7 @@ namespace QuanLyHangHoa.Services
                 ValidateCorrectionLine(product, quantity, serialNumbers);
             }
 
+            // phiếu xuất điều chỉnh cần customer bắt buộc nên dùng một bản ghi hệ thống ổn định.
             Customer? adjustmentCustomer = null;
             if (correctionLines.Any(item => item.VarianceQuantity < 0))
             {
@@ -111,6 +120,7 @@ namespace QuanLyHangHoa.Services
                 }
             }
 
+            // cùng một timestamp và warehouse được dùng cho mọi chứng từ sinh từ phiên kiểm kê.
             var now = DateTime.UtcNow;
             var postingService = new InventoryPostingService(
                 new EfInventoryUnitOfWork(db),
@@ -162,6 +172,7 @@ namespace QuanLyHangHoa.Services
             transaction.Commit();
         }
 
+        // mỗi line thiếu tạo một phiếu nhập có khóa liên kết session/line để database chống tạo lặp.
         private static void PostStockInCorrection(
             AppDbContext db,
             InventoryPostingService postingService,
@@ -226,6 +237,7 @@ namespace QuanLyHangHoa.Services
             }
         }
 
+        // mỗi line thừa tạo một phiếu xuất điều chỉnh và đi qua posting service như chứng từ thường.
         private static void PostStockOutCorrection(
             AppDbContext db,
             InventoryPostingService postingService,
@@ -300,6 +312,7 @@ namespace QuanLyHangHoa.Services
                 .ToArray();
         }
 
+        // sản phẩm serial-tracked chỉ chấp nhận quantity nguyên và đúng một serial cho mỗi đơn vị gốc.
         private static void ValidateCorrectionLine(
             Product product,
             decimal quantity,
@@ -346,6 +359,7 @@ namespace QuanLyHangHoa.Services
             });
         }
 
+        // audit cuối tham gia transaction, nên session chỉ có lịch sử POST khi mọi correction đã thành công.
         private static void AddAudit(
             AppDbContext db,
             string action,

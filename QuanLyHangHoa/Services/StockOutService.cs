@@ -9,6 +9,9 @@ using QuanLyHangHoa.Models;
 
 namespace QuanLyHangHoa.Services
 {
+    /// <summary>
+    /// quản lý draft và lifecycle phiếu xuất; lúc post kiểm tra tồn/serial rồi ghi giảm tồn trong một transaction.
+    /// </summary>
     public class StockOutService
     {
         private readonly Func<AppDbContext> _contextFactory;
@@ -137,6 +140,7 @@ namespace QuanLyHangHoa.Services
             return query;
         }
 
+        // API tiện ích này vẫn đi đủ Draft → PendingApproval → Approved → Posted, không bỏ qua lifecycle.
         public void Create(StockOut stockOut, List<StockOutLine> lines, int userId)
         {
             SaveDraft(stockOut, lines, userId);
@@ -158,7 +162,7 @@ namespace QuanLyHangHoa.Services
                     .FirstOrDefault(s => s.Id == stockOut.Id);
             }
 
-            // Extract serial numbers to DraftSerials string and calculate BaseQuantity
+            // draft giữ serial dạng chuỗi và quy đổi quantity để chưa tác động ProductSerial thật.
             var productIds = lines.Select(l => l.ProductId).Distinct().ToList();
             var unitMap = db.ProductUnits
                 .Where(pu => productIds.Contains(pu.ProductId))
@@ -175,9 +179,10 @@ namespace QuanLyHangHoa.Services
                 {
                     line.DraftSerials = null;
                 }
+                // tách navigation để EF không đổi trạng thái serial khi mới lưu draft.
                 line.ProductSerials = new List<ProductSerial>(); // Prevent EF from modifying ProductSerials
 
-                // Auto convert to base unit
+                // BaseQuantity là quantity theo đơn vị gốc dùng cho kiểm tra và trừ tồn.
                 var pu = unitMap.FirstOrDefault(u => u.ProductId == line.ProductId && u.UnitId == line.UnitId);
                 line.BaseQuantity = line.Quantity * (pu?.ConversionFactor ?? 1m);
             }
@@ -196,7 +201,7 @@ namespace QuanLyHangHoa.Services
                 existing.UpdatedAt = DateTime.Now;
                 existing.UpdatedBy = userId;
 
-                // Remove old lines
+                // thay toàn bộ line draft để không giữ dữ liệu người dùng đã xóa.
                 db.StockOutLines.RemoveRange(existing.Lines);
                 existing.Lines = lines;
 
@@ -261,6 +266,7 @@ namespace QuanLyHangHoa.Services
             AddAudit(db, "APPROVE", stockOut.Id, beforeJson, Serialize(stockOut), userId);
         }
 
+        // transaction ngoài bao phủ trạng thái, balance, serial, ledger và audit của mọi line.
         public void Post(int stockOutId, int userId)
         {
             using var db = _contextFactory();
@@ -283,7 +289,7 @@ namespace QuanLyHangHoa.Services
                 throw new InventoryDomainException("Phiếu xuất kho phải có ít nhất một dòng hàng.");
             }
 
-            // Auto calculate BaseQuantity from ProductUnit in db
+            // tính lại hệ số từ database khi post để không dùng conversion factor draft đã cũ.
             var lineProductIds = stockOut.Lines.Select(l => l.ProductId).Distinct().ToList();
             var unitMap = db.ProductUnits
                 .Where(pu => lineProductIds.Contains(pu.ProductId))
@@ -297,7 +303,7 @@ namespace QuanLyHangHoa.Services
 
             var beforeJson = Serialize(stockOut);
 
-            // Load serials for validation and posting
+            // snapshot serial theo line được tạo trước khi gọi posting service.
             var lineSerialsMap = new Dictionary<int, List<string>>();
             var allDocumentSerials = new List<string>();
             foreach (var line in stockOut.Lines)
@@ -309,7 +315,7 @@ namespace QuanLyHangHoa.Services
                 }
                 else
                 {
-                    // Legacy fallback
+                    // dữ liệu cũ không có DraftSerials được truy ngược qua LastStockOutLineId.
                     serials = db.ProductSerials
                         .Where(ps => ps.LastStockOutLineId == line.Id)
                         .Select(ps => ps.SerialNumber)
@@ -334,7 +340,7 @@ namespace QuanLyHangHoa.Services
                             $"Sản phẩm {product.DisplayName} yêu cầu {requiredSerialCount} serial, nhưng hiện có {serials.Count}.");
                     }
 
-                    // Check that all serials are InStock, belong to this product, and are in the correct warehouse
+                    // mọi serial phải còn InStock, đúng sản phẩm và đúng kho nguồn trước khi trừ tồn.
                     var dbSerials = db.ProductSerials
                         .Where(ps => serials.Contains(ps.SerialNumber))
                         .ToList();
@@ -359,7 +365,7 @@ namespace QuanLyHangHoa.Services
                 }
             }
 
-            // Check duplicate serial numbers within the current document
+            // chặn một serial xuất hiện ở nhiều dòng của cùng chứng từ.
             var duplicateDocumentSerials = allDocumentSerials
                 .GroupBy(s => s, StringComparer.OrdinalIgnoreCase)
                 .Where(g => g.Count() > 1)
@@ -370,6 +376,7 @@ namespace QuanLyHangHoa.Services
                 throw new Exception($"Các số serial sau bị trùng lặp trong phiếu: [{string.Join(", ", duplicateDocumentSerials)}]. Vui lòng kiểm tra lại trước khi duyệt.");
             }
 
+            // SaveChanges này vẫn nằm trong transaction; lỗi ở bất kỳ line posting nào sẽ rollback trạng thái PostedBy/PostedAt.
             stockOut.PostedBy = userId;
             stockOut.PostedAt = DateTime.UtcNow;
             db.SaveChanges();
@@ -379,6 +386,7 @@ namespace QuanLyHangHoa.Services
                 new DbDefaultWarehouseProvider(db),
                 new SystemClock());
 
+            // thống nhất thứ tự ProductId giữa các chứng từ để giảm khả năng deadlock khi cập nhật balance.
             foreach (var line in stockOut.Lines.OrderBy(l => l.ProductId))
             {
                 var serials = lineSerialsMap.TryGetValue(line.Id, out var sns) ? sns.ToArray() : Array.Empty<string>();
@@ -394,7 +402,7 @@ namespace QuanLyHangHoa.Services
                     userId));
             }
 
-            // Bind posted serials with LastStockOutLineId in database
+            // gắn line nguồn sau khi xuất để truy vết lần rời kho gần nhất của serial.
             foreach (var line in stockOut.Lines)
             {
                 var serials = lineSerialsMap.TryGetValue(line.Id, out var sns) ? sns : new List<string>();
@@ -415,6 +423,7 @@ namespace QuanLyHangHoa.Services
             transaction.Commit();
         }
 
+        // chuỗi tiếng Việt cũ được map về enum chuẩn để dữ liệu legacy vẫn dùng chung state machine.
         private static StockDocumentStatus ParseStatus(string status)
         {
             if (status == "nháp" || status == DocumentStatus.Draft)
@@ -520,6 +529,7 @@ namespace QuanLyHangHoa.Services
             });
         }
 
+        // audit POST tham gia transaction hiện tại; audit draft/delete tự commit cùng thao tác tương ứng.
         private void AddAudit(AppDbContext db, string action, int entityId, string? before, string? after, int performedBy)
         {
             db.AuditLogs.Add(new AuditLog

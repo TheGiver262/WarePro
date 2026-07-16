@@ -163,6 +163,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
+        // tổng form là preview; service tính lại bằng decimal và suy ra payment status khi lưu
         private void RecalculateTotal()
         {
             FormSubTotal = Lines.Sum(l => l.Quantity * l.UnitPrice);
@@ -190,6 +191,7 @@ namespace QuanLyHangHoa.ViewModels
             LoadData();
         }
 
+        // debounce tránh truy vấn mỗi ký tự trong bộ lọc
         private void ScheduleFilterReload()
         {
             if (_isInitialized)
@@ -198,6 +200,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
+        // chụp filter/skip rồi tải ở worker; nếu đang tải, _reloadRequested giữ một lượt reload kế tiếp
         private async Task LoadDataAsync(bool reset)
         {
             if (_isLoading) return;
@@ -411,6 +414,7 @@ namespace QuanLyHangHoa.ViewModels
             SelectedTabIndex = 1; // Switch to form tab
         }
 
+        // tạo state chỉnh sửa tách khỏi row danh sách để Cancel không làm đổi dữ liệu đang hiển thị
         private void PopulateForm(SalesInvoice invoice)
         {
             InvoiceCode = invoice.InvoiceCode;
@@ -442,6 +446,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // ViewModel chỉ validate input và map line; service kiểm tra actor, phiếu xuất, tiền, coverage và commit atomic
         private void SaveInvoice()
         {
             if (IsViewMode) return;
@@ -533,6 +538,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         /// <summary>Initializes form fields without switching the active tab. Used on ViewModel init.</summary>
+        // chuẩn bị form trống lúc khởi tạo mà không tự chuyển tab
         private void InitializeForm()
         {
             _editingInvoice = null;
@@ -597,6 +603,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // xóa id và StockOut selection để không vô tình cập nhật hóa đơn cũ
         public void ResetForm()
         {
             InitializeForm();
@@ -604,6 +611,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // mở form mới; selection phiếu xuất sẽ map khách hàng, sản phẩm, đơn vị, số lượng và giá nguồn
         private void CreateFromStockOut()
         {
             InitializeForm();
@@ -611,6 +619,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // tải lại snapshot đầy đủ từ DocumentPrintService trước khi mở preview
         private void PrintInvoice(SalesInvoice? invoice)
         {
             if (invoice == null) return;

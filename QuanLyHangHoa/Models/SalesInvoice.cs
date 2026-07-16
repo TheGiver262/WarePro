@@ -11,10 +11,12 @@ public partial class SalesInvoice
 
     public int CustomerId { get; set; }
 
+    // có StockOutId thì hóa đơn gắn duy nhất một phiếu xuất Sale đã posted và cùng khách hàng
     public int? StockOutId { get; set; }
 
     public DateTime InvoiceDate { get; set; }
 
+    // InvoiceService tính lại subtotal, tax, grand total và payment status trước khi lưu
     public decimal SubTotal { get; set; }
 
     public decimal TaxAmount { get; set; }

@@ -119,6 +119,7 @@ namespace QuanLyHangHoa.ViewModels
             LoadData();
         }
 
+        // mỗi lần chọn kho, lấy lại tồn hệ thống để chênh lệch phản ánh đúng snapshot kho đó
         private void UpdateSystemQuantities()
         {
             using var db = _contextFactory();
@@ -210,6 +211,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // serial thực đếm chỉ bắt buộc khi sản phẩm theo serial có số đếm khác số hệ thống
         private void OpenSerialWindow(StockCountLineEditor line)
         {
             if (line?.SelectedProduct == null) return;
@@ -293,6 +295,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // draft giữ số đếm và serial để tiếp tục, chưa sinh điều chỉnh kho
         private void SaveDraft()
         {
             if (string.IsNullOrWhiteSpace(SessionCode) || !Lines.Any())
@@ -349,6 +352,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // validate toàn bộ line và serial trước khi gửi session cho service
         private void SaveStockCount()
         {
             if (string.IsNullOrWhiteSpace(SessionCode) || !Lines.Any())
@@ -433,6 +437,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // chỉ session còn cho phép sửa mới nhận dữ liệu editor; service kiểm tra lại trạng thái
         private void SaveEdit()
         {
             if (SelectedSession == null || SelectedSession.Status != "nháp") return;
@@ -458,6 +463,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // commit tạo điều chỉnh từ chênh lệch và ghi sổ atomic; ViewModel chỉ xác nhận rồi refresh
         private void CommitSession()
         {
             if (SelectedSession == null || SelectedSession.Status != "nháp") return;
@@ -551,6 +557,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
+        // command lifecycle dùng id session đã chọn, không sửa trực tiếp entity trong collection lịch sử
         private void ProcessSession(StockCountSession? session)
         {
             if (session == null) return;

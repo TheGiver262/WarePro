@@ -9,6 +9,7 @@ public partial class AppUser
 
     public string Username { get; set; } = null!;
 
+    // chỉ lưu BCrypt hash, không lưu mật khẩu rõ
     public string PasswordHash { get; set; } = null!;
 
     public string FullName { get; set; } = null!;
@@ -17,6 +18,7 @@ public partial class AppUser
 
     public bool MustChangePassword { get; set; }
 
+    // bộ đếm và LockoutUntil tạo chính sách khóa tạm sau nhiều lần đăng nhập sai
     public int FailedLoginCount { get; set; }
 
     public int? CreatedBy { get; set; }

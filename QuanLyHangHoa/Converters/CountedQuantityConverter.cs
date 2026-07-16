@@ -4,6 +4,7 @@ using System.Windows.Data;
 
 namespace QuanLyHangHoa.Converters
 {
+    // ô trống là null với decimal?, còn -1 là sentinel cho field decimal bắt buộc chưa nhập
     public class CountedQuantityConverter : IValueConverter
     {
         public object? Convert(object value, Type targetType, object parameter, CultureInfo culture)

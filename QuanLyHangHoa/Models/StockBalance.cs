@@ -11,6 +11,7 @@ public partial class StockBalance
 
     public int ProductId { get; set; }
 
+    // Available = OnHand - Reserved; bản ghi được nhận diện bởi cặp WarehouseId + ProductId
     public decimal OnHandQuantity { get; set; }
 
     public decimal AvailableQuantity { get; set; }

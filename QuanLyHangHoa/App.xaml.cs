@@ -11,8 +11,12 @@ using System.Windows.Threading;
 
 namespace QuanLyHangHoa
 {
+    /// <summary>
+    /// quản lý vòng đời ứng dụng và chỉ mở màn hình đăng nhập sau khi cơ sở dữ liệu sẵn sàng.
+    /// </summary>
     public partial class App : Application
     {
+        // các màn hình khởi tạo sau có thể chờ task này thay vì tự kiểm tra lại cơ sở dữ liệu.
         public static Task DatabaseReady { get; private set; } = Task.CompletedTask;
 
         protected override async void OnStartup(StartupEventArgs e)
@@ -22,16 +26,19 @@ namespace QuanLyHangHoa
             RegisterUnhandledExceptionLogging();
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
+            // continuations chạy tách khỏi callback startup để không nối thêm việc nặng vào UI thread.
             var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             DatabaseReady = ready.Task;
             var credentialCoordinator = FirstRunCredentialCoordinator.CreateDefault();
 
+            // credential chỉ tồn tại qua lời gọi này; coordinator chịu trách nhiệm lưu bằng kho bảo mật Windows.
             Microsoft.Data.SqlClient.SqlCredential? PromptForCredential()
             {
                 var prompt = new SqlCredentialPromptView();
                 return prompt.ShowDialog() == true ? prompt.Credential : null;
             }
 
+            // trả riêng trạng thái thao tác và trạng thái có credential để phân biệt lỗi với việc người dùng hủy.
             bool TryEnsureCredential(bool replaceExisting, out bool hasCredential)
             {
                 try
@@ -61,6 +68,7 @@ namespace QuanLyHangHoa
                 }
             }
 
+            // luôn chuẩn bị credential trước khi probe vì mọi bước startup phía sau đều dùng cùng kết nối.
             if (!TryEnsureCredential(replaceExisting: false, out var hasCredential))
             {
                 return;
@@ -74,6 +82,7 @@ namespace QuanLyHangHoa
 
             var coordinator = StartupCoordinator.CreateDefault();
             var result = await coordinator.RunAsync(CancellationToken.None);
+            // chỉ hỏi thay credential khi SQL Server xác nhận tài khoản bị từ chối; các lỗi khác giữ nguyên nguyên nhân.
             if (!result.Success && result.ErrorCode == "SQL-CREDENTIAL-REJECTED")
             {
                 if (!TryEnsureCredential(replaceExisting: true, out hasCredential))
@@ -108,6 +117,7 @@ namespace QuanLyHangHoa
                 return;
             }
 
+            // phát tín hiệu sẵn sàng trước khi mở login để mọi màn hình sau thấy cùng một trạng thái.
             ready.SetResult();
             Trace.WriteLine($"[STARTUP] Database ready: {startup.ElapsedMilliseconds} ms");
 
@@ -118,6 +128,8 @@ namespace QuanLyHangHoa
             Trace.WriteLine($"[STARTUP] Login shown: {startup.ElapsedMilliseconds} ms");
         }
 
+        // ba kênh này bao phủ lỗi trên UI thread, thread ngoài WPF và task không được await.
+        // handler chỉ ghi log; chính luồng phát sinh vẫn quyết định ứng dụng có dừng hay không.
         private void RegisterUnhandledExceptionLogging()
         {
             DispatcherUnhandledException += OnDispatcherUnhandledException;

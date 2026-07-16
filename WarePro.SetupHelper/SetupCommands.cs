@@ -8,6 +8,9 @@ using QuanLyHangHoa.Configuration;
 
 namespace WarePro.SetupHelper;
 
+/// <summary>
+/// mã tiến trình ổn định để script cài đặt phân biệt lỗi tham số, SQL, quyền và ghi cấu hình.
+/// </summary>
 public enum SetupExitCode
 {
     Success = 0,
@@ -20,6 +23,9 @@ public enum SetupExitCode
     ConfigWriteFailed = 30
 }
 
+/// <summary>
+/// full có thể chuẩn bị database mới; app-only chỉ kết nối database đã tồn tại.
+/// </summary>
 public enum SetupMode
 {
     Full,
@@ -37,6 +43,9 @@ public sealed record SetupExecutionResult(
     string Summary,
     string TechnicalDetail = "");
 
+/// <summary>
+/// ranh giới kiểm tra SQL để command parser có thể kiểm thử không cần instance thật.
+/// </summary>
 public interface ISetupProbe
 {
     Task<SetupProbeResult> DetectSqlAsync(
@@ -54,6 +63,9 @@ public interface ISetupConfigWriter
     void Save(string path, WareProSettings settings);
 }
 
+/// <summary>
+/// phân tích command của bộ cài, gọi probe hoặc ghi cấu hình và trả summary không chứa credential.
+/// </summary>
 public sealed class SetupCommands
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -89,6 +101,7 @@ public sealed class SetupCommands
             return Invalid("A command is required.");
         }
 
+        // command đầu tiên chọn đúng một thao tác; mỗi thao tác tự giới hạn tập option được phép.
         return arguments[0].ToLowerInvariant() switch
         {
             "detect-sql" => await DetectSqlAsync(arguments, cancellationToken),
@@ -98,6 +111,7 @@ public sealed class SetupCommands
         };
     }
 
+    // hàm này chỉ lấy option phụ như --log; validation đầy đủ vẫn nằm trong TryParseOptions.
     public static string? FindOption(IReadOnlyList<string> arguments, string option)
     {
         for (var index = 1; index < arguments.Count - 1; index++)
@@ -162,6 +176,7 @@ public sealed class SetupCommands
         {
             var path = Path.GetFullPath(
                 options.GetValueOrDefault("--config") ?? _defaultConfigPath());
+            // file cấu hình chỉ lưu server, database và kiểu xác thực; mật khẩu SQL nằm trong Credential Manager.
             var settings = WareProSettings.CreateDefault();
             settings.Database.Server = server;
             settings.Database.Database = database;
@@ -188,6 +203,7 @@ public sealed class SetupCommands
             return Invalid(error ?? "--config is required.");
         }
 
+        // mặc định an toàn là app-only để helper không tự suy ra quyền tạo database.
         var modeText = options.GetValueOrDefault("--mode") ?? "app-only";
         var mode = modeText.ToLowerInvariant() switch
         {
@@ -224,6 +240,7 @@ public sealed class SetupCommands
         out Dictionary<string, string> options,
         out string? error)
     {
+        // parser đọc theo cặp --name value, từ chối option lạ, thiếu value và option lặp.
         options = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         error = null;
         for (var index = 1; index < arguments.Count; index += 2)
@@ -269,6 +286,7 @@ public sealed class SetupCommands
         string? target = null,
         string? detail = null)
     {
+        // detail được lọc trước khi trả cho Program ghi log; stdout chỉ chứa summary có trường cố định.
         var redactedDetail = SensitiveDataRedactor.Redact(detail);
         var summary = JsonSerializer.Serialize(
             new
@@ -283,6 +301,9 @@ public sealed class SetupCommands
     }
 }
 
+/// <summary>
+/// ghi cấu hình bằng store nguyên tử rồi siết ACL của file vừa tạo.
+/// </summary>
 public sealed class SetupConfigWriter : ISetupConfigWriter
 {
     public void Save(string path, WareProSettings settings)
@@ -293,6 +314,9 @@ public sealed class SetupConfigWriter : ISetupConfigWriter
     }
 }
 
+/// <summary>
+/// chỉ SYSTEM và Administrators được sửa; Users chỉ có quyền đọc để ứng dụng khởi động.
+/// </summary>
 internal static class ConfigurationAcl
 {
     public static void Harden(string path)
@@ -303,6 +327,7 @@ internal static class ConfigurationAcl
         }
 
         var security = new FileSecurity();
+        // tắt kế thừa trước khi thêm ba rule rõ ràng, tránh quyền ghi rộng từ thư mục cha.
         security.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
         security.AddAccessRule(new FileSystemAccessRule(
             new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null),
@@ -320,6 +345,9 @@ internal static class ConfigurationAcl
     }
 }
 
+/// <summary>
+/// xác nhận instance SQL cục bộ, phiên bản hỗ trợ và quyền cần thiết cho chế độ cài đã chọn.
+/// </summary>
 public sealed class SqlSetupProbe : ISetupProbe
 {
     private const string InstanceRegistryPath =
@@ -329,6 +357,7 @@ public sealed class SqlSetupProbe : ISetupProbe
         string instance,
         CancellationToken cancellationToken)
     {
+        // chỉ nhận instance local và kiểm tra registry trước để không chờ timeout cho tên máy chủ tùy ý.
         if (!IsLocalInstance(instance, out var instanceName)
             || !InstanceExists(instanceName))
         {
@@ -340,6 +369,7 @@ public sealed class SqlSetupProbe : ISetupProbe
 
         try
         {
+            // detect dùng Windows authentication tới master vì bước này chạy trước khi app có credential riêng.
             var builder = new SqlConnectionStringBuilder
             {
                 DataSource = instance,
@@ -384,6 +414,7 @@ public sealed class SqlSetupProbe : ISetupProbe
         }
     }
 
+    // full install yêu cầu SQL Server 2022 major 16 trở lên và đúng Express edition được hỗ trợ.
     public static bool IsSupportedFullInstall(int productMajorVersion, string edition) =>
         productMajorVersion >= 16
         && edition.Contains("Express Edition", StringComparison.OrdinalIgnoreCase);
@@ -395,6 +426,7 @@ public sealed class SqlSetupProbe : ISetupProbe
     {
         try
         {
+            // test dùng chính file vừa ghi và cùng ConnectionStringFactory như ứng dụng thật.
             var settings = new WareProSettingsStore(configPath).Load()
                 ?? throw new WareProConfigurationException(configPath);
             var factory = new ConnectionStringFactory(
@@ -411,11 +443,13 @@ public sealed class SqlSetupProbe : ISetupProbe
                 InitialCatalog = "master"
             };
 
+            // mở master trước để kiểm tra database tồn tại và quyền CREATE ANY DATABASE mà không cần database đích.
             await using var master = new SqlConnection(masterBuilder.ConnectionString);
             await master.OpenAsync(cancellationToken);
             var databaseExists = await DatabaseExistsAsync(master, databaseName, cancellationToken);
             if (!databaseExists)
             {
+                // app-only không được tạo database; người dùng phải trỏ tới database đã có.
                 if (mode == SetupMode.AppOnly)
                 {
                     return new SetupProbeResult(
@@ -424,6 +458,7 @@ public sealed class SqlSetupProbe : ISetupProbe
                         databaseName);
                 }
 
+                // full chưa tạo database tại đây, chỉ xác nhận tài khoản có đủ quyền cho bước cài tiếp theo.
                 return await CanCreateDatabaseAsync(master, cancellationToken)
                     ? new SetupProbeResult(
                         SetupExitCode.Success,
@@ -435,6 +470,7 @@ public sealed class SqlSetupProbe : ISetupProbe
                         databaseName);
             }
 
+            // database tồn tại vẫn phải mở được và đọc catalog cơ bản, không chỉ đăng nhập thành công vào master.
             await using var target = new SqlConnection(targetBuilder.ConnectionString);
             await target.OpenAsync(cancellationToken);
             await using var command = new SqlCommand("SELECT TOP (1) 1 FROM sys.tables;", target);
@@ -444,6 +480,7 @@ public sealed class SqlSetupProbe : ISetupProbe
                 "Database connection is ready.",
                 databaseName);
         }
+        // các mã quyền phổ biến được tách riêng để bộ cài hướng dẫn đúng thay vì báo kết nối chung.
         catch (SqlException ex) when (IsPermissionFailure(ex))
         {
             return new SetupProbeResult(
@@ -485,6 +522,7 @@ public sealed class SqlSetupProbe : ISetupProbe
     private static bool IsPermissionFailure(SqlException exception) =>
         exception.Errors.Cast<SqlError>().Any(error => error.Number is 229 or 262 or 916);
 
+    // chuẩn hóa default instance thành MSSQLSERVER; named instance giữ phần sau dấu gạch chéo ngược.
     private static bool IsLocalInstance(string value, out string instanceName)
     {
         instanceName = string.Empty;
@@ -509,6 +547,7 @@ public sealed class SqlSetupProbe : ISetupProbe
         return !string.IsNullOrWhiteSpace(instanceName);
     }
 
+    // đọc cả registry view 64-bit và 32-bit để helper hoạt động với cách cài SQL khác nhau.
     private static bool InstanceExists(string instanceName) =>
         InstanceExists(instanceName, RegistryView.Registry64)
         || InstanceExists(instanceName, RegistryView.Registry32);

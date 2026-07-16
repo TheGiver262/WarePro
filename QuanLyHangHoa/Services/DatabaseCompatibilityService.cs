@@ -2,6 +2,9 @@ using System;
 
 namespace QuanLyHangHoa.Services;
 
+/// <summary>
+/// quan hệ giữa schema database và khả năng đọc/nâng cấp của client hiện tại.
+/// </summary>
 public enum DatabaseCompatibilityStatus
 {
     Compatible,
@@ -14,6 +17,9 @@ public sealed record DatabaseCompatibilityResult(
     int DatabaseSchemaVersion,
     int CurrentSchemaVersion);
 
+/// <summary>
+/// chặn client cũ mở database mới hơn để tránh ghi dữ liệu bằng mô hình không tương thích.
+/// </summary>
 public sealed class DatabaseCompatibilityException : Exception
 {
     public DatabaseCompatibilityException(
@@ -35,6 +41,9 @@ public sealed class DatabaseCompatibilityException : Exception
     public string? CurrentClientVersion { get; }
 }
 
+/// <summary>
+/// quyết định client có thể dùng, phải nâng schema hay phải tự cập nhật trước.
+/// </summary>
 public sealed class DatabaseCompatibilityService
 {
     public const int CurrentSchemaVersion = 5;
@@ -43,6 +52,7 @@ public sealed class DatabaseCompatibilityService
 
     public DatabaseCompatibilityResult Evaluate(int databaseSchemaVersion)
     {
+        // schema cũ hơn mức hỗ trợ sẽ được initializer nâng lên phiên bản hiện tại.
         if (databaseSchemaVersion < MinimumSupportedSchemaVersion)
         {
             return new DatabaseCompatibilityResult(
@@ -51,6 +61,7 @@ public sealed class DatabaseCompatibilityService
                 CurrentSchemaVersion);
         }
 
+        // schema mới hơn client là nhánh nguy hiểm và phải dừng để cập nhật ứng dụng.
         if (databaseSchemaVersion > MaximumSupportedSchemaVersion)
         {
             return new DatabaseCompatibilityResult(
@@ -76,8 +87,10 @@ public sealed class DatabaseCompatibilityService
             return schemaResult;
         }
 
+        // ngoài schema, metadata database còn có thể yêu cầu một phiên bản client tối thiểu.
         var minimum = ParseVersion(minimumClientVersion);
         var current = ParseVersion(currentClientVersion);
+        // không phân tích được version cũng chọn hướng an toàn: yêu cầu client mới thay vì tiếp tục ghi dữ liệu.
         if (minimum is null || current is null || current < minimum)
         {
             return schemaResult with { Status = DatabaseCompatibilityStatus.ClientUpdateRequired };
@@ -86,9 +99,11 @@ public sealed class DatabaseCompatibilityService
         return schemaResult;
     }
 
+    // chỉ backup khi vừa có dữ liệu nghiệp vụ vừa thực sự sắp đổi schema.
     public bool RequiresBackup(int databaseSchemaVersion, bool hasExistingBusinessData) =>
         hasExistingBusinessData && databaseSchemaVersion < CurrentSchemaVersion;
 
+    // bỏ nhãn prerelease và build metadata vì System.Version chỉ nhận phần số.
     private static Version? ParseVersion(string? value)
     {
         var numericPart = value?.Split(['-', '+'], 2)[0];

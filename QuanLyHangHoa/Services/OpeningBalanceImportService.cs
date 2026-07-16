@@ -9,6 +9,9 @@ using QuanLyHangHoa.Services.DataImport;
 
 namespace QuanLyHangHoa.Services;
 
+/// <summary>
+/// nhập tồn đầu kỳ thành một phiếu nhập đã duyệt và dùng cùng posting pipeline với nghiệp vụ kho thường.
+/// </summary>
 public sealed class OpeningBalanceImportService
 {
     private readonly Func<AppDbContext> _contextFactory;
@@ -30,6 +33,7 @@ public sealed class OpeningBalanceImportService
             _ => throw new NotSupportedException("Dinh dang file khong duoc ho tro.")
         };
 
+        // lỗi parse theo row được trả nguyên trạng; chưa mở context hay thay đổi database.
         if (parsed.Errors.Count > 0)
         {
             return parsed;
@@ -67,12 +71,14 @@ public sealed class OpeningBalanceImportService
             return result;
         }
 
+        // validate toàn bộ sản phẩm, quantity, serial và đơn vị trước khi bắt đầu transaction.
         var preparedRows = PrepareRows(db, sourceRows, result);
         if (result.Errors.Count > 0)
         {
             return result;
         }
 
+        // chứng từ, line, balance, serial và liên kết LastStockInLineId phải cùng commit hoặc cùng rollback.
         using var transaction = db.Database.BeginTransaction();
         try
         {
@@ -94,6 +100,7 @@ public sealed class OpeningBalanceImportService
             };
             db.StockIns.Add(stockIn);
 
+            // giữ cặp dữ liệu đã chuẩn bị và entity line để gắn serial về đúng nguồn sau posting.
             var persistedLines = new List<(PreparedOpeningBalanceRow Prepared, StockInLine Line)>();
             foreach (var prepared in preparedRows)
             {
@@ -115,6 +122,7 @@ public sealed class OpeningBalanceImportService
 
             db.SaveChanges();
 
+            // không ghi thẳng StockBalance; posting service giữ các invariant, ledger và audit inventory.
             var postingService = new InventoryPostingService(
                 new EfInventoryUnitOfWork(db),
                 warehouseProvider,
@@ -169,6 +177,7 @@ public sealed class OpeningBalanceImportService
         ImportResult<OpeningBalanceImportRow> result)
     {
         var prepared = new List<PreparedOpeningBalanceRow>();
+        // hash set chặn serial lặp giữa các row, không chỉ lặp trong một ô.
         var documentSerials = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var row in rows)
@@ -213,6 +222,7 @@ public sealed class OpeningBalanceImportService
                     throw new InventoryDomainException("One or more serial numbers already exist.");
                 }
 
+                // tồn đầu kỳ luôn dùng đơn vị cơ sở; fallback DefaultUnit hỗ trợ dữ liệu sản phẩm cũ chưa có ProductUnit.
                 var unitId = db.ProductUnits
                     .Where(unit => unit.ProductId == product.Id && unit.IsBaseUnit)
                     .Select(unit => unit.UnitId)

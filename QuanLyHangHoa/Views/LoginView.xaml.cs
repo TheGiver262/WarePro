@@ -16,16 +16,15 @@ namespace QuanLyHangHoa.Views
             Application.Current.Shutdown();
         }
 
-        // Vì WPF không hỗ trợ Binding trực tiếp vào Password (vì lý do bảo mật)
-        // Nên ta sẽ bắt sự kiện TextChange tại View và gán vào ViewModel thủ công
+        // PasswordBox không hỗ trợ binding Password, nên View chuyển giá trị sang ViewModel tại sự kiện thay đổi
         private void TxtPassword_PasswordChanged(object sender, RoutedEventArgs e)
         {
             if (this.DataContext != null)
             {
-                // Ép kiểu DataContext hiện tại (đang được liên kết với LoginViewModel)
+                // DataContext của cửa sổ login là LoginViewModel
                 var vm = (LoginViewModel)this.DataContext;
                 
-                // Set chuỗi mật khẩu từ PasswordBox sang _password trong ViewModel
+                // giá trị này chỉ dùng cho lần xác thực, không được đưa vào session
                 vm.Password = txtPassword.Password;
             }
         }

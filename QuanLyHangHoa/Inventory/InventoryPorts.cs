@@ -2,6 +2,9 @@ using System;
 
 namespace QuanLyHangHoa.Inventory;
 
+/// <summary>
+/// cổng để domain đọc snapshot và xếp thay đổi inventory vào cùng một commit.
+/// </summary>
 public interface IInventoryUnitOfWork
 {
     bool CanApproveStock(int userId);

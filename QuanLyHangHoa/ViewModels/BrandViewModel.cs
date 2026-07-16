@@ -137,6 +137,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand(CanExecute = nameof(CanManage))]
+        // copy selection vào field edit thay vì bind hai chiều trực tiếp vào row
         private void EditBrand(Brand brand)
         {
             SelectedBrand = brand;
@@ -148,6 +149,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand(CanExecute = nameof(CanManage))]
+        // validate mã/tên và chụp before JSON; service lưu brand + audit trong cùng transaction
         private void Save()
         {
             if (string.IsNullOrWhiteSpace(EditBrandCode) || string.IsNullOrWhiteSpace(EditDisplayName))
@@ -198,6 +200,7 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand(CanExecute = nameof(CanManage))]
+        // brand có sản phẩm chỉ inactive; service là lớp quyết định cuối sau xác nhận UI
         private void DeleteBrand(Brand brand)
         {
             using var db = _contextFactory();

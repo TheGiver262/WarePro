@@ -13,6 +13,7 @@ public partial class WarrantyClaim
 
     public int ProductSerialId { get; set; }
 
+    // hai id replacement vừa liên kết kết quả vừa chặn một claim thay serial nhiều lần
     public int? ReplacementSerialId { get; set; }
 
     public int? ReplacementStockOutId { get; set; }
@@ -39,6 +40,7 @@ public partial class WarrantyClaim
 
     public DateTime? ManufacturerExpectedReturnDate { get; set; }
 
+    // status phải chuyển qua WarrantyClaimTransitions; Closed và Rejected là chỉ đọc
     public string Status { get; set; } = null!;
 
     public int? ApprovedBy { get; set; }

@@ -28,6 +28,7 @@ namespace QuanLyHangHoa.ViewModels
             }
         }
 
+        // chỉ chép field form vào entity sau khi cửa sổ xác nhận; list row gốc không đổi khi Cancel
         public void ApplyTo(Category category)
         {
             category.CategoryCode = CategoryCode;

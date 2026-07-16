@@ -7,6 +7,7 @@ namespace QuanLyHangHoa.ViewModels;
 
 public static class InvoiceLinkedDocumentMapper
 {
+    // giữ id dòng và unit nguồn để service đối soát chính xác; thuế vẫn do người dùng nhập trên hóa đơn
     public static List<SalesInvoiceLineEditor> MapSales(
         IEnumerable<StockOutLine> sourceLines,
         IEnumerable<Product> availableProducts)
@@ -23,6 +24,7 @@ public static class InvoiceLinkedDocumentMapper
         }).ToList();
     }
 
+    // dictionary tránh tìm sản phẩm lặp cho từng dòng chứng từ kho
     public static List<PurchaseInvoiceLineEditor> MapPurchase(
         IEnumerable<StockInLine> sourceLines,
         IEnumerable<Product> availableProducts)

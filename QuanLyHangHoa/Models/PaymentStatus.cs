@@ -11,6 +11,7 @@ public static class PaymentStatus
     public const string CheckConstraint =
         "[PaymentStatus] IN ('Unpaid', 'PartiallyPaid', 'Paid', 'Overdue')";
 
+    // mọi đầu vào được đưa về bốn giá trị canonical khớp check constraint của database
     public static string Normalize(string? value)
     {
         var status = value?.Trim();

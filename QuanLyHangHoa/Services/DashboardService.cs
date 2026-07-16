@@ -69,6 +69,7 @@ namespace QuanLyHangHoa.Services
             _contextFactory = contextFactory;
         }
 
+        // bốn biểu đồ bắt đầu trước để chạy song song với các chỉ số chính; mỗi task tự sở hữu một DbContext
         public virtual async Task<DashboardStats> GetStatsAsync()
         {
             var now = DateTime.Now;
@@ -83,22 +84,22 @@ namespace QuanLyHangHoa.Services
             using var context = _contextFactory();
             var stats = new DashboardStats();
 
-            // Inventory
+            // tổng tồn là số lượng đơn vị cơ sở đang có trong mọi kho
             stats.TotalInventoryCount = (int)(await context.StockBalances
                 .AsNoTracking()
                 .SumAsync(sb => (decimal?)sb.OnHandQuantity) ?? 0);
 
-            // Stock In
+            // đếm số chứng từ nhập được tạo từ đầu tháng hiện tại
             stats.StockInMonthCount = await context.StockIns
                 .AsNoTracking()
                 .CountAsync(s => s.CreatedAt >= startOfMonth);
 
-            // Stock Out
+            // đếm số chứng từ xuất được tạo từ đầu tháng hiện tại
             stats.StockOutMonthCount = await context.StockOuts
                 .AsNoTracking()
                 .CountAsync(s => s.CreatedAt >= startOfMonth);
 
-            // Sales & Revenue
+            // gom một lần ở database để lấy cả doanh thu/số hóa đơn tháng và năm
             var salesSummary = await context.SalesInvoices
                 .AsNoTracking()
                 .Where(s => s.InvoiceDate >= startOfYear)
@@ -122,7 +123,7 @@ namespace QuanLyHangHoa.Services
                 stats.RevenueMonth = salesSummary.MonthRevenue;
             }
 
-            // Unpaid Invoices
+            // mọi trạng thái khác Paid đều được xem là công nợ trên dashboard
             stats.UnpaidSalesInvoiceCount = await context.SalesInvoices
                 .AsNoTracking()
                 .CountAsync(s => s.PaymentStatus != PaymentStatus.Paid);
@@ -130,12 +131,12 @@ namespace QuanLyHangHoa.Services
                 .AsNoTracking()
                 .CountAsync(p => p.PaymentStatus != PaymentStatus.Paid);
 
-            // Warranty
+            // chỉ đếm claim đang hoạt động hoặc đang xử lý
             stats.WarrantyActiveCount = await context.WarrantyClaims
                 .AsNoTracking()
                 .CountAsync(w => w.Status == "Active" || w.Status == "Processing");
 
-            // Recent Activity
+            // gộp nhập và xuất trước khi sắp xếp để lấy đúng năm hoạt động mới nhất toàn hệ thống
             var combinedActivities = await context.StockIns
                 .AsNoTracking()
                 .Select(s => new { Type = "In", s.DocumentCode, s.CreatedAt })
@@ -168,6 +169,7 @@ namespace QuanLyHangHoa.Services
             return stats;
         }
 
+        // dictionary theo (năm, tháng) giúp lấp cả tháng không phát sinh bằng giá trị 0
         public async Task<System.Collections.Generic.List<RevenueExpenseData>> GetRevenueAndExpenseChartDataAsync(int months)
         {
             using var context = _contextFactory();
@@ -223,6 +225,7 @@ namespace QuanLyHangHoa.Services
             return result;
         }
 
+        // giá trị tồn ưu tiên giá vốn, thiếu giá vốn mới dùng giá bán mặc định
         public async Task<System.Collections.Generic.List<InventoryStructureData>> GetInventoryStructureChartDataAsync()
         {
             using var context = _contextFactory();
@@ -239,6 +242,7 @@ namespace QuanLyHangHoa.Services
                 .ToListAsync();
         }
 
+        // tổng quantity được nhóm tại database rồi mới lấy giới hạn sản phẩm bán nhiều nhất
         public async Task<System.Collections.Generic.List<TopSellingProductData>> GetTopSellingProductsAsync(int limit)
         {
             using var context = _contextFactory();
@@ -257,6 +261,7 @@ namespace QuanLyHangHoa.Services
             return grouped;
         }
 
+        // tạo đủ từng ngày trong khoảng để biểu đồ không bị đứt khi ngày đó không có chứng từ
         public async Task<System.Collections.Generic.List<StockMovementData>> GetStockMovementTrendAsync(int days)
         {
             using var context = _contextFactory();

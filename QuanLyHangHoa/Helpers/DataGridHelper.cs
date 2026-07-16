@@ -24,6 +24,7 @@ namespace QuanLyHangHoa.Helpers
             obj.SetValue(LoadMoreCommandProperty, value);
         }
 
+        // luôn tháo handler cũ trước khi gắn lại để attached property đổi nhiều lần không làm command chạy lặp
         private static void OnLoadMoreCommandChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is DataGrid dataGrid)
@@ -36,6 +37,7 @@ namespace QuanLyHangHoa.Helpers
             }
         }
 
+        // chỉ load khi cuộn xuống và đã qua 90% hoặc còn dưới 50 px; CanExecute chặn request đang chạy
         private static void DataGrid_ScrollChanged(object sender, ScrollChangedEventArgs e)
         {
             if (sender is DataGrid dataGrid)
