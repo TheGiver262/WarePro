@@ -267,7 +267,7 @@ Dự án đã có thư mục:
 code-explained/
 ```
 
-Đây là tài liệu giải thích code chi tiết. Bộ `learning-roadmap` này là bản học có lộ trình. Khi đã nắm roadmap, bạn nên đọc tiếp `code-explained/INDEX.md`.
+Đây là tài liệu giải thích kiến trúc trong bộ học có lộ trình. Khi đã nắm phần này, đọc tiếp [mục lục code-explained](../INDEX.md) để chuyển sang các chương code và nghiệp vụ chi tiết.
 
 ## 15. Cách tự trace một chức năng
 

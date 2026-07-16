@@ -102,6 +102,16 @@ Lưu ý hiện tại `LoadDocumentTimeline()` yêu cầu `Guid`, trong khi nhi�
 | `OpeningBalanceImportService.cs` | Import tồn đầu kỳ và ghi vào chứng từ kho |
 | `OpeningBalanceImportViewModel.cs` | UI mapping cột và chạy import tồn đầu kỳ |
 
+`DatabaseSeeder` không chỉ dành cho database rỗng. Nó đồng bộ dữ liệu workbook theo mã nghiệp vụ và chỉ thêm bản ghi còn thiếu. Với `ProductUnit`, seeder phải:
+
+- Resolve `ProductId` và `UnitId` nguồn qua map được dựng khi seed `Product` và `Unit`.
+- Từ chối dòng không resolve được khóa ngoại hoặc có `ConversionFactor <= 0`.
+- Không ghi đè cặp `(ProductId, UnitId)` đã tồn tại.
+- Không tạo đơn vị cơ sở thứ hai cho cùng sản phẩm.
+- Cho kết quả giống nhau khi chạy lại: lần sau không sinh dòng trùng.
+
+`DatabaseSeederProductUnitTests` khóa các hành vi này bằng workbook tối thiểu: giữ nguyên một dòng quy đổi có sẵn, thêm dòng cơ sở còn thiếu, chạy seeder hai lần và xác nhận tổng dữ liệu không đổi sau lần thứ hai. Với database hiện hữu, `Database/BackfillProductUnits.sql` cung cấp dry-run, transaction và cơ chế insert-only tương ứng.
+
 ### 2.2 Import Excel/CSV cơ bản
 
 `ExcelImportService` và `CsvImportService` có trách nhiệm đọc file ngoài thành model trung gian. Việc tách reader ra khỏi nghiệp vụ giúp:

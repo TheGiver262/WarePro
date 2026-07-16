@@ -13,6 +13,7 @@ Bộ tài liệu cũ đã bao phủ tốt kiến trúc nền, đăng nhập, MVV
 - Dashboard, báo cáo doanh thu, báo cáo xuất nhập tồn, thẻ kho và truy vết serial.
 - Audit log, audit timeline, lưu trữ log.
 - Chiến lược kiểm thử và cách giải thích test fail do SQL Server thật.
+- Cài đặt hai mode, runtime config, SQL credential, startup an toàn, updater và release gate.
 
 Các file bổ sung mới tập trung vào những vùng này:
 
@@ -25,7 +26,7 @@ Các file bổ sung mới tập trung vào những vùng này:
 
 | Nhóm code | File code chính | Tài liệu hiện có | Mức bao phủ | Ghi chú |
 |---|---|---|---|---|
-| Khởi động ứng dụng | `App.xaml.cs`, `LoginView.xaml.cs`, `MainWindow.xaml.cs` | `01_khoi_dong_va_dieu_huong.md` | Tốt | Có giải thích startup, seed, điều hướng, view cache. |
+| Khởi động/cài đặt/cập nhật | `App.xaml.cs`, `Configuration/`, `Startup/`, `Updates/`, `WarePro.SetupHelper/` | `01_khoi_dong_va_dieu_huong.md`, `13_startup_dbcontext_mapping_de_hieu.md`, `14_cai_dat_cap_nhat_phat_hanh_de_hieu.md` | Tốt | Có credential, compatibility, lock, backup, updater và release gate. |
 | Database/Models | `AppDbContext.cs`, `Models/*` | `02_models_va_database.md`, `database_and_domain_models.md` | Tốt | Cần nhớ DB thật dùng SQL Server, test đa số dùng SQLite. |
 | Authentication | `AuthenticationService.cs`, `LoginViewModel.cs` | `authentication_service.md`, `01_khoi_dong_va_dieu_huong.md` | Tốt | Có BCrypt, lockout, audit login. |
 | Authorization/RBAC | `AuthorizationService.cs`, `MainViewModel.cs` | `03_services_nghiep_vu.md`, `presentation_and_viewmodels.md` | Khá | Đủ để trả lời quyền admin/log. |
@@ -39,7 +40,7 @@ Các file bổ sung mới tập trung vào những vùng này:
 | Dashboard/Báo cáo | `DashboardService.cs`, `DashboardViewModel.cs`, `ReportViewModel.cs` | `presentation_and_viewmodels.md`, file bổ sung 07 | Bổ sung mới | Cần giải thích rõ dashboard là KPI nhanh, report là phân tích sâu. |
 | Import dữ liệu | `Services/DataImport/*`, `OpeningBalanceImport*` | `opening_balance_import.md`, `business_services_detailed.md`, file bổ sung 08 | Bổ sung mới | Tài liệu mới gom thêm phân loại file, mapping cột, import động và test. |
 | Audit | `ReportTraceService / AuditLogService.cs`, `AuditLogViewModel.cs`, `ReportViewModel.cs` | `execution_and_data_flows.md`, file bổ sung 08 | Bổ sung mới | Truy vet san pham/serial da gom vao Bao cao; view truy van rieng da duoc go bo. |
-| Testing | `QuanLyHangHoa.Tests/*` | `warranty_tests.md`, file bổ sung 08 | Bổ sung mới | Có 100 tests, lần rà gần nhất 93 pass, 7 fail do SQL Server encryption ở nhóm real DB. |
+| Testing | `QuanLyHangHoa.Tests/*` | `warranty_tests.md`, file bổ sung 08 và chương 14 | Tốt | 591/591 test `Category!=RealDatabase` đạt tại `895a70a`; RealDatabase và Gate C vẫn phải chạy trên môi trường disposable. |
 
 ## 3. Các điểm hội đồng dễ hỏi
 
@@ -59,17 +60,17 @@ Quyền bảo hành bắt đầu khi sản phẩm serial-tracked được bán c
 
 Ứng dụng desktop chạy lâu. Nếu giữ một `DbContext` duy nhất, dữ liệu dễ bị cache cũ, tăng bộ nhớ và khó xử lý đa luồng. `Func<AppDbContext>` giúp mỗi service tạo context ngắn hạn bằng `using var db = _contextFactory();`, dùng xong giải phóng.
 
-### 3.5 Vì sao có test fail nhưng vẫn nói nghiệp vụ lõi ổn?
+### 3.5 Vì sao 591/591 test đạt nhưng vẫn chưa kết luận release ready?
 
-Lần rà gần nhất chạy `dotnet test .\QuanLyHangHoa.Tests\QuanLyHangHoa.Tests.csproj --no-build --logger "trx;LogFileName=codex-test-results.trx" --verbosity quiet` cho kết quả 100 tests, 93 pass, 7 fail. Các fail cùng nguyên nhân: nhóm test kết nối SQL Server thật gặp lỗi encryption của môi trường. Các test unit/integration dùng SQLite và test double cho nghiệp vụ lõi vẫn pass.
+Automated gate tại `895a70a` đạt 591/591 test `Category!=RealDatabase`, build sạch và Inno compile. Kết quả này chứng minh logic, persistence độc lập và contract installer/startup/updater; nó không thay thế ký thật, SQL Server disposable, VM sạch, multi-client, backup/restore và rollback thuộc Gate C.
 
 ## 4. Rủi ro tài liệu cần nói thẳng
 
 - Một số văn bản cũ bị lỗi encoding khi xem qua terminal, nhưng file gốc vẫn là tài liệu tiếng Việt. Khi viết đồ án nên chuẩn hóa encoding UTF-8.
 - Một số màn đã có code nhưng bị ẩn trên menu, ví dụ chuyển kho và điều chỉnh kho trong `MainWindow.xaml`.
 - Có resource tên `PrimaryPurpleBrush` và màu indigo/purple trong theme, trong khi guideline dự án có quy tắc không dùng purple/violet.
-- `App.xaml.cs` đang kết hợp `EnsureCreated`, SQL thủ công và seed Excel. Đây là cách tiện cho demo nhưng chưa phải quy trình migration production chuẩn.
-- Connection string SQL Server đang hardcode trong `AppDbContext.cs`.
+- Startup dùng compatibility gate, application lock, verified backup và schema update idempotent; Gate C trên VM/SQL disposable vẫn phải đạt trước stable release.
+- Connection string được tạo từ runtime settings; SQL password nằm trong Windows Credential Manager theo từng user và không được ghi vào JSON/log.
 
 ## 5. Cách dùng bộ tài liệu khi ôn bảo vệ
 

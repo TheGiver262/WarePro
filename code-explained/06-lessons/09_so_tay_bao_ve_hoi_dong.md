@@ -185,20 +185,30 @@ Các nhóm test:
 Kết quả rà gần nhất:
 
 ```text
-100 tests
-93 passed
-7 failed do lỗi môi trường SQL Server encryption ở nhóm real DB
+591/591 test Category!=RealDatabase đạt
+solution build: 0 lỗi, 0 cảnh báo
+Inno Setup compile-only đạt; Gate C vẫn HOLD
 ```
 
 Trả lời mẫu:
 
-Phần lớn test nghiệp vụ chạy độc lập bằng SQLite hoặc test double. Một số test kết nối SQL Server thật phụ thuộc môi trường, nên khi chạy trên máy chưa cấu hình đúng encryption sẽ fail. Đây là vấn đề môi trường test, không phải lỗi assertion nghiệp vụ.
+Automated gate bao phủ nghiệp vụ, persistence độc lập và contract cài đặt/cập nhật. Nhóm `RealDatabase` cùng ký thật, VM sạch, multi-client, backup/restore và rollback cần môi trường disposable riêng, nên 591/591 không được dùng để tuyên bố stable release đã sẵn sàng.
 
 ## 15. Các điểm cần thành thật nếu hội đồng hỏi hạn chế
 
 - Một số màn đã có code nhưng chưa bật trên sidebar chính.
-- Connection string SQL Server còn hardcode.
-- Startup đang dùng cả `EnsureCreated`, SQL thủ công và seed Excel, phù hợp demo nhưng cần chuẩn hóa migration cho production.
+- Connection string lấy từ runtime settings; SQL password nằm trong Windows Credential Manager theo từng user.
+- Startup dùng `StartupCoordinator`, schema metadata, compatibility gate, `SchemaUpgradeLock`, verified backup và schema update idempotent. `EnsureCreated` chỉ phục vụ database mới; stable release vẫn cần Gate C trên VM và SQL disposable.
+
+### Câu hỏi về cài đặt và cập nhật
+
+**Tại sao không lưu SQL password trong file cấu hình?** ProgramData là cấu hình dùng chung máy. WarePro lưu password theo từng Windows user trong Credential Manager và chỉ mở `SecureString` khi tạo connection string.
+
+**Tại sao cần khóa khi nâng schema?** Nhiều máy có thể mở cùng lúc. Application lock bảo đảm chỉ một client chạy DDL/seed; client còn lại chờ rồi đọc lại schema.
+
+**Tại sao updater kiểm tra cả hash và chữ ký?** Hash bảo vệ nội dung byte; Authenticode, chain, timestamp và thumbprint bảo vệ danh tính nhà phát hành.
+
+**Installer đã sẵn sàng phát hành chưa?** Automated gate đã đạt 591/591 test, build và Inno compile. Gate C gồm ký thật, VM sạch, update/shared-database/restore/rollback drill vẫn HOLD.
 - Còn nhiều compiler warnings cần triage trước khi bàn giao thương mại.
 - Một số màu theme còn tên `PrimaryPurpleBrush`, chưa khớp hoàn toàn guideline "Purple Ban".
 

@@ -202,10 +202,14 @@ await Task.WhenAll(revenueExpenseTask, inventoryStructureTask, topSellingTask, s
   Điều này cho phép một lớp dịch vụ duy nhất có thể import cho mọi bảng dữ liệu khác nhau mà không cần viết lại mã nguồn.
 
 ### B. Dịch vụ Khởi tạo Dữ liệu Mẫu (`DatabaseSeeder`)
-* **Vai trò:** Chứa thuật toán tự động sinh dữ liệu mẫu giả định rất chi tiết cho cơ sở dữ liệu khi hệ thống được cài đặt lần đầu.
-* **Thuật toán sinh dữ liệu:**
-  * Sinh ngẫu nhiên danh sách Danh mục, Thương hiệu, Nhà cung cấp, Khách hàng.
-  * Tạo hơn 100 sản phẩm mẫu (bao gồm sản phẩm quản lý bằng serial và sản phẩm thông thường).
-  * Sinh các hóa đơn mua hàng, phiếu nhập kho tương ứng, tự động sinh số serial hợp lệ.
-  * Giả lập các giao dịch bán hàng, sinh hóa đơn bán hàng và tự động kích hoạt bảo hành cho khách hàng.
-  * Giả lập phát sinh các hồ sơ bảo hành ở nhiều trạng thái khác nhau (`Open`, `Repairing`, `Closed`) để người dùng có thể trải nghiệm toàn bộ các tính năng báo cáo, biểu đồ ngay lập tức mà không cần tự nhập dữ liệu thủ công.
+* **Vai trò:** Đọc dữ liệu mẫu xác định trước trong `Database/warepro_database_seed.xlsx` và đồng bộ vào SQL Server. Seeder không tự sinh ngẫu nhiên dữ liệu.
+* **Cách đồng bộ bảng chính:**
+  * Với `Unit`, `Category`, `Brand`, `Supplier`, `Customer`, `Product` và các chứng từ, seeder đối chiếu mã nghiệp vụ trong workbook với dữ liệu hiện có.
+  * Nếu đã có bản ghi cùng mã, seeder giữ nguyên bản ghi và ghi nhận ánh xạ từ ID nguồn trong Excel sang ID thật trong DB.
+  * Nếu chưa có, seeder tạo bản ghi mới rồi bổ sung ID vừa sinh vào map để các sheet phụ thuộc dùng đúng khóa ngoại.
+* **Cách đồng bộ `ProductUnit`:**
+  * Chạy ngay sau khi `Product` và `Unit` đã có map đầy đủ.
+  * Resolve `ProductId` và `UnitId` qua `_productMap`/`_unitMap`; không giả định ID trong workbook trùng ID identity của SQL Server.
+  * Chỉ thêm cặp `(ProductId, UnitId)` còn thiếu, yêu cầu `ConversionFactor > 0` và bảo đảm mỗi sản phẩm không có quá một đơn vị cơ sở.
+  * Không sửa hệ số hoặc các cờ `IsBaseUnit`, `IsPurchaseUnit`, `IsSalesUnit` của dòng đã tồn tại, vì đó có thể là cấu hình thật do người dùng tạo.
+* **Tính lặp an toàn:** Chạy seeder nhiều lần không tạo thêm dòng `ProductUnit` trùng. Script `Database/BackfillProductUnits.sql` áp dụng cùng nguyên tắc insert-only khi cần bổ sung dữ liệu quy đổi cho database đã tồn tại.

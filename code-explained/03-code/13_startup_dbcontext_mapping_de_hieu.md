@@ -1,5 +1,15 @@
 ﻿# 13 - Startup, AppDbContext và mapping database dễ hiểu
 
+> **Trạng thái hiện hành:** startup đi qua `FirstRunCredentialCoordinator` và `StartupCoordinator`. `DatabaseInitializer` vẫn dùng `EnsureCreated` cho database mới, nhưng database hiện hữu còn được bảo vệ bằng schema metadata, compatibility gate, `SchemaUpgradeLock`, verified backup và transaction. Vì vậy không được kết luận hệ thống production chỉ dựa vào `EnsureCreated`.
+
+```text
+settings/credential -> SQL probe -> compatibility -> lock
+-> EnsureCreated (database mới) -> backup (nếu nâng schema có dữ liệu)
+-> schema update -> seed -> login
+```
+
+Đọc [chương 14](./14_cai_dat_cap_nhat_phat_hanh_de_hieu.md) để hiểu installer, updater và release gate liên quan tới startup.
+
 File này giải thích các phần khó trong:
 
 - `QuanLyHangHoa/App.xaml.cs`
@@ -109,7 +119,16 @@ var seeder = new Services.DataImport.DatabaseSeeder(db, excelPath);
 var log = Task.Run(async () => await seeder.SeedAsync()).GetAwaiter().GetResult();
 ```
 
-Dễ hiểu: app tự nạp dữ liệu mẫu như danh mục, sản phẩm, serial... để demo có dữ liệu ngay.
+Dễ hiểu: app đọc workbook rồi đồng bộ dữ liệu mẫu như danh mục, sản phẩm, quy đổi đơn vị, chứng từ và serial. Bản ghi đã tồn tại được nhận diện theo mã; seeder chỉ thêm dữ liệu còn thiếu.
+
+Riêng sheet `ProductUnit` không thể dùng trực tiếp số ID trong Excel vì ID thật trong DB có thể khác. Seeder xử lý theo thứ tự:
+
+1. Đồng bộ `Unit` và `Product`, đồng thời dựng `_unitMap` và `_productMap` từ ID nguồn sang ID thật.
+2. Đọc từng dòng `ProductUnit` và resolve hai khóa ngoại qua các map này.
+3. Kiểm tra `ConversionFactor > 0`.
+4. Chỉ thêm cặp `(ProductId, UnitId)` chưa tồn tại; không ghi đè hệ số/cờ của dữ liệu cũ và không tạo đơn vị cơ sở thứ hai cho cùng sản phẩm.
+
+Nhờ vậy, database mới nhận đủ dữ liệu quy đổi trong workbook, còn database đang sử dụng có thể chạy lại seeder mà không sinh dòng trùng hoặc làm mất cấu hình người dùng.
 
 ## 6. AppDbContext là gì?
 
@@ -327,23 +346,24 @@ Lợi ích:
 | EF Core migrations | File C# mô tả thay đổi schema, chạy bằng `dotnet ef database update` | Có thư mục `Migrations` |
 | SQL thủ công trong startup | App tự chạy `ALTER TABLE`/`CREATE TABLE` khi mở | Có trong `App.xaml.cs` |
 
-Với đồ án/demo, SQL thủ công giúp app dễ chạy trên máy mới. Với production, nên ưu tiên migration chuẩn, kiểm soát version rõ ràng.
+WarePro dùng chiến lược migration-in-app có version metadata và các guard dành cho môi trường nhiều máy. Các câu SQL phải idempotent, được khóa, backup và chạy trong transaction; release chỉ được lên stable sau khi Gate C trên SQL disposable đạt.
 
 ## 17. Những điểm cần nói thẳng khi bảo vệ
 
-- Connection string đang hardcode trong `AppDbContext`; bản production nên đưa vào config.
-- `EnsureCreated` + SQL thủ công tiện demo nhưng không phải quy trình migration chuẩn nhất.
-- Seed Excel giúp có dữ liệu mẫu nhanh, nhưng production nên có quy trình seed riêng.
+- Connection string được tạo từ runtime settings; SQL password nằm trong Windows Credential Manager theo từng user, không ghi vào `settings.json`.
+- `EnsureCreated` chỉ tạo database mới; schema hiện hữu dùng metadata, lock, backup và SQL idempotent. Đây là migration-in-app có guard, không còn là lời gọi demo đơn lẻ.
+- Seed Excel chỉ chạy theo policy và nằm trong vùng startup có khóa; production vẫn phải kiểm tra dữ liệu seed trong Gate C.
 - `AppDbContext` dài vì hệ thống có nhiều bảng và quan hệ.
 
 ## 18. Cách học phần này trong 30 phút
 
-1. Mở `App.xaml.cs`, đọc `OnStartup` từ trên xuống.
-2. Ghi lại 3 việc app làm với database khi mở.
-3. Mở `AppDbContext.cs`, chỉ đọc `DbSet` trước.
-4. Chọn một entity dễ: `Product`.
-5. Tìm `modelBuilder.Entity<Product>`.
-6. Đọc unique index, decimal price, quan hệ Category/Brand/Unit.
-7. Chuyển sang entity khó hơn: `ProductSerial` hoặc `StockIn`.
+1. Mở `App.xaml.cs`, đọc phần điều phối credential và `StartupCoordinator`.
+2. Mở `Startup/StartupCoordinator.cs`, ghi lại thứ tự load settings, probe SQL và initialize database.
+3. Mở `Services/DatabaseInitializer.cs`, tìm compatibility, lock, backup, schema update và seed.
+4. Mở `AppDbContext.cs`, chỉ đọc `DbSet` trước.
+5. Chọn một entity dễ: `Product`.
+6. Tìm `modelBuilder.Entity<Product>`.
+7. Đọc unique index, decimal price, quan hệ Category/Brand/Unit.
+8. Chuyển sang entity khó hơn: `ProductSerial` hoặc `StockIn`.
 
 Đừng cố thuộc toàn bộ mapping. Hãy biết cách tìm đúng đoạn khi cần.

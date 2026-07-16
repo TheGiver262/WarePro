@@ -10,7 +10,7 @@ Mục tiêu:
 
 Đọc:
 
-- `learning-roadmap/01_ngon_ngu_csharp_can_biet.md`
+- [01 - Ngôn ngữ C# cần biết](./01_ngon_ngu_csharp_can_biet.md)
 - `QuanLyHangHoa/Models/Product.cs`
 - `QuanLyHangHoa/Models/AppUser.cs`
 - `QuanLyHangHoa/Services/AuthenticationService.cs`
@@ -35,7 +35,7 @@ Mục tiêu:
 
 Đọc:
 
-- `learning-roadmap/02_wpf_xaml_mvvm_can_biet.md`
+- [02 - WPF, XAML và MVVM cần biết](./02_wpf_xaml_mvvm_can_biet.md)
 - `QuanLyHangHoa/MainWindow.xaml.cs`
 - `QuanLyHangHoa/ViewModels/MainViewModel.cs`
 - Một file `Views/*.xaml` tùy chọn.
@@ -61,7 +61,7 @@ Mục tiêu:
 
 Đọc:
 
-- `learning-roadmap/03_ef_core_sql_server_can_biet.md`
+- [03 - EF Core và SQL Server cần biết](./03_ef_core_sql_server_can_biet.md)
 - `QuanLyHangHoa/Data/AppDbContext.cs`
 - `QuanLyHangHoa/Models/Product.cs`
 - `QuanLyHangHoa/Models/StockBalance.cs`
@@ -113,7 +113,7 @@ Mục tiêu:
 
 Đọc:
 
-- `learning-roadmap/05_nghiep_vu_chinh_va_thuat_toan.md`
+- [05 - Nghiệp vụ chính và thuật toán](./05_nghiep_vu_chinh_va_thuat_toan.md)
 - `Inventory/InventoryPostingService.cs`
 - `Services/StockInService.cs`
 - `ViewModels/StockInViewModel.cs`

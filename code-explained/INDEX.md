@@ -75,6 +75,7 @@
 | [Business services chi tiết](./03-code/business_services_detailed.md) | Logic các service cốt lõi |
 | [Presentation và ViewModels](./03-code/presentation_and_viewmodels.md) | Tầng presentation chuyên sâu |
 | [Startup và DbContext dễ hiểu](./03-code/13_startup_dbcontext_mapping_de_hieu.md) | App startup, DbSet, mapping và seed |
+| [Cài đặt, cập nhật và phát hành](./03-code/14_cai_dat_cap_nhat_phat_hanh_de_hieu.md) | Installer hai mode, credential, schema safety, updater và release gate |
 
 ## 04. Nghiệp vụ và luồng dữ liệu
 

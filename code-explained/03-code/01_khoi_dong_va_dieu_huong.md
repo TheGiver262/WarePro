@@ -2,11 +2,20 @@
 
 > Tài liệu này giải thích chi tiết từng dòng code của các file chịu trách nhiệm khởi động ứng dụng, đăng nhập và điều hướng giữa các màn hình.
 
+> **Cập nhật kiến trúc từ commit `895a70a`:** `App.xaml.cs` không còn trực tiếp coi `EnsureCreated` + seed là toàn bộ startup. App xử lý first-run SQL credential, gọi `StartupCoordinator`, probe SQL và chạy `DatabaseInitializer` có compatibility gate, `SchemaUpgradeLock`, verified backup, schema update và seed. Phần mô tả `EnsureCreated`/SQL thủ công bên dưới chỉ giải thích cơ chế legacy còn được `DatabaseInitializer` bao bọc; xem [chương 14](./14_cai_dat_cap_nhat_phat_hanh_de_hieu.md) cho luồng hiện hành đầy đủ.
+
+Luồng hiện hành:
+
+```text
+App.OnStartup -> FirstRunCredentialCoordinator -> StartupCoordinator
+-> ProbeSqlAsync -> DatabaseInitializer -> LoginView
+```
+
 ---
 
 ## 1. `App.xaml.cs` — Điểm khởi động đầu tiên
 
-**Vai trò:** WPF gọi file này đầu tiên khi ứng dụng chạy. Đây là nơi duy nhất trong toàn bộ codebase xử lý việc tạo database và seed dữ liệu mẫu.
+**Vai trò:** WPF gọi file này đầu tiên khi ứng dụng chạy. File này điều phối credential, startup và cửa sổ đăng nhập; logic database chi tiết nằm trong `StartupCoordinator` và `DatabaseInitializer`.
 
 ```csharp
 protected override void OnStartup(StartupEventArgs e)
@@ -56,7 +65,9 @@ var seeder = new Services.DataImport.DatabaseSeeder(db, excelPath);
 var log = Task.Run(async () => await seeder.SeedAsync()).GetAwaiter().GetResult();
 ```
 - `Task.Run(...).GetAwaiter().GetResult()` — chạy async code trong context đồng bộ (vì `OnStartup` không phải là `async`).
-- `DatabaseSeeder.SeedAsync()` đọc file Excel và chèn dữ liệu mẫu vào DB **nếu DB còn rỗng**.
+- `DatabaseSeeder.SeedAsync()` đọc file Excel và đồng bộ từng bảng theo mã nghiệp vụ. Dòng đã tồn tại được dùng để dựng lại ánh xạ ID; dòng còn thiếu mới được thêm vào DB.
+- Sau khi đồng bộ `Product`, seeder đọc sheet `ProductUnit`, đổi `ProductId`/`UnitId` trong Excel sang ID thật trong DB rồi chỉ thêm cặp `(ProductId, UnitId)` còn thiếu.
+- Dữ liệu quy đổi người dùng đã tạo không bị ghi đè. Seeder cũng bỏ qua đơn vị cơ sở mới nếu sản phẩm đã có đơn vị cơ sở và từ chối `ConversionFactor <= 0`.
 
 ---
 
@@ -375,7 +386,7 @@ private void Logout()
 App.xaml.cs::OnStartup()
     ├─ EnsureCreated()          → Tạo DB nếu chưa có
     ├─ Manual Migrations        → Thêm cột/bảng mới an toàn
-    └─ DatabaseSeeder.SeedAsync() → Chèn data mẫu nếu DB rỗng
+    └─ DatabaseSeeder.SeedAsync() → Đồng bộ data mẫu còn thiếu theo mã
                 ↓
     LoginView hiển thị (cửa sổ đầu tiên)
                 ↓
@@ -410,3 +421,5 @@ App.xaml.cs::OnStartup()
 | `LoginView.xaml.cs` | Workaround PasswordBox binding |
 | `MainWindow.xaml.cs` | Khởi tạo MainViewModel |
 | `MainViewModel.cs` | Điều hướng toàn bộ màn hình, cache View |
+| `StartupCoordinator.cs` | Đọc cấu hình, probe SQL và điều phối khởi tạo database |
+| `Configuration/*` | Settings, path, connection string và Credential Manager |

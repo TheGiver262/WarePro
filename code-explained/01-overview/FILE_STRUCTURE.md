@@ -3,18 +3,26 @@
 ```text
 ProductManagement_Antigravity/
 |-- QuanLyHangHoa/          Ung dung WPF
+|   |-- Configuration/      Path, settings va SQL credential
 |   |-- Data/               EF Core DbContext
 |   |-- Inventory/          Loi ghi so kho
 |   |-- Models/             Entity va enum
 |   |-- Services/           Nghiep vu ung dung
+|   |-- Startup/            Probe SQL va khoi tao database
+|   |-- Updates/            Kiem tra, tai va xac minh update
 |   |-- ViewModels/         State va command MVVM
 |   |-- Views/              Man hinh va dialog
 |   |-- Themes/             Style/resource WPF
-|   `-- DOCS/               Tai lieu noi bo, khong commit
 |-- QuanLyHangHoa.Tests/    Test tu dong
+|-- WarePro.Core/           Contract dung chung
+|-- WarePro.SetupHelper/    CLI cho installer
+|-- installer/              Inno Setup va SQL Express dependency
+|-- scripts/release/        Build, sign, manifest va verify
+|-- docs/                   Runbook, user guide, plan va spec
+|-- code-explained/         Tai lieu hoc va giai thich code
 |-- Diagram/                So do thiet ke cong khai
 |-- graphify-out/           Chi muc code cuc bo, khong commit
-`-- Thiet ke phan mem.md     Thiet ke cong khai
+`-- output/                 Sach Word/PDF sinh tu Markdown, local-only
 ```
 
 ## Tim code

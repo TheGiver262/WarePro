@@ -254,11 +254,18 @@ Mỗi bug phải có test tái hiện ở tầng thấp nhất vẫn chứng min
 ### Trước phát hành
 
 - [ ] Fresh install và upgrade từ bản cũ.
+- [ ] Installer hỗ trợ rõ standalone và kết nối SQL Server có sẵn; custom mode cho phép chỉ cài ứng dụng.
+- [ ] Runtime config nằm ngoài thư mục cài; secret nằm trong credential store theo từng user.
+- [ ] Startup có compatibility gate, khóa nâng schema, verified backup và schema update idempotent.
 - [ ] Role-by-role smoke.
 - [ ] Luồng chính có dữ liệu thật trên DB tạm.
 - [ ] Đối chiếu source-of-truth sau mỗi mutation lớn.
+- [ ] Update chỉ nhận HTTPS, version mới hơn, hash đúng, chữ ký/chain/timestamp/thumbprint hợp lệ.
+- [ ] Stable release đã ký thật và chạy fresh install, upgrade, multi-client, backup/restore, rollback trên VM/SQL disposable.
 - [ ] Rebrand check: title, icon, assembly, pack URI, docs.
 - [ ] Không có secret, DB thật hoặc tài liệu local trong commit.
+
+Không gộp “build/compile xanh” với “release ready”. Automated gate chứng minh source và artifact có thể tạo; Gate C mới chứng minh installer/updater/schema an toàn trong môi trường triển khai thật.
 
 ## 17. Những thứ không nên sao chép máy móc từ WarePro
 

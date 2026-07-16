@@ -65,15 +65,20 @@ SQL Server
 
 ## 4. Luồng khởi động, đăng nhập và điều hướng
 
-1. `App.xaml.cs` khởi tạo crash logging, chạy `DatabaseInitializer` và mở `LoginView`.
-2. `LoginViewModel` gọi `AuthenticationService` để xác thực.
-3. Đăng nhập thành công tạo `MainWindow` và `MainViewModel` với `AppUser` thật.
-4. `MainViewModel` kiểm tra `AuthorizationService` trước khi mở module.
-5. Mỗi view được tạo lần đầu rồi cache; khi quay lại, ViewModel có dữ liệu phải thực thi `IRefreshable.RefreshData()`.
-6. Service nhận `Func<AppDbContext>` và tạo context ngắn hạn cho từng thao tác.
-7. `CrashLogger` thu lỗi từ WPF Dispatcher, AppDomain và TaskScheduler.
+1. `App.xaml.cs` khởi tạo crash logging và điều phối SQL credential lần đầu nếu cấu hình dùng SQL Authentication.
+2. `StartupCoordinator` đọc runtime settings, tạo connection string, probe SQL rồi gọi `DatabaseInitializer` trên worker.
+3. `DatabaseInitializer` kiểm tra compatibility, lấy `SchemaUpgradeLock`, tạo verified backup khi cần, cập nhật schema idempotent và seed theo policy.
+4. Startup thành công mới mở `LoginView`; lỗi được map thành mã ổn định và log đã che secret.
+5. `LoginViewModel` gọi `AuthenticationService` để xác thực.
+6. Đăng nhập thành công tạo `MainWindow` và `MainViewModel` với `AppUser` thật.
+7. `MainViewModel` kiểm tra `AuthorizationService` trước khi mở module.
+8. Mỗi view được tạo lần đầu rồi cache; khi quay lại, ViewModel có dữ liệu phải thực thi `IRefreshable.RefreshData()`.
+9. Service nhận `Func<AppDbContext>` và tạo context ngắn hạn cho từng thao tác.
+10. `CrashLogger` thu lỗi từ WPF Dispatcher, AppDomain và TaskScheduler.
 
 Không dùng user giả, id mặc định hoặc “admin fallback”. Thiếu identity phải thất bại đóng (`fail closed`), vì fallback biến lỗi lập trình thành lỗ hổng quyền.
+
+Phần cài đặt và cập nhật là một biên kiến trúc riêng gồm `Configuration`, `Startup`, `Updates`, `WarePro.SetupHelper`, Inno Setup và release scripts. Xem [chương cài đặt, cập nhật và phát hành](../03-code/14_cai_dat_cap_nhat_phat_hanh_de_hieu.md).
 
 ## 5. Mô hình dữ liệu cốt lõi
 

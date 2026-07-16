@@ -8,11 +8,16 @@ Views -> ViewModels -> Services + Inventory -> AppDbContext / EF Core / SQL Serv
 
 ## Khoi dong va dieu huong
 
-1. `App.xaml.cs` hien `LoginView`, dong thoi chay `DatabaseInitializer` nen.
-2. Dang nhap thanh cong mo `MainWindow` voi `MainViewModel`.
-3. `MainViewModel` kiem tra `AuthorizationService`, tao view lan dau va cache theo khoa.
-4. ViewModel goi service qua `Func<AppDbContext>` de dung context ngan han.
-5. `CrashLogger` nhan loi tu Dispatcher, AppDomain va TaskScheduler.
+1. `App.xaml.cs` thu credential lan dau neu cau hinh dung SQL Authentication.
+2. `StartupCoordinator` doc cau hinh, tao connection string, probe SQL va goi `DatabaseInitializer` tren worker.
+3. `DatabaseInitializer` kiem tra compatibility, lay `SchemaUpgradeLock`, backup co verify neu can, cap nhat schema va seed.
+4. Startup thanh cong moi hien `LoginView`; loi duoc map thanh ma on dinh va log da redact secret.
+5. Dang nhap thanh cong mo `MainWindow` voi `MainViewModel`.
+6. `MainViewModel` kiem tra `AuthorizationService`, tao view lan dau va cache theo khoa.
+7. ViewModel goi service qua `Func<AppDbContext>` de dung context ngan han.
+8. `CrashLogger` nhan loi tu Dispatcher, AppDomain va TaskScheduler.
+
+Cai dat va cap nhat la mot bien kien truc rieng: `Configuration` + `Startup` + `Updates` + `WarePro.SetupHelper` + Inno/release scripts. Doc [chuong cai dat, cap nhat va phat hanh](../03-code/14_cai_dat_cap_nhat_phat_hanh_de_hieu.md) de xem luong day du.
 
 ## Bien module
 

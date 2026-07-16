@@ -2,7 +2,9 @@
 
 | Khu vuc | Diem vao | Service/loi | Test lien quan |
 |---|---|---|---|
-| Startup/login | `App.xaml.cs`, `LoginView*` | `DatabaseInitializer`, `AuthenticationService` | initializer va seed policy |
+| Startup/login | `App.xaml.cs`, `LoginView*` | `FirstRunCredentialCoordinator`, `StartupCoordinator`, `DatabaseInitializer`, `AuthenticationService` | configuration, startup, initializer va seed policy |
+| Cai dat | `installer/WarePro.iss` | `WarePro.SetupHelper`, SQL Express include | installer/setup helper contract |
+| Cap nhat/phat hanh | `UpdateView*`, `.github/workflows/warepro-release.yml` | `UpdateService`, `AuthenticodeVerifier`, release scripts | update, publish va release contract |
 | Shell/dieu huong | `MainWindow*`, `MainViewModel.cs` | `AuthorizationService` | MainViewModel va RBAC |
 | Danh muc | cac `Category/Brand/Unit/Supplier/CustomerView*` | service cung ten | service, ViewModel, view |
 | San pham/serial | `ProductView*`, `ProductSerialView*` | `ProductService`, `ProductSerialService` | product/serial/import |

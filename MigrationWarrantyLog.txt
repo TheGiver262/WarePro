@@ -1,1 +1,0 @@
-Total Sold: 197, With StockOut: 180, Without StockOut: 17
