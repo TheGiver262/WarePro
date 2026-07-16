@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
+using QuanLyHangHoa.Configuration;
 using QuanLyHangHoa.Models;
 
 namespace QuanLyHangHoa.Data;
@@ -16,11 +17,7 @@ public partial class AppDbContext : DbContext
     {
     }
 
-    public static string GetConnectionString()
-    {
-        return Environment.GetEnvironmentVariable("WAREPRO_CONNECTION_STRING")
-            ?? "Server=.\\SQLEXPRESS;Database=ProductManagementDb;Trusted_Connection=True;TrustServerCertificate=True;";
-    }
+    public static string GetConnectionString() => ConnectionStringFactory.CreateDefault().Resolve();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

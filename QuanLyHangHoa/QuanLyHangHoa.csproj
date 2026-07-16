@@ -9,17 +9,28 @@
     <UseWPF>true</UseWPF>
     <AssemblyName>WarePro</AssemblyName>
     <RootNamespace>QuanLyHangHoa</RootNamespace>
+    <VersionPrefix>1.0.0</VersionPrefix>
+    <Version>$(VersionPrefix)</Version>
+    <AssemblyVersion>$(VersionPrefix).0</AssemblyVersion>
+    <FileVersion>$(VersionPrefix).0</FileVersion>
+    <InformationalVersion>$(VersionPrefix)</InformationalVersion>
+    <WareProPublisherThumbprint Condition="'$(WareProPublisherThumbprint)' == ''" />
     <ApplicationIcon>Assets\WarePro.ico</ApplicationIcon>
     <NoWarn>$(NoWarn);NU1701;CA1416</NoWarn>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
   </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyMetadata Include="WareProPublisherThumbprint" Value="$(WareProPublisherThumbprint)" />
+  </ItemGroup>
   
   <ItemGroup>
     <Compile Remove="obj\**" />
     <Compile Remove="scratch\**" />
     <Compile Remove="bin\**" />
     <Compile Remove="Database\**" />
+    <Compile Remove="Configuration\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -45,7 +56,16 @@
   </ItemGroup>
   
   <ItemGroup>
+    <Content Include="..\Database\warepro_database_seed.xlsx">
+      <Link>Database\warepro_database_seed.xlsx</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
     <Folder Include="Database\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WarePro.Core\WarePro.Core.csproj" />
   </ItemGroup>
 
 </Project>

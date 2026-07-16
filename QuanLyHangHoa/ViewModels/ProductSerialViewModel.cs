@@ -515,11 +515,7 @@ namespace QuanLyHangHoa.ViewModels
             catch (Exception ex)
             {
                 StatusMessage = $"Lỗi tải dữ liệu: {ex.Message}";
-                try
-                {
-                    System.IO.File.WriteAllText("f:\\Codex Project\\ProductManagement_Antigravity\\wpf_error.log", ex.ToString());
-                }
-                catch {}
+                CrashLogger.Write(ex, "Product serial loading");
             }
             finally
             {

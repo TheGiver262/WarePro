@@ -20,7 +20,7 @@ public static class StartupSeedPolicy
         bool hasAnyUsers,
         bool forceSeed)
     {
-        return schemaVersion >= requiredSchemaVersion && hasAnyUsers && !forceSeed;
+        return schemaVersion == requiredSchemaVersion && hasAnyUsers && !forceSeed;
     }
 
     public static bool IsForceSeedEnabled()

@@ -23,6 +23,7 @@ namespace QuanLyHangHoa
                 if (DataContext is MainViewModel viewModel)
                 {
                     await viewModel.LoadInitialViewAsync();
+                    _ = viewModel.CheckForUpdatesAutomaticallyAsync();
                 }
             }
             catch (Exception ex)

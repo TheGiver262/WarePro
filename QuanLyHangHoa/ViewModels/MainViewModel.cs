@@ -28,6 +28,9 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty]
         private bool _isSidebarCollapsed;
 
+        [ObservableProperty]
+        private bool _hasUpdateAvailable;
+
         public bool IsAdmin => AuthorizationService.CanPerform(CurrentUser, PermissionAction.ManageUsers);
         public bool CanViewLogs => AuthorizationService.CanPerform(CurrentUser, PermissionAction.ManageAuditLogs);
         public bool CanAccessStockIn => AuthorizationService.CanPerform(CurrentUser, PermissionAction.PostStockIn);
@@ -44,6 +47,7 @@ namespace QuanLyHangHoa.ViewModels
         private readonly int _authenticatedUserId;
         private readonly Action _invalidateSession;
         private bool _sessionInvalidated;
+        private UpdateViewModel? _updateViewModel;
 
         public MainViewModel(AppUser user, Func<Data.AppDbContext> contextFactory)
             : this(user, contextFactory, null)
@@ -369,6 +373,33 @@ namespace QuanLyHangHoa.ViewModels
         private void OpenChangePasswordView()
         {
             NavigateToView("ChangePassword", () => new ChangePasswordView { DataContext = new ChangePasswordViewModel(CurrentUser!, ContextFactory) }, "ĐỔI MẬT KHẨU", "Cập nhật mật khẩu truy cập");
+        }
+
+        public Task CheckForUpdatesAutomaticallyAsync()
+        {
+            return GetUpdateViewModel().CheckAutomaticallyAsync();
+        }
+
+        [RelayCommand]
+        private void OpenUpdateView()
+        {
+            NavigateToView(
+                "Update",
+                () => new UpdateView { DataContext = GetUpdateViewModel() },
+                "CẬP NHẬT WAREPRO",
+                "Kiểm tra và cài bản vá hoặc tính năng mới");
+        }
+
+        private UpdateViewModel GetUpdateViewModel()
+        {
+            if (_updateViewModel is null)
+            {
+                _updateViewModel = UpdateViewModel.CreateDefault();
+                _updateViewModel.UpdateAvailabilityChanged += available =>
+                    HasUpdateAvailable = available;
+            }
+
+            return _updateViewModel;
         }
 
         [RelayCommand]

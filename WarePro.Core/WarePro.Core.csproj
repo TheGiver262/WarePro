@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>WarePro.Core</AssemblyName>
+    <RootNamespace>WarePro</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.1.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\QuanLyHangHoa\Configuration\WareProPaths.cs" Link="Configuration\WareProPaths.cs" />
+    <Compile Include="..\QuanLyHangHoa\Configuration\WareProSettings.cs" Link="Configuration\WareProSettings.cs" />
+    <Compile Include="..\QuanLyHangHoa\Configuration\WareProSettingsStore.cs" Link="Configuration\WareProSettingsStore.cs" />
+    <Compile Include="..\QuanLyHangHoa\Configuration\SqlCredentialStore.cs" Link="Configuration\SqlCredentialStore.cs" />
+    <Compile Include="..\QuanLyHangHoa\Configuration\ConnectionStringFactory.cs" Link="Configuration\ConnectionStringFactory.cs" />
+    <Compile Include="..\QuanLyHangHoa\Configuration\FirstRunCredentialCoordinator.cs" Link="Configuration\FirstRunCredentialCoordinator.cs" />
+  </ItemGroup>
+</Project>

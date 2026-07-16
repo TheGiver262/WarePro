@@ -30,6 +30,7 @@ public class StartupSeedPolicyTests
 
     [Theory]
     [InlineData(2, 2, true, false, true)]
+    [InlineData(3, 2, true, false, false)]
     [InlineData(1, 2, true, false, false)]
     [InlineData(2, 2, false, false, false)]
     [InlineData(2, 2, true, true, false)]

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "sqlServer2022Express": {
+    "version": "16.0.1000.6",
+    "fileName": "SQL2022-SSEI-Expr.exe",
+    "url": "https://download.microsoft.com/download/5/1/4/5145fe04-4d30-4b85-b0d1-39533663a2f1/SQL2022-SSEI-Expr.exe",
+    "size": 4290992,
+    "sha256": "36E0EC2AC3DD60F496C99CE44722C629209EA7302A2CE9CBFD1E42A73510D7B6",
+    "publisher": "Microsoft Corporation",
+    "signerThumbprint": "AFBF0B8B6A18F7E23CCA1DDCD0AC1A55B4035173",
+    "verifiedAtUtc": "2026-07-16T18:00:00Z",
+    "sourcePage": "https://www.microsoft.com/en-us/download/details.aspx?id=104781"
+  }
+}

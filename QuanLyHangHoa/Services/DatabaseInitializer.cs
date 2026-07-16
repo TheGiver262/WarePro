@@ -7,13 +7,35 @@ using System;
 using System.Data;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace QuanLyHangHoa.Services;
 
 public sealed class DatabaseInitializer
 {
-    private const int CurrentSchemaVersion = 5;
+    private const int CurrentSchemaVersion = DatabaseCompatibilityService.CurrentSchemaVersion;
+
+    private const string SchemaMetadataSql = """
+        IF OBJECT_ID(N'[dbo].[__WareProSchemaVersion]', N'U') IS NULL
+        BEGIN
+            CREATE TABLE [dbo].[__WareProSchemaVersion]
+            (
+                [Id] INT NOT NULL CONSTRAINT [PK___WareProSchemaVersion] PRIMARY KEY,
+                [Version] INT NOT NULL,
+                [MinimumClientVersion] NVARCHAR(32) NOT NULL,
+                [AppliedByAppVersion] NVARCHAR(64) NOT NULL,
+                [UpdatedAt] DATETIME2 NOT NULL
+            );
+            INSERT INTO [dbo].[__WareProSchemaVersion]
+                ([Id], [Version], [MinimumClientVersion], [AppliedByAppVersion], [UpdatedAt])
+            VALUES (1, 0, N'1.0.0', N'1.0.0', SYSUTCDATETIME());
+        END;
+        IF COL_LENGTH('__WareProSchemaVersion', 'MinimumClientVersion') IS NULL
+            ALTER TABLE [dbo].[__WareProSchemaVersion] ADD [MinimumClientVersion] NVARCHAR(32) NULL;
+        IF COL_LENGTH('__WareProSchemaVersion', 'AppliedByAppVersion') IS NULL
+            ALTER TABLE [dbo].[__WareProSchemaVersion] ADD [AppliedByAppVersion] NVARCHAR(64) NULL;
+        """;
 
     private const string SchemaVersion1Sql = """
         IF COL_LENGTH('Product', 'Description') IS NULL ALTER TABLE Product ADD Description NVARCHAR(MAX);
@@ -125,57 +147,166 @@ public sealed class DatabaseInitializer
 
     private readonly Func<AppDbContext> _contextFactory;
     private readonly string _baseDirectory;
+    private readonly string _connectionString;
 
-    public DatabaseInitializer(Func<AppDbContext> contextFactory, string baseDirectory)
+    public DatabaseInitializer(
+        Func<AppDbContext> contextFactory,
+        string baseDirectory,
+        string? connectionString = null)
     {
         _contextFactory = contextFactory;
         _baseDirectory = baseDirectory;
+        _connectionString = connectionString ?? AppDbContext.GetConnectionString();
     }
 
-    public void Initialize()
+    public void Initialize(CancellationToken cancellationToken = default)
     {
+        // lượt đọc đầu chỉ dùng để đi đường nhanh khi database đã sẵn sàng.
+        // quyết định thay đổi schema sẽ được đọc lại sau khi giữ khóa vì máy khác
+        // có thể vừa nâng database trong khoảng thời gian này.
+        cancellationToken.ThrowIfCancellationRequested();
         var stopwatch = Stopwatch.StartNew();
         var forceSeed = StartupSeedPolicy.IsForceSeedEnabled();
+        var compatibilityService = new DatabaseCompatibilityService();
+        var appVersion = GetAppVersion();
+        // false thường là database chưa tồn tại hoặc chưa đọc được bảng metadata.
+        var stateAvailable = TryGetDatabaseState(
+            out var schemaVersion, out var minimumClientVersion,
+            out var hasAnyUsers, out var hasExistingBusinessTables);
 
-        if (TryGetDatabaseState(out var schemaVersion, out var hasAnyUsers)
-            && StartupSeedPolicy.CanSkipInitialization(
+        if (stateAvailable)
+        {
+            var initialCompatibility = compatibilityService.Evaluate(schemaVersion, minimumClientVersion, appVersion);
+            if (initialCompatibility.Status == DatabaseCompatibilityStatus.ClientUpdateRequired)
+            {
+                throw new DatabaseCompatibilityException(schemaVersion, minimumClientVersion, appVersion);
+            }
+
+            if (StartupSeedPolicy.CanSkipInitialization(
                 schemaVersion,
                 CurrentSchemaVersion,
                 hasAnyUsers,
                 forceSeed))
-        {
-            Trace.WriteLine($"[STARTUP] Database fast path: {stopwatch.ElapsedMilliseconds} ms");
-            return;
+            {
+                Trace.WriteLine($"[STARTUP] Database fast path: {stopwatch.ElapsedMilliseconds} ms");
+                return;
+            }
         }
 
         using var db = _contextFactory();
-        db.Database.EnsureCreated();
-        Trace.WriteLine($"[STARTUP] EnsureCreated: {stopwatch.ElapsedMilliseconds} ms");
-        ApplySchemaUpdates(db);
-        Trace.WriteLine($"[STARTUP] Schema ready: {stopwatch.ElapsedMilliseconds} ms");
-        SeedIfNeeded(db);
-        Trace.WriteLine($"[STARTUP] Seed check complete: {stopwatch.ElapsedMilliseconds} ms");
-    }
-
-    private static bool TryGetDatabaseState(out int schemaVersion, out bool hasAnyUsers)
-    {
-        schemaVersion = 0;
-        hasAnyUsers = false;
+        var connection = (SqlConnection)db.Database.GetDbConnection();
+        var shouldClose = connection.State != ConnectionState.Open;
+        var target = new SqlConnectionStringBuilder(connection.ConnectionString);
+        var lockConnectionString = new SqlConnectionStringBuilder(connection.ConnectionString)
+        {
+            InitialCatalog = "master"
+        }.ConnectionString;
+        using var lockConnection = new SqlConnection(lockConnectionString);
+        lockConnection.Open();
 
         try
         {
-            using var connection = new SqlConnection(AppDbContext.GetConnectionString());
+            using var schemaLock = SchemaUpgradeLock.Acquire(lockConnection, target.InitialCatalog);
+            // khóa nằm trên connection tới master nên tồn tại trước cả lúc database được tạo.
+            // giữ khóa xuyên suốt EnsureCreated, backup, nâng schema và seed.
+            db.Database.EnsureCreated();
+            Trace.WriteLine($"[STARTUP] EnsureCreated: {stopwatch.ElapsedMilliseconds} ms");
+            cancellationToken.ThrowIfCancellationRequested();
+            if (shouldClose)
+            {
+                connection.Open();
+            }
+            // chỉ trạng thái đọc dưới khóa mới được phép quyết định backup và nâng phiên bản.
+
+            var lockedState = GetCurrentSchemaState(db);
+            var lockedCompatibility = compatibilityService.Evaluate(
+                lockedState.SchemaVersion, lockedState.MinimumClientVersion, appVersion);
+            if (lockedCompatibility.Status == DatabaseCompatibilityStatus.ClientUpdateRequired)
+            {
+                throw new DatabaseCompatibilityException(
+                    lockedState.SchemaVersion, lockedState.MinimumClientVersion, appVersion);
+            }
+            // chỉ backup database có bảng nghiệp vụ và sắp bị thay đổi;
+            // database mới không cần tạo một file backup rỗng.
+
+            if (compatibilityService.RequiresBackup(
+                lockedState.SchemaVersion, stateAvailable && hasExistingBusinessTables))
+            {
+                var backup = new DatabaseBackupService(
+                    new SqlDatabaseBackupExecutor(connection),
+                    () => DateTimeOffset.UtcNow,
+                    () => appVersion).CreateAndVerify(connection.Database);
+                Trace.WriteLine($"[STARTUP] Verified database backup: {backup.BackupPath}");
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            ApplySchemaUpdates(db);
+            // seed chạy sau schema để workbook luôn ghi vào cấu trúc mới nhất.
+            Trace.WriteLine($"[STARTUP] Schema ready: {stopwatch.ElapsedMilliseconds} ms");
+            cancellationToken.ThrowIfCancellationRequested();
+            SeedIfNeeded(db);
+            Trace.WriteLine($"[STARTUP] Seed check complete: {stopwatch.ElapsedMilliseconds} ms");
+        }
+        finally
+        {
+            if (shouldClose)
+            {
+                connection.Close();
+            }
+        }
+    }
+
+    private static string GetAppVersion() =>
+        typeof(DatabaseInitializer).Assembly.GetName().Version?.ToString() ?? "unknown";
+
+    private bool TryGetDatabaseState(
+        out int schemaVersion,
+        out string minimumClientVersion,
+        out bool hasAnyUsers,
+        out bool hasExistingBusinessTables)
+    {
+        schemaVersion = 0;
+        minimumClientVersion = "1.0.0";
+        hasAnyUsers = false;
+        hasExistingBusinessTables = false;
+
+        try
+        {
+            using var connection = new SqlConnection(_connectionString);
             connection.Open();
 
             using var command = connection.CreateCommand();
             command.CommandText = """
-                IF OBJECT_ID(N'[dbo].[__WareProSchemaVersion]', N'U') IS NULL
-                   OR OBJECT_ID(N'[dbo].[AppUser]', N'U') IS NULL
-                    SELECT 0 AS [SchemaVersion], CAST(0 AS BIT) AS [HasAnyUsers];
-                ELSE
-                    SELECT
-                        ISNULL((SELECT MAX([Version]) FROM [dbo].[__WareProSchemaVersion]), 0),
-                        CAST(CASE WHEN EXISTS (SELECT TOP (1) 1 FROM [dbo].[AppUser]) THEN 1 ELSE 0 END AS BIT);
+                DECLARE @SchemaVersion INT = 0;
+                DECLARE @MinimumClientVersion NVARCHAR(32) = N'1.0.0';
+                DECLARE @HasAnyUsers BIT = 0;
+                DECLARE @HasExistingBusinessTables BIT = 0;
+
+                IF OBJECT_ID(N'[dbo].[__WareProSchemaVersion]', N'U') IS NOT NULL
+                BEGIN
+                    EXEC sys.sp_executesql
+                        N'SELECT @value = ISNULL(MAX([Version]), 0) FROM [dbo].[__WareProSchemaVersion];',
+                        N'@value INT OUTPUT',
+                        @value = @SchemaVersion OUTPUT;
+                    IF COL_LENGTH('__WareProSchemaVersion', 'MinimumClientVersion') IS NOT NULL
+                        EXEC sys.sp_executesql
+                            N'SELECT @value = COALESCE(MAX(NULLIF([MinimumClientVersion], N'''')), N''1.0.0'') FROM [dbo].[__WareProSchemaVersion];',
+                            N'@value NVARCHAR(32) OUTPUT',
+                            @value = @MinimumClientVersion OUTPUT;
+                END;
+
+                IF OBJECT_ID(N'[dbo].[AppUser]', N'U') IS NOT NULL
+                    EXEC sys.sp_executesql
+                        N'SELECT @value = CASE WHEN EXISTS (SELECT TOP (1) 1 FROM [dbo].[AppUser]) THEN 1 ELSE 0 END;',
+                        N'@value BIT OUTPUT',
+                        @value = @HasAnyUsers OUTPUT;
+
+                IF EXISTS (SELECT 1 FROM sys.tables
+                    WHERE is_ms_shipped = 0 AND [name] <> N'__WareProSchemaVersion')
+                    SET @HasExistingBusinessTables = 1;
+
+                SELECT @SchemaVersion, @MinimumClientVersion,
+                    @HasAnyUsers, @HasExistingBusinessTables;
                 """;
 
             using var reader = command.ExecuteReader();
@@ -185,7 +316,9 @@ public sealed class DatabaseInitializer
             }
 
             schemaVersion = reader.GetInt32(0);
-            hasAnyUsers = reader.GetBoolean(1);
+            minimumClientVersion = reader.GetString(1);
+            hasAnyUsers = reader.GetBoolean(2);
+            hasExistingBusinessTables = reader.GetBoolean(3);
             return true;
         }
         catch (SqlException)
@@ -196,23 +329,15 @@ public sealed class DatabaseInitializer
 
     private static void ApplySchemaUpdates(AppDbContext db)
     {
+        // mỗi đoạn SQL kiểm tra sự tồn tại trước khi sửa để có thể chạy lại an toàn
+        // sau một lần khởi động bị ngắt giữa chừng.
         if (GetCurrentSchemaVersion(db) >= CurrentSchemaVersion)
         {
             return;
         }
 
         var sql = $$"""
-            IF OBJECT_ID(N'[dbo].[__WareProSchemaVersion]', N'U') IS NULL
-            BEGIN
-                CREATE TABLE [dbo].[__WareProSchemaVersion]
-                (
-                    [Id] INT NOT NULL CONSTRAINT [PK___WareProSchemaVersion] PRIMARY KEY,
-                    [Version] INT NOT NULL,
-                    [UpdatedAt] DATETIME2 NOT NULL
-                );
-                INSERT INTO [dbo].[__WareProSchemaVersion] ([Id], [Version], [UpdatedAt])
-                VALUES (1, 0, SYSUTCDATETIME());
-            END;
+            {{SchemaMetadataSql}}
 
             DECLARE @CurrentVersion INT = ISNULL(
                 (SELECT TOP (1) [Version] FROM [dbo].[__WareProSchemaVersion] WHERE [Id] = 1), 0);
@@ -245,14 +370,34 @@ public sealed class DatabaseInitializer
                 {{SchemaVersion5Sql}}
             END;
             UPDATE [dbo].[__WareProSchemaVersion]
-            SET [Version] = {{CurrentSchemaVersion}}, [UpdatedAt] = SYSUTCDATETIME()
+            SET [Version] = {{CurrentSchemaVersion}},
+                [MinimumClientVersion] = N'1.0.0',
+                [AppliedByAppVersion] = N'1.0.0',
+                [UpdatedAt] = SYSUTCDATETIME()
             WHERE [Id] = 1 AND [Version] < {{CurrentSchemaVersion}};
             """;
 
-        db.Database.ExecuteSqlRaw(sql);
+        // metadata phiên bản và thay đổi nghiệp vụ phải commit cùng nhau.
+        // nếu một lệnh lỗi, phiên bản database không được ghi nhận sai.
+        using var transaction = db.Database.BeginTransaction();
+        try
+        {
+            db.Database.ExecuteSqlRaw(sql);
+            transaction.Commit();
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
     }
 
     private static int GetCurrentSchemaVersion(AppDbContext db)
+    {
+        return GetCurrentSchemaState(db).SchemaVersion;
+    }
+
+    private static (int SchemaVersion, string MinimumClientVersion) GetCurrentSchemaState(AppDbContext db)
     {
         var connection = db.Database.GetDbConnection();
         var shouldClose = connection.State != ConnectionState.Open;
@@ -266,13 +411,33 @@ public sealed class DatabaseInitializer
 
             using var command = connection.CreateCommand();
             command.CommandText = """
+                DECLARE @SchemaVersion INT = 0;
+                DECLARE @MinimumClientVersion NVARCHAR(32) = N'1.0.0';
+
                 IF OBJECT_ID(N'[dbo].[__WareProSchemaVersion]', N'U') IS NULL
-                    SELECT 0;
+                    SELECT @SchemaVersion, @MinimumClientVersion;
                 ELSE
-                    EXEC sp_executesql N'SELECT ISNULL(MAX([Version]), 0) FROM [dbo].[__WareProSchemaVersion];';
+                BEGIN
+                    EXEC sys.sp_executesql
+                        N'SELECT @value = ISNULL(MAX([Version]), 0) FROM [dbo].[__WareProSchemaVersion];',
+                        N'@value INT OUTPUT',
+                        @value = @SchemaVersion OUTPUT;
+                    IF COL_LENGTH('__WareProSchemaVersion', 'MinimumClientVersion') IS NOT NULL
+                        EXEC sys.sp_executesql
+                            N'SELECT @value = COALESCE(MAX(NULLIF([MinimumClientVersion], N'''')), N''1.0.0'') FROM [dbo].[__WareProSchemaVersion];',
+                            N'@value NVARCHAR(32) OUTPUT',
+                            @value = @MinimumClientVersion OUTPUT;
+                    SELECT @SchemaVersion, @MinimumClientVersion;
+                END;
                 """;
 
-            return Convert.ToInt32(command.ExecuteScalar());
+            using var reader = command.ExecuteReader();
+            if (!reader.Read())
+            {
+                return (0, "1.0.0");
+            }
+
+            return (reader.GetInt32(0), reader.GetString(1));
         }
         finally
         {
@@ -286,27 +451,26 @@ public sealed class DatabaseInitializer
     private void SeedIfNeeded(AppDbContext db)
     {
         var excelPath = Path.Combine(_baseDirectory, "Database", "warepro_database_seed.xlsx");
+        var forceSeed = StartupSeedPolicy.IsForceSeedEnabled();
+        var hasAnyUsers = db.AppUsers.AsNoTracking().Any();
+
         if (!File.Exists(excelPath))
         {
+            if (!hasAnyUsers || forceSeed)
+            {
+                throw new SeedWorkbookMissingException(excelPath);
+            }
+
             return;
         }
 
-        var forceSeed = StartupSeedPolicy.IsForceSeedEnabled();
-        var hasAnyUsers = !forceSeed && db.AppUsers.AsNoTracking().Any();
         if (!StartupSeedPolicy.ShouldSeed(seedFileExists: true, hasAnyUsers, forceSeed))
         {
             return;
         }
 
-        try
-        {
-            var seeder = new DatabaseSeeder(db, excelPath);
-            var log = Task.Run(seeder.SeedAsync).GetAwaiter().GetResult();
-            Console.WriteLine($"[SEED] Result: {log}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Seed Error: {ex.Message}");
-        }
+        var seeder = new DatabaseSeeder(db, excelPath);
+        var log = Task.Run(seeder.SeedAsync).GetAwaiter().GetResult();
+        Console.WriteLine($"[SEED] Result: {log}");
     }
 }
