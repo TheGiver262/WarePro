@@ -15,3 +15,14 @@ deploy/
 /SearchSerialsCount.txt
 /Seeded_Detailed_Report.txt
 /artifacts/
+
+# tài liệu lập kế hoạch và bàn giao chỉ giữ ở máy local
+/docs/handoffs/
+/docs/project-plans/
+/docs/superpowers/plans/
+/docs/superpowers/specs/
+
+# công cụ agent phục vụ lập kế hoạch chỉ giữ ở máy local
+/.agent/agents/project-planner.md
+/.agent/skills/plan-writing/
+/.agent/workflows/plan.md
