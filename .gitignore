@@ -22,7 +22,18 @@ deploy/
 /docs/superpowers/plans/
 /docs/superpowers/specs/
 
-# công cụ agent phục vụ lập kế hoạch chỉ giữ ở máy local
-/.agent/agents/project-planner.md
-/.agent/skills/plan-writing/
-/.agent/workflows/plan.md
+# cấu hình agent và bộ nhớ chỉ giữ ở máy local
+/.agent/
+/.agentMemory/
+/.agents/
+/.claude/
+/.codex/
+/.cursor/
+/.memory/
+/memory/
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+
+# tài liệu giải thích code chỉ giữ ở máy local
+/code-explained/
