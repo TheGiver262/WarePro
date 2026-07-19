@@ -77,6 +77,7 @@ namespace QuanLyHangHoa.ViewModels
                     if (result.User != null)
                     {
                         var main = new MainWindow(result.User, () => new Data.AppDbContext());
+                        Application.Current.MainWindow = main;
                         main.Show();
 
                         if (result.User.MustChangePassword)
