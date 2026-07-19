@@ -996,14 +996,19 @@ internal static class DatabaseUpgradeRunner
                 RETURN;
             END;
 
+            DECLARE @Owned bit = 0;
             IF OBJECT_ID(N'dbo.__WareProDatabaseIdentity', N'U') IS NOT NULL
-               AND EXISTS
-               (
-                   SELECT 1 FROM dbo.__WareProDatabaseIdentity
-                   WHERE Id = 1
-                     AND ProductId = 'F65EAB95-A3F8-4D8D-9AF5-4839FCA38E21'
-                     AND ProductName = N'WarePro'
-               )
+                EXEC sys.sp_executesql
+                    N'SELECT @Owned = CASE WHEN EXISTS
+                      (
+                          SELECT 1 FROM dbo.__WareProDatabaseIdentity
+                          WHERE Id = 1
+                            AND ProductId = ''F65EAB95-A3F8-4D8D-9AF5-4839FCA38E21''
+                            AND ProductName = N''WarePro''
+                      ) THEN 1 ELSE 0 END;',
+                    N'@Owned bit OUTPUT',
+                    @Owned = @Owned OUTPUT;
+            IF @Owned = 1
             BEGIN
                 SELECT 1;
                 RETURN;

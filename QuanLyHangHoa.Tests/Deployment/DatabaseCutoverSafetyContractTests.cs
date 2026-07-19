@@ -130,6 +130,19 @@ public sealed class DatabaseCutoverSafetyContractTests
         Assert.Contains("IX_StockLedger_SourceDocument", detection, StringComparison.Ordinal);
         Assert.DoesNotContain("@FingerprintGroups", detection, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Legacy_schema_without_identity_table_is_classified_without_static_table_reference()
+    {
+        var source = Read("WarePro.SetupHelper", "SetupCommands.cs");
+        var start = source.IndexOf("ClassifyDatabaseAsync", StringComparison.Ordinal);
+        var detection = source[start..source.IndexOf("private static void ValidateRelease", start, StringComparison.Ordinal)];
+
+        Assert.Contains("DECLARE @Owned bit = 0", detection, StringComparison.Ordinal);
+        Assert.Contains("EXEC sys.sp_executesql", detection, StringComparison.Ordinal);
+        Assert.Contains("@Owned bit OUTPUT", detection, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Maintenance_lock_identity_is_normalized_across_clients()
     {
