@@ -679,6 +679,18 @@ GO
         IF COL_LENGTH('__WareProSchemaVersion', 'AppliedByAppVersion') IS NULL
             EXEC sys.sp_executesql N'ALTER TABLE [dbo].[__WareProSchemaVersion] ADD [AppliedByAppVersion] NVARCHAR(64) NULL;';
 
+        EXEC sys.sp_executesql N'
+            UPDATE [dbo].[__WareProSchemaVersion]
+            SET [MinimumClientVersion] = COALESCE(NULLIF([MinimumClientVersion], N''''), N''1.0.0''),
+                [AppliedByAppVersion] = COALESCE(NULLIF([AppliedByAppVersion], N''''), N''1.0.0'');';
+
+        EXEC sys.sp_executesql N'
+            ALTER TABLE [dbo].[__WareProSchemaVersion]
+                ALTER COLUMN [MinimumClientVersion] NVARCHAR(32) NOT NULL;';
+
+        EXEC sys.sp_executesql N'
+            ALTER TABLE [dbo].[__WareProSchemaVersion]
+                ALTER COLUMN [AppliedByAppVersion] NVARCHAR(64) NOT NULL;';
         IF NOT EXISTS (SELECT 1 FROM [dbo].[__WareProSchemaVersion] WHERE [Id] = 1)
             EXEC sys.sp_executesql N'
                 INSERT INTO [dbo].[__WareProSchemaVersion]

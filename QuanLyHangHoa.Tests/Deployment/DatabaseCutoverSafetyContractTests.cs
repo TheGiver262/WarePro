@@ -189,6 +189,96 @@ public sealed class DatabaseCutoverSafetyContractTests
         Assert.Contains("TYPE_NAME", runner, StringComparison.Ordinal);
         Assert.Contains("max_length", runner, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Legacy_transfer_created_at_default_is_rebuilt_around_column_conversion()
+    {
+        var sql = DatabaseSchemaScripts.BuildUpgradeSql(6, "1.1.0");
+        var findDefault = sql.IndexOf("@StockTransferCreatedAtDefault", StringComparison.Ordinal);
+        var dropDefault = findDefault < 0 ? -1 : sql.IndexOf("DROP CONSTRAINT", findDefault, StringComparison.Ordinal);
+        var alterColumn = sql.IndexOf("ALTER TABLE dbo.StockTransfer ALTER COLUMN CreatedAt", StringComparison.Ordinal);
+        var addDefault = sql.IndexOf("ADD CONSTRAINT DF_StockTransfer_CreatedAt", StringComparison.Ordinal);
+
+        Assert.True(findDefault >= 0 && dropDefault > findDefault);
+        Assert.True(dropDefault < alterColumn);
+        Assert.True(alterColumn < addDefault);
+    }
+
+    [Fact]
+    public void Legacy_product_reseed_repairs_history_before_rechecking_constraints()
+    {
+        var sql = DatabaseSchemaScripts.BuildUpgradeSql(6, "1.1.0");
+        var buildMap = sql.IndexOf("DECLARE @LegacyProductMap TABLE", StringComparison.Ordinal);
+        var rejectMissingMap = sql.IndexOf("Legacy product references cannot be mapped", StringComparison.Ordinal);
+        var remapLedger = sql.IndexOf("UPDATE ledger SET ProductId = productMap.CurrentProductId", StringComparison.Ordinal);
+        var remapAdjustment = sql.IndexOf("UPDATE adjustmentLine SET ProductId = productMap.CurrentProductId", StringComparison.Ordinal);
+        var removeCollidingBalance = sql.IndexOf("DELETE legacyBalance", StringComparison.Ordinal);
+        var remapBalance = sql.IndexOf("UPDATE balance SET ProductId = productMap.CurrentProductId", StringComparison.Ordinal);
+        var trustBalance = sql.IndexOf("CHECK CONSTRAINT FK_StockBalance_Product", StringComparison.Ordinal);
+
+        Assert.True(buildMap >= 0 && rejectMissingMap > buildMap);
+        Assert.True(remapLedger > rejectMissingMap && remapAdjustment > remapLedger);
+        Assert.True(removeCollidingBalance > remapAdjustment && remapBalance > removeCollidingBalance);
+        Assert.True(trustBalance > remapBalance);
+    }
+
+    [Fact]
+    public void Legacy_partner_reseed_is_remapped_by_audited_business_code()
+    {
+        var sql = DatabaseSchemaScripts.BuildUpgradeSql(6, "1.1.0");
+
+        Assert.Contains("$.SupplierCode", sql, StringComparison.Ordinal);
+        Assert.Contains("UPDATE invoice SET SupplierId = partnerMap.CurrentPartnerId", sql, StringComparison.Ordinal);
+        Assert.Contains("$.CustomerCode", sql, StringComparison.Ordinal);
+        Assert.Contains("UPDATE invoice SET CustomerId = partnerMap.CurrentPartnerId", sql, StringComparison.Ordinal);
+        Assert.Contains("Legacy partner references cannot be mapped", sql, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Legacy_columns_are_normalized_to_the_application_contract()
+    {
+        var sql = DatabaseSchemaScripts.BuildUpgradeSql(6, "1.1.0");
+        var shape = DatabaseSchemaScripts.ShapeValidationPredicate;
+
+        Assert.Contains("ALTER TABLE dbo.StockTransfer ALTER COLUMN UpdatedAt DATETIME2(0) NULL", sql, StringComparison.Ordinal);
+        Assert.Contains("ALTER TABLE dbo.SalesInvoice ALTER COLUMN PaidAmount DECIMAL(18,2) NOT NULL", sql, StringComparison.Ordinal);
+        Assert.Contains("ALTER TABLE dbo.SalesInvoice ALTER COLUMN PaymentStatus NVARCHAR(50) NOT NULL", sql, StringComparison.Ordinal);
+        Assert.Contains("(N'SalesInvoice', N'PaidAmount', N'decimal', 9, 18, 2, 0)", shape, StringComparison.Ordinal);
+        Assert.Contains("(N'PurchaseInvoice', N'PaymentStatus', N'nvarchar', 100, 0, 0, 0)", shape, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Legacy_stock_count_links_match_the_ef_model()
+    {
+        var sql = DatabaseSchemaScripts.BuildUpgradeSql(6, "1.1.0");
+        var shape = DatabaseSchemaScripts.ShapeValidationPredicate;
+
+        Assert.Contains("ALTER TABLE dbo.StockAdjustmentLine ADD DraftSerials NVARCHAR(4000) NULL", sql, StringComparison.Ordinal);
+        foreach (var table in new[] { "StockIn", "StockOut" })
+        {
+            Assert.Contains($"ALTER TABLE dbo.{table} ADD StockCountLineId INT NULL", sql, StringComparison.Ordinal);
+            Assert.Contains($"ALTER TABLE dbo.{table} ADD StockCountSessionId INT NULL", sql, StringComparison.Ordinal);
+            Assert.Contains($"EXEC sys.sp_executesql N'ALTER TABLE dbo.{table} WITH CHECK ADD CONSTRAINT FK_{table}_StockCountLine", sql, StringComparison.Ordinal);
+            Assert.Contains($"EXEC sys.sp_executesql N'ALTER TABLE dbo.{table} WITH CHECK ADD CONSTRAINT FK_{table}_StockCountSession", sql, StringComparison.Ordinal);
+            Assert.Contains($"EXEC sys.sp_executesql N'CREATE INDEX IX_{table}_StockCountSessionId", sql, StringComparison.Ordinal);
+            Assert.Contains($"EXEC sys.sp_executesql N'CREATE UNIQUE INDEX UX_{table}_StockCountLineId", sql, StringComparison.Ordinal);
+        }
+
+        Assert.Contains("(N'StockAdjustmentLine', N'DraftSerials', N'nvarchar', 8000, 0, 0, 1)", shape, StringComparison.Ordinal);
+        Assert.Contains("(N'StockIn', N'StockCountLineId', N'int', 4, 10, 0, 1)", shape, StringComparison.Ordinal);
+        Assert.Contains("(N'StockOut', N'StockCountSessionId', N'int', 4, 10, 0, 1)", shape, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Legacy_schema_metadata_is_backfilled_before_not_null_conversion()
+    {
+        var metadata = DatabaseSchemaScripts.SchemaMetadata;
+        var backfill = metadata.IndexOf("UPDATE [dbo].[__WareProSchemaVersion]", StringComparison.Ordinal);
+        var alterMinimum = metadata.IndexOf("ALTER COLUMN [MinimumClientVersion] NVARCHAR(32) NOT NULL", StringComparison.Ordinal);
+        var alterApplied = metadata.IndexOf("ALTER COLUMN [AppliedByAppVersion] NVARCHAR(64) NOT NULL", StringComparison.Ordinal);
+
+        Assert.True(backfill >= 0 && alterMinimum > backfill && alterApplied > alterMinimum);
+    }
     [Fact]
     public void Prepare_arms_recovery_before_the_first_post_backup_mutation()
     {

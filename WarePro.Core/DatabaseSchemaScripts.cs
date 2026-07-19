@@ -76,8 +76,22 @@ public static class DatabaseSchemaScripts
 
         IF OBJECT_ID(N'dbo.StockTransfer', N'U') IS NOT NULL
         BEGIN
+            DECLARE @StockTransferCreatedAtDefault sysname;
+            SELECT @StockTransferCreatedAtDefault = default_constraints.name
+            FROM sys.default_constraints AS default_constraints
+            WHERE default_constraints.parent_object_id = OBJECT_ID(N'dbo.StockTransfer')
+              AND default_constraints.parent_column_id =
+                  COLUMNPROPERTY(OBJECT_ID(N'dbo.StockTransfer'), N'CreatedAt', 'ColumnId');
+            IF @StockTransferCreatedAtDefault IS NOT NULL
+            BEGIN
+                DECLARE @DropStockTransferCreatedAtDefault nvarchar(max) =
+                    N'ALTER TABLE dbo.StockTransfer DROP CONSTRAINT ' + QUOTENAME(@StockTransferCreatedAtDefault) + N';';
+                EXEC sys.sp_executesql @DropStockTransferCreatedAtDefault;
+            END;
+
             ALTER TABLE dbo.StockTransfer ALTER COLUMN TransferDate DATETIME2(0) NOT NULL;
             ALTER TABLE dbo.StockTransfer ALTER COLUMN CreatedAt DATETIME2(0) NOT NULL;
+            ALTER TABLE dbo.StockTransfer ALTER COLUMN UpdatedAt DATETIME2(0) NULL;
             ALTER TABLE dbo.StockTransfer ALTER COLUMN Notes NVARCHAR(500) NULL;
             IF NOT EXISTS
             (
@@ -94,6 +108,250 @@ public static class DatabaseSchemaScripts
             ALTER TABLE dbo.StockTransfer ADD RowVersion ROWVERSION NOT NULL;
         IF COL_LENGTH(N'dbo.StockTransferLine', N'RowVersion') IS NULL
             ALTER TABLE dbo.StockTransferLine ADD RowVersion ROWVERSION NOT NULL;
+
+        IF COL_LENGTH(N'dbo.StockAdjustmentLine', N'DraftSerials') IS NULL
+            ALTER TABLE dbo.StockAdjustmentLine ADD DraftSerials NVARCHAR(4000) NULL;
+        IF COL_LENGTH(N'dbo.StockIn', N'StockCountLineId') IS NULL
+            ALTER TABLE dbo.StockIn ADD StockCountLineId INT NULL;
+        IF COL_LENGTH(N'dbo.StockIn', N'StockCountSessionId') IS NULL
+            ALTER TABLE dbo.StockIn ADD StockCountSessionId INT NULL;
+        IF COL_LENGTH(N'dbo.StockOut', N'StockCountLineId') IS NULL
+            ALTER TABLE dbo.StockOut ADD StockCountLineId INT NULL;
+        IF COL_LENGTH(N'dbo.StockOut', N'StockCountSessionId') IS NULL
+            ALTER TABLE dbo.StockOut ADD StockCountSessionId INT NULL;
+
+        -- sản phẩm đã reseed giữ nguyên mã nhưng đổi id; audit nối id cũ với master hiện tại.
+        DECLARE @LegacyProductIds TABLE (LegacyProductId INT NOT NULL PRIMARY KEY);
+        INSERT INTO @LegacyProductIds (LegacyProductId)
+        SELECT legacy.ProductId
+        FROM
+        (
+            SELECT ProductId FROM dbo.StockBalance
+            UNION
+            SELECT ProductId FROM dbo.StockLedger
+            UNION
+            SELECT ProductId FROM dbo.StockAdjustmentLine
+        ) AS legacy
+        LEFT JOIN dbo.Product AS product ON product.Id = legacy.ProductId
+        WHERE product.Id IS NULL;
+
+        DECLARE @LegacyProductMap TABLE
+        (
+            LegacyProductId INT NOT NULL PRIMARY KEY,
+            CurrentProductId INT NOT NULL
+        );
+        ;WITH rankedProductMap AS
+        (
+            SELECT legacy.LegacyProductId,
+                   product.Id AS CurrentProductId,
+                   ROW_NUMBER() OVER
+                   (
+                       PARTITION BY legacy.LegacyProductId
+                       ORDER BY audit.PerformedAt DESC, audit.Id DESC
+                   ) AS RowNumber
+            FROM @LegacyProductIds AS legacy
+            INNER JOIN dbo.AuditLog AS audit
+                ON audit.EntityName = N'Product'
+               AND TRY_CONVERT(INT, audit.EntityId) = legacy.LegacyProductId
+            CROSS APPLY
+            (
+                SELECT COALESCE(NULLIF(audit.BeforeJson, N''), NULLIF(audit.AfterJson, N'')) AS SnapshotJson
+            ) AS snapshot
+            INNER JOIN dbo.Product AS product
+                ON product.ProductCode = JSON_VALUE(
+                    CASE WHEN ISJSON(snapshot.SnapshotJson) = 1 THEN snapshot.SnapshotJson END,
+                    '$.ProductCode')
+        )
+        INSERT INTO @LegacyProductMap (LegacyProductId, CurrentProductId)
+        SELECT LegacyProductId, CurrentProductId
+        FROM rankedProductMap
+        WHERE RowNumber = 1;
+
+        IF EXISTS
+        (
+            SELECT 1
+            FROM @LegacyProductIds AS legacy
+            LEFT JOIN @LegacyProductMap AS productMap
+                ON productMap.LegacyProductId = legacy.LegacyProductId
+            WHERE productMap.LegacyProductId IS NULL
+        )
+            THROW 51029, 'Legacy product references cannot be mapped by audited product code.', 1;
+
+        -- ledger và phiếu điều chỉnh là lịch sử duy nhất nên chỉ đổi khóa về product hiện tại.
+        UPDATE ledger SET ProductId = productMap.CurrentProductId
+        FROM dbo.StockLedger AS ledger
+        INNER JOIN @LegacyProductMap AS productMap
+            ON productMap.LegacyProductId = ledger.ProductId;
+
+        UPDATE adjustmentLine SET ProductId = productMap.CurrentProductId
+        FROM dbo.StockAdjustmentLine AS adjustmentLine
+        INNER JOIN @LegacyProductMap AS productMap
+            ON productMap.LegacyProductId = adjustmentLine.ProductId;
+
+        -- balance là projection hiện tại; nếu cặp kho-product mới đã có thì bỏ projection cũ bị orphan.
+        DELETE legacyBalance
+        FROM dbo.StockBalance AS legacyBalance
+        INNER JOIN @LegacyProductMap AS productMap
+            ON productMap.LegacyProductId = legacyBalance.ProductId
+        WHERE EXISTS
+        (
+            SELECT 1
+            FROM dbo.StockBalance AS currentBalance
+            WHERE currentBalance.WarehouseId = legacyBalance.WarehouseId
+              AND currentBalance.ProductId = productMap.CurrentProductId
+        );
+
+        UPDATE balance SET ProductId = productMap.CurrentProductId
+        FROM dbo.StockBalance AS balance
+        INNER JOIN @LegacyProductMap AS productMap
+            ON productMap.LegacyProductId = balance.ProductId;
+
+        -- đối tác reseed cũng được nối lại bằng mã nghiệp vụ lưu trong audit.
+        DECLARE @LegacyPartnerIds TABLE (LegacyPartnerId INT NOT NULL PRIMARY KEY);
+        DECLARE @LegacyPartnerMap TABLE
+        (
+            LegacyPartnerId INT NOT NULL PRIMARY KEY,
+            CurrentPartnerId INT NOT NULL
+        );
+
+        INSERT INTO @LegacyPartnerIds (LegacyPartnerId)
+        SELECT DISTINCT invoice.SupplierId
+        FROM dbo.PurchaseInvoice AS invoice
+        LEFT JOIN dbo.Supplier AS supplier ON supplier.Id = invoice.SupplierId
+        WHERE supplier.Id IS NULL;
+
+        ;WITH rankedPartnerMap AS
+        (
+            SELECT legacy.LegacyPartnerId,
+                   supplier.Id AS CurrentPartnerId,
+                   ROW_NUMBER() OVER
+                   (
+                       PARTITION BY legacy.LegacyPartnerId
+                       ORDER BY audit.PerformedAt DESC, audit.Id DESC
+                   ) AS RowNumber
+            FROM @LegacyPartnerIds AS legacy
+            INNER JOIN dbo.AuditLog AS audit
+                ON audit.EntityName = N'Supplier'
+               AND TRY_CONVERT(INT, audit.EntityId) = legacy.LegacyPartnerId
+            CROSS APPLY
+            (
+                SELECT COALESCE(NULLIF(audit.BeforeJson, N''), NULLIF(audit.AfterJson, N'')) AS SnapshotJson
+            ) AS snapshot
+            INNER JOIN dbo.Supplier AS supplier
+                ON supplier.SupplierCode = JSON_VALUE(
+                    CASE WHEN ISJSON(snapshot.SnapshotJson) = 1 THEN snapshot.SnapshotJson END,
+                    '$.SupplierCode')
+        )
+        INSERT INTO @LegacyPartnerMap (LegacyPartnerId, CurrentPartnerId)
+        SELECT LegacyPartnerId, CurrentPartnerId
+        FROM rankedPartnerMap
+        WHERE RowNumber = 1;
+
+        IF EXISTS
+        (
+            SELECT 1
+            FROM @LegacyPartnerIds AS legacy
+            LEFT JOIN @LegacyPartnerMap AS partnerMap
+                ON partnerMap.LegacyPartnerId = legacy.LegacyPartnerId
+            WHERE partnerMap.LegacyPartnerId IS NULL
+        )
+            THROW 51030, 'Legacy partner references cannot be mapped by audited business code.', 1;
+
+        UPDATE invoice SET SupplierId = partnerMap.CurrentPartnerId
+        FROM dbo.PurchaseInvoice AS invoice
+        INNER JOIN @LegacyPartnerMap AS partnerMap
+            ON partnerMap.LegacyPartnerId = invoice.SupplierId;
+
+        DELETE FROM @LegacyPartnerIds;
+        DELETE FROM @LegacyPartnerMap;
+
+        INSERT INTO @LegacyPartnerIds (LegacyPartnerId)
+        SELECT DISTINCT invoice.CustomerId
+        FROM dbo.SalesInvoice AS invoice
+        LEFT JOIN dbo.Customer AS customer ON customer.Id = invoice.CustomerId
+        WHERE customer.Id IS NULL;
+
+        ;WITH rankedPartnerMap AS
+        (
+            SELECT legacy.LegacyPartnerId,
+                   customer.Id AS CurrentPartnerId,
+                   ROW_NUMBER() OVER
+                   (
+                       PARTITION BY legacy.LegacyPartnerId
+                       ORDER BY audit.PerformedAt DESC, audit.Id DESC
+                   ) AS RowNumber
+            FROM @LegacyPartnerIds AS legacy
+            INNER JOIN dbo.AuditLog AS audit
+                ON audit.EntityName = N'Customer'
+               AND TRY_CONVERT(INT, audit.EntityId) = legacy.LegacyPartnerId
+            CROSS APPLY
+            (
+                SELECT COALESCE(NULLIF(audit.BeforeJson, N''), NULLIF(audit.AfterJson, N'')) AS SnapshotJson
+            ) AS snapshot
+            INNER JOIN dbo.Customer AS customer
+                ON customer.CustomerCode = JSON_VALUE(
+                    CASE WHEN ISJSON(snapshot.SnapshotJson) = 1 THEN snapshot.SnapshotJson END,
+                    '$.CustomerCode')
+        )
+        INSERT INTO @LegacyPartnerMap (LegacyPartnerId, CurrentPartnerId)
+        SELECT LegacyPartnerId, CurrentPartnerId
+        FROM rankedPartnerMap
+        WHERE RowNumber = 1;
+
+        IF EXISTS
+        (
+            SELECT 1
+            FROM @LegacyPartnerIds AS legacy
+            LEFT JOIN @LegacyPartnerMap AS partnerMap
+                ON partnerMap.LegacyPartnerId = legacy.LegacyPartnerId
+            WHERE partnerMap.LegacyPartnerId IS NULL
+        )
+            THROW 51030, 'Legacy partner references cannot be mapped by audited business code.', 1;
+
+        UPDATE invoice SET CustomerId = partnerMap.CurrentPartnerId
+        FROM dbo.SalesInvoice AS invoice
+        INNER JOIN @LegacyPartnerMap AS partnerMap
+            ON partnerMap.LegacyPartnerId = invoice.CustomerId;
+
+        -- model C# dùng giá trị bắt buộc; dữ liệu null cũ được chuẩn hóa trước khi siết column.
+        UPDATE dbo.SalesInvoice SET PaidAmount = 0 WHERE PaidAmount IS NULL;
+        UPDATE dbo.SalesInvoice
+        SET PaymentStatus = CASE
+            WHEN PaidAmount >= GrandTotal AND GrandTotal > 0 THEN N'Paid'
+            WHEN PaidAmount > 0 THEN N'PartiallyPaid'
+            ELSE N'Unpaid'
+        END
+        WHERE PaymentStatus IS NULL OR PaymentStatus NOT IN (N'Unpaid', N'PartiallyPaid', N'Paid', N'Overdue');
+        ALTER TABLE dbo.SalesInvoice ALTER COLUMN PaidAmount DECIMAL(18,2) NOT NULL;
+        ALTER TABLE dbo.SalesInvoice ALTER COLUMN PaymentStatus NVARCHAR(50) NOT NULL;
+
+        UPDATE dbo.PurchaseInvoice SET PaidAmount = 0 WHERE PaidAmount IS NULL;
+        UPDATE dbo.PurchaseInvoice
+        SET PaymentStatus = CASE
+            WHEN PaidAmount >= GrandTotal AND GrandTotal > 0 THEN N'Paid'
+            WHEN PaidAmount > 0 THEN N'PartiallyPaid'
+            ELSE N'Unpaid'
+        END
+        WHERE PaymentStatus IS NULL OR PaymentStatus NOT IN (N'Unpaid', N'PartiallyPaid', N'Paid', N'Overdue');
+        ALTER TABLE dbo.PurchaseInvoice ALTER COLUMN PaidAmount DECIMAL(18,2) NOT NULL;
+        ALTER TABLE dbo.PurchaseInvoice ALTER COLUMN PaymentStatus NVARCHAR(50) NOT NULL;
+
+        -- WITH CHECK CHECK vừa kiểm dữ liệu hiện tại vừa bật kiểm tra cho các lần ghi sau.
+        ALTER TABLE dbo.Product WITH CHECK CHECK CONSTRAINT FK_Product_Category;
+        ALTER TABLE dbo.Product WITH CHECK CHECK CONSTRAINT FK_Product_Brand;
+        ALTER TABLE dbo.Product WITH CHECK CHECK CONSTRAINT FK_Product_DefaultUnit;
+        ALTER TABLE dbo.ProductUnit WITH CHECK CHECK CONSTRAINT FK_ProductUnit_Product;
+        ALTER TABLE dbo.ProductUnit WITH CHECK CHECK CONSTRAINT FK_ProductUnit_Unit;
+        ALTER TABLE dbo.StockBalance WITH CHECK CHECK CONSTRAINT FK_StockBalance_Warehouse;
+        ALTER TABLE dbo.StockBalance WITH CHECK CHECK CONSTRAINT FK_StockBalance_Product;
+        ALTER TABLE dbo.StockInLine WITH CHECK CHECK CONSTRAINT FK_StockInLine_StockIn;
+        ALTER TABLE dbo.StockOutLine WITH CHECK CHECK CONSTRAINT FK_StockOutLine_StockOut;
+        ALTER TABLE dbo.PurchaseInvoice WITH CHECK CHECK CONSTRAINT FK_PurchaseInvoice_Supplier;
+        ALTER TABLE dbo.SalesInvoice WITH CHECK CHECK CONSTRAINT FK_SalesInvoice_Customer;
+        ALTER TABLE dbo.Product WITH CHECK CHECK CONSTRAINT CK_Product_DefaultPrice_NonNegative;
+        ALTER TABLE dbo.ProductUnit WITH CHECK CHECK CONSTRAINT CK_ProductUnit_ConversionFactor_Positive;
+        ALTER TABLE dbo.StockBalance WITH CHECK CHECK CONSTRAINT CK_StockBalance_OnHand_NonNegative;
+
 
         IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE parent_object_id = OBJECT_ID(N'dbo.AuditArchiveManifest') AND name = N'FK_AuditArchiveManifest_Actor')
             ALTER TABLE dbo.AuditArchiveManifest WITH CHECK ADD CONSTRAINT FK_AuditArchiveManifest_Actor FOREIGN KEY (ActorId) REFERENCES dbo.AppUser(Id);
@@ -113,6 +371,14 @@ public static class DatabaseSchemaScripts
             ALTER TABLE dbo.StockTransferLine WITH CHECK ADD CONSTRAINT FK_StockTransferLine_Product FOREIGN KEY (ProductId) REFERENCES dbo.Product(Id);
         IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE parent_object_id = OBJECT_ID(N'dbo.StockTransferLine') AND name = N'FK_StockTransferLine_Unit')
             ALTER TABLE dbo.StockTransferLine WITH CHECK ADD CONSTRAINT FK_StockTransferLine_Unit FOREIGN KEY (UnitId) REFERENCES dbo.Unit(Id);
+        IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE parent_object_id = OBJECT_ID(N'dbo.StockIn') AND name = N'FK_StockIn_StockCountLine')
+            EXEC sys.sp_executesql N'ALTER TABLE dbo.StockIn WITH CHECK ADD CONSTRAINT FK_StockIn_StockCountLine FOREIGN KEY (StockCountLineId) REFERENCES dbo.StockCountLine(Id);';
+        IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE parent_object_id = OBJECT_ID(N'dbo.StockIn') AND name = N'FK_StockIn_StockCountSession')
+            EXEC sys.sp_executesql N'ALTER TABLE dbo.StockIn WITH CHECK ADD CONSTRAINT FK_StockIn_StockCountSession FOREIGN KEY (StockCountSessionId) REFERENCES dbo.StockCountSession(Id);';
+        IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE parent_object_id = OBJECT_ID(N'dbo.StockOut') AND name = N'FK_StockOut_StockCountLine')
+            EXEC sys.sp_executesql N'ALTER TABLE dbo.StockOut WITH CHECK ADD CONSTRAINT FK_StockOut_StockCountLine FOREIGN KEY (StockCountLineId) REFERENCES dbo.StockCountLine(Id);';
+        IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE parent_object_id = OBJECT_ID(N'dbo.StockOut') AND name = N'FK_StockOut_StockCountSession')
+            EXEC sys.sp_executesql N'ALTER TABLE dbo.StockOut WITH CHECK ADD CONSTRAINT FK_StockOut_StockCountSession FOREIGN KEY (StockCountSessionId) REFERENCES dbo.StockCountSession(Id);';
 
         ALTER TABLE dbo.AuditArchiveManifest WITH CHECK CHECK CONSTRAINT FK_AuditArchiveManifest_Actor;
         ALTER TABLE dbo.StockTransfer WITH CHECK CHECK CONSTRAINT FK_StockTransfer_FromWarehouse;
@@ -123,6 +389,10 @@ public static class DatabaseSchemaScripts
         ALTER TABLE dbo.StockTransferLine WITH CHECK CHECK CONSTRAINT FK_StockTransferLine_StockTransfer;
         ALTER TABLE dbo.StockTransferLine WITH CHECK CHECK CONSTRAINT FK_StockTransferLine_Product;
         ALTER TABLE dbo.StockTransferLine WITH CHECK CHECK CONSTRAINT FK_StockTransferLine_Unit;
+        ALTER TABLE dbo.StockIn WITH CHECK CHECK CONSTRAINT FK_StockIn_StockCountLine;
+        ALTER TABLE dbo.StockIn WITH CHECK CHECK CONSTRAINT FK_StockIn_StockCountSession;
+        ALTER TABLE dbo.StockOut WITH CHECK CHECK CONSTRAINT FK_StockOut_StockCountLine;
+        ALTER TABLE dbo.StockOut WITH CHECK CHECK CONSTRAINT FK_StockOut_StockCountSession;
 
         IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.AuditArchiveManifest') AND name = N'IX_AuditArchiveManifest_ActorId')
             CREATE INDEX IX_AuditArchiveManifest_ActorId ON dbo.AuditArchiveManifest(ActorId);
@@ -131,6 +401,14 @@ public static class DatabaseSchemaScripts
         IF COL_LENGTH(N'dbo.AuditArchiveManifest', N'OperationId') IS NOT NULL
            AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.AuditArchiveManifest') AND name = N'UX_AuditArchiveManifest_OperationId')
             CREATE UNIQUE INDEX UX_AuditArchiveManifest_OperationId ON dbo.AuditArchiveManifest(OperationId);
+        IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.StockIn') AND name = N'IX_StockIn_StockCountSessionId')
+            EXEC sys.sp_executesql N'CREATE INDEX IX_StockIn_StockCountSessionId ON dbo.StockIn(StockCountSessionId);';
+        IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.StockIn') AND name = N'UX_StockIn_StockCountLineId')
+            EXEC sys.sp_executesql N'CREATE UNIQUE INDEX UX_StockIn_StockCountLineId ON dbo.StockIn(StockCountLineId) WHERE StockCountLineId IS NOT NULL;';
+        IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.StockOut') AND name = N'IX_StockOut_StockCountSessionId')
+            EXEC sys.sp_executesql N'CREATE INDEX IX_StockOut_StockCountSessionId ON dbo.StockOut(StockCountSessionId);';
+        IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.StockOut') AND name = N'UX_StockOut_StockCountLineId')
+            EXEC sys.sp_executesql N'CREATE UNIQUE INDEX UX_StockOut_StockCountLineId ON dbo.StockOut(StockCountLineId) WHERE StockCountLineId IS NOT NULL;';
         IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.StockTransfer') AND name = N'UX_StockTransfer_DocumentCode')
             CREATE UNIQUE INDEX UX_StockTransfer_DocumentCode ON dbo.StockTransfer(DocumentCode);
         IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.StockTransferLine') AND name = N'IX_StockTransferLine_StockTransferId')
@@ -305,16 +583,21 @@ public static class DatabaseSchemaScripts
                 (N'StockLedger', N'SourceDocumentType', N'nvarchar', 100, 0, 0, 0),
                 (N'StockLedger', N'SourceDocumentId', N'int', 4, 10, 0, 0),
                 (N'StockLedger', N'Quantity', N'decimal', 9, 18, 2, 0),
+                (N'StockAdjustmentLine', N'DraftSerials', N'nvarchar', 8000, 0, 0, 1),
+                (N'StockIn', N'StockCountLineId', N'int', 4, 10, 0, 1),
+                (N'StockIn', N'StockCountSessionId', N'int', 4, 10, 0, 1),
+                (N'StockOut', N'StockCountLineId', N'int', 4, 10, 0, 1),
+                (N'StockOut', N'StockCountSessionId', N'int', 4, 10, 0, 1),
                 (N'PurchaseInvoice', N'InvoiceCode', N'nvarchar', 100, 0, 0, 0),
                 (N'PurchaseInvoice', N'SupplierId', N'int', 4, 10, 0, 0),
                 (N'PurchaseInvoice', N'GrandTotal', N'decimal', 9, 18, 2, 0),
-                (N'PurchaseInvoice', N'PaidAmount', N'decimal', 9, 18, 2, 1),
-                (N'PurchaseInvoice', N'PaymentStatus', N'nvarchar', 100, 0, 0, 1),
+                (N'PurchaseInvoice', N'PaidAmount', N'decimal', 9, 18, 2, 0),
+                (N'PurchaseInvoice', N'PaymentStatus', N'nvarchar', 100, 0, 0, 0),
                 (N'SalesInvoice', N'InvoiceCode', N'nvarchar', 100, 0, 0, 0),
                 (N'SalesInvoice', N'CustomerId', N'int', 4, 10, 0, 0),
                 (N'SalesInvoice', N'GrandTotal', N'decimal', 9, 18, 2, 0),
-                (N'SalesInvoice', N'PaidAmount', N'decimal', 9, 18, 2, 1),
-                (N'SalesInvoice', N'PaymentStatus', N'nvarchar', 100, 0, 0, 1)
+                (N'SalesInvoice', N'PaidAmount', N'decimal', 9, 18, 2, 0),
+                (N'SalesInvoice', N'PaymentStatus', N'nvarchar', 100, 0, 0, 0)
             ) AS expected(TableName, ColumnName, TypeName, MaxLength, Precision, Scale, IsNullable)
             EXCEPT
             SELECT OBJECT_NAME(columns.object_id), columns.name, TYPE_NAME(columns.system_type_id),
@@ -355,7 +638,11 @@ public static class DatabaseSchemaScripts
                 (N'StockInLine', N'StockInId', N'StockIn', N'Id'),
                 (N'StockOutLine', N'StockOutId', N'StockOut', N'Id'),
                 (N'PurchaseInvoice', N'SupplierId', N'Supplier', N'Id'),
-                (N'SalesInvoice', N'CustomerId', N'Customer', N'Id')
+                (N'SalesInvoice', N'CustomerId', N'Customer', N'Id'),
+                (N'StockIn', N'StockCountLineId', N'StockCountLine', N'Id'),
+                (N'StockIn', N'StockCountSessionId', N'StockCountSession', N'Id'),
+                (N'StockOut', N'StockCountLineId', N'StockCountLine', N'Id'),
+                (N'StockOut', N'StockCountSessionId', N'StockCountSession', N'Id')
             ) AS expected(ParentTable, ParentColumn, ReferencedTable, ReferencedColumn)
             EXCEPT
             SELECT OBJECT_NAME(fkc.parent_object_id), pc.name,
@@ -371,7 +658,9 @@ public static class DatabaseSchemaScripts
             SELECT expected.ConstraintName
             FROM (VALUES
                 (N'FK_Product_Category'), (N'FK_Product_Brand'), (N'FK_Product_DefaultUnit'),
-                (N'FK_StockInLine_StockIn'), (N'FK_StockOutLine_StockOut')
+                (N'FK_StockInLine_StockIn'), (N'FK_StockOutLine_StockOut'),
+                (N'FK_StockIn_StockCountLine'), (N'FK_StockIn_StockCountSession'),
+                (N'FK_StockOut_StockCountLine'), (N'FK_StockOut_StockCountSession')
             ) AS expected(ConstraintName)
             EXCEPT
             SELECT name FROM sys.foreign_keys WHERE is_disabled = 0 AND is_not_trusted = 0
@@ -403,7 +692,11 @@ public static class DatabaseSchemaScripts
                 (N'SalesInvoice', N'IX_SalesInvoice_PaymentStatus_InvoiceDate', 0, 2, N'InvoiceDate', 2),
                 (N'StockLedger', N'IX_StockLedger_Warehouse_Product_PostedAt', 0, 1, N'WarehouseId', 3),
                 (N'StockLedger', N'IX_StockLedger_Warehouse_Product_PostedAt', 0, 2, N'ProductId', 3),
-                (N'StockLedger', N'IX_StockLedger_Warehouse_Product_PostedAt', 0, 3, N'PostedAt', 3)
+                (N'StockLedger', N'IX_StockLedger_Warehouse_Product_PostedAt', 0, 3, N'PostedAt', 3),
+                (N'StockIn', N'IX_StockIn_StockCountSessionId', 0, 1, N'StockCountSessionId', 1),
+                (N'StockIn', N'UX_StockIn_StockCountLineId', 1, 1, N'StockCountLineId', 1),
+                (N'StockOut', N'IX_StockOut_StockCountSessionId', 0, 1, N'StockCountSessionId', 1),
+                (N'StockOut', N'UX_StockOut_StockCountLineId', 1, 1, N'StockCountLineId', 1)
             ) AS expected(TableName, IndexName, IsUnique, KeyOrdinal, ColumnName, KeyCount)
             EXCEPT
             SELECT OBJECT_NAME(i.object_id), i.name, i.is_unique,
