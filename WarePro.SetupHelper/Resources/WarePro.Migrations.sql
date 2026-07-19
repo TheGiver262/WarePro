@@ -663,24 +663,27 @@ GO
 -- metadata là mốc để setup helper chọn đúng các migration còn thiếu cho từng database.
 
         IF OBJECT_ID(N'[dbo].[__WareProSchemaVersion]', N'U') IS NULL
-        BEGIN
-            CREATE TABLE [dbo].[__WareProSchemaVersion]
-            (
-                [Id] INT NOT NULL CONSTRAINT [PK___WareProSchemaVersion] PRIMARY KEY,
-                [Version] INT NOT NULL,
-                [MinimumClientVersion] NVARCHAR(32) NOT NULL,
-                [AppliedByAppVersion] NVARCHAR(64) NOT NULL,
-                [UpdatedAt] DATETIME2 NOT NULL
-            );
-            INSERT INTO [dbo].[__WareProSchemaVersion]
-                ([Id], [Version], [MinimumClientVersion], [AppliedByAppVersion], [UpdatedAt])
-            VALUES (1, 0, N'1.0.0', N'1.0.0', SYSUTCDATETIME());
-        END;
+            EXEC sys.sp_executesql N'
+                CREATE TABLE [dbo].[__WareProSchemaVersion]
+                (
+                    [Id] INT NOT NULL CONSTRAINT [PK___WareProSchemaVersion] PRIMARY KEY,
+                    [Version] INT NOT NULL,
+                    [MinimumClientVersion] NVARCHAR(32) NOT NULL,
+                    [AppliedByAppVersion] NVARCHAR(64) NOT NULL,
+                    [UpdatedAt] DATETIME2 NOT NULL
+                );';
+
         IF COL_LENGTH('__WareProSchemaVersion', 'MinimumClientVersion') IS NULL
-            ALTER TABLE [dbo].[__WareProSchemaVersion] ADD [MinimumClientVersion] NVARCHAR(32) NULL;
+            EXEC sys.sp_executesql N'ALTER TABLE [dbo].[__WareProSchemaVersion] ADD [MinimumClientVersion] NVARCHAR(32) NULL;';
+
         IF COL_LENGTH('__WareProSchemaVersion', 'AppliedByAppVersion') IS NULL
-            ALTER TABLE [dbo].[__WareProSchemaVersion] ADD [AppliedByAppVersion] NVARCHAR(64) NULL;
-        
+            EXEC sys.sp_executesql N'ALTER TABLE [dbo].[__WareProSchemaVersion] ADD [AppliedByAppVersion] NVARCHAR(64) NULL;';
+
+        IF NOT EXISTS (SELECT 1 FROM [dbo].[__WareProSchemaVersion] WHERE [Id] = 1)
+            EXEC sys.sp_executesql N'
+                INSERT INTO [dbo].[__WareProSchemaVersion]
+                    ([Id], [Version], [MinimumClientVersion], [AppliedByAppVersion], [UpdatedAt])
+                VALUES (1, 0, N''1.0.0'', N''1.0.0'', SYSUTCDATETIME());';
 GO
 -- SchemaVersion1Sql
 

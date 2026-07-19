@@ -37,6 +37,17 @@ public class DatabaseInitializerSchemaTests
     }
 
     [Fact]
+    public void Schema_metadata_uses_dynamic_batches_for_legacy_missing_columns()
+    {
+        var sql = DatabaseSchemaScripts.SchemaMetadata;
+
+        Assert.Contains("EXEC sys.sp_executesql", sql, StringComparison.Ordinal);
+        Assert.Contains("N'ALTER TABLE [dbo].[__WareProSchemaVersion] ADD [MinimumClientVersion]", sql, StringComparison.Ordinal);
+        Assert.Contains("N'ALTER TABLE [dbo].[__WareProSchemaVersion] ADD [AppliedByAppVersion]", sql, StringComparison.Ordinal);
+        Assert.Contains("INSERT INTO [dbo].[__WareProSchemaVersion]", sql, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Schema_metadata_records_client_and_application_compatibility()
     {
         var sql = DatabaseSchemaScripts.SchemaMetadata;
