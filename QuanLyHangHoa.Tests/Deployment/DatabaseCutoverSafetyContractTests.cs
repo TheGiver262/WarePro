@@ -144,6 +144,17 @@ public sealed class DatabaseCutoverSafetyContractTests
     }
 
     [Fact]
+    public void Legacy_schema_without_cutover_table_is_classified_without_static_table_reference()
+    {
+        var source = Read("WarePro.SetupHelper", "SetupCommands.cs");
+        var start = source.IndexOf("ClassifyDatabaseAsync", StringComparison.Ordinal);
+        var detection = source[start..source.IndexOf("private static void ValidateRelease", start, StringComparison.Ordinal)];
+
+        Assert.Contains("DECLARE @InstallerCreated bit = 0", detection, StringComparison.Ordinal);
+        Assert.Contains("@InstallerCreated bit OUTPUT", detection, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Maintenance_lock_identity_is_normalized_across_clients()
     {
         Assert.Equal(

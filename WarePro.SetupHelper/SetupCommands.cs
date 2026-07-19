@@ -1014,14 +1014,19 @@ internal static class DatabaseUpgradeRunner
                 RETURN;
             END;
 
+            DECLARE @InstallerCreated bit = 0;
             IF OBJECT_ID(N'dbo.__WareProUpgradeCutover', N'U') IS NOT NULL
                AND COL_LENGTH(N'dbo.__WareProUpgradeCutover', N'InstallerCreatedDatabase') IS NOT NULL
-               AND EXISTS
-               (
-                   SELECT 1 FROM dbo.__WareProUpgradeCutover
-                   WHERE Id = 1 AND InstallerCreatedDatabase = 1
-                     AND Status IN (N'Preparing', N'Prepared')
-               )
+                EXEC sys.sp_executesql
+                    N'SELECT @InstallerCreated = CASE WHEN EXISTS
+                      (
+                          SELECT 1 FROM dbo.__WareProUpgradeCutover
+                          WHERE Id = 1 AND InstallerCreatedDatabase = 1
+                            AND Status IN (N''Preparing'', N''Prepared'')
+                      ) THEN 1 ELSE 0 END;',
+                    N'@InstallerCreated bit OUTPUT',
+                    @InstallerCreated = @InstallerCreated OUTPUT;
+            IF @InstallerCreated = 1
             BEGIN
                 SELECT 1;
                 RETURN;
