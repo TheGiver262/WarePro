@@ -34,6 +34,7 @@ namespace QuanLyHangHoa.Services
             Guid operationId, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(expectedRowVersion);
+            // copy token và scalar trước khi vào executor để mọi lần retry dùng cùng một yêu cầu
             var rowVersion = expectedRowVersion.ToArray();
             var code = updated.CustomerCode.Trim();
             var name = updated.DisplayName.Trim();
@@ -95,6 +96,7 @@ namespace QuanLyHangHoa.Services
                 async (db, token) =>
                 {
                     AuthorizationService.RequireFreshActor(db, performedBy, PermissionAction.ManageMasterData);
+                    // kiểm tra trước để báo lỗi rõ; unique index vẫn là hàng rào cuối nếu hai máy cùng tạo một mã
                     if (await db.Customers.AnyAsync(item => item.CustomerCode == code, token))
                     {
                         throw new InvalidOperationException($"Customer code '{code}' already exists.");
@@ -110,6 +112,7 @@ namespace QuanLyHangHoa.Services
                         IsActive = isActive
                     };
                     db.Customers.Add(created);
+                    // flush lấy id do DB sinh trước khi tạo audit tham chiếu; executor vẫn commit cả hai cùng transaction
                     await db.SaveChangesAsync(token);
                     AddAuditEntry(db, "CREATE", created.Id, null, Serialize(created), performedBy);
                     return created.Id;

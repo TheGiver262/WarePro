@@ -159,6 +159,7 @@ namespace QuanLyHangHoa.Services
             Product product, int userId, Guid operationId,
             CancellationToken cancellationToken = default)
         {
+            // tách scalar khỏi model đầu vào để callback retry không phụ thuộc object có thể bị nơi gọi sửa
             var code = product.ProductCode.Trim();
             var name = product.DisplayName.Trim();
             var description = product.Description?.Trim();
@@ -177,6 +178,7 @@ namespace QuanLyHangHoa.Services
                 async (db, token) =>
                 {
                     AuthorizationService.RequireFreshActor(db, userId, PermissionAction.ManageMasterData);
+                    // kiểm tra trước để có thông báo dễ hiểu; unique index xử lý cuộc đua tạo trùng giữa nhiều client
                     if (await db.Products.AnyAsync(item => item.ProductCode == code, token))
                     {
                         throw new InvalidOperationException($"Product code '{code}' already exists.");
@@ -234,6 +236,7 @@ namespace QuanLyHangHoa.Services
                     AuthorizationService.RequireFreshActor(db, userId, PermissionAction.ManageMasterData);
                     var entity = await db.Products.SingleOrDefaultAsync(item => item.Id == id, token);
                     if (entity is null) return;
+                    // token client đọc trở thành giá trị gốc của câu UPDATE; lệch token phải nổi lỗi concurrency, không tự ghi đè
                     db.Entry(entity).Property(item => item.RowVersion).OriginalValue = rowVersion;
                     var before = new { entity.ProductCode, entity.DisplayName, entity.IsActive };
                     entity.ProductCode = code;
