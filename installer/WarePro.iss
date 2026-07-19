@@ -45,6 +45,7 @@ VersionInfoVersion={#MyAppVersion}.0
 VersionInfoProductVersion={#MyAppVersion}
 MinVersion=10.0.17763
 
+; full tự cài SQL Express; app-only chỉ cấu hình kết nối tới SQL Server đã có.
 [Types]
 Name: "full"; Description: "cài đầy đủ một-click (WarePro + SQL Server Express)"
 Name: "app-only"; Description: "chỉ cài WarePro (dùng SQL Server có sẵn)"
@@ -92,6 +93,7 @@ var
   DatabaseFinalized: Boolean;
   HelperExecutable: String;
 
+// lần chạy tiếp sau restart giữ full mode; upgrade chỉ thay ứng dụng và nâng schema hiện có.
 function IsFullMode: Boolean;
 begin
   Result := ResumeFullMode or ((not UpgradeMode) and
@@ -308,6 +310,7 @@ var
   SecretPath: String;
   AclArguments: String;
 begin
+  // secret được ghi hoặc nhận qua file, sau đó siết ACL; command line chỉ chứa đường dẫn file.
   SecretPath := BootstrapSecretPath;
   if ExpandConstant('{param:WAREPROBOOTSTRAPSECRETFILE|}') = '' then
   begin
@@ -341,6 +344,7 @@ var
   ExitCode: Integer;
   RollbackCode: Integer;
 begin
+  // kiểm tra đúng cấu hình sẽ dùng trước khi prepare để không nâng nhầm database.
   StagingConfig := ExpandConstant('{tmp}\warepro.settings.json');
   FinalConfig := ExpandConstant('{commonappdata}\WarePro\Config\warepro.settings.json');
 
@@ -384,6 +388,7 @@ begin
     Arguments := Arguments + ' --bootstrap-secret-file ' + AddQuotes(BootstrapSecretPath);
   end;
 
+  // đặt cờ trước prepare để nhánh lỗi và DeinitializeSetup biết cần thử rollback.
   DatabaseCutoverStarted := True;
   try
     try
@@ -474,6 +479,7 @@ procedure DeinitializeSetup;
 var
   ExitCode: Integer;
 begin
+  // khi setup kết thúc, thử xóa file secret đã dùng; nếu cutover chưa finalize thì thử rollback trước khi thoát.
   DeleteFile(BootstrapSecretPath);
   if (DatabasePrepared or DatabaseCutoverStarted) and not DatabaseFinalized then
   begin
