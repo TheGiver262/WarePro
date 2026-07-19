@@ -59,6 +59,7 @@ namespace QuanLyHangHoa.Services
             ArgumentNullException.ThrowIfNull(adjustment);
             ArgumentNullException.ThrowIfNull(lines);
             var timestamp = DateTime.Now;
+            // snapshot giữ nguyên cả liên kết chứng từ nguồn; retry không được đổi lý do hoặc nguồn điều chỉnh giữa chừng.
             var snapshot = new SaveDraftSnapshot(
                 adjustment.Id,
                 string.IsNullOrWhiteSpace(adjustment.DocumentCode)
@@ -116,6 +117,7 @@ namespace QuanLyHangHoa.Services
             if (existing is not null)
             {
                 new StockDocumentLifecycleService().EnsureCanEditDetails(ParseStatus(existing.Status));
+                // rowversion biến thao tác thay toàn bộ line thành cập nhật có điều kiện, không âm thầm đè bản mới hơn.
                 db.Entry(existing).Property(item => item.RowVersion).OriginalValue = snapshot.RowVersion;
                 db.Entry(existing).Property(item => item.Notes).IsModified = true;
 
@@ -146,6 +148,7 @@ namespace QuanLyHangHoa.Services
                 Lines = freshLines
             };
             db.StockAdjustments.Add(freshAdjustment);
+            // flush để database cấp id phiếu trước khi trả về; transaction ngoài vẫn quyết định commit hay rollback.
             await db.SaveChangesAsync(cancellationToken);
             return freshAdjustment.Id;
         }
@@ -272,6 +275,7 @@ namespace QuanLyHangHoa.Services
                 new EfInventoryUnitOfWork(db, commitChanges: false),
                 new FixedWarehouseProvider(adjustment.WarehouseId),
                 new SystemClock());
+            // gửi toàn bộ line qua domain service; mọi thay đổi chỉ được commit khi tất cả line xử lý thành công.
             postingService.PostAdjustment(new PostStockAdjustmentCommand(
                 adjustment.Id,
                 StockDocumentStatus.Approved,

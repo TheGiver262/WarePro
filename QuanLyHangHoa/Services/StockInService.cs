@@ -176,6 +176,7 @@ namespace QuanLyHangHoa.Services
         {
             ArgumentNullException.ThrowIfNull(stockIn);
             ArgumentNullException.ThrowIfNull(lines);
+            // chụp dữ liệu đầu vào thành giá trị thuần để mỗi lần retry dựng entity mới, không dùng lại object đang bị UI giữ và thay đổi.
             var snapshot = StockInDraftSnapshot.Create(stockIn, lines, userId);
             if (snapshot.Id > 0 && snapshot.RowVersion.Length == 0)
             {
@@ -209,6 +210,7 @@ namespace QuanLyHangHoa.Services
                     .FirstOrDefault(s => s.Id == snapshot.Id);
             }
 
+            // dựng line mới trong từng lần chạy để retry không mang theo tracking state từ dbcontext đã thất bại.
             var freshLines = snapshot.Lines.Select(line => line.ToEntity()).ToList();
             var productIds = freshLines.Select(line => line.ProductId).Distinct().ToList();
             var unitMap = db.ProductUnits
@@ -226,6 +228,7 @@ namespace QuanLyHangHoa.Services
                 var lifecycle = new StockDocumentLifecycleService();
                 lifecycle.EnsureCanEditDetails(ParseStatus(existing.Status));
                 var beforeJson = Serialize(existing);
+                // gắn rowversion người dùng đã đọc làm giá trị gốc; ef sẽ báo conflict nếu phiếu đã bị máy khác sửa.
                 db.Entry(existing).Property(item => item.RowVersion).OriginalValue = snapshot.RowVersion;
 
                 existing.WarehouseId = snapshot.WarehouseId;
@@ -263,6 +266,7 @@ namespace QuanLyHangHoa.Services
                 Lines = freshLines
             };
             db.StockIns.Add(document);
+            // flush sớm để database cấp id cho phiếu và các line; audit phía sau cần khóa thật để truy vết đúng.
             await db.SaveChangesAsync(cancellationToken);
             AddAudit(db, "CREATE", document.Id, null, Serialize(document), snapshot.UserId);
             return document.Id;

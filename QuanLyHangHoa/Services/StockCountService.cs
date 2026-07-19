@@ -34,6 +34,7 @@ namespace QuanLyHangHoa.Services
             CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(session);
+            // chụp cả session và line để lần retry tạo lại graph mới, không dùng entity đã có id tạm hoặc tracking state cũ.
             var snapshot = new CreateSessionSnapshot(
                 session.SessionCode,
                 session.WarehouseId,
@@ -54,6 +55,7 @@ namespace QuanLyHangHoa.Services
                     AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockAdjustment);
                     var freshSession = snapshot.ToEntity(userId);
                     db.StockCountSessions.Add(freshSession);
+                    // flush để lấy id phiên trước khi audit; vẫn cùng transaction nên lỗi audit sẽ rollback cả phiên.
                     await db.SaveChangesAsync(token);
                     AddAudit(db, "CREATE", freshSession.Id, null, Serialize(freshSession), userId);
                     return freshSession.Id;
@@ -108,6 +110,7 @@ namespace QuanLyHangHoa.Services
             _writeExecutor.ExecuteAsync(
                 new DatabaseWriteRequest("stock-count.process-results", operationId),
                 (db, token) => StageProcessResultsAsync(db, sessionId, userId, token),
+                // trạng thái hoàn thành xác nhận commit khi phản hồi commit bị mất, tránh báo lỗi dù nghiệp vụ đã lưu.
                 (db, token) => db.StockCountSessions.AnyAsync(
                     item => item.Id == sessionId && item.Status == CompletedStatus, token),
                 cancellationToken: cancellationToken);
@@ -195,6 +198,7 @@ namespace QuanLyHangHoa.Services
                         DisplayName = "Khách hàng điều chỉnh (Hệ thống)",
                         IsActive = true
                     };
+                    // lưu customer hệ thống trước để có id bắt buộc cho các phiếu xuất điều chỉnh tạo ở pha sau.
                     db.Customers.Add(adjustmentCustomer);
                     await db.SaveChangesAsync(cancellationToken);
                 }
@@ -292,6 +296,7 @@ namespace QuanLyHangHoa.Services
                 StockCountLineId = countLine.Id,
                 Lines = new List<StockInLine> { documentLine }
             };
+            // flush header và line trước posting vì ledger cần document.id, còn serial cần documentLine.id để liên kết.
             db.StockIns.Add(document);
             await db.SaveChangesAsync(cancellationToken);
 
@@ -359,6 +364,7 @@ namespace QuanLyHangHoa.Services
                 StockCountLineId = countLine.Id,
                 Lines = new List<StockOutLine> { documentLine }
             };
+            // flush header và line trước posting vì ledger cần document.id, còn serial cần documentLine.id để liên kết.
             db.StockOuts.Add(document);
             await db.SaveChangesAsync(cancellationToken);
 

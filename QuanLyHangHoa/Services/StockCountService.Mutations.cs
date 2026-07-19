@@ -45,6 +45,7 @@ public partial class StockCountService
             new DatabaseWriteRequest("stock-count.commit-session", operationId),
             (db, token) => StageSaveDraftLinesAsync(
                 db, sessionId, snapshots, userId, markCounted: true),
+            // trạng thái đã kiểm kê xác nhận commit khi phản hồi commit bị mất, tránh chạy lại nghiệp vụ đã lưu.
             (db, token) => db.StockCountSessions.AnyAsync(
                 item => item.Id == sessionId && item.Status == CountedStatus, token),
             cancellationToken: cancellationToken);
@@ -76,6 +77,7 @@ public partial class StockCountService
             throw new InventoryDomainException("Only draft stock-count sessions can be edited.");
         }
 
+        // lập map rồi kiểm tra quyền sở hữu mọi id trước khi sửa line đầu tiên, tránh cập nhật nửa phiên.
         var updates = lines.ToDictionary(item => item.Id);
         if (updates.Keys.Any(id => session.Lines.All(line => line.Id != id)))
         {
@@ -89,9 +91,11 @@ public partial class StockCountService
                 continue;
             }
 
+            // mỗi line có rowversion riêng để phát hiện đúng dòng vừa bị client khác nhập lại số đếm.
             db.Entry(line).Property(item => item.RowVersion).OriginalValue = update.RowVersion;
 
             line.CountedQuantity = update.CountedQuantity;
+            // số âm là giá trị chưa kiểm kê, nên chưa phát sinh chênh lệch để quy đổi thành phiếu nhập hoặc xuất.
             line.VarianceQuantity = update.CountedQuantity < 0
                 ? 0
                 : update.CountedQuantity - line.SystemQuantity;
@@ -110,6 +114,7 @@ public partial class StockCountService
         IReadOnlyCollection<StockCountLine> lines)
     {
         ArgumentNullException.ThrowIfNull(lines);
+        // sao chép cả rowversion vì mảng byte trên model UI có thể bị thay sau khi executor bắt đầu retry.
         var snapshots = lines.Select(line => new LineUpdateSnapshot(
             line.Id,
             line.CountedQuantity,
