@@ -1,0 +1,66 @@
+name: WarePro SQL Server
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  schema-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SQL_CONTAINER: warepro-sql-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Start disposable SQL Server 2022
+        shell: bash
+        run: |
+          set -euo pipefail
+          password="WarePro!$(openssl rand -hex 18)Aa1"
+          echo "::add-mask::$password"
+          echo "WAREPRO_SQL_PASSWORD=$password" >> "$GITHUB_ENV"
+          echo "WAREPRO_SQLSERVER_TEST_CONNECTION_STRING=Server=localhost,14333;Database=master;User ID=sa;Password=$password;Encrypt=True;TrustServerCertificate=True;Pooling=False" >> "$GITHUB_ENV"
+          docker run --detach \
+            --name "$SQL_CONTAINER" \
+            --publish 14333:1433 \
+            --env ACCEPT_EULA=Y \
+            --env MSSQL_SA_PASSWORD="$password" \
+            mcr.microsoft.com/mssql/server:2022-latest
+
+      - name: Wait for SQL Server
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 60); do
+            if docker exec "$SQL_CONTAINER" /opt/mssql-tools18/bin/sqlcmd \
+              -S localhost -U sa -P "$WAREPRO_SQL_PASSWORD" -C -Q "SELECT 1" >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs "$SQL_CONTAINER"
+          exit 1
+
+      - name: Verify shared schema and migrations
+        run: >-
+          dotnet test WarePro.SqlServer.Tests/WarePro.SqlServer.Tests.csproj
+          -c Release
+          -p:RestoreBuildInParallel=false
+          -m:1
+          -nr:false
+          --verbosity minimal
+
+      - name: Always remove disposable SQL Server
+        if: always()
+        shell: bash
+        run: docker rm -f "$SQL_CONTAINER" >/dev/null 2>&1 || true

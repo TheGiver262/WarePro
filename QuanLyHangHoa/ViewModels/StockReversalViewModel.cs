@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using QuanLyHangHoa.Data;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -12,25 +14,45 @@ namespace QuanLyHangHoa.ViewModels
     public partial class StockReversalViewModel : ObservableObject
     {
         private readonly AppUser _currentUser;
-        private readonly Func<string, int, int, int> _reverseDocument;
+        private readonly Func<string, int, int, Guid, CancellationToken, Task<int>> _reverseDocument;
         private readonly Action<string, string> _showMessage;
 
         [ObservableProperty] private string _documentType = "StockIn";
         [ObservableProperty] private string _documentIdText = string.Empty;
         [ObservableProperty] private string _reason = "WrongPosting";
         [ObservableProperty] private string _statusMessage = string.Empty;
+        [ObservableProperty] private bool _isWriting;
+        [ObservableProperty] private string _writeStatus = string.Empty;
 
+        private void ResetAfterWriteFailure()
+        {
+            DocumentType = "StockIn";
+            DocumentIdText = string.Empty;
+            Reason = "WrongPosting";
+            StatusMessage = string.Empty;
+        }
+        private Task<bool> ExecuteWriteAsync(
+            Func<CancellationToken, Task> write,
+            CancellationToken cancellationToken) =>
+            DatabaseWriteUi.ExecuteAsync(
+                write,
+                () => IsWriting,
+                value => IsWriting = value,
+                value => WriteStatus = value,
+                ResetAfterWriteFailure,
+                message => _showMessage(message, "Lỗi"),
+                cancellationToken);
         public StockReversalViewModel(AppUser currentUser, Func<AppDbContext>? contextFactory = null)
             : this(
                 currentUser,
-                new StockReversalService(contextFactory ?? (() => new QuanLyHangHoa.Data.AppDbContext())).ReversePostedLedgerDocument,
+                new StockReversalService(contextFactory ?? (() => new QuanLyHangHoa.Data.AppDbContext())).ReverseDocumentAsync,
                 (message, title) => MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information))
         {
         }
 
         public StockReversalViewModel(
             AppUser currentUser,
-            Func<string, int, int, int> reverseDocument,
+            Func<string, int, int, Guid, CancellationToken, Task<int>> reverseDocument,
             Action<string, string> showMessage)
         {
             ArgumentNullException.ThrowIfNull(currentUser);
@@ -41,8 +63,9 @@ namespace QuanLyHangHoa.ViewModels
 
         [RelayCommand]
         // ViewModel chỉ kiểm tra input và hiển thị kết quả; transaction đảo kho nằm hoàn toàn trong StockReversalService
-        private void ReverseDocument()
+        private async Task ReverseDocument(CancellationToken cancellationToken)
         {
+            var operationId = Guid.NewGuid();
             if (!int.TryParse(DocumentIdText, out var documentId))
             {
                 StatusMessage = "DocumentId không hợp lệ.";
@@ -59,19 +82,27 @@ namespace QuanLyHangHoa.ViewModels
 
             try
             {
-                var adjustmentId = _reverseDocument(DocumentType, documentId, _currentUser.Id);
+                var adjustmentId = 0;
+                if (!await ExecuteWriteAsync(
+                    async _ =>
+                    {
+                        adjustmentId = await _reverseDocument(DocumentType, documentId, _currentUser.Id, operationId, cancellationToken);
+                    },
+                    cancellationToken)) return;
                 if (adjustmentId <= 0)
                 {
-                    throw new InventoryDomainException("Không tìm thấy chứng từ kho đã ghi sổ.");
+                    StatusMessage = "Không tìm thấy chứng từ kho đã ghi sổ.";
+                    _showMessage(StatusMessage, "Lỗi đảo chứng từ");
+                    return;
                 }
 
                 StatusMessage = $"Đã đảo chứng từ kho, adjustment #{adjustmentId}.";
                 _showMessage(StatusMessage, "Thông báo");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                StatusMessage = ex.Message;
-                _showMessage(ex.Message, "Lỗi đảo chứng từ");
+                StatusMessage = DatabaseWriteUi.TechnicalErrorMessage;
+                _showMessage(DatabaseWriteUi.TechnicalErrorMessage, "Lỗi đảo chứng từ");
             }
         }
     }

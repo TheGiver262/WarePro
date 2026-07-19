@@ -83,6 +83,12 @@ namespace QuanLyHangHoa.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -119,6 +125,9 @@ namespace QuanLyHangHoa.Migrations
                         .HasMaxLength(260)
                         .HasColumnType("nvarchar(260)");
 
+                    b.Property<Guid>("OperationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("RangeEndUtc")
                         .HasPrecision(0)
                         .HasColumnType("datetime2(0)");
@@ -129,6 +138,12 @@ namespace QuanLyHangHoa.Migrations
 
                     b.Property<int>("RowCount")
                         .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<string>("Sha256Hash")
                         .IsRequired()
@@ -141,6 +156,9 @@ namespace QuanLyHangHoa.Migrations
                     b.HasIndex("ActorId");
 
                     b.HasIndex("CreatedAtUtc");
+
+                    b.HasIndex(new[] { "OperationId" }, "UX_AuditArchiveManifest_OperationId")
+                        .IsUnique();
 
                     b.ToTable("AuditArchiveManifest", (string)null);
                 });
@@ -218,6 +236,12 @@ namespace QuanLyHangHoa.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.HasKey("Id")
                         .HasName("PK__Brand__3214EC07FFE55213");
 
@@ -249,6 +273,12 @@ namespace QuanLyHangHoa.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.HasKey("Id")
                         .HasName("PK__Category__3214EC077A60AC54");
@@ -292,6 +322,12 @@ namespace QuanLyHangHoa.Migrations
                     b.Property<string>("Phone")
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.HasKey("Id")
                         .HasName("PK__Customer__3214EC073FBB68C6");
@@ -350,6 +386,12 @@ namespace QuanLyHangHoa.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<int>("WarrantyPeriodMonths")
                         .HasColumnType("int");
 
@@ -395,6 +437,12 @@ namespace QuanLyHangHoa.Migrations
 
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<string>("SerialNumber")
                         .IsRequired()
@@ -449,6 +497,12 @@ namespace QuanLyHangHoa.Migrations
 
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<int>("UnitId")
                         .HasColumnType("int");
@@ -517,6 +571,12 @@ namespace QuanLyHangHoa.Migrations
                         .HasColumnType("nvarchar(50)")
                         .HasDefaultValue("Unpaid");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<int?>("StockInId")
                         .HasColumnType("int");
 
@@ -570,6 +630,12 @@ namespace QuanLyHangHoa.Migrations
 
                     b.Property<decimal>("Quantity")
                         .HasColumnType("decimal(18, 2)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<int?>("StockInLineId")
                         .HasColumnType("int");
@@ -652,6 +718,12 @@ namespace QuanLyHangHoa.Migrations
                         .HasColumnType("nvarchar(50)")
                         .HasDefaultValue("Unpaid");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<int?>("StockOutId")
                         .HasColumnType("int");
 
@@ -699,6 +771,12 @@ namespace QuanLyHangHoa.Migrations
 
                     b.Property<decimal>("Quantity")
                         .HasColumnType("decimal(18, 2)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<int>("SalesInvoiceId")
                         .HasColumnType("int");
@@ -786,6 +864,12 @@ namespace QuanLyHangHoa.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -847,6 +931,12 @@ namespace QuanLyHangHoa.Migrations
                     b.Property<decimal>("QuantityDelta")
                         .HasColumnType("decimal(18, 2)");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.HasKey("Id")
                         .HasName("PK__StockAdj__3214EC075A0DD95F");
 
@@ -868,19 +958,22 @@ namespace QuanLyHangHoa.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<decimal>("AvailableQuantity")
-                        .IsConcurrencyToken()
                         .HasColumnType("decimal(18, 2)");
 
                     b.Property<decimal>("OnHandQuantity")
-                        .IsConcurrencyToken()
                         .HasColumnType("decimal(18, 2)");
 
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
 
                     b.Property<decimal>("ReservedQuantity")
-                        .IsConcurrencyToken()
                         .HasColumnType("decimal(18, 2)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<int>("WarehouseId")
                         .HasColumnType("int");
@@ -909,6 +1002,12 @@ namespace QuanLyHangHoa.Migrations
 
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<string>("SerialNumbers")
                         .HasColumnType("nvarchar(max)");
@@ -964,6 +1063,12 @@ namespace QuanLyHangHoa.Migrations
 
                     b.Property<int?>("PostedBy")
                         .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<string>("SessionCode")
                         .IsRequired()
@@ -1044,6 +1149,12 @@ namespace QuanLyHangHoa.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -1121,6 +1232,12 @@ namespace QuanLyHangHoa.Migrations
 
                     b.Property<decimal>("Quantity")
                         .HasColumnType("decimal(18, 2)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<int>("StockInId")
                         .HasColumnType("int");
@@ -1253,6 +1370,12 @@ namespace QuanLyHangHoa.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -1328,6 +1451,12 @@ namespace QuanLyHangHoa.Migrations
                     b.Property<decimal>("Quantity")
                         .HasColumnType("decimal(18, 2)");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<int>("StockOutId")
                         .HasColumnType("int");
 
@@ -1390,6 +1519,12 @@ namespace QuanLyHangHoa.Migrations
                     b.Property<int?>("PostedBy")
                         .HasColumnType("int");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -1445,6 +1580,12 @@ namespace QuanLyHangHoa.Migrations
                     b.Property<decimal>("Quantity")
                         .HasColumnType("decimal(18, 2)");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<int>("StockTransferId")
                         .HasColumnType("int");
 
@@ -1492,6 +1633,12 @@ namespace QuanLyHangHoa.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<string>("SupplierCode")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -1524,6 +1671,12 @@ namespace QuanLyHangHoa.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<string>("UnitCode")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -1536,6 +1689,47 @@ namespace QuanLyHangHoa.Migrations
                         .IsUnique();
 
                     b.ToTable("Unit", (string)null);
+                });
+
+            modelBuilder.Entity("QuanLyHangHoa.Models.WareProClientSession", b =>
+                {
+                    b.Property<Guid>("SessionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AppVersion")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<DateTime>("LastSeenUtc")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<string>("MachineName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<int>("ProcessId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTime>("StartedAtUtc")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.HasKey("SessionId")
+                        .HasName("PK___WareProClientSession");
+
+                    b.HasIndex(new[] { "LastSeenUtc" }, "IX___WareProClientSession_LastSeenUtc");
+
+                    b.ToTable("__WareProClientSession", (string)null);
                 });
 
             modelBuilder.Entity("QuanLyHangHoa.Models.Warehouse", b =>
@@ -1558,6 +1752,12 @@ namespace QuanLyHangHoa.Migrations
 
                     b.Property<bool>("IsDefault")
                         .HasColumnType("bit");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<string>("WarehouseCode")
                         .IsRequired()
@@ -1649,6 +1849,12 @@ namespace QuanLyHangHoa.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -1702,6 +1908,12 @@ namespace QuanLyHangHoa.Migrations
 
                     b.Property<int>("ProductSerialId")
                         .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<int?>("SalesInvoiceId")
                         .HasColumnType("int");

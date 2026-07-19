@@ -12,7 +12,7 @@ namespace QuanLyHangHoa.Tests.Services;
 public sealed class StockPostingApprovalTests
 {
     [Fact]
-    public void Transfer_cannot_post_directly_from_draft()
+    public async Task Transfer_cannot_post_directly_from_draft()
     {
         using var connection = OpenDatabase();
         int transferId;
@@ -35,12 +35,13 @@ public sealed class StockPostingApprovalTests
 
         var service = new StockTransferService(() => DatabaseHelper.CreateContext(connection));
 
-        var error = Assert.Throws<InventoryDomainException>(() => service.Post(transferId, 1));
+        var error = await Assert.ThrowsAsync<InventoryDomainException>(() =>
+            service.PostAsync(transferId, 1, Guid.NewGuid()));
         Assert.Equal("Only approved documents can be posted.", error.Message);
     }
 
     [Fact]
-    public void Adjustment_cannot_post_directly_from_draft()
+    public async Task Adjustment_cannot_post_directly_from_draft()
     {
         using var connection = OpenDatabase();
         int adjustmentId;
@@ -62,12 +63,13 @@ public sealed class StockPostingApprovalTests
 
         var service = new StockAdjustmentService(() => DatabaseHelper.CreateContext(connection));
 
-        var error = Assert.Throws<InventoryDomainException>(() => service.Post(adjustmentId, 1));
+        var error = await Assert.ThrowsAsync<InventoryDomainException>(() =>
+            service.PostAsync(adjustmentId, 1, Guid.NewGuid()));
         Assert.Equal("Only approved documents can be posted.", error.Message);
     }
 
     [Fact]
-    public void StockIn_cannot_post_directly_from_draft()
+    public async Task StockIn_cannot_post_directly_from_draft()
     {
         using var connection = OpenDatabase();
         int stockInId;
@@ -90,12 +92,13 @@ public sealed class StockPostingApprovalTests
 
         var service = new StockInService(() => DatabaseHelper.CreateContext(connection));
 
-        var error = Assert.Throws<InventoryDomainException>(() => service.Post(stockInId, 1));
+        var error = await Assert.ThrowsAsync<InventoryDomainException>(() =>
+            service.PostAsync(stockInId, 1, Guid.NewGuid()));
         Assert.Equal("Only approved documents can be posted.", error.Message);
     }
 
     [Fact]
-    public void StockOut_cannot_post_directly_from_draft()
+    public async Task StockOut_cannot_post_directly_from_draft()
     {
         using var connection = OpenDatabase();
         int stockOutId;
@@ -119,11 +122,12 @@ public sealed class StockPostingApprovalTests
 
         var service = new StockOutService(() => DatabaseHelper.CreateContext(connection));
 
-        var error = Assert.Throws<InventoryDomainException>(() => service.Post(stockOutId, 1));
+        var error = await Assert.ThrowsAsync<InventoryDomainException>(() =>
+            service.PostAsync(stockOutId, 1, Guid.NewGuid()));
         Assert.Equal("Only approved documents can be posted.", error.Message);
     }
     [Fact]
-    public void Unauthorized_user_cannot_approve_transfer()
+    public async Task Unauthorized_user_cannot_approve_transfer()
     {
         using var connection = OpenDatabase();
         int transferId;
@@ -146,7 +150,8 @@ public sealed class StockPostingApprovalTests
 
         var service = new StockTransferService(() => DatabaseHelper.CreateContext(connection));
 
-        var error = Assert.Throws<InventoryDomainException>(() => service.Approve(transferId, 3));
+        var error = await Assert.ThrowsAsync<InventoryDomainException>(() =>
+            service.ApproveAsync(transferId, 3, Guid.NewGuid()));
         Assert.Equal("You are not authorized to approve stock documents.", error.Message);
     }
 

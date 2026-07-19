@@ -50,4 +50,6 @@ public partial class StockIn
     public virtual Supplier? Supplier { get; set; }
 
     public virtual Warehouse Warehouse { get; set; } = null!;
+    public byte[] RowVersion { get; set; } = [];
+
 }

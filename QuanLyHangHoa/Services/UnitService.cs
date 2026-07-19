@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
@@ -14,10 +16,12 @@ namespace QuanLyHangHoa.Services
     public class UnitService
     {
         private readonly Func<AppDbContext> _contextFactory;
+        private readonly DatabaseWriteExecutor _writeExecutor;
 
         public UnitService(Func<AppDbContext> contextFactory)
         {
             _contextFactory = contextFactory;
+            _writeExecutor = new DatabaseWriteExecutor(contextFactory);
         }
 
         public List<Unit> GetAll()
@@ -26,26 +30,78 @@ namespace QuanLyHangHoa.Services
             return db.Units.AsNoTracking().OrderBy(u => u.DisplayName).ToList();
         }
 
-        public void Add(Unit unit, int performedBy)
+        public Task UpdateAsync(
+            int id, Unit updated, byte[] expectedRowVersion, int performedBy,
+            Guid operationId, CancellationToken cancellationToken = default)
         {
-            using var db = _contextFactory();
-            using var transaction = db.Database.BeginTransaction();
-            db.Units.Add(unit);
-            db.SaveChanges();
-            AddAudit(db, "CREATE", unit.Id, null, Serialize(unit), performedBy);
-            transaction.Commit();
+            ArgumentNullException.ThrowIfNull(expectedRowVersion);
+            var rowVersion = expectedRowVersion.ToArray();
+            var code = updated.UnitCode.Trim();
+            var name = updated.DisplayName.Trim();
+            var isActive = updated.IsActive;
+
+            return _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("unit.update", operationId),
+                async (db, token) =>
+                {
+                    AuthorizationService.RequireFreshActor(db, performedBy, PermissionAction.ManageMasterData);
+                    var entity = await db.Units.SingleOrDefaultAsync(item => item.Id == id, token);
+                    if (entity is null) return;
+                    db.Entry(entity).Property(item => item.RowVersion).OriginalValue = rowVersion;
+                    var before = Serialize(entity);
+                    entity.UnitCode = code;
+                    entity.DisplayName = name;
+                    entity.IsActive = isActive;
+                    AddAuditEntry(db, "UPDATE", id, before, Serialize(entity), performedBy);
+                },
+                (db, token) => db.Units.AnyAsync(item => item.Id == id &&
+                    item.UnitCode == code && item.DisplayName == name &&
+                    item.IsActive == isActive && item.RowVersion != rowVersion, token),
+                cancellationToken: cancellationToken);
         }
 
-        public void Update(Unit unit, string beforeJson, int performedBy)
+        private static void AddAuditEntry(
+            AppDbContext db, string action, int entityId,
+            string? before, string? after, int performedBy) =>
+            db.AuditLogs.Add(new AuditLog
+            {
+                EntityName = "Unit",
+                EntityId = entityId,
+                ActionCode = action,
+                BeforeJson = before,
+                AfterJson = after,
+                PerformedBy = performedBy,
+                PerformedAt = DateTime.Now
+            });
+        public Task<int> AddAsync(
+            Unit unit, int performedBy, Guid operationId,
+            CancellationToken cancellationToken = default)
         {
-            using var db = _contextFactory();
-            using var transaction = db.Database.BeginTransaction();
-            db.Units.Update(unit);
-            db.SaveChanges();
-            AddAudit(db, "UPDATE", unit.Id, beforeJson, Serialize(unit), performedBy);
-            transaction.Commit();
-        }
+            var code = unit.UnitCode.Trim();
+            var name = unit.DisplayName.Trim();
+            var isActive = unit.IsActive;
 
+            return _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("unit.add", operationId),
+                async (db, token) =>
+                {
+                    AuthorizationService.RequireFreshActor(db, performedBy, PermissionAction.ManageMasterData);
+                    if (await db.Units.AnyAsync(item => item.UnitCode == code, token))
+                    {
+                        throw new InvalidOperationException($"Unit code '{code}' already exists.");
+                    }
+
+                    var created = new Unit { UnitCode = code, DisplayName = name, IsActive = isActive };
+                    db.Units.Add(created);
+                    await db.SaveChangesAsync(token);
+                    AddAuditEntry(db, "CREATE", created.Id, null, Serialize(created), performedBy);
+                    return created.Id;
+                },
+                (db, token) => db.Units.AnyAsync(item =>
+                    item.UnitCode == code && item.DisplayName == name && item.IsActive == isActive,
+                    token),
+                cancellationToken: cancellationToken);
+        }
         public IReadOnlyList<(string Name, int Count)> GetDependencies(int unitId)
         {
             using var db = _contextFactory();
@@ -69,52 +125,48 @@ namespace QuanLyHangHoa.Services
             };
         }
 
-        public void Delete(int id, int performedBy)
+        public Task DeleteAsync(
+            int id, byte[] expectedRowVersion, int performedBy, Guid operationId,
+            CancellationToken cancellationToken = default)
         {
-            using var db = _contextFactory();
-            var unit = db.Units.Find(id);
-            if (unit != null)
-            {
-                using var transaction = db.Database.BeginTransaction();
-                var beforeJson = Serialize(unit);
-                // có tham chiếu thì soft-delete bằng IsActive; chỉ record chưa từng dùng mới được xóa vật lý.
-                var hasDependencies = GetDependencies(db, id).Any(dependency => dependency.Count > 0);
-                if (hasDependencies)
-                {
-                    unit.IsActive = false;
-                    db.SaveChanges();
-                    AddAudit(db, "DEACTIVATE", id, beforeJson, Serialize(unit), performedBy);
-                }
-                else
-                {
-                    db.Units.Remove(unit);
-                    db.SaveChanges();
-                    AddAudit(db, "DELETE", id, beforeJson, null, performedBy);
-                }
+            ArgumentNullException.ThrowIfNull(expectedRowVersion);
+            var rowVersion = expectedRowVersion.ToArray();
 
-                transaction.Commit();
-            }
+            return _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("unit.delete", operationId),
+                async (db, token) =>
+                {
+                    AuthorizationService.RequireFreshActor(db, performedBy, PermissionAction.ManageMasterData);
+                    var entity = await db.Units.SingleOrDefaultAsync(item => item.Id == id, token);
+                    if (entity is null) return;
+                    db.Entry(entity).Property(item => item.RowVersion).OriginalValue = rowVersion;
+                    var before = Serialize(entity);
+                    var hasDependencies =
+                        await db.Products.AnyAsync(item => item.DefaultUnitId == id, token) ||
+                        await db.ProductUnits.AnyAsync(item => item.UnitId == id, token) ||
+                        await db.PurchaseInvoiceLines.AnyAsync(item => item.UnitId == id, token) ||
+                        await db.SalesInvoiceLines.AnyAsync(item => item.UnitId == id, token) ||
+                        await db.StockInLines.AnyAsync(item => item.UnitId == id, token) ||
+                        await db.StockOutLines.AnyAsync(item => item.UnitId == id, token) ||
+                        await db.StockTransferLines.AnyAsync(item => item.UnitId == id, token);
+                    if (hasDependencies)
+                    {
+                        entity.IsActive = false;
+                        AddAuditEntry(db, "DEACTIVATE", id, before, Serialize(entity), performedBy);
+                    }
+                    else
+                    {
+                        db.Units.Remove(entity);
+                        AddAuditEntry(db, "DELETE", id, before, null, performedBy);
+                    }
+                },
+                (db, token) => db.Units.AllAsync(item => item.Id != id || !item.IsActive, token),
+                cancellationToken: cancellationToken);
         }
-
-        private string Serialize(Unit u)
+        private static string Serialize(Unit u)
         {
             return JsonSerializer.Serialize(new { u.Id, u.DisplayName, u.IsActive });
         }
 
-        // audit được SaveChanges trong transaction của mutation để trạng thái và lịch sử cùng commit.
-        private void AddAudit(AppDbContext db, string action, int entityId, string? before, string? after, int performedBy)
-        {
-            db.AuditLogs.Add(new AuditLog
-            {
-                EntityName = "Unit",
-                EntityId = entityId,
-                ActionCode = action,
-                BeforeJson = before,
-                AfterJson = after,
-                PerformedBy = performedBy,
-                PerformedAt = DateTime.Now
-            });
-            db.SaveChanges();
-        }
     }
 }

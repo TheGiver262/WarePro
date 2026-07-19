@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -57,14 +58,18 @@ namespace QuanLyHangHoa.ViewModels
 
         [RelayCommand]
         // màn hình này chỉ sửa ghi chú; trạng thái và số serial không được thay ngoài nghiệp vụ kho/bảo hành
-        private void Save()
+        private async Task Save()
         {
             try
             {
-                _serialService.UpdateNote(_originalSerial.Id, Note, _userId);
+                await _serialService.UpdateNoteAsync(_originalSerial.Id, Note, _originalSerial.RowVersion, _userId, Guid.NewGuid());
                 IsSaved = true;
                 _originalSerial.Note = Note;
                 CloseWindow();
+            }
+            catch (DatabaseWriteConflictException)
+            {
+                CloseWindow(reload: true);
             }
             catch (Exception ex)
             {
@@ -79,13 +84,13 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         // DialogResult báo cho màn hình cha có cần reload danh sách hay không
-        private void CloseWindow()
+        private void CloseWindow(bool reload = false)
         {
             foreach (Window window in Application.Current.Windows)
             {
                 if (window.DataContext == this)
                 {
-                    window.DialogResult = IsSaved;
+                    window.DialogResult = IsSaved || reload;
                     window.Close();
                     break;
                 }

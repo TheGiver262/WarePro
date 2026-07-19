@@ -49,4 +49,6 @@ public partial class ProductSerial
     public virtual ICollection<WarrantyClaim> WarrantyClaimReplacementSerials { get; set; } = new List<WarrantyClaim>();
 
     public virtual WarrantyCoverage? WarrantyCoverage { get; set; }
+    public byte[] RowVersion { get; set; } = [];
+
 }

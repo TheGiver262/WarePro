@@ -16,6 +16,8 @@ namespace QuanLyHangHoa.ViewModels
     public partial class WarrantyCoverageViewModel : ObservableObject, IRefreshable
     {
         private readonly Func<AppDbContext> _contextFactory;
+        private readonly WarrantyClaimService _warrantyService;
+        private readonly int _actorId;
         private CancellationTokenSource? _filterDebounceCts;
         private CancellationTokenSource? _loadCts;
         private int _loadGeneration;
@@ -45,10 +47,17 @@ namespace QuanLyHangHoa.ViewModels
         // Drawer control
         [ObservableProperty] private bool _isDetailPanelOpen;
 
-        public WarrantyCoverageViewModel(Func<AppDbContext> contextFactory)
+        public WarrantyCoverageViewModel(AppUser currentUser, Func<AppDbContext> contextFactory)
         {
+            _actorId = currentUser.Id;
             _contextFactory = contextFactory;
+            _warrantyService = new WarrantyClaimService(contextFactory);
             _ = LoadData();
+        }
+
+        internal WarrantyCoverageViewModel(Func<AppDbContext> contextFactory)
+            : this(new AppUser { Id = 1 }, contextFactory)
+        {
         }
 
         partial void OnSearchSerialChanged(string value) => ScheduleFilterReload();
@@ -191,25 +200,32 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
-        // ViewModel kiểm tra ngày và gọi service; service bảo vệ quan hệ serial/hóa đơn
-        private void SaveCoverage()
+        private async Task SaveCoverageAsync()
         {
-            if (SelectedCoverage == null) return;
+            var selected = SelectedCoverage;
+            if (selected == null) return;
 
             try
             {
                 WarrantyClaimService.EnsureValidCoverageDates(StartDate, EndDate);
-                using var db = _contextFactory();
-                // Cập nhật giá trị thay đổi từ form vào SelectedCoverage
-                SelectedCoverage.WarrantyStartDate = StartDate;
-                SelectedCoverage.WarrantyEndDate = EndDate;
-                SelectedCoverage.CoverageStatus = Status;
-
-                db.WarrantyCoverages.Update(SelectedCoverage);
-                db.SaveChanges();
+                var operationId = Guid.NewGuid();
+                await _warrantyService.UpdateCoverageAsync(
+                    selected.Id,
+                    StartDate,
+                    EndDate,
+                    Status,
+                    selected.RowVersion,
+                    _actorId,
+                    operationId);
                 MessageBox.Show("Cập nhật thông tin bảo hành thành công!", "Thông báo");
                 IsDetailPanelOpen = false;
-                _ = LoadData();
+                await LoadData();
+            }
+            catch (DatabaseWriteConflictException)
+            {
+                MessageBox.Show("Thông tin bảo hành đã được thay đổi ở máy khác. Dữ liệu mới nhất sẽ được tải lại.", "Dữ liệu đã thay đổi");
+                IsDetailPanelOpen = false;
+                await LoadData();
             }
             catch (Exception ex)
             {
@@ -218,36 +234,42 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
-        // xóa dùng id snapshot đã chọn và reload sau khi database thành công
-        private void DeleteCoverage(WarrantyCoverage coverage)
+        private async Task DeleteCoverageAsync(WarrantyCoverage coverage)
         {
             if (coverage == null) return;
-            if (MessageBox.Show("Xóa thông tin bảo hành này?", "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+            if (MessageBox.Show("Xóa thông tin bảo hành này?", "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
             {
-                try
-                {
-                    using var db = _contextFactory();
-                    db.WarrantyCoverages.Remove(coverage);
-                    db.SaveChanges();
-                    IsDetailPanelOpen = false;
-                    _ = LoadData();
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(ex.Message, "Lỗi");
-                }
+                return;
+            }
+
+            try
+            {
+                var operationId = Guid.NewGuid();
+                await _warrantyService.DeleteCoverageAsync(
+                    coverage.Id,
+                    coverage.RowVersion,
+                    _actorId,
+                    operationId);
+                IsDetailPanelOpen = false;
+                await LoadData();
+            }
+            catch (DatabaseWriteConflictException)
+            {
+                MessageBox.Show("Thông tin bảo hành đã được thay đổi ở máy khác. Dữ liệu mới nhất sẽ được tải lại.", "Dữ liệu đã thay đổi");
+                IsDetailPanelOpen = false;
+                await LoadData();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Lỗi");
             }
         }
 
-        // Hỗ trợ xóa SelectedCoverage khi đang ở trong Drawer
         [RelayCommand]
-        private void DeleteSelectedCoverage()
-        {
-            if (SelectedCoverage != null)
-            {
-                DeleteCoverage(SelectedCoverage);
-            }
-        }
+        private Task DeleteSelectedCoverageAsync() =>
+            SelectedCoverage == null
+                ? Task.CompletedTask
+                : DeleteCoverageAsync(SelectedCoverage);
 
         public void RefreshData() => _ = LoadData();
 

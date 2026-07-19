@@ -266,7 +266,7 @@ namespace QuanLyHangHoa.ViewModels
                 "WarrantyCoverage",
                 () => new WarrantyCoverageView
                 {
-                    DataContext = new WarrantyCoverageViewModel(ContextFactory)
+                    DataContext = new WarrantyCoverageViewModel(CurrentUser ?? throw new InvalidOperationException("Current user is required."), ContextFactory)
                 },
                 "QUYỀN BẢO HÀNH",
                 "Quản lý thời hạn và trạng thái bảo hành");

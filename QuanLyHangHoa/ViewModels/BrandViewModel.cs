@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using System.Collections.ObjectModel;
 using System.Collections.Generic;
 using System.Linq;
@@ -150,7 +151,7 @@ namespace QuanLyHangHoa.ViewModels
 
         [RelayCommand(CanExecute = nameof(CanManage))]
         // validate mã/tên và chụp before JSON; service lưu brand + audit trong cùng transaction
-        private void Save()
+        private async Task Save()
         {
             if (string.IsNullOrWhiteSpace(EditBrandCode) || string.IsNullOrWhiteSpace(EditDisplayName))
             {
@@ -170,19 +171,25 @@ namespace QuanLyHangHoa.ViewModels
                         IsActive = EditIsActive
                     };
 
-                    _service.Add(newBrand, _currentUser.Id);
+                    await _service.AddAsync(newBrand, _currentUser.Id, Guid.NewGuid());
                 }
                 else // Update
                 {
-                    var beforeJson = Serialize(SelectedBrand);
+                    var expectedRowVersion = SelectedBrand.RowVersion.ToArray();
                     SelectedBrand.BrandCode = EditBrandCode;
                     SelectedBrand.DisplayName = EditDisplayName;
                     SelectedBrand.OriginCountry = EditOriginCountry;
                     SelectedBrand.IsActive = EditIsActive;
 
-                    _service.Update(SelectedBrand, beforeJson, _currentUser.Id);
+                    await _service.UpdateAsync(SelectedBrand.Id, SelectedBrand, expectedRowVersion, _currentUser.Id, Guid.NewGuid());
                 }
 
+                IsEditing = false;
+                LoadOrigins();
+                LoadBrands();
+            }
+            catch (DatabaseWriteConflictException)
+            {
                 IsEditing = false;
                 LoadOrigins();
                 LoadBrands();
@@ -201,7 +208,7 @@ namespace QuanLyHangHoa.ViewModels
 
         [RelayCommand(CanExecute = nameof(CanManage))]
         // brand có sản phẩm chỉ inactive; service là lớp quyết định cuối sau xác nhận UI
-        private void DeleteBrand(Brand brand)
+        private async Task DeleteBrand(Brand brand)
         {
             using var db = _contextFactory();
             // 1. Kiểm tra phát sinh dữ liệu
@@ -222,7 +229,12 @@ namespace QuanLyHangHoa.ViewModels
             {
                 try 
                 {
-                    _service.Delete(brand.Id, _currentUser.Id);
+                    await _service.DeleteAsync(brand.Id, brand.RowVersion, _currentUser.Id, Guid.NewGuid());
+                    LoadOrigins();
+                    LoadBrands();
+                }
+                catch (DatabaseWriteConflictException)
+                {
                     LoadOrigins();
                     LoadBrands();
                 }

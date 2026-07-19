@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Linq;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -84,6 +86,8 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private int _warehouseId = 1;
         [ObservableProperty] private DateTime _countDate = DateTime.Now;
         [ObservableProperty] private string _statusMessage = string.Empty;
+        [ObservableProperty] private bool _isWriting;
+        [ObservableProperty] private string _writeStatus = string.Empty;
         [ObservableProperty] private string _searchText = string.Empty;
         [ObservableProperty] private string _status = "nháp";
 
@@ -91,6 +95,18 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private StockCountSession? _selectedSession;
         [ObservableProperty] private ObservableCollection<StockCountLine> _selectedSessionLines = new();
         [ObservableProperty] private bool _isSelectedSessionEditable = false;
+
+        private Task<bool> ExecuteWriteAsync(
+            Func<CancellationToken, Task> write,
+            CancellationToken cancellationToken) =>
+            DatabaseWriteUi.ExecuteAsync(
+                write,
+                () => IsWriting,
+                value => IsWriting = value,
+                value => WriteStatus = value,
+                RefreshData,
+                message => MessageBox.Show(message, "Lỗi"),
+                cancellationToken);
 
         public StockCountViewModel(AppUser currentUser, Func<AppDbContext>? contextFactory = null)
         {
@@ -296,8 +312,9 @@ namespace QuanLyHangHoa.ViewModels
 
         [RelayCommand]
         // draft giữ số đếm và serial để tiếp tục, chưa sinh điều chỉnh kho
-        private void SaveDraft()
+        private async Task SaveDraft(CancellationToken cancellationToken)
         {
+            var operationId = Guid.NewGuid();
             if (string.IsNullOrWhiteSpace(SessionCode) || !Lines.Any())
             {
                 MessageBox.Show("Vui lòng nhập mã phiên và ít nhất 1 dòng kiểm kê.", "Cảnh báo");
@@ -335,7 +352,9 @@ namespace QuanLyHangHoa.ViewModels
                     };
                 }).ToList();
 
-                _stockCountService.CreateSession(session, _currentUser.Id);
+                if (!await ExecuteWriteAsync(
+                    async _ => await _stockCountService.CreateAsync(session, _currentUser.Id, operationId, cancellationToken),
+                    cancellationToken)) return;
                 MessageBox.Show("Đã lưu phiên kiểm kê ở dạng Nháp.", "Thông báo");
                 
                 Lines.Clear();
@@ -345,16 +364,17 @@ namespace QuanLyHangHoa.ViewModels
                 IsHistoryVisible = true;
                 IsCreateNewVisible = false;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                MessageBox.Show(ex.Message, "Lỗi");
+                MessageBox.Show(DatabaseWriteUi.TechnicalErrorMessage, "Lỗi");
             }
         }
 
         [RelayCommand]
         // validate toàn bộ line và serial trước khi gửi session cho service
-        private void SaveStockCount()
+        private async Task SaveStockCount(CancellationToken cancellationToken)
         {
+            var operationId = Guid.NewGuid();
             if (string.IsNullOrWhiteSpace(SessionCode) || !Lines.Any())
             {
                 MessageBox.Show("Vui lòng nhập mã phiên và ít nhất 1 dòng kiểm kê.", "Cảnh báo");
@@ -420,7 +440,9 @@ namespace QuanLyHangHoa.ViewModels
                     };
                 }).ToList();
 
-                _stockCountService.CreateSession(session, _currentUser.Id);
+                if (!await ExecuteWriteAsync(
+                    async _ => await _stockCountService.CreateAsync(session, _currentUser.Id, operationId, cancellationToken),
+                    cancellationToken)) return;
                 MessageBox.Show("Đã chốt phiên kiểm kê.", "Thông báo");
                 
                 Lines.Clear();
@@ -430,23 +452,26 @@ namespace QuanLyHangHoa.ViewModels
                 IsHistoryVisible = true;
                 IsCreateNewVisible = false;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                MessageBox.Show(ex.Message, "Lỗi");
+                MessageBox.Show(DatabaseWriteUi.TechnicalErrorMessage, "Lỗi");
             }
         }
 
         [RelayCommand]
         // chỉ session còn cho phép sửa mới nhận dữ liệu editor; service kiểm tra lại trạng thái
-        private void SaveEdit()
+        private async Task SaveEdit(CancellationToken cancellationToken)
         {
+            var operationId = Guid.NewGuid();
             if (SelectedSession == null || SelectedSession.Status != "nháp") return;
 
             try
             {
                 using var db = _contextFactory();
                 
-                _stockCountService.UpdateDraft(SelectedSession.Id, SelectedSessionLines, _currentUser.Id);
+                if (!await ExecuteWriteAsync(
+                    async _ => await _stockCountService.UpdateDraftAsync(SelectedSession.Id, SelectedSessionLines, _currentUser.Id, operationId, cancellationToken),
+                    cancellationToken)) return;
                 MessageBox.Show("Đã lưu các thay đổi của phiên kiểm kê.", "Thông báo");
                 
                 var currentId = SelectedSession.Id;
@@ -456,16 +481,17 @@ namespace QuanLyHangHoa.ViewModels
                     .Include(s => s.Creator)
                     .FirstOrDefault(s => s.Id == currentId);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                MessageBox.Show($"Lỗi khi lưu chỉnh sửa: {ex.Message}", "Lỗi");
+                MessageBox.Show(DatabaseWriteUi.TechnicalErrorMessage, "Lỗi");
             }
         }
 
         [RelayCommand]
         // commit tạo điều chỉnh từ chênh lệch và ghi sổ atomic; ViewModel chỉ xác nhận rồi refresh
-        private void CommitSession()
+        private async Task CommitSession(CancellationToken cancellationToken)
         {
+            var operationId = Guid.NewGuid();
             if (SelectedSession == null || SelectedSession.Status != "nháp") return;
 
             var currentId = SelectedSession.Id;
@@ -493,15 +519,17 @@ namespace QuanLyHangHoa.ViewModels
 
             try
             {
-                _stockCountService.CommitSession(currentId, SelectedSessionLines, _currentUser.Id);
+                if (!await ExecuteWriteAsync(
+                    async _ => await _stockCountService.CommitSessionAsync(currentId, SelectedSessionLines, _currentUser.Id, operationId, cancellationToken),
+                    cancellationToken)) return;
                 MessageBox.Show("Đã chốt phiên kiểm kê thành công.", "Thông báo");
                 
                 LoadPastSessions();
                 SelectedSession = PastSessions.FirstOrDefault(s => s.Id == currentId);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                MessageBox.Show($"Lỗi khi chốt kiểm kê: {ex.Message}", "Lỗi");
+                MessageBox.Show(DatabaseWriteUi.TechnicalErrorMessage, "Lỗi");
             }
         }
 
@@ -523,9 +551,9 @@ namespace QuanLyHangHoa.ViewModels
                     .ToList();
                 PastSessions = new ObservableCollection<StockCountSession>(sessions);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                MessageBox.Show($"Lỗi khi tải lịch sử kiểm kê: {ex.Message}", "Lỗi");
+                MessageBox.Show(DatabaseWriteUi.TechnicalErrorMessage, "Lỗi");
             }
         }
 
@@ -550,16 +578,17 @@ namespace QuanLyHangHoa.ViewModels
                     .ToList();
                 SelectedSessionLines = new ObservableCollection<StockCountLine>(lines);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                MessageBox.Show($"Lỗi khi tải chi tiết phiên kiểm kê: {ex.Message}", "Lỗi");
+                MessageBox.Show(DatabaseWriteUi.TechnicalErrorMessage, "Lỗi");
             }
         }
 
         [RelayCommand]
         // command lifecycle dùng id session đã chọn, không sửa trực tiếp entity trong collection lịch sử
-        private void ProcessSession(StockCountSession? session)
+        private async Task ProcessSession(StockCountSession? session, CancellationToken cancellationToken)
         {
+            var operationId = Guid.NewGuid();
             if (session == null) return;
             if (session.Status != "đã kiểm kê")
             {
@@ -580,7 +609,9 @@ namespace QuanLyHangHoa.ViewModels
 
             try
             {
-                _stockCountService.ProcessResults(session.Id, _currentUser.Id);
+                if (!await ExecuteWriteAsync(
+                    async _ => await _stockCountService.ProcessResultsAsync(session.Id, _currentUser.Id, operationId, cancellationToken),
+                    cancellationToken)) return;
                 MessageBox.Show("Xử lý chênh lệch thành công. Phiếu nhập/xuất điều chỉnh đã được ghi sổ.", "Thông báo");
                 
                 LoadPastSessions();
@@ -592,9 +623,9 @@ namespace QuanLyHangHoa.ViewModels
                     SelectedSession = PastSessions.FirstOrDefault(s => s.Id == currentId.Value);
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                MessageBox.Show($"Lỗi khi xử lý chênh lệch: {ex.Message}", "Lỗi");
+                MessageBox.Show(DatabaseWriteUi.TechnicalErrorMessage, "Lỗi");
             }
         }
 

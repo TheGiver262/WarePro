@@ -1,5 +1,7 @@
 # WarePro
 
+> Write-concurrency and shared SQL Server contract: [docs/DATABASE_CONCURRENCY.md](docs/DATABASE_CONCURRENCY.md).
+
 WarePro là ứng dụng quản lý kho, hàng hóa và bảo hành dành cho Windows. Phần mềm chạy trên các máy client; dữ liệu dùng chung được lưu trong SQL Server trung tâm và truy cập qua mạng LAN.
 
 ## Tính năng chính

@@ -25,4 +25,6 @@ public partial class StockTransferLine
     public virtual Unit Unit { get; set; } = null!;
 
     public virtual ICollection<ProductSerial> ProductSerials { get; set; } = new List<ProductSerial>();
+    public byte[] RowVersion { get; set; } = [];
+
 }

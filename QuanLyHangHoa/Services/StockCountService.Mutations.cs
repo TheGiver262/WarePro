@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
+using System.Threading;
+using System.Threading.Tasks;
+using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Inventory;
 using QuanLyHangHoa.Models;
 
@@ -9,31 +12,55 @@ namespace QuanLyHangHoa.Services;
 
 public partial class StockCountService
 {
-    public void UpdateDraft(
-        int sessionId,
-        IReadOnlyCollection<StockCountLine> lines,
-        int userId)
-    {
-        SaveDraftLines(sessionId, lines, userId, markCounted: false);
-    }
-
-    public void CommitSession(
-        int sessionId,
-        IReadOnlyCollection<StockCountLine> lines,
-        int userId)
-    {
-        SaveDraftLines(sessionId, lines, userId, markCounted: true);
-    }
-
-    // một hàm dùng cho lưu nháp và chốt đếm; markCounted chỉ điều khiển transition cuối.
-    private void SaveDraftLines(
+    public Task UpdateDraftAsync(
         int sessionId,
         IReadOnlyCollection<StockCountLine> lines,
         int userId,
+        Guid operationId,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var snapshots = SnapshotLines(lines);
+        return _writeExecutor.ExecuteAsync(
+            new DatabaseWriteRequest("stock-count.update-draft", operationId),
+            (db, token) => StageSaveDraftLinesAsync(
+                db, sessionId, snapshots, userId, markCounted: false),
+            cancellationToken: cancellationToken);
+    }
+
+    internal void UpdateDraft(
+        int sessionId, IReadOnlyCollection<StockCountLine> lines, int userId) =>
+        UpdateDraftAsync(sessionId, lines, userId, Guid.NewGuid()).GetAwaiter().GetResult();
+
+    public Task CommitSessionAsync(
+        int sessionId,
+        IReadOnlyCollection<StockCountLine> lines,
+        int userId,
+        Guid operationId,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var snapshots = SnapshotLines(lines);
+        return _writeExecutor.ExecuteAsync(
+            new DatabaseWriteRequest("stock-count.commit-session", operationId),
+            (db, token) => StageSaveDraftLinesAsync(
+                db, sessionId, snapshots, userId, markCounted: true),
+            (db, token) => db.StockCountSessions.AnyAsync(
+                item => item.Id == sessionId && item.Status == CountedStatus, token),
+            cancellationToken: cancellationToken);
+    }
+
+    internal void CommitSession(
+        int sessionId, IReadOnlyCollection<StockCountLine> lines, int userId) =>
+        CommitSessionAsync(sessionId, lines, userId, Guid.NewGuid()).GetAwaiter().GetResult();
+
+    private Task StageSaveDraftLinesAsync(
+        AppDbContext db,
+        int sessionId,
+        IReadOnlyCollection<LineUpdateSnapshot> lines,
+        int userId,
         bool markCounted)
     {
-        using var db = _contextFactory();
-        using var transaction = db.Database.BeginTransaction();
         AuthorizationService.RequireFreshActor(
             db,
             userId,
@@ -49,7 +76,6 @@ public partial class StockCountService
             throw new InventoryDomainException("Only draft stock-count sessions can be edited.");
         }
 
-        // map theo id và xác nhận ownership để không cập nhật line thuộc phiên kiểm kê khác.
         var updates = lines.ToDictionary(item => item.Id);
         if (updates.Keys.Any(id => session.Lines.All(line => line.Id != id)))
         {
@@ -63,21 +89,43 @@ public partial class StockCountService
                 continue;
             }
 
+            db.Entry(line).Property(item => item.RowVersion).OriginalValue = update.RowVersion;
+
             line.CountedQuantity = update.CountedQuantity;
-            // quantity âm chưa hợp lệ được giữ để UI sửa, nhưng variance tạm đặt 0 và ProcessResults vẫn sẽ từ chối.
             line.VarianceQuantity = update.CountedQuantity < 0
                 ? 0
                 : update.CountedQuantity - line.SystemQuantity;
             line.SerialNumbers = update.SerialNumbers;
         }
 
-        // chỉ CommitSession chuyển trạng thái; UpdateDraft giữ phiên có thể sửa tiếp.
         if (markCounted)
         {
             session.Status = CountedStatus;
         }
 
-        db.SaveChanges();
-        transaction.Commit();
+        return Task.CompletedTask;
     }
+
+    private static LineUpdateSnapshot[] SnapshotLines(
+        IReadOnlyCollection<StockCountLine> lines)
+    {
+        ArgumentNullException.ThrowIfNull(lines);
+        var snapshots = lines.Select(line => new LineUpdateSnapshot(
+            line.Id,
+            line.CountedQuantity,
+            line.SerialNumbers,
+            line.RowVersion.ToArray())).ToArray();
+        if (snapshots.Any(line => line.Id > 0 && line.RowVersion.Length == 0))
+        {
+            throw new ArgumentException("RowVersion is required for stock-count updates.", nameof(lines));
+        }
+
+        return snapshots;
+    }
+
+    private sealed record LineUpdateSnapshot(
+        int Id,
+        decimal CountedQuantity,
+        string? SerialNumbers,
+        byte[] RowVersion);
 }

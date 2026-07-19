@@ -7,6 +7,7 @@ using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Views;
 using QuanLyHangHoa.Data;
 using System;
+using System.Threading.Tasks;
 using System.Windows;
 using ClosedXML.Excel;
 using System.Text.Json;
@@ -107,7 +108,7 @@ namespace QuanLyHangHoa.ViewModels
         partial void OnSearchStatusChanged(string? value) => ApplyFilters();
 
         [RelayCommand(CanExecute = nameof(CanManage))]
-        private void OpenAddCustomerDialog()
+        private async Task OpenAddCustomerDialog()
         {
             var vm = new CustomerEditViewModel();
             var window = new CustomerEditWindow { DataContext = vm };
@@ -115,29 +116,37 @@ namespace QuanLyHangHoa.ViewModels
             {
                 var newCust = new Customer();
                 vm.ApplyTo(newCust);
-                _service.Add(newCust, _currentUser.Id);
+                await _service.AddAsync(newCust, _currentUser.Id, Guid.NewGuid());
                 LoadData();
             }
         }
 
         [RelayCommand(CanExecute = nameof(CanManage))]
         // selection được chụp vào dialog; Cancel không thay row trong collection
-        private void EditCustomer(Customer customer)
+        private async Task EditCustomer(Customer customer)
         {
-            var beforeJson = Serialize(customer);
+            var expectedRowVersion = customer.RowVersion.ToArray();
             var vm = new CustomerEditViewModel(customer);
             var window = new CustomerEditWindow { DataContext = vm };
             if (window.ShowDialog() == true)
             {
                 vm.ApplyTo(customer);
-                _service.Update(customer, beforeJson, _currentUser.Id);
+                try
+                {
+    await _service.UpdateAsync(customer.Id, customer, expectedRowVersion, _currentUser.Id, Guid.NewGuid());
+                }
+                catch (DatabaseWriteConflictException)
+                {
+                    LoadData();
+                    return;
+                }
                 LoadData();
             }
         }
 
         [RelayCommand(CanExecute = nameof(CanManage))]
         // lịch sử hóa đơn/xuất/bảo hành khiến customer chỉ inactive; service kiểm tra dependency lần cuối
-        private void DeleteCustomer(Customer customer)
+        private async Task DeleteCustomer(Customer customer)
         {
             using var db = _contextFactory();
             // 1. Kiểm tra phát sinh dữ liệu
@@ -160,7 +169,11 @@ namespace QuanLyHangHoa.ViewModels
             {
                 try 
                 {
-                    _service.Delete(customer.Id, _currentUser.Id);
+                    await _service.DeleteAsync(customer.Id, customer.RowVersion, _currentUser.Id, Guid.NewGuid());
+                    LoadData();
+                }
+                catch (DatabaseWriteConflictException)
+                {
                     LoadData();
                 }
                 catch (Exception ex)

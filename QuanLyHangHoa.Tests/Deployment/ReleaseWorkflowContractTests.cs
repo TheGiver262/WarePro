@@ -35,7 +35,7 @@ public class ReleaseWorkflowContractTests
         using var document = JsonDocument.Parse(Read("installer", "release-policy.json"));
         var policy = document.RootElement;
 
-        Assert.Equal("1.0.0", policy.GetProperty("minimumClientVersion").GetString());
+        Assert.Equal("1.1.0", policy.GetProperty("minimumClientVersion").GetString());
         Assert.Equal(
             DatabaseCompatibilityService.MinimumSupportedSchemaVersion,
             policy.GetProperty("minimumSchemaVersion").GetInt32());

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Inventory;
@@ -14,10 +16,12 @@ namespace QuanLyHangHoa.Services
     public class StockAdjustmentService
     {
         private readonly Func<AppDbContext> _contextFactory;
+        private readonly DatabaseWriteExecutor _writeExecutor;
 
         public StockAdjustmentService(Func<AppDbContext> contextFactory)
         {
             _contextFactory = contextFactory;
+            _writeExecutor = new DatabaseWriteExecutor(contextFactory);
         }
 
         public virtual List<StockAdjustment> GetAll()
@@ -45,75 +49,176 @@ namespace QuanLyHangHoa.Services
         }
 
         // draft có thể thay toàn bộ line; lifecycle chặn sửa khi đã submit hoặc post.
-        public virtual void SaveDraft(StockAdjustment adjustment, List<StockAdjustmentLine> lines, int userId)
+        public async Task SaveDraftAsync(
+            StockAdjustment adjustment,
+            List<StockAdjustmentLine> lines,
+            int userId,
+            Guid operationId,
+            CancellationToken cancellationToken = default)
         {
-            using var db = _contextFactory();
-            AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockAdjustment);
-            
-            StockAdjustment? existing = null;
-            if (adjustment.Id > 0)
+            ArgumentNullException.ThrowIfNull(adjustment);
+            ArgumentNullException.ThrowIfNull(lines);
+            var timestamp = DateTime.Now;
+            var snapshot = new SaveDraftSnapshot(
+                adjustment.Id,
+                string.IsNullOrWhiteSpace(adjustment.DocumentCode)
+                    ? $"ADJ-{timestamp:yyyyMMddHHmmss}"
+                    : adjustment.DocumentCode,
+                adjustment.WarehouseId,
+                adjustment.AdjustmentType,
+                adjustment.ReasonCode,
+                adjustment.Notes,
+                adjustment.ReferenceDocumentCode,
+                adjustment.ReferenceDocumentType,
+                adjustment.ReferenceDocumentId,
+                adjustment.RowVersion.ToArray(),
+                lines.Select(line => new SaveDraftLineSnapshot(
+                    line.ProductId,
+                    line.ProductSerialId,
+                    line.DraftSerials,
+                    line.QuantityDelta,
+                    line.BaseQuantityDelta,
+                    line.Direction)).ToArray());
+            if (snapshot.Id > 0 && snapshot.RowVersion.Length == 0)
             {
-                existing = db.StockAdjustments
-                    .Include(s => s.Lines)
-                    .FirstOrDefault(s => s.Id == adjustment.Id);
+                throw new ArgumentException("RowVersion is required for draft updates.", nameof(adjustment));
             }
 
-            if (existing != null)
-            {
-                var lifecycle = new StockDocumentLifecycleService();
-                lifecycle.EnsureCanEditDetails(ParseStatus(existing.Status));
-
-                // Update header
-                existing.WarehouseId = adjustment.WarehouseId;
-                existing.AdjustmentType = adjustment.AdjustmentType;
-                existing.ReasonCode = adjustment.ReasonCode;
-                existing.Notes = adjustment.Notes;
-                existing.ReferenceDocumentCode = adjustment.ReferenceDocumentCode;
-                existing.ReferenceDocumentType = adjustment.ReferenceDocumentType;
-                existing.ReferenceDocumentId = adjustment.ReferenceDocumentId;
-
-                // Sync lines
-                db.StockAdjustmentLines.RemoveRange(existing.Lines);
-                foreach (var line in lines)
-                {
-                    line.AdjustmentId = existing.Id;
-                    db.StockAdjustmentLines.Add(line);
-                }
-                
-                db.SaveChanges();
-                adjustment.Id = existing.Id;
-                adjustment.Status = existing.Status;
-            }
-            else
-            {
-                adjustment.Lines = lines;
-                adjustment.CreatedBy = userId;
-                adjustment.Status = DocumentStatus.Draft;
-
-                if (string.IsNullOrWhiteSpace(adjustment.DocumentCode))
-                {
-                    adjustment.DocumentCode = $"ADJ-{DateTime.Now:yyyyMMddHHmmss}";
-                }
-
-                db.StockAdjustments.Add(adjustment);
-                db.SaveChanges();
-            }
+            var savedId = await _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("stock-adjustment.save-draft", operationId),
+                (db, token) => StageSaveDraftAsync(db, snapshot, userId, token),
+                entityKey: snapshot.DocumentCode,
+                cancellationToken: cancellationToken);
+            adjustment.Id = savedId;
+            adjustment.DocumentCode = snapshot.DocumentCode;
         }
 
-        public virtual void SubmitForApproval(int adjustmentId, int userId)
+        internal virtual void SaveDraft(StockAdjustment adjustment, List<StockAdjustmentLine> lines, int userId) =>
+            SaveDraftAsync(adjustment, lines, userId, Guid.NewGuid()).GetAwaiter().GetResult();
+
+        private async Task<int> StageSaveDraftAsync(
+            AppDbContext db,
+            SaveDraftSnapshot snapshot,
+            int userId,
+            CancellationToken cancellationToken)
         {
-            using var db = _contextFactory();
+            AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockAdjustment);
+
+            StockAdjustment? existing = null;
+            if (snapshot.Id > 0)
+            {
+                existing = db.StockAdjustments
+                    .Include(item => item.Lines)
+                    .FirstOrDefault(item => item.Id == snapshot.Id);
+            }
+
+            var freshLines = snapshot.Lines.Select(line => line.ToEntity()).ToList();
+            if (existing is not null)
+            {
+                new StockDocumentLifecycleService().EnsureCanEditDetails(ParseStatus(existing.Status));
+                db.Entry(existing).Property(item => item.RowVersion).OriginalValue = snapshot.RowVersion;
+                db.Entry(existing).Property(item => item.Notes).IsModified = true;
+
+                existing.WarehouseId = snapshot.WarehouseId;
+                existing.AdjustmentType = snapshot.AdjustmentType;
+                existing.ReasonCode = snapshot.ReasonCode;
+                existing.Notes = snapshot.Notes;
+                existing.ReferenceDocumentCode = snapshot.ReferenceDocumentCode;
+                existing.ReferenceDocumentType = snapshot.ReferenceDocumentType;
+                existing.ReferenceDocumentId = snapshot.ReferenceDocumentId;
+                db.StockAdjustmentLines.RemoveRange(existing.Lines);
+                existing.Lines = freshLines;
+                return existing.Id;
+            }
+
+            var freshAdjustment = new StockAdjustment
+            {
+                DocumentCode = snapshot.DocumentCode,
+                WarehouseId = snapshot.WarehouseId,
+                AdjustmentType = snapshot.AdjustmentType,
+                ReasonCode = snapshot.ReasonCode,
+                Notes = snapshot.Notes,
+                ReferenceDocumentCode = snapshot.ReferenceDocumentCode,
+                ReferenceDocumentType = snapshot.ReferenceDocumentType,
+                ReferenceDocumentId = snapshot.ReferenceDocumentId,
+                CreatedBy = userId,
+                Status = DocumentStatus.Draft,
+                Lines = freshLines
+            };
+            db.StockAdjustments.Add(freshAdjustment);
+            await db.SaveChangesAsync(cancellationToken);
+            return freshAdjustment.Id;
+        }
+
+        private sealed record SaveDraftSnapshot(
+            int Id,
+            string DocumentCode,
+            int WarehouseId,
+            string AdjustmentType,
+            string ReasonCode,
+            string? Notes,
+            string? ReferenceDocumentCode,
+            string? ReferenceDocumentType,
+            int? ReferenceDocumentId,
+            byte[] RowVersion,
+            SaveDraftLineSnapshot[] Lines);
+
+        private sealed record SaveDraftLineSnapshot(
+            int ProductId,
+            int? ProductSerialId,
+            string? DraftSerials,
+            decimal QuantityDelta,
+            decimal BaseQuantityDelta,
+            string Direction)
+        {
+            public StockAdjustmentLine ToEntity() => new()
+            {
+                ProductId = ProductId,
+                ProductSerialId = ProductSerialId,
+                DraftSerials = DraftSerials,
+                QuantityDelta = QuantityDelta,
+                BaseQuantityDelta = BaseQuantityDelta,
+                Direction = Direction
+            };
+        }
+        public Task SubmitForApprovalAsync(
+            int adjustmentId, int userId, Guid operationId,
+            CancellationToken cancellationToken = default) =>
+            _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("stock-adjustment.submit", operationId),
+                (db, token) => StageSubmitForApprovalAsync(db, adjustmentId, userId),
+                (db, token) => db.StockAdjustments.AnyAsync(
+                    item => item.Id == adjustmentId && item.Status == DocumentStatus.PendingApproval, token),
+                cancellationToken: cancellationToken);
+
+        internal virtual void SubmitForApproval(int adjustmentId, int userId) =>
+            SubmitForApprovalAsync(adjustmentId, userId, Guid.NewGuid()).GetAwaiter().GetResult();
+
+        private Task StageSubmitForApprovalAsync(AppDbContext db, int adjustmentId, int userId)
+        {
             AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockAdjustment);
             var adjustment = db.StockAdjustments.SingleOrDefault(item => item.Id == adjustmentId)
                 ?? throw new InventoryDomainException("Không tìm thấy phiếu điều chỉnh.");
             var lifecycle = new StockDocumentLifecycleService();
             adjustment.Status = lifecycle.SubmitForApproval(ParseStatus(adjustment.Status)).ToString();
-            db.SaveChanges();
+            return Task.CompletedTask;
         }
 
-        public virtual void Approve(int adjustmentId, int userId)
+        public Task ApproveAsync(
+            int adjustmentId, int userId, Guid operationId,
+            CancellationToken cancellationToken = default) =>
+            _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("stock-adjustment.approve", operationId),
+                (db, token) => StageApproveAsync(db, adjustmentId, userId),
+                (db, token) => db.StockAdjustments.AnyAsync(
+                    item => item.Id == adjustmentId && item.Status == DocumentStatus.Approved, token),
+                cancellationToken: cancellationToken);
+
+        internal virtual void Approve(int adjustmentId, int userId) =>
+            ApproveAsync(adjustmentId, userId, Guid.NewGuid()).GetAwaiter().GetResult();
+
+        private Task StageApproveAsync(AppDbContext db, int adjustmentId, int userId)
         {
-            using var db = _contextFactory();
             var actor = AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockAdjustment);
             var adjustment = db.StockAdjustments.SingleOrDefault(item => item.Id == adjustmentId)
                 ?? throw new InventoryDomainException("Không tìm thấy phiếu điều chỉnh.");
@@ -123,14 +228,24 @@ namespace QuanLyHangHoa.Services
                 AuthorizationService.CanPerform(actor, PermissionAction.ApproveStock)).ToString();
             adjustment.ApprovedBy = userId;
             adjustment.ApprovedAt = DateTime.UtcNow;
-            db.SaveChanges();
+            return Task.CompletedTask;
         }
 
-        // transaction bao phủ trạng thái chứng từ và mọi balance, serial, ledger do domain service tạo.
-        public void Post(int adjustmentId, int userId)
+        public Task PostAsync(
+            int adjustmentId, int userId, Guid operationId,
+            CancellationToken cancellationToken = default) =>
+            _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("stock-adjustment.post", operationId),
+                (db, token) => StagePostAsync(db, adjustmentId, userId),
+                (db, token) => db.StockAdjustments.AnyAsync(
+                    item => item.Id == adjustmentId && item.Status == DocumentStatus.Posted, token),
+                cancellationToken: cancellationToken);
+
+        internal void Post(int adjustmentId, int userId) =>
+            PostAsync(adjustmentId, userId, Guid.NewGuid()).GetAwaiter().GetResult();
+
+        private Task StagePostAsync(AppDbContext db, int adjustmentId, int userId)
         {
-            using var db = _contextFactory();
-            using var transaction = db.Database.BeginTransaction();
             var actor = AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockAdjustment);
 
             var adjustment = db.StockAdjustments
@@ -152,10 +267,9 @@ namespace QuanLyHangHoa.Services
             // SaveChanges này vẫn nằm trong transaction và sẽ rollback nếu validation/posting line thất bại.
             adjustment.PostedBy = userId;
             adjustment.PostedAt = DateTime.UtcNow;
-            db.SaveChanges();
 
             var postingService = new InventoryAdjustmentService(
-                new EfInventoryUnitOfWork(db),
+                new EfInventoryUnitOfWork(db, commitChanges: false),
                 new FixedWarehouseProvider(adjustment.WarehouseId),
                 new SystemClock());
             postingService.PostAdjustment(new PostStockAdjustmentCommand(
@@ -166,7 +280,7 @@ namespace QuanLyHangHoa.Services
                 BuildLineCommands(db, adjustment.Lines),
                 userId));
 
-            transaction.Commit();
+            return Task.CompletedTask;
         }
 
         // quantity command luôn dương; Direction là nguồn quyết định tăng/giảm trong domain service.

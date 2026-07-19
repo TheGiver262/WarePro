@@ -35,4 +35,6 @@ public partial class StockCountSession
     public virtual ICollection<StockCountLine> Lines { get; set; } = new List<StockCountLine>();
 
     public virtual Warehouse Warehouse { get; set; } = null!;
+    public byte[] RowVersion { get; set; } = [];
+
 }

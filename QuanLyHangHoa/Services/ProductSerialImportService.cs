@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Threading;
+using System.Text.Json;
 using System.Threading.Tasks;
 using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
@@ -10,221 +13,409 @@ using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Inventory;
 using QuanLyHangHoa.Models;
 
-namespace QuanLyHangHoa.Services
+namespace QuanLyHangHoa.Services;
+
+public interface IProductSerialImportService
 {
-    /// <summary>
-    /// hợp đồng import workbook serial cũ và trả số dòng thực sự được tạo.
-    /// </summary>
-    public interface IProductSerialImportService
+    Task<(int SuccessCount, string Message)> ImportFromExcelAsync(string filePath, int actorId);
+
+    Task<(int SuccessCount, string Message)> ImportFromExcelAsync(
+        string filePath,
+        int actorId,
+        Guid operationId,
+        CancellationToken cancellationToken = default);
+}
+
+public sealed class ProductSerialImportService : IProductSerialImportService
+{
+    private const string UnauthorizedMessage = "The current user is not authorized for this action.";
+    private const string PayloadMismatchMessage =
+        "The operation ID was already used with a different import payload.";
+    private readonly DatabaseWriteExecutor _writeExecutor;
+
+    public ProductSerialImportService(Func<AppDbContext> contextFactory)
     {
-        Task<(int SuccessCount, string Message)> ImportFromExcelAsync(string filePath, int actorId);
+        ArgumentNullException.ThrowIfNull(contextFactory);
+        _writeExecutor = new DatabaseWriteExecutor(contextFactory);
     }
 
-    /// <summary>
-    /// chuyển workbook sản phẩm/serial thành một phiếu nhập opening balance trong transaction Serializable.
-    /// </summary>
-    public class ProductSerialImportService : IProductSerialImportService
-    {
-        private readonly Func<AppDbContext> _contextFactory;
+    public Task<(int SuccessCount, string Message)> ImportFromExcelAsync(
+        string filePath,
+        int actorId) =>
+        ImportFromExcelAsync(filePath, actorId, Guid.NewGuid());
 
-        public ProductSerialImportService(Func<AppDbContext> contextFactory)
+    public async Task<(int SuccessCount, string Message)> ImportFromExcelAsync(
+        string filePath,
+        int actorId,
+        Guid operationId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!File.Exists(filePath))
         {
-            _contextFactory = contextFactory;
+            return (0, $"Lỗi: Không tìm thấy file Excel tại {filePath}");
         }
 
-        public async Task<(int SuccessCount, string Message)> ImportFromExcelAsync(string filePath, int actorId)
+        List<PreparedSerialRow> rows;
+        int parsedSkipCount;
+        try
         {
-            if (!File.Exists(filePath))
-                return (0, $"Lỗi: Không tìm thấy file Excel tại {filePath}");
+            (rows, parsedSkipCount) = ParseWorkbook(filePath);
+        }
+        catch (Exception ex)
+        {
+            return (0, FormatError(ex));
+        }
 
-            List<(string SerialNumber, string ProductCode)> rows;
-            int skipCount;
-            try
-            {
-                (rows, skipCount) = ParseWorkbook(filePath);
-            }
-            catch (Exception ex)
-            {
-                return (0, FormatError(ex));
-            }
+        cancellationToken.ThrowIfCancellationRequested();
+        var payloadMarker = CreatePayloadMarker(rows, parsedSkipCount);
+        var documentCode = $"IMPORT-SR-{operationId:N}";
+        var createdAt = DateTime.UtcNow;
+        IReadOnlyCollection<(int ProductId, string SerialNumber)> expectedCommittedRows = [];
 
-            using var context = _contextFactory();
-            // Serializable ngăn batch khác chèn cùng serial trong khoảng kiểm tra tồn tại và SaveChanges.
-            await using var transaction = await context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
-            AuthorizationService.RequireFreshActor(context, actorId, PermissionAction.ManageMasterData);
-
-            try
-            {
-                // cache theo ProductCode để map row không phát sinh một query cho mỗi serial.
-                var products = (await context.Products.AsNoTracking().ToListAsync())
-                    .ToDictionary(product => product.ProductCode, StringComparer.OrdinalIgnoreCase);
-                var defaultWarehouse = await context.Warehouses
-                    .FirstOrDefaultAsync(warehouse => warehouse.IsDefault && warehouse.IsActive)
-                    ?? await context.Warehouses.FirstOrDefaultAsync();
-
-                if (defaultWarehouse == null)
+        try
+        {
+            return await _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest(
+                    "product-serial.import",
+                    operationId,
+                    IsolationLevel.Serializable),
+                async (db, token) =>
                 {
-                    defaultWarehouse = new Warehouse
+                    AuthorizationService.RequireFreshActor(
+                        db,
+                        actorId,
+                        PermissionAction.ManageMasterData);
+
+                    var existingBatch = await db.StockIns
+                        .AsNoTracking()
+                        .SingleOrDefaultAsync(
+                            stockIn => stockIn.DocumentCode == documentCode,
+                            token);
+                    if (existingBatch is not null)
                     {
-                        WarehouseCode = "WH001",
-                        DisplayName = "Kho chính",
-                        IsActive = true,
-                        IsDefault = true
-                    };
-                }
-
-                // row thiếu product được đếm skip; chỉ row map được mới đi vào kiểm tra duplicate toàn batch/database.
-                var mappedRows = new List<(string SerialNumber, Product Product)>();
-                foreach (var row in rows)
-                {
-                    if (products.TryGetValue(row.ProductCode, out var product))
-                        mappedRows.Add((row.SerialNumber, product));
-                    else
-                        skipCount++;
-                }
-
-                // Distinct giảm tập query; HashSet existingSerials đồng thời loại duplicate trong file khi Add trả false.
-                var requestedSerials = mappedRows
-                    .Select(row => row.SerialNumber)
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .ToList();
-                var existingSerials = requestedSerials.Count == 0
-                    ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-                    : new HashSet<string>(
-                        await context.ProductSerials
-                            .Where(serial => requestedSerials.Contains(serial.SerialNumber))
-                            .Select(serial => serial.SerialNumber)
-                            .ToListAsync(),
-                        StringComparer.OrdinalIgnoreCase);
-
-                // một StockIn giữ nguồn gốc của toàn batch và nhóm line theo sản phẩm.
-                var stockIn = new StockIn
-                {
-                    DocumentCode = $"IMPORT_SR_{DateTime.Now:yyyyMMdd_HHmm}",
-                    Status = "Posted",
-                    PurposeCode = "OpeningBalance",
-                    Warehouse = defaultWarehouse,
-                    CreatedAt = DateTime.Now,
-                    PostedAt = DateTime.Now,
-                    CreatedBy = actorId,
-                    PostedBy = actorId
-                };
-
-                int successCount = 0;
-                foreach (var group in mappedRows.GroupBy(row => row.Product.Id))
-                {
-                    var product = group.First().Product;
-                    var serialNumbers = group
-                        .Select(row => row.SerialNumber)
-                        .Where(serialNumber => existingSerials.Add(serialNumber))
-                        .ToList();
-                    if (serialNumbers.Count == 0)
-                        continue;
-
-                    var line = new StockInLine
-                    {
-                        ProductId = product.Id,
-                        Quantity = serialNumbers.Count,
-                        BaseQuantity = serialNumbers.Count,
-                        UnitPrice = product.DefaultPrice,
-                        UnitId = product.DefaultUnitId
-                    };
-
-                    foreach (var serialNumber in serialNumbers)
-                    {
-                        line.ProductSerials.Add(new ProductSerial
-                        {
-                            SerialNumber = serialNumber,
-                            ProductId = product.Id,
-                            CurrentStatus = "InStock",
-                            CurrentWarehouse = defaultWarehouse
-                        });
-                        successCount++;
+                        EnsurePayloadMatches(existingBatch.Notes, payloadMarker);
+                        var existingCount = await db.ProductSerials
+                            .CountAsync(
+                                serial => serial.LastStockInLine.StockInId == existingBatch.Id,
+                                token);
+                        return (existingCount, BuildMessage(existingCount, parsedSkipCount));
                     }
 
-                    stockIn.Lines.Add(line);
-                }
+                    var products = (await db.Products
+                            .AsNoTracking()
+                            .Where(product => product.IsActive)
+                            .ToListAsync(token))
+                        .ToDictionary(
+                            product => product.ProductCode,
+                            StringComparer.OrdinalIgnoreCase);
 
-                context.StockIns.Add(stockIn);
-                await context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                    var warehouse = await db.Warehouses
+                        .FirstOrDefaultAsync(
+                            item => item.IsDefault && item.IsActive,
+                            token)
+                        ?? await db.Warehouses
+                            .Where(item => item.IsActive)
+                            .OrderBy(item => item.Id)
+                            .FirstOrDefaultAsync(token);
 
-                string message = $"Đã nạp thành công {successCount} số serial.";
-                if (skipCount > 0)
-                    message += $" (Bỏ qua {skipCount} dòng không hợp lệ hoặc thiếu sản phẩm).";
-                return (successCount, message);
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-                return (0, FormatError(ex));
-            }
+                    if (warehouse is null)
+                    {
+                        warehouse = new Warehouse
+                        {
+                            WarehouseCode = "WH001",
+                            DisplayName = "Kho chính",
+                            IsActive = true,
+                            IsDefault = true
+                        };
+                    }
+
+                    var mappedRows = new List<(string SerialNumber, Product Product)>();
+                    var skipCount = parsedSkipCount;
+                    foreach (var row in rows)
+                    {
+                        if (products.TryGetValue(row.ProductCode, out var product))
+                        {
+                            mappedRows.Add((row.SerialNumber, product));
+                        }
+                        else
+                        {
+                            skipCount++;
+                        }
+                    }
+
+                    var requestedSerials = mappedRows
+                        .Select(row => row.SerialNumber)
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .ToArray();
+                    var usedSerials = requestedSerials.Length == 0
+                        ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                        : new HashSet<string>(
+                            await db.ProductSerials
+                                .Where(serial => requestedSerials.Contains(serial.SerialNumber))
+                                .Select(serial => serial.SerialNumber)
+                                .ToListAsync(token),
+                            StringComparer.OrdinalIgnoreCase);
+
+                    var stockIn = new StockIn
+                    {
+                        DocumentCode = documentCode,
+                        Status = "Posted",
+                        PurposeCode = "OpeningBalance",
+                        Notes = payloadMarker,
+                        Warehouse = warehouse,
+                        ImportDate = createdAt,
+                        CreatedAt = createdAt,
+                        PostedAt = createdAt,
+                        CreatedBy = actorId,
+                        PostedBy = actorId
+                    };
+
+                    var successCount = 0;
+                    foreach (var group in mappedRows
+                                 .GroupBy(row => row.Product.Id)
+                                 .OrderBy(group => group.Key))
+                    {
+                        var product = group.First().Product;
+                        var serialNumbers = group
+                            .Select(row => row.SerialNumber)
+                            .Where(serialNumber => usedSerials.Add(serialNumber))
+                            .ToArray();
+                        if (serialNumbers.Length == 0)
+                        {
+                            continue;
+                        }
+
+                        var line = new StockInLine
+                        {
+                            ProductId = product.Id,
+                            Quantity = serialNumbers.Length,
+                            BaseQuantity = serialNumbers.Length,
+                            UnitPrice = product.DefaultPrice,
+                            UnitId = product.DefaultUnitId
+                        };
+
+                        foreach (var serialNumber in serialNumbers)
+                        {
+                            line.ProductSerials.Add(new ProductSerial
+                            {
+                                SerialNumber = serialNumber,
+                                ProductId = product.Id,
+                                CurrentStatus = "InStock",
+                                CurrentWarehouse = warehouse
+                            });
+                            successCount++;
+                        }
+
+                        stockIn.Lines.Add(line);
+                    }
+
+                    expectedCommittedRows = stockIn.Lines
+                        .SelectMany(line => line.ProductSerials.Select(serial =>
+                            (line.ProductId, serial.SerialNumber)))
+                        .ToArray();
+
+                    if (successCount > 0)
+                    {
+                        db.StockIns.Add(stockIn);
+                        db.AuditLogs.Add(new AuditLog
+                        {
+                            EntityName = "ProductSerialImport",
+                            EntityId = 0,
+                            ActionCode = "IMPORT",
+                            PerformedBy = actorId,
+                            PerformedAt = createdAt,
+                            AfterJson = System.Text.Json.JsonSerializer.Serialize(new
+                            {
+                                OperationId = operationId.ToString("N"),
+                                SuccessCount = successCount,
+                                SkipCount = skipCount
+                            })
+                        });
+                    }
+
+                    return (successCount, BuildMessage(successCount, skipCount));
+                },
+                (db, token) => VerifyCommittedBatchAsync(
+                    db,
+                    documentCode,
+                    payloadMarker,
+                    expectedCommittedRows,
+                    token),
+                entityKey: documentCode,
+                cancellationToken);
         }
-
-        // sheet Sản phẩm đổi id nguồn sang ProductCode; sheet Serial dùng id đó để nối hai tập dữ liệu.
-        private static (List<(string SerialNumber, string ProductCode)> Rows, int SkipCount) ParseWorkbook(
-            string filePath)
+        catch (OperationCanceledException)
         {
-            using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            using var workbook = new XLWorkbook(stream);
-
-            if (!workbook.TryGetWorksheet("Sản phẩm", out var productSheet))
-                throw new InvalidDataException("Không tìm thấy sheet 'Sản phẩm'");
-            if (!workbook.TryGetWorksheet("Serial", out var serialSheet))
-                throw new InvalidDataException("Không tìm thấy sheet 'Serial'");
-
-            var productHeaders = productSheet.Row(1).CellsUsed().ToDictionary(
-                cell => cell.Value.ToString(),
-                cell => cell.Address.ColumnNumber,
-                StringComparer.OrdinalIgnoreCase);
-            // dictionary là bảng tra cứu in-memory, tránh phụ thuộc thứ tự hai sheet.
-            var mongoToCode = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var row in productSheet.RangeUsed()!.RowsUsed().Skip(1))
-            {
-                string mongoId = productHeaders.TryGetValue("id", out int idColumn)
-                    ? row.Cell(idColumn).GetString()
-                    : string.Empty;
-                string productCode = productHeaders.TryGetValue("ProductCode", out int codeColumn)
-                    ? row.Cell(codeColumn).GetString()
-                    : string.Empty;
-                if (!string.IsNullOrWhiteSpace(mongoId) && !string.IsNullOrWhiteSpace(productCode))
-                    mongoToCode[mongoId] = productCode;
-            }
-
-            var serialHeaders = serialSheet.Row(1).CellsUsed().ToDictionary(
-                cell => cell.Value.ToString(),
-                cell => cell.Address.ColumnNumber,
-                StringComparer.OrdinalIgnoreCase);
-            var rows = new List<(string SerialNumber, string ProductCode)>();
-            int skipCount = 0;
-            foreach (var row in serialSheet.RangeUsed()!.RowsUsed().Skip(1))
-            {
-                string serialNumber = serialHeaders.TryGetValue("SerialCode", out int serialColumn)
-                    ? row.Cell(serialColumn).GetString()
-                    : string.Empty;
-                string mongoProductId = serialHeaders.TryGetValue("ProductId", out int productColumn)
-                    ? row.Cell(productColumn).GetString()
-                    : string.Empty;
-                if (string.IsNullOrWhiteSpace(serialNumber)
-                    || string.IsNullOrWhiteSpace(mongoProductId)
-                    || !mongoToCode.TryGetValue(mongoProductId, out var productCode))
-                {
-                    skipCount++;
-                    continue;
-                }
-
-                rows.Add((serialNumber, productCode));
-            }
-
-            return (rows, skipCount);
+            throw;
         }
-
-        private static string FormatError(Exception exception)
+        catch (InvalidOperationException ex) when (
+            string.Equals(ex.Message, UnauthorizedMessage, StringComparison.Ordinal))
         {
-            var message = exception.Message;
-            if (exception.InnerException != null)
-                message += $" Inner: {exception.InnerException.Message}";
-            return $"Lỗi Import: {message}";
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return (0, FormatError(ex));
         }
     }
+
+    private static (List<PreparedSerialRow> Rows, int SkipCount) ParseWorkbook(string filePath)
+    {
+        using var stream = new FileStream(
+            filePath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.ReadWrite);
+        using var workbook = new XLWorkbook(stream);
+
+        if (!workbook.TryGetWorksheet("Sản phẩm", out var productSheet))
+        {
+            throw new InvalidDataException("Không tìm thấy sheet 'Sản phẩm'");
+        }
+
+        if (!workbook.TryGetWorksheet("Serial", out var serialSheet))
+        {
+            throw new InvalidDataException("Không tìm thấy sheet 'Serial'");
+        }
+
+        var productHeaders = productSheet.Row(1).CellsUsed().ToDictionary(
+            cell => cell.Value.ToString(),
+            cell => cell.Address.ColumnNumber,
+            StringComparer.OrdinalIgnoreCase);
+        var sourceIdToProductCode = new Dictionary<string, string>(
+            StringComparer.OrdinalIgnoreCase);
+
+        foreach (var row in productSheet.RangeUsed()!.RowsUsed().Skip(1))
+        {
+            var sourceId = productHeaders.TryGetValue("id", out var idColumn)
+                ? row.Cell(idColumn).GetString()
+                : string.Empty;
+            var productCode = productHeaders.TryGetValue("ProductCode", out var codeColumn)
+                ? row.Cell(codeColumn).GetString()
+                : string.Empty;
+
+            if (!string.IsNullOrWhiteSpace(sourceId) &&
+                !string.IsNullOrWhiteSpace(productCode))
+            {
+                sourceIdToProductCode[sourceId] = productCode.Trim();
+            }
+        }
+
+        var serialHeaders = serialSheet.Row(1).CellsUsed().ToDictionary(
+            cell => cell.Value.ToString(),
+            cell => cell.Address.ColumnNumber,
+            StringComparer.OrdinalIgnoreCase);
+        var preparedRows = new List<PreparedSerialRow>();
+        var skipCount = 0;
+
+        foreach (var row in serialSheet.RangeUsed()!.RowsUsed().Skip(1))
+        {
+            var serialNumber = serialHeaders.TryGetValue("SerialCode", out var serialColumn)
+                ? row.Cell(serialColumn).GetString().Trim()
+                : string.Empty;
+            var sourceProductId = serialHeaders.TryGetValue("ProductId", out var productColumn)
+                ? row.Cell(productColumn).GetString()
+                : string.Empty;
+
+            if (string.IsNullOrWhiteSpace(serialNumber) ||
+                string.IsNullOrWhiteSpace(sourceProductId) ||
+                !sourceIdToProductCode.TryGetValue(sourceProductId, out var productCode))
+            {
+                skipCount++;
+                continue;
+            }
+
+            preparedRows.Add(new PreparedSerialRow(serialNumber, productCode));
+        }
+
+        return (preparedRows, skipCount);
+    }
+
+    private static string CreatePayloadMarker(
+        IEnumerable<PreparedSerialRow> rows,
+        int parsedSkipCount)
+    {
+        var canonical = new
+        {
+            ParsedSkipCount = parsedSkipCount,
+            Rows = rows
+                .Select(row => new
+                {
+                    ProductCode = row.ProductCode.Trim().ToUpperInvariant(),
+                    SerialNumber = row.SerialNumber.Trim().ToUpperInvariant()
+                })
+                .OrderBy(row => row.ProductCode, StringComparer.Ordinal)
+                .ThenBy(row => row.SerialNumber, StringComparer.Ordinal)
+                .ToArray()
+        };
+        var hash = SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(canonical));
+        return $"[import-payload-sha256:{Convert.ToHexString(hash)}]";
+    }
+
+    private static void EnsurePayloadMatches(string? notes, string payloadMarker)
+    {
+        if (notes?.Contains(payloadMarker, StringComparison.Ordinal) != true)
+        {
+            throw new InvalidOperationException(PayloadMismatchMessage);
+        }
+    }
+
+    internal static async Task<bool> VerifyCommittedBatchAsync(
+        AppDbContext db,
+        string documentCode,
+        string payloadMarker,
+        IReadOnlyCollection<(int ProductId, string SerialNumber)> expectedRows,
+        CancellationToken cancellationToken)
+    {
+        var stockInId = await db.StockIns
+            .AsNoTracking()
+            .Where(stockIn =>
+                stockIn.DocumentCode == documentCode &&
+                stockIn.Notes != null &&
+                stockIn.Notes.Contains(payloadMarker))
+            .Select(stockIn => (int?)stockIn.Id)
+            .SingleOrDefaultAsync(cancellationToken);
+        if (stockInId is null)
+        {
+            return false;
+        }
+
+        var actualRows = await db.ProductSerials
+            .AsNoTracking()
+            .Where(serial => serial.LastStockInLine.StockInId == stockInId.Value)
+            .Select(serial => new { serial.ProductId, serial.SerialNumber })
+            .ToArrayAsync(cancellationToken);
+
+        var expectedIdentities = expectedRows
+            .Select(row => $"{row.ProductId}\u001F{row.SerialNumber.Trim().ToUpperInvariant()}")
+            .OrderBy(identity => identity, StringComparer.Ordinal);
+        var actualIdentities = actualRows
+            .Select(row => $"{row.ProductId}\u001F{row.SerialNumber.Trim().ToUpperInvariant()}")
+            .OrderBy(identity => identity, StringComparer.Ordinal);
+        return expectedIdentities.SequenceEqual(actualIdentities, StringComparer.Ordinal);
+    }
+
+    private static string BuildMessage(int successCount, int skipCount)
+    {
+        var message = $"Đã nạp thành công {successCount} số serial.";
+        if (skipCount > 0)
+        {
+            message += $" (Bỏ qua {skipCount} dòng không hợp lệ hoặc thiếu sản phẩm).";
+        }
+
+        return message;
+    }
+
+    private static string FormatError(Exception exception)
+    {
+        var message = exception.Message;
+        if (exception.InnerException is not null)
+        {
+            message += $" Inner: {exception.InnerException.Message}";
+        }
+
+        return $"Lỗi Import: {message}";
+    }
+
+    private sealed record PreparedSerialRow(string SerialNumber, string ProductCode);
 }

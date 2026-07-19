@@ -78,7 +78,8 @@ public sealed class ConnectionStringFactory
         {
             DataSource = settings.Database.Server,
             InitialCatalog = settings.Database.Database,
-            TrustServerCertificate = settings.Database.TrustServerCertificate
+            TrustServerCertificate = settings.Database.TrustServerCertificate,
+            ApplicationName = "WarePro"
         };
 
         // Windows authentication dùng danh tính tiến trình nên không đọc kho credential của người dùng.
@@ -110,7 +111,17 @@ public sealed class ConnectionStringFactory
     private string? ReadEnvironmentOverride()
     {
         var value = _environmentReader();
-        return string.IsNullOrWhiteSpace(value) ? null : value;
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        // override triển khai vẫn phải có application name ổn định để theo dõi connection trên sql server.
+        var builder = new SqlConnectionStringBuilder(value)
+        {
+            ApplicationName = "WarePro"
+        };
+        return builder.ConnectionString;
     }
 }
 

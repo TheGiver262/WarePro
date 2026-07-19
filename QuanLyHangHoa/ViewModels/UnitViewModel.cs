@@ -7,6 +7,7 @@ using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Views;
 using QuanLyHangHoa.Data;
 using System;
+using System.Threading.Tasks;
 using System.Windows;
 using ClosedXML.Excel;
 using System.Text.Json;
@@ -95,7 +96,7 @@ namespace QuanLyHangHoa.ViewModels
         partial void OnSearchStatusChanged(string? value) => ApplyFilters();
 
         [RelayCommand(CanExecute = nameof(CanManage))]
-        private void OpenAddUnitDialog()
+        private async Task OpenAddUnitDialog()
         {
             var vm = new UnitEditViewModel();
             var window = new UnitEditWindow { DataContext = vm };
@@ -103,29 +104,37 @@ namespace QuanLyHangHoa.ViewModels
             {
                 var newUnit = new Unit();
                 vm.ApplyTo(newUnit);
-                _service.Add(newUnit, _currentUser.Id);
+                await _service.AddAsync(newUnit, _currentUser.Id, Guid.NewGuid());
                 LoadData();
             }
         }
 
         [RelayCommand(CanExecute = nameof(CanManage))]
         // form edit là snapshot; service nhận before JSON để audit thay đổi
-        private void EditUnit(Unit unit)
+        private async Task EditUnit(Unit unit)
         {
-            var beforeJson = Serialize(unit);
+            var expectedRowVersion = unit.RowVersion.ToArray();
             var vm = new UnitEditViewModel(unit);
             var window = new UnitEditWindow { DataContext = vm };
             if (window.ShowDialog() == true)
             {
                 vm.ApplyTo(unit);
-                _service.Update(unit, beforeJson, _currentUser.Id);
+                try
+                {
+    await _service.UpdateAsync(unit.Id, unit, expectedRowVersion, _currentUser.Id, Guid.NewGuid());
+                }
+                catch (DatabaseWriteConflictException)
+                {
+                    LoadData();
+                    return;
+                }
                 LoadData();
             }
         }
 
         [RelayCommand(CanExecute = nameof(CanManage))]
         // service quyết định inactive hay xóa theo quan hệ product-unit/chứng từ, rồi ViewModel reload
-        private void DeleteUnit(Unit unit)
+        private async Task DeleteUnit(Unit unit)
         {
             var dependencies = _service.GetDependencies(unit.Id)
                 .Where(dependency => dependency.Count > 0)
@@ -147,7 +156,11 @@ namespace QuanLyHangHoa.ViewModels
             {
                 try
                 {
-                    _service.Delete(unit.Id, _currentUser.Id);
+                    await _service.DeleteAsync(unit.Id, unit.RowVersion, _currentUser.Id, Guid.NewGuid());
+                    LoadData();
+                }
+                catch (DatabaseWriteConflictException)
+                {
                     LoadData();
                 }
                 catch (Exception ex)

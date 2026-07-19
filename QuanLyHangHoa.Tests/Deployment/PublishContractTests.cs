@@ -31,7 +31,7 @@ public class PublishContractTests
     {
         var project = XDocument.Load(Path.Combine(RepoRoot, "QuanLyHangHoa", "QuanLyHangHoa.csproj"));
 
-        Assert.Equal("1.0.0", Property(project, "VersionPrefix"));
+        Assert.Equal("1.1.0", Property(project, "VersionPrefix"));
         Assert.Equal("$(VersionPrefix)", Property(project, "Version"));
         Assert.Equal("$(VersionPrefix).0", Property(project, "AssemblyVersion"));
         Assert.Equal("$(VersionPrefix).0", Property(project, "FileVersion"));

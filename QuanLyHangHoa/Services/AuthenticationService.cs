@@ -1,5 +1,8 @@
 using System;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
@@ -9,132 +12,168 @@ namespace QuanLyHangHoa.Services
 {
     public class AuthenticationService
     {
-        private readonly Func<AppDbContext> _contextFactory;
+        private enum LoginWriteKind
+        {
+            None,
+            Audit,
+            FailedAttempt,
+            Success
+        }
+
+        private readonly DatabaseWriteExecutor _writeExecutor;
 
         public AuthenticationService(Func<AppDbContext> contextFactory)
         {
-            _contextFactory = contextFactory;
+            _writeExecutor = new DatabaseWriteExecutor(contextFactory);
         }
 
         // log đăng nhập không gắn PerformedBy vì chưa có danh tính đã xác thực; chỉ lưu username đã thử
-        private static void WriteLoginAudit(
+        private static void AddLoginAudit(
             AppDbContext db,
             string actionCode,
-            string attemptedUsername)
+            string attemptedUsername,
+            DateTime performedAt)
         {
-            try
+            db.AuditLogs.Add(new AuditLog
             {
-                db.AuditLogs.Add(new AuditLog
-                {
-                    EntityName = "Authentication",
-                    EntityId = 0,
-                    ActionCode = actionCode,
-                    PerformedBy = null,
-                    PerformedAt = DateTime.Now,
-                    AfterJson = JsonSerializer.Serialize(new { attemptedUsername })
-                });
-                db.SaveChanges();
-            }
-            catch
-            {
-                // lỗi audit không được làm lộ tài khoản có tồn tại hay chặn luồng đăng nhập
-            }
+                EntityName = "Authentication",
+                EntityId = 0,
+                ActionCode = actionCode,
+                PerformedBy = null,
+                PerformedAt = performedAt,
+                AfterJson = JsonSerializer.Serialize(new { attemptedUsername })
+            });
         }
-
-        // mọi nhánh thất bại trả LoginResult chung; mật khẩu không bao giờ được ghi log
-        public LoginResult Authenticate(string username, string password)
+        public Task<LoginResult> AuthenticateAsync(
+            string username,
+            string password,
+            Guid operationId,
+            CancellationToken cancellationToken = default)
         {
-            using var db = _contextFactory();
-            // database có thể so tên không phân biệt hoa thường, nên lấy ứng viên trước
-            var user = db.AppUsers.FirstOrDefault(u => u.Username == username);
-            
-            // kiểm tra lại đúng chữ hoa thường tại ứng dụng để chính sách username không phụ thuộc collation
-            if (user == null || user.Username != username)
-            {
-                WriteLoginAudit(db, "LoginFailed", username);
-                return LoginResult.Invalid(0);
-            }
+            var attemptedUsername = username;
+            var attemptedPassword = password;
+            var attemptedAt = DateTime.Now;
+            var auditPayload = JsonSerializer.Serialize(new { attemptedUsername });
+            var writeKind = LoginWriteKind.None;
 
-            if (!user.IsActive)
-            {
-                WriteLoginAudit(db, "LoginFailed", username);
-                return LoginResult.Inactive();
-            }
-            
-            // tài khoản còn thời gian khóa được trả về ngay, không chạy BCrypt
-            if (user.LockoutUntil.HasValue && user.LockoutUntil.Value > DateTime.Now)
-                return LoginResult.Locked(user.LockoutUntil);
-
-            var stored = user.PasswordHash ?? "";
-            bool verified = false;
-
-            try 
-            {
-                // chỉ verify chuỗi có hình dạng BCrypt; hash lỗi không được coi là mật khẩu hợp lệ
-                if (stored.StartsWith("$2") && stored.Contains('$'))
+            return _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("authentication.login", operationId),
+                async (db, token) =>
                 {
-                    verified = BCrypt.Net.BCrypt.Verify(password, stored);
-                }
+                    var user = await db.AppUsers.SingleOrDefaultAsync(
+                        item => item.Username == attemptedUsername,
+                        token);
 
-                if (verified)
-                {
-                    user.LastLoginAt = DateTime.Now;
-                    user.FailedLoginCount = 0;
-                    user.LockoutUntil = null;
-                    db.SaveChanges();
-                    return LoginResult.Success(user);
-                }
-                else
-                {
-                    // đếm lỗi liên tiếp: từ 5 lần khóa 5 phút, từ 10 lần khóa 15 phút và đánh dấu đáng ngờ
+                    if (user is null || user.Username != attemptedUsername)
+                    {
+                        writeKind = LoginWriteKind.Audit;
+                        AddLoginAudit(db, "LoginFailed", attemptedUsername, attemptedAt);
+                        return LoginResult.Invalid(0);
+                    }
+
+                    if (!user.IsActive)
+                    {
+                        writeKind = LoginWriteKind.Audit;
+                        AddLoginAudit(db, "LoginFailed", attemptedUsername, attemptedAt);
+                        return LoginResult.Inactive();
+                    }
+
+                    if (user.LockoutUntil.HasValue && user.LockoutUntil.Value > attemptedAt)
+                    {
+                        return LoginResult.Locked(user.LockoutUntil);
+                    }
+
+                    var verified = false;
+                    try
+                    {
+                        var stored = user.PasswordHash ?? string.Empty;
+                        if (stored.StartsWith("$2", StringComparison.Ordinal) && stored.Contains('$'))
+                        {
+                            verified = BCrypt.Net.BCrypt.Verify(attemptedPassword, stored);
+                        }
+                    }
+                    catch
+                    {
+                        verified = false;
+                    }
+
+                    if (verified)
+                    {
+                        writeKind = LoginWriteKind.Success;
+                        user.LastLoginAt = attemptedAt;
+                        user.FailedLoginCount = 0;
+                        user.LockoutUntil = null;
+                        return LoginResult.Success(user);
+                    }
+
+                    writeKind = LoginWriteKind.FailedAttempt;
                     user.FailedLoginCount++;
-                    user.LastFailedLoginAt = DateTime.Now;
-                    
+                    user.LastFailedLoginAt = attemptedAt;
                     if (user.FailedLoginCount >= 10)
                     {
-                        user.LockoutUntil = DateTime.Now.AddMinutes(15);
-                        db.SaveChanges();
-                        WriteLoginAudit(db, "SuspiciousLoginAttempt", username);
+                        user.LockoutUntil = attemptedAt.AddMinutes(15);
+                        AddLoginAudit(db, "SuspiciousLoginAttempt", attemptedUsername, attemptedAt);
                         return LoginResult.Locked(user.LockoutUntil);
                     }
-                    else if (user.FailedLoginCount >= 5)
-                    {
-                        user.LockoutUntil = DateTime.Now.AddMinutes(5);
-                        db.SaveChanges();
-                        WriteLoginAudit(db, "LoginLocked", username);
-                        return LoginResult.Locked(user.LockoutUntil);
-                    }
-                    else
-                    {
-                        db.SaveChanges();
-                        WriteLoginAudit(db, "LoginFailed", username);
-                        return LoginResult.Invalid(user.FailedLoginCount);
-                    }
-                }
-            }
-            catch
-            {
-                // hash hỏng hoặc lỗi verify được xử lý như sai thông tin, không đẩy chi tiết bảo mật ra giao diện
-            }
 
-            return LoginResult.Invalid(user?.FailedLoginCount ?? 0);
+                    if (user.FailedLoginCount >= 5)
+                    {
+                        user.LockoutUntil = attemptedAt.AddMinutes(5);
+                        AddLoginAudit(db, "LoginLocked", attemptedUsername, attemptedAt);
+                        return LoginResult.Locked(user.LockoutUntil);
+                    }
+
+                    AddLoginAudit(db, "LoginFailed", attemptedUsername, attemptedAt);
+                    return LoginResult.Invalid(user.FailedLoginCount);
+                },
+                verifySucceeded: (db, token) => VerifyLoginWriteAsync(
+                    db,
+                    attemptedUsername,
+                    attemptedAt,
+                    auditPayload,
+                    writeKind,
+                    token),
+                cancellationToken: cancellationToken);
         }
 
-        // phải verify mật khẩu hiện tại rồi tạo hash mới; cờ đổi mật khẩu lần đầu chỉ tắt sau khi lưu thành công
-        public void ChangePassword(int userId, string currentPassword, string newPassword)
+        private static Task<bool> VerifyLoginWriteAsync(
+            AppDbContext db,
+            string attemptedUsername,
+            DateTime attemptedAt,
+            string auditPayload,
+            LoginWriteKind writeKind,
+            CancellationToken cancellationToken) =>
+            writeKind switch
+            {
+                LoginWriteKind.None => Task.FromResult(true),
+                LoginWriteKind.Audit => db.AuditLogs.AnyAsync(log =>
+                    log.EntityName == "Authentication" &&
+                    log.ActionCode == "LoginFailed" &&
+                    log.PerformedAt == attemptedAt &&
+                    log.AfterJson == auditPayload,
+                    cancellationToken),
+                LoginWriteKind.FailedAttempt => db.AppUsers.AnyAsync(user =>
+                    user.Username == attemptedUsername &&
+                    user.LastFailedLoginAt == attemptedAt,
+                    cancellationToken),
+                LoginWriteKind.Success => db.AppUsers.AnyAsync(user =>
+                    user.Username == attemptedUsername &&
+                    user.LastLoginAt == attemptedAt,
+                    cancellationToken),
+                _ => Task.FromResult(false)
+            };
+
+        public Task ChangePasswordAsync(
+            int userId,
+            string currentPassword,
+            string newPassword,
+            byte[] expectedRowVersion,
+            Guid operationId,
+            CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(newPassword))
             {
                 throw new InvalidOperationException("New password is required.");
-            }
-
-            using var db = _contextFactory();
-            var user = db.AppUsers.Find(userId)
-                ?? throw new InvalidOperationException("User does not exist.");
-
-            if (!BCrypt.Net.BCrypt.Verify(currentPassword, user.PasswordHash))
-            {
-                throw new InvalidOperationException("Mật khẩu hiện tại không chính xác.");
             }
 
             if (currentPassword == newPassword)
@@ -142,10 +181,32 @@ namespace QuanLyHangHoa.Services
                 throw new InvalidOperationException("Mật khẩu mới không được trùng với mật khẩu cũ.");
             }
 
-            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
-            user.LastPasswordChangedAt = DateTime.Now;
-            user.MustChangePassword = false;
-            db.SaveChanges();
+            ArgumentNullException.ThrowIfNull(expectedRowVersion);
+            var rowVersion = expectedRowVersion.ToArray();
+            var newHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            var changedAt = DateTime.Now;
+
+            return _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("authentication.change-password", operationId),
+                async (db, token) =>
+                {
+                    var user = await db.AppUsers.SingleOrDefaultAsync(item => item.Id == userId, token)
+                        ?? throw new InvalidOperationException("User does not exist.");
+                    db.Entry(user).Property(item => item.RowVersion).OriginalValue = rowVersion;
+                    if (!BCrypt.Net.BCrypt.Verify(currentPassword, user.PasswordHash))
+                    {
+                        throw new InvalidOperationException("Mật khẩu hiện tại không chính xác.");
+                    }
+
+                    user.PasswordHash = newHash;
+                    user.LastPasswordChangedAt = changedAt;
+                    user.MustChangePassword = false;
+                },
+                (db, token) => db.AppUsers.AnyAsync(item =>
+                    item.Id == userId && item.PasswordHash == newHash &&
+                    !item.MustChangePassword && item.RowVersion != rowVersion,
+                    token),
+                cancellationToken: cancellationToken);
         }
     }
 }

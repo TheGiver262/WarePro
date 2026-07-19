@@ -88,7 +88,7 @@ public class StockTransferAndConcurrencyTests
     }
 
     [Fact]
-    public void Commit_rejects_second_writer_based_on_stale_balance()
+    public void Commit_propagates_second_writer_concurrency_conflict()
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
@@ -117,9 +117,7 @@ public class StockTransferAndConcurrencyTests
         second.SaveBalance(secondSnapshot with { OnHandQuantity = 3m, AvailableQuantity = 3m });
 
         first.Commit();
-        var exception = Assert.Throws<InventoryDomainException>(() => second.Commit());
-
-        Assert.Equal("Tồn kho vừa thay đổi. Vui lòng tải lại và thử lại.", exception.Message);
+        Assert.Throws<DbUpdateConcurrencyException>(() => second.Commit());
         using var verify = DatabaseHelper.CreateContext(connection);
         var persisted = verify.StockBalances.Single(balance => balance.Id == 900);
         Assert.Equal(3m, persisted.OnHandQuantity);

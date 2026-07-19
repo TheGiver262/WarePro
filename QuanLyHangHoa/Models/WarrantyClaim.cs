@@ -62,4 +62,6 @@ public partial class WarrantyClaim
     public virtual WarrantyCoverage WarrantyCoverage { get; set; } = null!;
 
     public string CustomerName => WarrantyCoverage?.Customer?.DisplayName ?? string.Empty;
+    public byte[] RowVersion { get; set; } = [];
+
 }

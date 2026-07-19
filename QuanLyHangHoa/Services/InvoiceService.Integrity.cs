@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
@@ -249,53 +251,92 @@ public partial class InvoiceService
         }).ToList() ?? new List<PurchaseInvoiceLine>();
 
     // khi sửa, xóa toàn bộ dòng cũ rồi tạo lại từ tập đã kiểm tra để không còn dòng thừa
-    private static void UpsertSalesInvoice(AppDbContext db, SalesInvoice invoice)
+    private static async Task<int> UpsertSalesInvoiceAsync(
+        AppDbContext db,
+        SalesInvoice invoice,
+        byte[] expectedRowVersion,
+        CancellationToken cancellationToken)
     {
         if (invoice.Id == 0)
         {
             db.SalesInvoices.Add(invoice);
-            db.SaveChanges();
-            return;
+            await db.SaveChangesAsync(cancellationToken);
+            return invoice.Id;
         }
 
-        var existing = db.SalesInvoices
+        var existing = await db.SalesInvoices
             .Include(item => item.Lines)
-            .SingleOrDefault(item => item.Id == invoice.Id)
+            .SingleOrDefaultAsync(item => item.Id == invoice.Id, cancellationToken)
             ?? throw new InvalidOperationException("Sales invoice does not exist.");
+
+        db.Entry(existing).Property(item => item.RowVersion).OriginalValue = expectedRowVersion;
         db.SalesInvoiceLines.RemoveRange(existing.Lines);
-        db.Entry(existing).CurrentValues.SetValues(invoice);
+        existing.InvoiceCode = invoice.InvoiceCode;
+        existing.CustomerId = invoice.CustomerId;
+        existing.StockOutId = invoice.StockOutId;
+        existing.InvoiceDate = invoice.InvoiceDate;
+        existing.SubTotal = invoice.SubTotal;
+        existing.TaxAmount = invoice.TaxAmount;
+        existing.GrandTotal = invoice.GrandTotal;
+        existing.PaidAmount = invoice.PaidAmount;
+        existing.PaymentStatus = invoice.PaymentStatus;
+        existing.DueDate = invoice.DueDate;
+        existing.Notes = invoice.Notes;
+        db.Entry(existing).Property(item => item.Notes).IsModified = true;
+
         foreach (var line in invoice.Lines)
         {
             line.Id = 0;
             line.SalesInvoiceId = existing.Id;
             db.SalesInvoiceLines.Add(line);
         }
-        db.SaveChanges();
+
+        invoice.Id = existing.Id;
+        return existing.Id;
     }
 
-    // header dùng SetValues, còn line luôn nhận id mới và khóa ngoại của hóa đơn hiện có
-    private static void UpsertPurchaseInvoice(AppDbContext db, PurchaseInvoice invoice)
+    private static async Task<int> UpsertPurchaseInvoiceAsync(
+        AppDbContext db,
+        PurchaseInvoice invoice,
+        byte[] expectedRowVersion,
+        CancellationToken cancellationToken)
     {
         if (invoice.Id == 0)
         {
             db.PurchaseInvoices.Add(invoice);
-            db.SaveChanges();
-            return;
+            await db.SaveChangesAsync(cancellationToken);
+            return invoice.Id;
         }
 
-        var existing = db.PurchaseInvoices
+        var existing = await db.PurchaseInvoices
             .Include(item => item.Lines)
-            .SingleOrDefault(item => item.Id == invoice.Id)
+            .SingleOrDefaultAsync(item => item.Id == invoice.Id, cancellationToken)
             ?? throw new InvalidOperationException("Purchase invoice does not exist.");
+
+        db.Entry(existing).Property(item => item.RowVersion).OriginalValue = expectedRowVersion;
         db.PurchaseInvoiceLines.RemoveRange(existing.Lines);
-        db.Entry(existing).CurrentValues.SetValues(invoice);
+        existing.InvoiceCode = invoice.InvoiceCode;
+        existing.SupplierId = invoice.SupplierId;
+        existing.StockInId = invoice.StockInId;
+        existing.InvoiceDate = invoice.InvoiceDate;
+        existing.SubTotal = invoice.SubTotal;
+        existing.TaxAmount = invoice.TaxAmount;
+        existing.GrandTotal = invoice.GrandTotal;
+        existing.PaidAmount = invoice.PaidAmount;
+        existing.PaymentStatus = invoice.PaymentStatus;
+        existing.DueDate = invoice.DueDate;
+        existing.Notes = invoice.Notes;
+        db.Entry(existing).Property(item => item.Notes).IsModified = true;
+
         foreach (var line in invoice.Lines)
         {
             line.Id = 0;
             line.PurchaseInvoiceId = existing.Id;
             db.PurchaseInvoiceLines.Add(line);
         }
-        db.SaveChanges();
+
+        invoice.Id = existing.Id;
+        return existing.Id;
     }
 
     // desired là serial đáng được bảo hành theo phiếu xuất hiện tại; existing là coverage từng do hóa đơn này tạo
@@ -367,7 +408,6 @@ public partial class InvoiceService
             db.WarrantyCoverages.Add(coverage);
         }
 
-        db.SaveChanges();
     }
 
     // thời hạn bắt đầu từ ngày hóa đơn bán và kết thúc sau đúng số tháng bảo hành của sản phẩm

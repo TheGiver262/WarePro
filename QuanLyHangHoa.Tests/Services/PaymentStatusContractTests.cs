@@ -17,21 +17,13 @@ public class PaymentStatusContractTests
     [Fact]
     public void Current_schema_normalizes_payment_status_constraints()
     {
-        var type = typeof(DatabaseInitializer);
-        var versionField = type.GetField("CurrentSchemaVersion", BindingFlags.NonPublic | BindingFlags.Static);
-        var sqlField = type.GetField("SchemaVersion5Sql", BindingFlags.NonPublic | BindingFlags.Static);
-
-        Assert.NotNull(versionField);
-        Assert.NotNull(sqlField);
-        Assert.Equal(5, (int)versionField.GetRawConstantValue()!);
-        var sql = (string)sqlField.GetRawConstantValue()!;
+        var sql = WarePro.Database.DatabaseSchemaScripts.SchemaVersion5;
         Assert.Contains("UPPER(PaymentStatus)", sql);
         Assert.Contains("SET PaymentStatus = 'PartiallyPaid'", sql);
         Assert.Contains("CK_SalesInvoice_PaymentStatus", sql);
         Assert.Contains("CK_PurchaseInvoice_PaymentStatus", sql);
         Assert.Contains("'Unpaid', 'PartiallyPaid', 'Paid', 'Overdue'", sql);
     }
-
     [Theory]
     [InlineData("unpaid", PaymentStatus.Unpaid)]
     [InlineData("PARTIAL", PaymentStatus.PartiallyPaid)]

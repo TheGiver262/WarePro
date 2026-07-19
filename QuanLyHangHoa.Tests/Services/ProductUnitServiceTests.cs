@@ -15,17 +15,17 @@ public class ProductUnitServiceTests
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
-    public void Add_rejects_non_positive_conversion_factor(decimal factor)
+    public async Task Add_rejects_non_positive_conversion_factor(decimal factor)
     {
         using var connection = CreateDatabase();
         var service = new ProductUnitService(() => CreateContext(connection));
 
-        var exception = Assert.Throws<InvalidOperationException>(() => service.Add(new ProductUnit
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => service.AddAsync(new ProductUnit
         {
             ProductId = 1200,
             UnitId = 102,
             ConversionFactor = factor
-        }, actorId: 2));
+        }, actorId: 2, Guid.NewGuid()));
 
         Assert.Contains("greater than zero", exception.Message, StringComparison.OrdinalIgnoreCase);
         using var assertContext = CreateContext(connection);
@@ -35,7 +35,7 @@ public class ProductUnitServiceTests
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
-    public void Update_rejects_non_positive_conversion_factor(decimal factor)
+    public async Task Update_rejects_non_positive_conversion_factor(decimal factor)
     {
         using var connection = CreateDatabase();
         using (var seedContext = CreateContext(connection))
@@ -51,13 +51,13 @@ public class ProductUnitServiceTests
         }
 
         var service = new ProductUnitService(() => CreateContext(connection));
-        var exception = Assert.Throws<InvalidOperationException>(() => service.Update(new ProductUnit
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateAsync(1, new ProductUnit
         {
             Id = 1,
             ProductId = 1200,
             UnitId = 102,
             ConversionFactor = factor
-        }, actorId: 2));
+        }, [], actorId: 2, Guid.NewGuid()));
 
         Assert.Contains("greater than zero", exception.Message, StringComparison.OrdinalIgnoreCase);
         using var assertContext = CreateContext(connection);
@@ -65,7 +65,7 @@ public class ProductUnitServiceTests
     }
 
     [Fact]
-    public void Add_saves_product_unit()
+    public async Task Add_saves_product_unit()
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
@@ -89,13 +89,13 @@ public class ProductUnitServiceTests
 
         var service = new ProductUnitService(() => CreateContext(connection));
 
-        service.Add(new ProductUnit
+        await service.AddAsync(new ProductUnit
         {
             ProductId = 1200,
             UnitId = 102,
             ConversionFactor = 12m,
             IsBaseUnit = false
-        }, actorId: 2);
+        }, actorId: 2, Guid.NewGuid());
 
         using var assertContext = CreateContext(connection);
         var productUnit = Assert.Single(assertContext.ProductUnits);
@@ -144,21 +144,22 @@ public class ProductUnitServiceTests
     }
 
     [Fact]
-    public void Add_rejects_unauthorized_actor_without_writing()
+    public async Task Add_rejects_unauthorized_actor_without_writing()
     {
         using var connection = CreateDatabase();
         using (var seedContext = CreateContext(connection))
             DatabaseHelper.SeedBasicData(seedContext);
         var service = new ProductUnitService(() => CreateContext(connection));
 
-        var exception = Assert.Throws<InvalidOperationException>(() => service.Add(
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => service.AddAsync(
             new ProductUnit
             {
                 ProductId = 1200,
                 UnitId = 102,
                 ConversionFactor = 12m
             },
-            actorId: 3));
+            actorId: 3,
+            Guid.NewGuid()));
 
         Assert.Contains("not authorized", exception.Message, StringComparison.OrdinalIgnoreCase);
         using var assertContext = CreateContext(connection);

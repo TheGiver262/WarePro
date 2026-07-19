@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using QuanLyHangHoa.Data;
 using System.Collections.ObjectModel;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Linq;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -133,6 +135,8 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private int _totalCount;
         [ObservableProperty] private int _draftCount;
         [ObservableProperty] private int _postedCount;
+        [ObservableProperty] private bool _isWriting;
+        [ObservableProperty] private string _writeStatus = string.Empty;
 
         public bool IsAdminOrManager => AuthorizationService.CanPerform(_currentUser, PermissionAction.ApproveStock);
         public bool CanUserEdit => _currentUser.RoleCode == "Quản trị viên" ||
@@ -141,6 +145,18 @@ namespace QuanLyHangHoa.ViewModels
         public bool CanProcessLifecycle => StockDocumentUiLifecycle.IsDraft(Status)
             ? CanUserEdit
             : IsAdminOrManager && (StockDocumentUiLifecycle.IsPendingApproval(Status) || StockDocumentUiLifecycle.IsApproved(Status));
+
+        private Task<bool> ExecuteWriteAsync(
+            Func<CancellationToken, Task> write,
+            CancellationToken cancellationToken) =>
+            DatabaseWriteUi.ExecuteAsync(
+                write,
+                () => IsWriting,
+                value => IsWriting = value,
+                value => WriteStatus = value,
+                LoadData,
+                message => MessageBox.Show(message, "Lỗi"),
+                cancellationToken);
 
         public StockTransferViewModel(AppUser currentUser, Func<AppDbContext>? contextFactory = null)
         {
@@ -357,8 +373,9 @@ namespace QuanLyHangHoa.ViewModels
 
         [RelayCommand]
         // draft chưa di chuyển tồn hoặc serial giữa kho
-        private void SaveDraft()
+        private async Task SaveDraft(CancellationToken cancellationToken)
         {
+            var operationId = Guid.NewGuid();
             if (!ValidateForm()) return;
 
             try
@@ -366,23 +383,26 @@ namespace QuanLyHangHoa.ViewModels
                 var st = CreateModel();
                 var stLines = CreateLines();
 
-                _stockTransferService.SaveDraft(st, stLines, _currentUser.Id);
+                if (!await ExecuteWriteAsync(
+                    async _ => await _stockTransferService.SaveDraftAsync(st, stLines, _currentUser.Id, operationId, cancellationToken),
+                    cancellationToken)) return;
                 StockTransferId = st.Id;
                 Status = st.Status;
                 
                 MessageBox.Show("Đã lưu phiếu nháp thành công.", "Thông báo");
                 BackToList();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                MessageBox.Show(ex.Message, "Lỗi");
+                MessageBox.Show(DatabaseWriteUi.TechnicalErrorMessage, "Lỗi");
             }
         }
 
         [RelayCommand]
         // service kiểm tra kho nguồn khác kho đích, tồn đủ, serial hợp lệ và lifecycle trước commit
-        private void ConfirmAndPost()
+        private async Task ConfirmAndPost(CancellationToken cancellationToken)
         {
+            var operationId = Guid.NewGuid();
             if (IsPosted || StockDocumentUiLifecycle.IsPosted(Status)) return;
             var isDraft = StockDocumentUiLifecycle.IsDraft(Status);
             if (isDraft && !CanUserEdit)
@@ -404,12 +424,14 @@ namespace QuanLyHangHoa.ViewModels
                 {
                     var st = CreateModel();
                     var stLines = CreateLines();
-                    _stockTransferService.SaveDraft(st, stLines, _currentUser.Id);
+                    if (!await ExecuteWriteAsync(
+                        async _ => await _stockTransferService.SaveDraftAsync(st, stLines, _currentUser.Id, operationId, cancellationToken),
+                        cancellationToken)) return;
                     StockTransferId = st.Id;
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    MessageBox.Show($"Lỗi khi lưu dữ liệu trước khi gửi duyệt: {ex.Message}", "Lỗi");
+                    MessageBox.Show(DatabaseWriteUi.TechnicalErrorMessage, "Lỗi");
                     return;
                 }
 
@@ -436,7 +458,9 @@ namespace QuanLyHangHoa.ViewModels
             {
                 if (StockDocumentUiLifecycle.IsDraft(Status))
                 {
-                    _stockTransferService.SubmitForApproval(StockTransferId, _currentUser.Id);
+                    if (!await ExecuteWriteAsync(
+                        async _ => await _stockTransferService.SubmitForApprovalAsync(StockTransferId, _currentUser.Id, operationId, cancellationToken),
+                        cancellationToken)) return;
                     Status = DocumentStatus.PendingApproval;
                     if (!IsAdminOrManager)
                     {
@@ -447,19 +471,23 @@ namespace QuanLyHangHoa.ViewModels
                 }
                 if (StockDocumentUiLifecycle.IsPendingApproval(Status))
                 {
-                    _stockTransferService.Approve(StockTransferId, _currentUser.Id);
+                    if (!await ExecuteWriteAsync(
+                        async _ => await _stockTransferService.ApproveAsync(StockTransferId, _currentUser.Id, operationId, cancellationToken),
+                        cancellationToken)) return;
                     Status = DocumentStatus.Approved;
                 }
-                _stockTransferService.Post(StockTransferId, _currentUser.Id);
+                if (!await ExecuteWriteAsync(
+                    async _ => await _stockTransferService.PostAsync(StockTransferId, _currentUser.Id, operationId, cancellationToken),
+                    cancellationToken)) return;
                 IsPosted = true;
                 Status = DocumentStatus.Posted;
 
                 MessageBox.Show("Đã ghi sổ thành công. Hàng hóa đã được chuyển kho.", "Thông báo");
                 BackToList();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                MessageBox.Show(ex.Message, "Lỗi");
+                MessageBox.Show(DatabaseWriteUi.TechnicalErrorMessage, "Lỗi");
             }
         }
 
@@ -518,9 +546,9 @@ namespace QuanLyHangHoa.ViewModels
                     }
                     MessageBox.Show("Xuất file Excel thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    MessageBox.Show($"Lỗi khi xuất Excel: {ex.Message}", "Lỗi");
+                    MessageBox.Show(DatabaseWriteUi.TechnicalErrorMessage, "Lỗi");
                 }
             }
         }

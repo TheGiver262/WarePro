@@ -17,7 +17,10 @@ public class ConnectionStringFactoryTests
 
         var result = new ConnectionStringFactory(credentialStore, () => environmentValue).Resolve(settings);
 
-        Assert.Equal(environmentValue, result);
+        var parsed = new SqlConnectionStringBuilder(result);
+        Assert.Equal("env", parsed.DataSource);
+        Assert.Equal("env-db", parsed.InitialCatalog);
+        Assert.Equal("WarePro", parsed.ApplicationName);
         Assert.Equal(0, credentialStore.ReadCount);
     }
 
@@ -35,6 +38,7 @@ public class ConnectionStringFactoryTests
         Assert.Equal("Ware Pro Data", parsed.InitialCatalog);
         Assert.True(parsed.IntegratedSecurity);
         Assert.True(parsed.TrustServerCertificate);
+        Assert.Equal("WarePro", parsed.ApplicationName);
         Assert.Equal(string.Empty, parsed.UserID);
         Assert.Equal(string.Empty, parsed.Password);
     }

@@ -15,6 +15,7 @@ deploy/
 /SearchSerialsCount.txt
 /Seeded_Detailed_Report.txt
 /artifacts/
+/.worktrees/
 
 # tài liệu lập kế hoạch và bàn giao chỉ giữ ở máy local
 /docs/handoffs/

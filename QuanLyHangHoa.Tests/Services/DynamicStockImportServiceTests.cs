@@ -86,6 +86,173 @@ public sealed class DynamicStockImportServiceTests
         Assert.Contains(assertContext.ProductSerials, serial => serial.SerialNumber == "NEW-GROUP-SERIAL");
         Assert.Equal(1m, assertContext.StockBalances.Single(balance => balance.ProductId == 1705).OnHandQuantity);
     }
+
+    [Fact]
+    public async Task Stock_in_technical_failure_in_second_group_rolls_back_first_group()
+    {
+        using var connection = OpenDatabase();
+        using (var db = DatabaseHelper.CreateContext(connection))
+        {
+            db.Products.Add(CreateProduct(1706, "IMPORT-TECH-IN", serialTracked: false));
+            db.SaveChanges();
+        }
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = """
+                CREATE TRIGGER FailSecondStockInGroup
+                BEFORE INSERT ON StockIn
+                WHEN NEW.DocumentCode = 'SI-TECH-SECOND'
+                BEGIN
+                    SELECT RAISE(ABORT, 'forced stock-in provider failure');
+                END;
+                """;
+            command.ExecuteNonQuery();
+        }
+
+        var service = new DynamicImportService(() => DatabaseHelper.CreateContext(connection));
+
+        var error = await Assert.ThrowsAnyAsync<Exception>(() => service.ExecuteImportAsync(
+            new List<Dictionary<string, string>>
+            {
+                StockInRow("SI-TECH-FIRST", "IMPORT-TECH-IN", "1", string.Empty),
+                StockInRow("SI-TECH-SECOND", "IMPORT-TECH-IN", "1", string.Empty)
+            },
+            ImportFileType.StockIn,
+            StockInMappings(),
+            1,
+            false,
+            Guid.NewGuid()));
+
+        Assert.Contains("forced stock-in provider failure", error.ToString(), StringComparison.Ordinal);
+        using var assertContext = DatabaseHelper.CreateContext(connection);
+        Assert.DoesNotContain(assertContext.StockIns, item =>
+            item.DocumentCode == "SI-TECH-FIRST" || item.DocumentCode == "SI-TECH-SECOND");
+        Assert.DoesNotContain(assertContext.StockBalances, balance => balance.ProductId == 1706);
+        Assert.DoesNotContain(assertContext.StockLedgers, ledger => ledger.ProductId == 1706);
+    }
+
+    [Fact]
+    public async Task Stock_out_technical_failure_in_second_group_rolls_back_first_group()
+    {
+        using var connection = OpenDatabase();
+        using (var db = DatabaseHelper.CreateContext(connection))
+        {
+            db.Products.Add(CreateProduct(1707, "IMPORT-TECH-OUT", serialTracked: false));
+            db.StockBalances.Add(new StockBalance
+            {
+                ProductId = 1707,
+                WarehouseId = 1,
+                OnHandQuantity = 10m,
+                AvailableQuantity = 10m
+            });
+            db.SaveChanges();
+        }
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = """
+                CREATE TRIGGER FailSecondStockOutGroup
+                BEFORE INSERT ON StockOut
+                WHEN NEW.DocumentCode = 'SO-TECH-SECOND'
+                BEGIN
+                    SELECT RAISE(ABORT, 'forced stock-out provider failure');
+                END;
+                """;
+            command.ExecuteNonQuery();
+        }
+
+        var service = new DynamicImportService(() => DatabaseHelper.CreateContext(connection));
+
+        var error = await Assert.ThrowsAnyAsync<Exception>(() => service.ExecuteImportAsync(
+            new List<Dictionary<string, string>>
+            {
+                StockOutRow("SO-TECH-FIRST", "IMPORT-TECH-OUT", "1"),
+                StockOutRow("SO-TECH-SECOND", "IMPORT-TECH-OUT", "1")
+            },
+            ImportFileType.StockOut,
+            StockOutMappings(),
+            1,
+            false,
+            Guid.NewGuid()));
+
+        Assert.Contains("forced stock-out provider failure", error.ToString(), StringComparison.Ordinal);
+        using var assertContext = DatabaseHelper.CreateContext(connection);
+        Assert.DoesNotContain(assertContext.StockOuts, item =>
+            item.DocumentCode == "SO-TECH-FIRST" || item.DocumentCode == "SO-TECH-SECOND");
+        var balance = assertContext.StockBalances.Single(item => item.ProductId == 1707);
+        Assert.Equal(10m, balance.OnHandQuantity);
+        Assert.Equal(10m, balance.AvailableQuantity);
+        Assert.DoesNotContain(assertContext.StockLedgers, ledger => ledger.ProductId == 1707);
+    }
+
+    [Theory]
+    [InlineData(ImportFileType.StockIn, "SI-EXPLICIT-REPLAY")]
+    [InlineData(ImportFileType.StockOut, "SO-EXPLICIT-REPLAY")]
+    public async Task Explicit_stock_code_replays_exact_payload_and_rejects_different_same_count_payload(
+        ImportFileType type,
+        string documentCode)
+    {
+        using var connection = OpenDatabase();
+        using (var db = DatabaseHelper.CreateContext(connection))
+        {
+            db.Products.Add(CreateProduct(1708, "IMPORT-EXPLICIT-REPLAY", serialTracked: false));
+            if (type == ImportFileType.StockOut)
+            {
+                db.StockBalances.Add(new StockBalance
+                {
+                    ProductId = 1708,
+                    WarehouseId = 1,
+                    OnHandQuantity = 10m,
+                    AvailableQuantity = 10m
+                });
+            }
+            db.SaveChanges();
+        }
+
+        var operationId = Guid.NewGuid();
+        var service = new DynamicImportService(() => DatabaseHelper.CreateContext(connection));
+        var mappings = type == ImportFileType.StockIn ? StockInMappings() : StockOutMappings();
+        var rows = type == ImportFileType.StockIn
+            ? new List<Dictionary<string, string>>
+            {
+                StockInRow(documentCode, "IMPORT-EXPLICIT-REPLAY", "1", string.Empty)
+            }
+            : new List<Dictionary<string, string>>
+            {
+                StockOutRow(documentCode, "IMPORT-EXPLICIT-REPLAY", "1")
+            };
+
+        var first = await service.ExecuteImportAsync(
+            rows, type, mappings, 1, false, operationId);
+        var replay = await service.ExecuteImportAsync(
+            rows, type, mappings, 1, false, operationId);
+        var differentOperation = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.ExecuteImportAsync(
+                rows, type, mappings, 1, false, Guid.NewGuid()));
+        rows[0]["Quantity"] = "2";
+
+        var mismatch = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.ExecuteImportAsync(
+                rows, type, mappings, 1, false, operationId));
+
+        Assert.Equal(1, first.SuccessCount);
+        Assert.Equal(1, replay.SuccessCount);
+        Assert.Empty(first.Errors);
+        Assert.Empty(replay.Errors);
+        Assert.Contains("payload", differentOperation.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("payload", mismatch.Message, StringComparison.OrdinalIgnoreCase);
+        using var assertContext = DatabaseHelper.CreateContext(connection);
+        if (type == ImportFileType.StockIn)
+        {
+            var document = Assert.Single(assertContext.StockIns.Where(item => item.DocumentCode == documentCode));
+            Assert.Single(assertContext.StockInLines.Where(line => line.StockInId == document.Id));
+        }
+        else
+        {
+            var document = Assert.Single(assertContext.StockOuts.Where(item => item.DocumentCode == documentCode));
+            Assert.Single(assertContext.StockOutLines.Where(line => line.StockOutId == document.Id));
+        }
+    }
+
     [Fact]
     public void Stock_out_second_line_failure_rolls_back_first_line_posting()
     {

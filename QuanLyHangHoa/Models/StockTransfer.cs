@@ -46,4 +46,6 @@ public partial class StockTransfer
     public virtual Warehouse ToWarehouse { get; set; } = null!;
 
     public virtual ICollection<StockTransferLine> Lines { get; set; } = new List<StockTransferLine>();
+    public byte[] RowVersion { get; set; } = [];
+
 }

@@ -30,4 +30,6 @@ public partial class Warehouse
     public virtual ICollection<StockOut> StockOuts { get; set; } = new List<StockOut>();
     public virtual ICollection<StockTransfer> StockTransfersFrom { get; set; } = new List<StockTransfer>();
     public virtual ICollection<StockTransfer> StockTransfersTo { get; set; } = new List<StockTransfer>();
+    public byte[] RowVersion { get; set; } = [];
+
 }

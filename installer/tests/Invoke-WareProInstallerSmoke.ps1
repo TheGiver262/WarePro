@@ -25,6 +25,9 @@ param(
     [System.Management.Automation.PSCredential]
     $SqlCredential,
 
+    [System.Management.Automation.PSCredential]
+    $BootstrapAdminCredential,
+
     [switch]$ConfirmDisposableMachine,
     [switch]$AllowUnsignedTestBuild
 )
@@ -50,7 +53,9 @@ $evidencePath = Join-Path $resolvedLogDirectory "evidence-$runId.json"
 $setupHelperPath = Join-Path $applicationDirectory 'Setup\WarePro.SetupHelper.exe'
 $setupHelperLog = Join-Path $resolvedLogDirectory "setup-helper-$runId.log"
 $sqlServiceName = 'MSSQL$SQLEXPRESS'
-
+$pendingInstallerRegistryPath = 'HKLM:\SOFTWARE\WarePro\Installer'
+$pendingBefore = 1 -eq (Get-ItemProperty -LiteralPath $pendingInstallerRegistryPath -Name Pending -ErrorAction SilentlyContinue).Pending
+$machineSetupHelperLog = Join-Path $env:ProgramData 'WarePro\InstallerLogs\setup-helper.log'
 function Get-FileSha256 {
     param([Parameter(Mandatory = $true)][string]$Path)
 
@@ -210,14 +215,65 @@ public static class WareProSmokeCredential
     }
 }
 
+function New-ProtectedBootstrapSecretFile {
+    param([Parameter(Mandatory = $true)][System.Management.Automation.PSCredential]$Credential)
+
+    $path = Join-Path ([System.IO.Path]::GetTempPath()) ("warepro-bootstrap-{0}.secret" -f [Guid]::NewGuid().ToString('N'))
+    $pointer = [Runtime.InteropServices.Marshal]::SecureStringToCoTaskMemUnicode($Credential.Password)
+    try {
+        $password = [Runtime.InteropServices.Marshal]::PtrToStringUni($pointer)
+        [System.IO.File]::WriteAllText($path, $password, [Text.UTF8Encoding]::new($false))
+        $password = $null
+    }
+    finally {
+        [Runtime.InteropServices.Marshal]::ZeroFreeCoTaskMemUnicode($pointer)
+    }
+
+    $identity = [Security.Principal.WindowsIdentity]::GetCurrent().Name
+    & "$env:SystemRoot\System32\icacls.exe" $path '/inheritance:r' '/grant:r' '*S-1-5-18:F' '*S-1-5-32-544:F' "${identity}:F" | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
+        throw 'Khong the bao ve file bootstrap secret.'
+    }
+    return $path
+}
+function Assert-PendingFullInstallResume {
+    param([Parameter(Mandatory = $true)][int]$InstallExitCode)
+
+    $pendingNow = 1 -eq (Get-ItemProperty -LiteralPath $pendingInstallerRegistryPath -Name Pending -ErrorAction SilentlyContinue).Pending
+    if ($InstallExitCode -eq 3010) {
+        if (-not $pendingNow) {
+            throw 'SQL restart did not persist PendingFullInstall state.'
+        }
+        return [ordered]@{
+            status = 'RestartRequiredRerunInstaller'
+            databaseConnection = 'NotVerified'
+        }
+    }
+
+    if ($pendingBefore) {
+        if ($pendingNow) {
+            throw 'PendingFullInstall was not cleared after resumed finalize.'
+        }
+        if (-not (Test-Path -LiteralPath $machineSetupHelperLog -PathType Leaf)) {
+            throw "Missing setup helper log: $machineSetupHelperLog"
+        }
+        $helperLog = Get-Content -LiteralPath $machineSetupHelperLog -Raw
+        $prepare = $helperLog.LastIndexOf('command=prepare-database exit=0', [StringComparison]::Ordinal)
+        $finalize = $helperLog.LastIndexOf('command=finalize-database exit=0', [StringComparison]::Ordinal)
+        if ($prepare -lt 0 -or $finalize -le $prepare) {
+            throw 'Resume did not prove prepare-database then finalize-database exit=0.'
+        }
+    }
+
+    return $null
+}
 function Assert-ApplicationAndDatabase {
     param([Parameter(Mandatory = $true)][int]$InstallExitCode)
 
-    if ($InstallExitCode -eq 3010) {
-        return [ordered]@{
-            status = 'DeferredUntilRestart'
-            databaseConnection = 'DeferredUntilRestart'
-        }
+    $resumeState = Assert-PendingFullInstallResume -InstallExitCode $InstallExitCode
+    if ($null -ne $resumeState) {
+        return $resumeState
     }
 
     $applicationProcess = Start-Process -FilePath $applicationPath -PassThru
@@ -283,18 +339,34 @@ $errorMessage = $null
 try {
     switch ($Mode) {
         'Full' {
-            $arguments = @(
-                '/VERYSILENT',
-                '/SUPPRESSMSGBOXES',
-                '/NORESTART',
-                '/RESTARTEXITCODE=3010',
-                '/TYPE=full',
-                "/LOG=`"$installerLog`""
-            )
-            $exitCode = Invoke-ProcessAndCheckExitCode -FilePath $resolvedInstaller -Arguments $arguments
+            if ($null -eq $BootstrapAdminCredential) {
+                throw 'Full silent smoke can tham so -BootstrapAdminCredential.'
+            }
+            $bootstrapSecretPath = New-ProtectedBootstrapSecretFile -Credential $BootstrapAdminCredential
+            try {
+                $arguments = @(
+                    '/VERYSILENT',
+                    '/SUPPRESSMSGBOXES',
+                    '/NORESTART',
+                    '/RESTARTEXITCODE=3010',
+                    '/TYPE=full',
+                    "/WAREPROBOOTSTRAPSECRETFILE=`"$bootstrapSecretPath`"",
+                    "/LOG=`"$installerLog`""
+                )
+                $exitCode = Invoke-ProcessAndCheckExitCode -FilePath $resolvedInstaller -Arguments $arguments
+            }
+            finally {
+                Remove-Item -LiteralPath $bootstrapSecretPath -Force -ErrorAction SilentlyContinue
+            }
             $installedState = Assert-InstalledState
         }
         'AppOnly' {
+            if ($Authentication -eq 'SqlPassword') {
+                if ($null -eq $SqlCredential) {
+                    throw 'AppOnly voi SqlPassword can tham so -SqlCredential.'
+                }
+                Save-WareProSqlCredential -Credential $SqlCredential
+            }
             $arguments = @(
                 '/VERYSILENT',
                 '/SUPPRESSMSGBOXES',
@@ -354,14 +426,6 @@ try {
     }
 
     if ($null -ne $installedState) {
-        if ($installedState.authentication -eq 'SqlPassword') {
-            if ($Mode -eq 'AppOnly' -and $null -eq $SqlCredential) {
-                throw 'AppOnly voi SqlPassword can tham so -SqlCredential.'
-            }
-            if ($null -ne $SqlCredential) {
-                Save-WareProSqlCredential -Credential $SqlCredential
-            }
-        }
         $runtimeProbe = Assert-ApplicationAndDatabase -InstallExitCode $exitCode
     }
 }
@@ -400,4 +464,9 @@ finally {
     }
 }
 
-Write-Host "Smoke $Mode dat. Evidence: $evidencePath"
+if ($exitCode -eq 3010) {
+    Write-Warning "Smoke phase 1 requires restart and rerun of the same installer. Evidence: $evidencePath"
+}
+else {
+    Write-Host "Smoke $Mode dat. Evidence: $evidencePath"
+}

@@ -77,4 +77,6 @@ public partial class AppUser
     public virtual ICollection<StockTransfer> StockTransferApprovers { get; set; } = new List<StockTransfer>();
     public virtual ICollection<StockTransfer> StockTransferCreators { get; set; } = new List<StockTransfer>();
     public virtual ICollection<StockTransfer> StockTransferPosters { get; set; } = new List<StockTransfer>();
+    public byte[] RowVersion { get; set; } = [];
+
 }

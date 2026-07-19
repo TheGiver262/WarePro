@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
@@ -12,7 +14,8 @@ namespace QuanLyHangHoa.Services.DataImport
 {
     public class DatabaseSeeder
     {
-        private readonly AppDbContext _context;
+        private AppDbContext _context = null!;
+        private readonly DatabaseWriteExecutor _writeExecutor;
         private readonly string _excelPath;
         
         // mỗi map nối id dạng chuỗi trong excel với id số do database sinh; các bảng con dùng map này để giữ đúng khóa ngoại
@@ -28,14 +31,15 @@ namespace QuanLyHangHoa.Services.DataImport
         private readonly Dictionary<string, int> _salesInvoiceMap = new();
         private readonly Dictionary<string, int> _warrantyClaimMap = new();
 
-        public DatabaseSeeder(AppDbContext context, string excelPath)
+        public DatabaseSeeder(Func<AppDbContext> contextFactory, string excelPath)
         {
-            _context = context;
+            ArgumentNullException.ThrowIfNull(contextFactory);
+            _writeExecutor = new DatabaseWriteExecutor(contextFactory);
             _excelPath = excelPath;
         }
 
         // thứ tự seed đi từ bảng gốc đến chứng từ và dòng chi tiết vì mỗi bước sau cần id của bước trước
-        public async Task<string> SeedAsync()
+        public async Task<string> SeedAsync(CancellationToken cancellationToken = default)
         {
             Console.WriteLine($"[SEED] Starting seed from: {Path.GetFullPath(_excelPath)}");
             if (!File.Exists(_excelPath))
@@ -43,48 +47,44 @@ namespace QuanLyHangHoa.Services.DataImport
                 return $"Lỗi: Không tìm thấy file Excel tại {_excelPath}";
             }
 
-            try
-            {
-                // Tự động kiểm tra và sửa dữ liệu mồ côi cho StockInLine -> StockIn trước khi seed
-                var orphanStockInIds = await _context.StockInLines
-                    .Select(l => l.StockInId)
-                    .Distinct()
-                    .Where(id => !_context.StockIns.Any(s => s.Id == id))
-                    .ToListAsync();
+            var workbookBytes = await File.ReadAllBytesAsync(_excelPath, cancellationToken);
+            var preparedWorkbook = PrepareWorkbook(workbookBytes, cancellationToken);
 
-                if (orphanStockInIds.Any())
+            return await _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest(
+                    "database.seed",
+                    Guid.NewGuid(),
+                    IsolationLevel.Serializable),
+                async (db, token) =>
                 {
-                    await _context.Database.OpenConnectionAsync();
+                    _context = db;
+                    ResetMaps();
                     try
                     {
-                        await _context.Database.ExecuteSqlRawAsync("SET IDENTITY_INSERT StockIn ON");
-                        foreach (var id in orphanStockInIds)
-                        {
-                            await _context.Database.ExecuteSqlRawAsync(
-                                "INSERT INTO StockIn (Id, DocumentCode, WarehouseId, PurposeCode, Status, CreatedBy, CreatedAt) " +
-                                $"VALUES ({id}, 'SI-ORPHAN-{id}', 1, 'OpeningBalance', 'Posted', 1, '2026-05-01 00:00:00')"
-                            );
-                        }
-                        await _context.Database.ExecuteSqlRawAsync("SET IDENTITY_INSERT StockIn OFF");
+                        return await SeedWorkbookAsync(preparedWorkbook, token);
                     }
                     finally
                     {
-                        await _context.Database.CloseConnectionAsync();
+                        _context = null!;
                     }
-                }
+                },
+                cancellationToken: cancellationToken);
+        }
 
-                // cho phép người dùng vẫn mở workbook khi seed; ClosedXML chỉ đọc snapshot của file tại thời điểm này
-                using var stream = new FileStream(_excelPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                using var workbook = new XLWorkbook(stream);
-                var log = new System.Text.StringBuilder();
-
+        private async Task<string> SeedWorkbookAsync(
+            PreparedWorkbook workbook,
+            CancellationToken cancellationToken)
+        {
+            var log = new System.Text.StringBuilder();
+            cancellationToken.ThrowIfCancellationRequested();
+            // thứ tự seed giữ nguyên trong một executor attempt để toàn bộ thay đổi cùng transaction.
                 // 1. Units
                 await SeedTableWithMappingAsync<Unit>(workbook, "Unit", "UnitCode", "Id", (row, item) =>
                 {
                     item.UnitCode = row.GetString("UnitCode") ?? "UNT";
                     item.DisplayName = row.GetString("DisplayName") ?? "Đơn vị";
                     item.IsActive = true;
-                }, _unitMap, log);
+                }, _unitMap, log, cancellationToken);
 
                 // 2. Categories
                 await SeedTableWithMappingAsync<Category>(workbook, "Category", "CategoryCode", "Id", (row, item) =>
@@ -92,7 +92,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     item.CategoryCode = row.GetString("CategoryCode") ?? "CAT";
                     item.DisplayName = row.GetString("DisplayName") ?? "Nhóm hàng";
                     item.IsActive = true;
-                }, _categoryMap, log);
+                }, _categoryMap, log, cancellationToken);
 
                 // 3. Brands
                 await SeedTableWithMappingAsync<Brand>(workbook, "Brand", "BrandCode", "Id", (row, item) =>
@@ -101,7 +101,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     item.DisplayName = row.GetString("DisplayName") ?? "Thương hiệu";
                     item.OriginCountry = TranslateOrigin(row.GetString("Origin") ?? row.GetString("OriginCountry") ?? row.GetString("XuatXu"));
                     item.IsActive = true;
-                }, _brandMap, log);
+                }, _brandMap, log, cancellationToken);
 
                 // 4. Suppliers
                 await SeedTableWithMappingAsync<Supplier>(workbook, "Supplier", "SupplierCode", "Id", (row, item) =>
@@ -109,7 +109,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     item.SupplierCode = row.GetString("SupplierCode") ?? "SUP";
                     item.DisplayName = row.GetString("DisplayName") ?? "Nhà cung cấp";
                     item.IsActive = true;
-                }, _supplierMap, log);
+                }, _supplierMap, log, cancellationToken);
 
                 // 5. Customers
                 await SeedTableWithMappingAsync<Customer>(workbook, "Customer", "CustomerCode", "Id", (row, item) =>
@@ -117,15 +117,15 @@ namespace QuanLyHangHoa.Services.DataImport
                     item.CustomerCode = row.GetString("CustomerCode") ?? "CUS";
                     item.DisplayName = row.GetString("DisplayName") ?? "Khách hàng";
                     item.IsActive = true;
-                }, _customerMap, log);
+                }, _customerMap, log, cancellationToken);
 
                 // Warehouse
-                var warehouse = await _context.Warehouses.FirstOrDefaultAsync();
+                var warehouse = await _context.Warehouses.FirstOrDefaultAsync(cancellationToken);
                 if (warehouse == null)
                 {
                     warehouse = new Warehouse { WarehouseCode = "WH001", DisplayName = "\u004B\u0068\u00F4\u0020\u0063\u0068\u00ED\u006E\u0068", IsActive = true, IsDefault = true }; // Kho chính
                     _context.Warehouses.Add(warehouse);
-                    await _context.SaveChangesAsync();
+                    await _context.SaveChangesAsync(cancellationToken);
                 }
 
                 // 6. Products
@@ -153,10 +153,10 @@ namespace QuanLyHangHoa.Services.DataImport
                     if (item.CategoryId == 0) item.CategoryId = _categoryMap.Values.FirstOrDefault();
                     if (item.BrandId == 0) item.BrandId = _brandMap.Values.FirstOrDefault();
                     if (item.DefaultUnitId == 0) item.DefaultUnitId = _unitMap.Values.FirstOrDefault();
-                }, _productMap, log);
+                }, _productMap, log, cancellationToken);
 
                 // quan hệ sản phẩm - đơn vị chỉ được tạo sau khi cả hai map khóa đã đầy đủ
-                await SeedProductUnitsAsync(workbook, log);
+                await SeedProductUnitsAsync(workbook, log, cancellationToken);
 
                 // 7. StockIn (Opening Balances)
                 await SeedTableWithMappingAsync<StockIn>(workbook, "StockIn", "DocumentCode", "Id", (row, item) =>
@@ -174,16 +174,14 @@ namespace QuanLyHangHoa.Services.DataImport
                     item.CreatedBy = 1;
                     var supRef = row.GetString("SupplierId");
                     if (!string.IsNullOrEmpty(supRef)) item.SupplierId = _supplierMap.GetValueOrDefault(supRef);
-                }, _stockInMap, log);
+                }, _stockInMap, log, cancellationToken);
 
                 // 8. Serials (and implied lines)
-                if (workbook.Worksheets.TryGetWorksheet("ProductSerial", out var serialSheet))
+                if (workbook.TryGetSheet("ProductSerial", out var serialSheet))
                 {
-                    var serialCount = await _context.ProductSerials.CountAsync();
+                    var serialCount = await _context.ProductSerials.CountAsync(cancellationToken);
                     if (serialCount == 0)
                     {
-                        var rows = serialSheet.RangeUsed()!.RowsUsed().Skip(1);
-                        var headers = serialSheet.Row(1).CellsUsed().ToDictionary(c => c.Value.ToString().Trim(), c => c.Address.ColumnNumber, StringComparer.OrdinalIgnoreCase);
                         int imported = 0;
 
                         // mỗi cặp phiếu nhập - sản phẩm chỉ có một dòng kho; lineMap giúp dùng lại dòng đó cho nhiều serial
@@ -191,9 +189,9 @@ namespace QuanLyHangHoa.Services.DataImport
                         var justCreatedLines = new HashSet<int>();
                         var justCreatedOutLines = new HashSet<int>();
 
-                        foreach (var row in rows)
+                        foreach (var wrapper in serialSheet.Rows)
                         {
-                            var wrapper = new ExcelRowWrapper(row, headers);
+                            cancellationToken.ThrowIfCancellationRequested();
                             string sn = wrapper.GetString("SerialNumber") ?? wrapper.GetString("SerialCode") ?? "";
                             string prodRef = wrapper.GetString("ProductId") ?? "";
                             string stockInRef = wrapper.GetString("StockInId") ?? "";
@@ -209,7 +207,9 @@ namespace QuanLyHangHoa.Services.DataImport
                             {
                                 if (!lineMap.TryGetValue((stockInId, productId), out var line))
                                 {
-                                    line = await _context.StockInLines.FirstOrDefaultAsync(l => l.StockInId == stockInId && l.ProductId == productId);
+                                    line = await _context.StockInLines.FirstOrDefaultAsync(
+                                        l => l.StockInId == stockInId && l.ProductId == productId,
+                                        cancellationToken);
                                     if (line == null)
                                     {
                                         line = new StockInLine { StockInId = stockInId, ProductId = productId, Quantity = 0, BaseQuantity = 0, UnitId = 1 };
@@ -217,7 +217,7 @@ namespace QuanLyHangHoa.Services.DataImport
                                         line.Quantity = 1;
                                         line.BaseQuantity = 1;
                                         _context.StockInLines.Add(line);
-                                        await _context.SaveChangesAsync();
+                                        await _context.SaveChangesAsync(cancellationToken);
                                         
                                         // serial đầu tiên đã được tính vào số lượng khi tạo dòng
                                         lineMap[(stockInId, productId)] = line;
@@ -230,7 +230,9 @@ namespace QuanLyHangHoa.Services.DataImport
                                     }
                                 }
 
-                                var existingSerial = await _context.ProductSerials.FirstOrDefaultAsync(s => s.SerialNumber == sn);
+                                var existingSerial = await _context.ProductSerials.FirstOrDefaultAsync(
+                                    s => s.SerialNumber == sn,
+                                    cancellationToken);
                                 if (existingSerial == null)
                                 {
                                     var ps = new ProductSerial
@@ -246,12 +248,14 @@ namespace QuanLyHangHoa.Services.DataImport
                                     if (stockOutId > 0)
                                     {
                                         // serial đã bán cần dòng xuất tương ứng để giữ được lịch sử nhập - xuất
-                                        var sol = await _context.StockOutLines.FirstOrDefaultAsync(l => l.StockOutId == stockOutId && l.ProductId == productId);
+                                        var sol = await _context.StockOutLines.FirstOrDefaultAsync(
+                                            l => l.StockOutId == stockOutId && l.ProductId == productId,
+                                            cancellationToken);
                                         if (sol == null)
                                         {
                                             sol = new StockOutLine { StockOutId = stockOutId, ProductId = productId, Quantity = 1, BaseQuantity = 1, UnitId = 1 };
                                             _context.StockOutLines.Add(sol);
-                                            await _context.SaveChangesAsync();
+                                            await _context.SaveChangesAsync(cancellationToken);
                                             justCreatedOutLines.Add(sol.Id);
                                         }
                                         ps.LastStockOutLineId = sol.Id;
@@ -272,7 +276,7 @@ namespace QuanLyHangHoa.Services.DataImport
                                 }
                             }
                         }
-                        await _context.SaveChangesAsync();
+                        await _context.SaveChangesAsync(cancellationToken);
                         log.AppendLine($"Đã nạp {imported} số Serial vào hệ thống.");
                     }
                 }
@@ -299,7 +303,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     var custRef = row.GetString("CustomerId");
                     if (!string.IsNullOrEmpty(custRef)) item.CustomerId = _customerMap.GetValueOrDefault(custRef);
                     if (item.CustomerId == 0) item.CustomerId = _customerMap.Values.FirstOrDefault();
-                }, _stockOutMap, log);
+                }, _stockOutMap, log, cancellationToken);
 
                 // 10. Purchase Invoices
                 await SeedTableWithMappingAsync<PurchaseInvoice>(workbook, "PurchaseInvoice", "InvoiceCode", "Id", (row, item) =>
@@ -317,22 +321,20 @@ namespace QuanLyHangHoa.Services.DataImport
                     item.CreatedBy = 1;
                     var supRef = row.GetString("SupplierId");
                     if (!string.IsNullOrEmpty(supRef)) item.SupplierId = _supplierMap.GetValueOrDefault(supRef);
-                }, _purchaseInvoiceMap, log);
+                }, _purchaseInvoiceMap, log, cancellationToken);
                 Console.WriteLine($"[SEED] PurchaseInvoice map count: {_purchaseInvoiceMap.Count}");
                 
                 // 10.5 Purchase Invoice Lines
-                if (workbook.Worksheets.TryGetWorksheet("PurchaseInvoiceLine", out var piLineSheet))
+                if (workbook.TryGetSheet("PurchaseInvoiceLine", out var piLineSheet))
                 {
-                    var existingLineCount = await _context.PurchaseInvoiceLines.CountAsync();
+                    var existingLineCount = await _context.PurchaseInvoiceLines.CountAsync(cancellationToken);
                     if (existingLineCount == 0)
                     {
-                        var rows = piLineSheet.RangeUsed()!.RowsUsed().Skip(1);
-                        var headers = piLineSheet.Row(1).CellsUsed().ToDictionary(c => c.Value.ToString().Trim(), c => c.Address.ColumnNumber, StringComparer.OrdinalIgnoreCase);
                         int importedLines = 0;
 
-                        foreach (var row in rows)
+                        foreach (var wrapper in piLineSheet.Rows)
                         {
-                            var wrapper = new ExcelRowWrapper(row, headers);
+                            cancellationToken.ThrowIfCancellationRequested();
                             string invRef = wrapper.GetString("PurchaseInvoiceId") ?? "";
                             int invoiceId = _purchaseInvoiceMap.GetValueOrDefault(invRef);
                             
@@ -358,7 +360,7 @@ namespace QuanLyHangHoa.Services.DataImport
                                 importedLines++;
                             }
                         }
-                        await _context.SaveChangesAsync();
+                        await _context.SaveChangesAsync(cancellationToken);
                         log.AppendLine($"Đã nạp {importedLines} dòng hóa đơn mua.");
                     }
                 }
@@ -382,21 +384,19 @@ namespace QuanLyHangHoa.Services.DataImport
                     
                     var stockOutRef = row.GetString("StockOutId");
                     if (!string.IsNullOrEmpty(stockOutRef)) item.StockOutId = _stockOutMap.GetValueOrDefault(stockOutRef);
-                }, _salesInvoiceMap, log);
+                }, _salesInvoiceMap, log, cancellationToken);
 
                 // 11.5 Sales Invoice Lines
-                if (workbook.Worksheets.TryGetWorksheet("SalesInvoiceLine", out var siLineSheet))
+                if (workbook.TryGetSheet("SalesInvoiceLine", out var siLineSheet))
                 {
-                    var existingLineCount = await _context.SalesInvoiceLines.CountAsync();
+                    var existingLineCount = await _context.SalesInvoiceLines.CountAsync(cancellationToken);
                     if (existingLineCount == 0)
                     {
-                        var rows = siLineSheet.RangeUsed()!.RowsUsed().Skip(1);
-                        var headers = siLineSheet.Row(1).CellsUsed().ToDictionary(c => c.Value.ToString().Trim(), c => c.Address.ColumnNumber, StringComparer.OrdinalIgnoreCase);
                         int importedLines = 0;
 
-                        foreach (var row in rows)
+                        foreach (var wrapper in siLineSheet.Rows)
                         {
-                            var wrapper = new ExcelRowWrapper(row, headers);
+                            cancellationToken.ThrowIfCancellationRequested();
                             string invRef = wrapper.GetString("SalesInvoiceId") ?? "";
                             int invoiceId = _salesInvoiceMap.GetValueOrDefault(invRef);
                             
@@ -422,7 +422,7 @@ namespace QuanLyHangHoa.Services.DataImport
                                 importedLines++;
                             }
                         }
-                        await _context.SaveChangesAsync();
+                        await _context.SaveChangesAsync(cancellationToken);
                         log.AppendLine($"Đã nạp {importedLines} dòng hóa đơn bán.");
                     }
                 }
@@ -436,33 +436,155 @@ namespace QuanLyHangHoa.Services.DataImport
                     item.ResolutionType = row.GetString("ResolutionType");
                     item.Status = row.GetString("Status") ?? "Pending";
                     item.ProcessedBy = (int)(row.GetDouble("ProcessedBy") ?? 1);
-                }, _warrantyClaimMap, log);
+                }, _warrantyClaimMap, log, cancellationToken);
 
-                return log.ToString();
-            }
-            catch (Exception ex)
+            return log.ToString();
+        }
+
+        private static PreparedWorkbook PrepareWorkbook(
+            byte[] workbookBytes,
+            CancellationToken cancellationToken)
+        {
+            using var stream = new MemoryStream(workbookBytes, writable: false);
+            using var workbook = new XLWorkbook(stream);
+            var sheets = new Dictionary<string, PreparedSheet>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var worksheet in workbook.Worksheets)
             {
-                Console.WriteLine($"[SEED ERROR] {ex.Message}");
-                if (ex.InnerException != null) Console.WriteLine($"[INNER] {ex.InnerException.Message}");
-                return $"Lỗi Seeding: {ex.Message}";
+                cancellationToken.ThrowIfCancellationRequested();
+                var range = worksheet.RangeUsed()
+                    ?? throw new InvalidDataException(
+                        $"Sheet '{worksheet.Name}' does not contain a header row.");
+                var headers = worksheet.Row(1).CellsUsed()
+                    .Select(cell => cell.GetString().Trim())
+                    .ToArray();
+                if (headers.Length == 0 || headers.Any(string.IsNullOrWhiteSpace))
+                {
+                    throw new InvalidDataException(
+                        $"Sheet '{worksheet.Name}' contains an empty header.");
+                }
+
+                if (headers.Distinct(StringComparer.OrdinalIgnoreCase).Count() != headers.Length)
+                {
+                    throw new InvalidDataException(
+                        $"Sheet '{worksheet.Name}' contains duplicate headers.");
+                }
+
+                var headerColumns = worksheet.Row(1).CellsUsed()
+                    .ToDictionary(
+                        cell => cell.GetString().Trim(),
+                        cell => cell.Address.ColumnNumber,
+                        StringComparer.OrdinalIgnoreCase);
+                var rows = new List<PreparedRow>();
+                foreach (var row in range.RowsUsed().Skip(1))
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var values = headerColumns.ToDictionary(
+                        pair => pair.Key,
+                        pair => PreparedCell.From(row.Cell(pair.Value)),
+                        StringComparer.OrdinalIgnoreCase);
+                    rows.Add(new PreparedRow(values));
+                }
+
+                sheets.Add(worksheet.Name, new PreparedSheet(rows));
+            }
+
+            var preparedWorkbook = new PreparedWorkbook(sheets);
+            ValidatePreparedWorkbook(preparedWorkbook);
+            return preparedWorkbook;
+        }
+
+        private static void ValidatePreparedWorkbook(PreparedWorkbook workbook)
+        {
+            if (!workbook.TryGetSheet("ProductUnit", out var productUnits))
+            {
+                return;
+            }
+
+            foreach (var row in productUnits.Rows)
+            {
+                if (string.IsNullOrWhiteSpace(row.GetString("ProductId")))
+                {
+                    throw new InvalidDataException(
+                        "ProductUnit.ProductId is required.");
+                }
+
+                if (string.IsNullOrWhiteSpace(row.GetString("UnitId")))
+                {
+                    throw new InvalidDataException(
+                        "ProductUnit.UnitId is required.");
+                }
+
+                var conversionFactor = row.GetDecimal("ConversionFactor") ?? 0;
+                if (conversionFactor <= 0)
+                {
+                    throw new InvalidDataException(
+                        "ProductUnit.ConversionFactor must be greater than zero.");
+                }
             }
         }
 
-        // cặp product-unit và đơn vị cơ sở được kiểm tra bằng hash set để bỏ qua dữ liệu đã tồn tại trong thời gian hằng số
-        private async Task SeedProductUnitsAsync(XLWorkbook workbook, System.Text.StringBuilder log)
+        private static void ValidateWorkbook(byte[] workbookBytes)
         {
-            if (!workbook.Worksheets.TryGetWorksheet("ProductUnit", out var sheet))
+            using var stream = new MemoryStream(workbookBytes, writable: false);
+            using var workbook = new XLWorkbook(stream);
+
+            foreach (var worksheet in workbook.Worksheets)
+            {
+                if (worksheet.RangeUsed() is null)
+                {
+                    throw new InvalidDataException(
+                        $"Sheet '{worksheet.Name}' không có hàng tiêu đề.");
+                }
+
+                var headers = worksheet.Row(1).CellsUsed()
+                    .Select(cell => cell.GetString().Trim())
+                    .ToArray();
+                if (headers.Length == 0 || headers.Any(string.IsNullOrWhiteSpace))
+                {
+                    throw new InvalidDataException(
+                        $"Sheet '{worksheet.Name}' có tiêu đề trống.");
+                }
+
+                if (headers.Distinct(StringComparer.OrdinalIgnoreCase).Count() != headers.Length)
+                {
+                    throw new InvalidDataException(
+                        $"Sheet '{worksheet.Name}' có tiêu đề trùng.");
+                }
+            }
+        }
+
+        private void ResetMaps()
+        {
+            _unitMap.Clear();
+            _categoryMap.Clear();
+            _brandMap.Clear();
+            _supplierMap.Clear();
+            _customerMap.Clear();
+            _productMap.Clear();
+            _stockInMap.Clear();
+            _stockOutMap.Clear();
+            _purchaseInvoiceMap.Clear();
+            _salesInvoiceMap.Clear();
+            _warrantyClaimMap.Clear();
+        }
+
+        // cặp product-unit và đơn vị cơ sở được kiểm tra bằng hash set để bỏ qua dữ liệu đã tồn tại trong thời gian hằng số
+        private async Task SeedProductUnitsAsync(
+            PreparedWorkbook workbook,
+            System.Text.StringBuilder log,
+            CancellationToken cancellationToken)
+        {
+            if (!workbook.TryGetSheet("ProductUnit", out var sheet))
             {
                 log.AppendLine("Bỏ qua sheet 'ProductUnit': Không tìm thấy.");
                 return;
             }
 
-            var headers = sheet.Row(1).CellsUsed().ToDictionary(
-                cell => cell.Value.ToString().Trim(),
-                cell => cell.Address.ColumnNumber,
-                StringComparer.OrdinalIgnoreCase);
             // chỉ đọc dữ liệu hiện có để lập bộ khóa; không cần EF theo dõi vì các dòng này không bị sửa
-            var existingRows = await _context.ProductUnits.AsNoTracking().ToListAsync();
+            var existingRows = await _context.ProductUnits
+                .AsNoTracking()
+                .ToListAsync(cancellationToken);
             var existingPairs = existingRows
                 .Select(row => (row.ProductId, row.UnitId))
                 .ToHashSet();
@@ -472,9 +594,9 @@ namespace QuanLyHangHoa.Services.DataImport
                 .ToHashSet();
             var inserted = 0;
 
-            foreach (var row in sheet.RangeUsed()!.RowsUsed().Skip(1))
+            foreach (var wrapper in sheet.Rows)
             {
-                var wrapper = new ExcelRowWrapper(row, headers);
+                cancellationToken.ThrowIfCancellationRequested();
                 var productReference = wrapper.GetString("ProductId") ?? string.Empty;
                 var unitReference = wrapper.GetString("UnitId") ?? string.Empty;
                 if (!_productMap.TryGetValue(productReference, out var productId)
@@ -514,7 +636,7 @@ namespace QuanLyHangHoa.Services.DataImport
                 inserted++;
             }
 
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
             log.AppendLine($"Đã đồng bộ bảng 'ProductUnit': thêm {inserted} dòng.");
         }
 
@@ -522,25 +644,31 @@ namespace QuanLyHangHoa.Services.DataImport
             string.Equals(value, "true", StringComparison.OrdinalIgnoreCase) || value == "1";
 
         // hàm chung dùng mã nghiệp vụ để upsert nhẹ: có rồi thì chỉ dựng map id, chưa có mới gọi mapAction và insert
-        private async Task SeedTableWithMappingAsync<T>(XLWorkbook workbook, string sheetName, string codeHeader, string idHeader, Action<ExcelRowWrapper, T> mapAction, Dictionary<string, int> idMap, System.Text.StringBuilder log) where T : class, new()
+        private async Task SeedTableWithMappingAsync<T>(
+            PreparedWorkbook workbook,
+            string sheetName,
+            string codeHeader,
+            string idHeader,
+            Action<PreparedRow, T> mapAction,
+            Dictionary<string, int> idMap,
+            System.Text.StringBuilder log,
+            CancellationToken cancellationToken)
+            where T : class, new()
         {
-            if (!workbook.Worksheets.TryGetWorksheet(sheetName, out var sheet))
+            if (!workbook.TryGetSheet(sheetName, out var sheet))
             {
                 log.AppendLine($"B\u1ECF qua sheet '{sheetName}': Kh\u00F4ng t\u00ECm th\u1EA5y.");
                 return;
             }
 
-            var headers = sheet.Row(1).CellsUsed().ToDictionary(c => c.Value.ToString().Trim(), c => c.Address.ColumnNumber, StringComparer.OrdinalIgnoreCase);
-            var rows = sheet.RangeUsed()!.RowsUsed().Skip(1);
-            
             // nạp cả dữ liệu cũ để mã trong excel vẫn resolve được dù bản ghi đã có từ lần seed trước
-            var existingItems = await _context.Set<T>().ToListAsync();
+            var existingItems = await _context.Set<T>().ToListAsync(cancellationToken);
             var codeProp = typeof(T).GetProperty(codeHeader.Contains("Code") ? codeHeader : (typeof(T).Name + "Code"));
             if (codeProp == null) codeProp = typeof(T).GetProperty("DocumentCode") ?? typeof(T).GetProperty("DisplayName");
 
-            foreach (var row in rows)
+            foreach (var wrapper in sheet.Rows)
             {
-                var wrapper = new ExcelRowWrapper(row, headers);
+                cancellationToken.ThrowIfCancellationRequested();
                 string? code = wrapper.GetString(codeHeader) ?? wrapper.GetString(codeProp?.Name ?? "");
                 string? excelId = wrapper.GetString(idHeader);
 
@@ -559,7 +687,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     var item = new T();
                     mapAction(wrapper, item);
                     _context.Set<T>().Add(item);
-                    await _context.SaveChangesAsync();
+                    await _context.SaveChangesAsync(cancellationToken);
                     
                     if (!string.IsNullOrEmpty(excelId))
                     {
@@ -631,6 +759,57 @@ namespace QuanLyHangHoa.Services.DataImport
         }
 
         // wrapper giấu việc tìm chỉ số cột và trả null cho ô trống, giúp các hàm map tập trung vào nghiệp vụ
+        private sealed class PreparedWorkbook(
+            IReadOnlyDictionary<string, PreparedSheet> sheets)
+        {
+            public bool TryGetSheet(string name, out PreparedSheet sheet) =>
+                sheets.TryGetValue(name, out sheet!);
+        }
+
+        private sealed class PreparedSheet(IReadOnlyList<PreparedRow> rows)
+        {
+            public IReadOnlyList<PreparedRow> Rows { get; } = rows;
+        }
+
+        private sealed class PreparedRow(
+            IReadOnlyDictionary<string, PreparedCell> cells)
+        {
+            public string? GetString(string header) =>
+                cells.TryGetValue(header, out var cell) ? cell.Text : null;
+
+            public decimal? GetDecimal(string header) =>
+                cells.TryGetValue(header, out var cell) ? cell.Decimal : null;
+
+            public double? GetDouble(string header) =>
+                cells.TryGetValue(header, out var cell) ? cell.Double : null;
+
+            public DateTime? GetDateTime(string header) =>
+                cells.TryGetValue(header, out var cell) ? cell.DateTime : null;
+        }
+
+        private readonly record struct PreparedCell(
+            string? Text,
+            decimal? Decimal,
+            double? Double,
+            DateTime? DateTime)
+        {
+            public static PreparedCell From(IXLCell cell)
+            {
+                var rawText = cell.Value.ToString();
+                var text = string.IsNullOrWhiteSpace(rawText) ? null : rawText.Trim();
+                decimal? decimalValue = decimal.TryParse(text, out var parsedDecimal)
+                    ? parsedDecimal
+                    : null;
+                double? doubleValue = double.TryParse(text, out var parsedDouble)
+                    ? parsedDouble
+                    : null;
+                DateTime? dateTimeValue = cell.TryGetValue(out DateTime parsedDateTime)
+                    ? parsedDateTime
+                    : null;
+                return new PreparedCell(text, decimalValue, doubleValue, dateTimeValue);
+            }
+        }
+
         private class ExcelRowWrapper
         {
             private readonly IXLRangeRow _row;

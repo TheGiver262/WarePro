@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Threading.Tasks;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -28,7 +29,7 @@ namespace QuanLyHangHoa.ViewModels
 
         [RelayCommand]
         // form chỉ thu thập tên/role; service kiểm tra actor, tên trùng, hash mật khẩu mặc định và audit
-        private void Confirm(Window? window)
+        private async Task Confirm(Window? window)
         {
             if (string.IsNullOrWhiteSpace(FullName) || string.IsNullOrWhiteSpace(Username))
             {
@@ -47,7 +48,7 @@ namespace QuanLyHangHoa.ViewModels
                     MustChangePassword = true 
                 };
 
-                _userService.AddUser(newUser, _currentUserId);
+                await _userService.AddUserAsync(newUser, _currentUserId, Guid.NewGuid());
                 
                 if (window != null)
                 {

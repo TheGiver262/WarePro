@@ -17,7 +17,7 @@ namespace QuanLyHangHoa.Tests.ViewModels;
 public class MainViewModelCommandTests
 {
     [Fact]
-    public void Privileged_command_reloads_changed_role_and_invalidates_session()
+    public async Task Privileged_command_reloads_changed_role_and_invalidates_session()
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
@@ -38,7 +38,7 @@ public class MainViewModelCommandTests
             () => invalidated = true));
 
         var service = new AppUserService(() => CreateContext(connection));
-        service.UpdateUser(10, User(10, "Quản lý"), performedByUserId: 11);
+        await service.UpdateUserAsync(10, User(10, "Quản lý"), loginIdentity.RowVersion, performedByUserId: 11, Guid.NewGuid());
 
         Assert.False(viewModel!.OpenAppUserViewCommand.CanExecute(null));
         Assert.True(invalidated);

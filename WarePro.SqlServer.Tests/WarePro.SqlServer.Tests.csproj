@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\WarePro.Core\DatabaseSchemaScripts.cs" Link="Shared\DatabaseSchemaScripts.cs" />
+    <EmbeddedResource Include="..\WarePro.SetupHelper\Resources\WarePro.Migrations.sql"
+                      Link="Resources\WarePro.Migrations.sql"
+                      LogicalName="WarePro.Core.Resources.WarePro.Migrations.sql" />
+    <EmbeddedResource Include="..\Database\Schema\v6-common-write-safety.sql"
+                      Link="Resources\v6-common-write-safety.sql"
+                      LogicalName="WarePro.Core.Resources.v6-common-write-safety.sql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+</Project>

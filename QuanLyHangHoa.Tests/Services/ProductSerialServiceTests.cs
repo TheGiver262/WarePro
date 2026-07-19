@@ -54,11 +54,12 @@ public class ProductSerialServiceTests
     }
 
     [Fact]
-    public void UpdateNote_changes_only_note_and_adds_audit()
+    public async Task UpdateNote_changes_only_note_and_adds_audit()
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
         int serialId;
+        byte[] rowVersion;
         using (var seedContext = DatabaseHelper.CreateContext(connection))
         {
             DatabaseHelper.SeedBasicData(seedContext);
@@ -85,10 +86,16 @@ public class ProductSerialServiceTests
                 PostedAt = DateTime.UtcNow
             });
             seedContext.SaveChanges();
+            rowVersion = serial.RowVersion.ToArray();
         }
 
         var service = new ProductSerialService(() => DatabaseHelper.CreateContext(connection));
-        service.UpdateNote(serialId, "Kiểm tra ngoại quan", userId: 2);
+        await service.UpdateNoteAsync(
+            serialId,
+            "Kiểm tra ngoại quan",
+            rowVersion,
+            userId: 2,
+            Guid.NewGuid());
 
         using var assertContext = DatabaseHelper.CreateContext(connection);
         var updated = assertContext.ProductSerials.Single(item => item.Id == serialId);

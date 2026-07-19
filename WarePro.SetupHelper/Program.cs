@@ -14,19 +14,35 @@ public static class Program
         var result = await SetupCommands.CreateDefault().ExecuteAsync(args);
         Console.Out.WriteLine(result.Summary);
 
-        // summary đi ra stdout; technical detail chỉ ghi vào file log khi caller cung cấp đường dẫn.
         var logPath = SetupCommands.FindOption(args, "--log");
-        if (!string.IsNullOrWhiteSpace(logPath) && !string.IsNullOrWhiteSpace(result.TechnicalDetail))
+        if (!string.IsNullOrWhiteSpace(logPath))
         {
-            var absoluteLogPath = Path.GetFullPath(logPath);
-            Directory.CreateDirectory(Path.GetDirectoryName(absoluteLogPath)!);
-            await File.AppendAllTextAsync(
-                absoluteLogPath,
-                $"{DateTimeOffset.UtcNow:O} {result.TechnicalDetail}{Environment.NewLine}",
-                Encoding.UTF8);
+            try
+            {
+                var command = args.FirstOrDefault() switch
+                {
+                    "detect-sql" => "detect-sql",
+                    "write-config" => "write-config",
+                    "test-connection" => "test-connection",
+                    "upgrade-database" => "upgrade-database",
+                    "prepare-database" => "prepare-database",
+                    "finalize-database" => "finalize-database",
+                    "rollback-database" => "rollback-database",
+                    _ => "unknown"
+                };
+                var absoluteLogPath = Path.GetFullPath(logPath);
+                Directory.CreateDirectory(Path.GetDirectoryName(absoluteLogPath)!);
+                var detail = SetupLogRedactor.Redact(result.TechnicalDetail);
+                await File.AppendAllTextAsync(
+                    absoluteLogPath,
+                    $"{DateTimeOffset.UtcNow:O} command={command} exit={(int)result.ExitCode} summary={SetupLogRedactor.Redact(result.Summary)} detail={detail}{Environment.NewLine}",
+                    Encoding.UTF8);
+            }
+            catch
+            {
+                // Database result remains authoritative when optional audit file cannot be written.
+            }
         }
-
-        // bộ cài dựa vào exit code để chọn thông báo hoặc dừng đúng bước.
         return (int)result.ExitCode;
     }
 }

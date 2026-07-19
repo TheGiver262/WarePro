@@ -1,5 +1,8 @@
 #ifndef MyAppVersion
-  #define MyAppVersion "1.0.0"
+  #define MyAppVersion "1.1.0"
+#endif
+#ifndef MySchemaRelease
+  #define MySchemaRelease 6
 #endif
 #ifndef PublishDir
   #define PublishDir "..\artifacts\publish\win-x64"
@@ -57,6 +60,7 @@ Name: "desktopicon"; Description: "tạo biểu tượng ngoài màn hình"; Gro
 Source: "{#PublishDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#PublishDir}\Database\warepro_database_seed.xlsx"; DestDir: "{app}\Database"; Flags: ignoreversion
 Source: "{#SetupHelperDir}\*"; DestDir: "{app}\Setup"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#SetupHelperDir}\*"; Flags: dontcopy recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\WarePro"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"
@@ -72,19 +76,26 @@ const
   DefaultServer = '.\SQLEXPRESS';
   DefaultDatabase = 'ProductManagementDb';
   MachineLogDirectory = '{commonappdata}\WarePro\InstallerLogs';
+  PendingFullInstall = 'SOFTWARE\WarePro\Installer';
 
 var
   ConnectionPage: TInputQueryWizardPage;
   AuthenticationPage: TInputOptionWizardPage;
+  BootstrapPage: TInputQueryWizardPage;
   RemoveLocalDataCheckBox: TNewCheckBox;
   SqlRestartRequired: Boolean;
   InstallReady: Boolean;
   UpgradeMode: Boolean;
+  ResumeFullMode: Boolean;
+  DatabasePrepared: Boolean;
+  DatabaseCutoverStarted: Boolean;
+  DatabaseFinalized: Boolean;
+  HelperExecutable: String;
 
 function IsFullMode: Boolean;
 begin
-  Result := (not UpgradeMode) and
-    (CompareText(WizardSetupType(False), FullMode) = 0);
+  Result := ResumeFullMode or ((not UpgradeMode) and
+    (CompareText(WizardSetupType(False), FullMode) = 0));
 end;
 
 function IsAppOnlyMode: Boolean;
@@ -110,6 +121,24 @@ begin
     end;
 end;
 
+function ReadPendingFullInstall: Boolean;
+var
+  Value: Cardinal;
+begin
+  Result := RegQueryDWordValue(HKLM64, PendingFullInstall, 'Pending', Value) and
+    (Value = 1);
+end;
+
+procedure WritePendingFullInstall;
+begin
+  if not RegWriteDWordValue(HKLM64, PendingFullInstall, 'Pending', 1) then
+    RaiseException('không lưu được trạng thái tiếp tục cài đặt sau khi khởi động lại.');
+end;
+
+procedure ClearPendingFullInstall;
+begin
+  RegDeleteValue(HKLM64, PendingFullInstall, 'Pending');
+end;
 function PreviousInstallExists: Boolean;
 var
   InstallLocation: String;
@@ -127,9 +156,10 @@ procedure InitializeWizard;
 var
   Authentication: String;
 begin
-  UpgradeMode :=
-    (CompareText(ParameterOrDefault('WAREPROMODE', ''), 'upgrade') = 0) or
-    PreviousInstallExists;
+  ResumeFullMode := ReadPendingFullInstall;
+  UpgradeMode := (not ResumeFullMode) and
+    ((CompareText(ParameterOrDefault('WAREPROMODE', ''), 'upgrade') = 0) or
+    PreviousInstallExists);
 
   ConnectionPage := CreateInputQueryPage(
     wpSelectTasks,
@@ -154,6 +184,13 @@ begin
   AuthenticationPage.SelectedValueIndex := 0;
   if CompareText(Authentication, 'SqlPassword') = 0 then
     AuthenticationPage.SelectedValueIndex := 1;
+
+  BootstrapPage := CreateInputQueryPage(
+    AuthenticationPage.ID,
+    'tài khoản quản trị WarePro',
+    'tạo mật khẩu ban đầu cho tài khoản admin',
+    'mật khẩu cần ít nhất 12 ký tự và phải đổi sau lần đăng nhập đầu.');
+  BootstrapPage.Add('mật khẩu admin:', True);
 end;
 
 function ShouldSkipPage(PageID: Integer): Boolean;
@@ -161,7 +198,7 @@ begin
   Result :=
     (UpgradeMode and
       ((PageID = wpSelectComponents) or (PageID = ConnectionPage.ID) or
-       (PageID = AuthenticationPage.ID))) or
+       (PageID = AuthenticationPage.ID) or (PageID = BootstrapPage.ID))) or
     (IsFullMode and
       ((PageID = ConnectionPage.ID) or (PageID = AuthenticationPage.ID)));
 end;
@@ -169,6 +206,16 @@ end;
 function NextButtonClick(CurPageID: Integer): Boolean;
 begin
   Result := True;
+  if CurPageID = BootstrapPage.ID then
+  begin
+    if Length(BootstrapPage.Values[0]) < 12 then
+    begin
+      SuppressibleMsgBox('mật khẩu admin cần ít nhất 12 ký tự.', mbError, MB_OK, IDOK);
+      Result := False;
+    end;
+    Exit;
+  end;
+
   if CurPageID = ConnectionPage.ID then
   begin
     if Trim(ConnectionPage.Values[0]) = '' then
@@ -217,9 +264,9 @@ function RunSetupHelper(const Arguments: String; var ExitCode: Integer): Boolean
 begin
   ForceDirectories(ExpandConstant(MachineLogDirectory));
   Result := Exec(
-    ExpandConstant('{app}\Setup\WarePro.SetupHelper.exe'),
+    HelperExecutable,
     Arguments + ' --log ' + AddQuotes(HelperLogPath),
-    ExpandConstant('{app}\Setup'),
+    ExtractFileDir(HelperExecutable),
     SW_HIDE,
     ewWaitUntilTerminated,
     ExitCode);
@@ -244,25 +291,65 @@ begin
     ExitCode) and (ExitCode = 0);
 end;
 
-procedure ConfigureAndCheckDatabase;
+function BootstrapSecretPath: String;
+var
+  SuppliedPath: String;
+begin
+  SuppliedPath := ExpandConstant('{param:WAREPROBOOTSTRAPSECRETFILE|}');
+  if SuppliedPath <> '' then
+    Result := SuppliedPath
+  else
+    Result := ExpandConstant('{tmp}\warepro-bootstrap.secret');
+end;
+
+procedure WriteProtectedBootstrapSecret;
+var
+  ExitCode: Integer;
+  SecretPath: String;
+  AclArguments: String;
+begin
+  SecretPath := BootstrapSecretPath;
+  if ExpandConstant('{param:WAREPROBOOTSTRAPSECRETFILE|}') = '' then
+  begin
+    if not SaveStringToFile(SecretPath, BootstrapPage.Values[0], False) then
+      RaiseException('không ghi được mật khẩu admin tạm.');
+    BootstrapPage.Values[0] := '';
+  end
+  else if not FileExists(SecretPath) then
+    RaiseException('không tìm thấy file mật khẩu admin tạm đã cấp.');
+
+  AclArguments :=
+    AddQuotes(SecretPath) +
+    ' /inheritance:r /grant:r *S-1-5-18:F *S-1-5-32-544:F ' +
+    AddQuotes(GetUserNameString + ':F');
+  if not Exec(ExpandConstant('{sys}\icacls.exe'), AclArguments, '', SW_HIDE,
+      ewWaitUntilTerminated, ExitCode) or (ExitCode <> 0) then
+  begin
+    DeleteFile(SecretPath);
+    RaiseException('không bảo vệ được file mật khẩu admin tạm.');
+  end;
+end;
+
+function RollbackDatabaseCutover(var ExitCode: Integer): Boolean; forward;
+
+procedure PrepareDatabaseCutover;
 var
   StagingConfig: String;
   FinalConfig: String;
   ConfigToTest: String;
+  Arguments: String;
   ExitCode: Integer;
+  RollbackCode: Integer;
 begin
   StagingConfig := ExpandConstant('{tmp}\warepro.settings.json');
   FinalConfig := ExpandConstant('{commonappdata}\WarePro\Config\warepro.settings.json');
 
-  if UpgradeMode and FileExists(FinalConfig) then
+  if UpgradeMode or ResumeFullMode then
   begin
-    { bản cập nhật chỉ thay file ứng dụng, giữ nguyên cấu hình kết nối đang dùng. }
-    InstallReady := True;
-    Exit;
-  end;
-
-  if IsFullMode and FileExists(FinalConfig) then
-    ConfigToTest := FinalConfig
+    if not FileExists(FinalConfig) then
+      RaiseException('không tìm thấy cấu hình WarePro hiện tại; không thể xác định database cần nâng cấp.');
+    ConfigToTest := FinalConfig;
+  end
   else
   begin
     if not WriteConfiguration(StagingConfig, ExitCode) then
@@ -276,32 +363,72 @@ begin
         'detect-sql --instance ' + AddQuotes(DefaultServer),
         ExitCode) or (ExitCode <> 0) then
       RaiseException(Format('không tìm thấy SQLEXPRESS đang chạy (mã %d).', [ExitCode]));
-
     if not TestConfiguration(ConfigToTest, '--mode full', ExitCode) then
       RaiseException(Format('SQL Server chưa sẵn sàng (mã %d).', [ExitCode]));
   end
-  else if CompareText(SelectedAuthentication, 'SqlPassword') <> 0 then
-  begin
-    if not TestConfiguration(ConfigToTest, '--mode app-only', ExitCode) then
-      RaiseException(Format('không kết nối được cơ sở dữ liệu đã chọn (mã %d).', [ExitCode]));
-  end;
-  { SQL Authentication is checked after first-run credential entry. }
+  else if not TestConfiguration(ConfigToTest, '--mode app-only', ExitCode) then
+    RaiseException(Format(
+      'không kết nối được database; SQL credential phải được lưu sẵn trong Windows Credential Manager (mã %d).',
+      { credential must already exist in Windows Credential Manager; bootstrap secret only creates admin } [ExitCode]));
 
   if CompareText(ConfigToTest, StagingConfig) = 0 then
     if not WriteConfiguration(FinalConfig, ExitCode) then
       RaiseException(Format('không lưu được cấu hình máy (mã %d).', [ExitCode]));
 
-  InstallReady := True;
+  Arguments :=
+    'prepare-database --config ' + AddQuotes(FinalConfig) +
+    ' --app-version {#MyAppVersion} --expected-schema {#MySchemaRelease}';
+  if not UpgradeMode then
+  begin
+    WriteProtectedBootstrapSecret;
+    Arguments := Arguments + ' --bootstrap-secret-file ' + AddQuotes(BootstrapSecretPath);
+  end;
+
+  DatabaseCutoverStarted := True;
+  try
+    try
+      if not RunSetupHelper(Arguments, ExitCode) or (ExitCode <> 0) then
+        RaiseException(Format('không chuẩn bị được database (mã %d).', [ExitCode]));
+    finally
+      DeleteFile(BootstrapSecretPath);
+    end;
+    DatabasePrepared := True;
+  except
+    RollbackDatabaseCutover(RollbackCode);
+    DatabaseCutoverStarted := False;
+    RaiseException(Format('không chuẩn bị được database; đã thử khôi phục (mã %d).', [RollbackCode]));
+  end;
 end;
 
+function FinalizeDatabaseCutover(var ExitCode: Integer): Boolean;
+begin
+  Result := RunSetupHelper(
+    'finalize-database --config ' +
+      AddQuotes(ExpandConstant('{commonappdata}\WarePro\Config\warepro.settings.json')) +
+      ' --app-version {#MyAppVersion} --expected-schema {#MySchemaRelease}',
+    ExitCode) and (ExitCode = 0);
+end;
+
+function RollbackDatabaseCutover(var ExitCode: Integer): Boolean;
+begin
+  Result := RunSetupHelper(
+    'rollback-database --config ' +
+      AddQuotes(ExpandConstant('{commonappdata}\WarePro\Config\warepro.settings.json')) +
+      ' --app-version {#MyAppVersion} --expected-schema {#MySchemaRelease}',
+    ExitCode) and (ExitCode = 0);
+end;
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 begin
   Result := '';
+  ExtractTemporaryFiles('*');
+  HelperExecutable := ExpandConstant('{tmp}\WarePro.SetupHelper.exe');
+
   if not EnsureSqlExpress(Result) then
     Exit;
   NeedsRestart := SqlRestartRequired;
+  if not SqlRestartRequired then
+    PrepareDatabaseCutover;
 end;
-
 procedure SaveConfigurationForRestart;
 var
   FinalConfig: String;
@@ -316,16 +443,47 @@ begin
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
+var
+  ExitCode: Integer;
+  RollbackCode: Integer;
 begin
   if CurStep = ssPostInstall then
   begin
+    HelperExecutable := ExpandConstant('{app}\Setup\WarePro.SetupHelper.exe');
     if SqlRestartRequired then
-      SaveConfigurationForRestart
-    else
-      ConfigureAndCheckDatabase;
+    begin
+      SaveConfigurationForRestart;
+      WritePendingFullInstall;
+    end
+    else if DatabasePrepared then
+    begin
+      if not FinalizeDatabaseCutover(ExitCode) then
+      begin
+        RollbackDatabaseCutover(RollbackCode);
+        RaiseException(Format('không hoàn tất được database (mã %d); đã thử khôi phục database.', [ExitCode]));
+      end;
+      DatabaseFinalized := True;
+      DatabaseCutoverStarted := False;
+      ClearPendingFullInstall;
+      InstallReady := True;
+    end;
   end;
 end;
 
+procedure DeinitializeSetup;
+var
+  ExitCode: Integer;
+begin
+  DeleteFile(BootstrapSecretPath);
+  if (DatabasePrepared or DatabaseCutoverStarted) and not DatabaseFinalized then
+  begin
+    if FileExists(ExpandConstant('{app}\Setup\WarePro.SetupHelper.exe')) then
+      HelperExecutable := ExpandConstant('{app}\Setup\WarePro.SetupHelper.exe')
+    else
+      HelperExecutable := ExpandConstant('{tmp}\WarePro.SetupHelper.exe');
+    RollbackDatabaseCutover(ExitCode);
+  end;
+end;
 function NeedRestart: Boolean;
 begin
   Result := SqlRestartRequired;

@@ -13,10 +13,17 @@ namespace QuanLyHangHoa.Inventory;
 public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
 {
     private readonly AppDbContext _context;
+    private readonly bool _commitChanges;
 
     public EfInventoryUnitOfWork(AppDbContext context)
+        : this(context, commitChanges: true)
+    {
+    }
+
+    internal EfInventoryUnitOfWork(AppDbContext context, bool commitChanges)
     {
         _context = context;
+        _commitChanges = commitChanges;
     }
 
     public bool CanApproveStock(int userId)
@@ -194,14 +201,12 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
     // SaveChanges của EF gói toàn bộ lệnh trong một transaction; lỗi concurrency được đổi sang lỗi nghiệp vụ dễ xử lý.
     public void Commit()
     {
-        try
+        if (!_commitChanges)
         {
-            _context.SaveChanges();
+            return;
         }
-        catch (DbUpdateConcurrencyException)
-        {
-            throw new InventoryDomainException("Tồn kho vừa thay đổi. Vui lòng tải lại và thử lại.");
-        }
+
+        _context.SaveChanges();
     }
 
     private static StockBalanceSnapshot ToSnapshot(StockBalance balance)

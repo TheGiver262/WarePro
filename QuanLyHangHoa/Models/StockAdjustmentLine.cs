@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace QuanLyHangHoa.Models;
@@ -26,4 +26,6 @@ public partial class StockAdjustmentLine
     public virtual Product Product { get; set; } = null!;
 
     public virtual ProductSerial? ProductSerial { get; set; }
+    public byte[] RowVersion { get; set; } = [];
+
 }

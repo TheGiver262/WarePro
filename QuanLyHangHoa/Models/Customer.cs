@@ -23,4 +23,6 @@ public partial class Customer
     public virtual ICollection<StockOut> StockOuts { get; set; } = new List<StockOut>();
 
     public virtual ICollection<WarrantyCoverage> WarrantyCoverages { get; set; } = new List<WarrantyCoverage>();
+    public byte[] RowVersion { get; set; } = [];
+
 }

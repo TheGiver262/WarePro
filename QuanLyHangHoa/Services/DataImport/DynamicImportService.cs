@@ -1,9 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 using ClosedXML.Excel;
 using CsvHelper;
 using CsvHelper.Configuration;
@@ -31,11 +36,14 @@ namespace QuanLyHangHoa.Services.DataImport
 
     public class DynamicImportService
     {
-        private readonly Func<AppDbContext> _contextFactory;
+        private const int MaxPreparedSerialsPerRow = 10_000;
+        private const int MaxSerialNumberLength = 150;
+        private readonly DatabaseWriteExecutor _writeExecutor;
 
         public DynamicImportService(Func<AppDbContext> contextFactory)
         {
-            _contextFactory = contextFactory;
+            ArgumentNullException.ThrowIfNull(contextFactory);
+            _writeExecutor = new DatabaseWriteExecutor(contextFactory);
         }
 
         // danh sách này là hợp đồng giữa màn hình ánh xạ cột và từng luồng import
@@ -203,99 +211,706 @@ namespace QuanLyHangHoa.Services.DataImport
             return (headers, rows);
         }
 
-        // phiếu nhập và phiếu xuất tự quản lý transaction theo từng chứng từ; các loại còn lại dùng một transaction cho cả file
-        public DynamicImportResult ExecuteImport(
+        // executor giữ transaction toàn operation; chứng từ kho dùng savepoint để một nhóm lỗi không làm mất nhóm hợp lệ
+        internal DynamicImportResult ExecuteImport(
             List<Dictionary<string, string>> rawRows,
             ImportFileType type,
             Dictionary<string, string> mappings,
             int userId,
-            bool autoCreateReferences = true)
+            bool autoCreateReferences = true) =>
+            ExecuteImportAsync(
+                    rawRows,
+                    type,
+                    mappings,
+                    userId,
+                    autoCreateReferences,
+                    Guid.NewGuid())
+                .GetAwaiter()
+                .GetResult();
+
+        public async Task<DynamicImportResult> ExecuteImportAsync(
+            List<Dictionary<string, string>> rawRows,
+            ImportFileType type,
+            Dictionary<string, string> mappings,
+            int userId,
+            bool autoCreateReferences,
+            Guid operationId,
+            CancellationToken cancellationToken = default)
         {
-            var result = new DynamicImportResult();
-            var rowIdx = 1;
-
-            if (type == ImportFileType.StockIn)
-            {
-                ImportStockInDocuments(
-                    rawRows,
-                    mappings,
-                    result,
-                    userId,
-                    autoCreateReferences,
-                    ref rowIdx);
-                return result;
-            }
-
-            if (type == ImportFileType.StockOut)
-            {
-                ImportStockOutDocuments(
-                    rawRows,
-                    mappings,
-                    result,
-                    userId,
-                    autoCreateReferences,
-                    ref rowIdx);
-                return result;
-            }
-
-            // một lỗi hệ thống sẽ rollback toàn bộ nhóm import này; lỗi từng dòng được giữ lại trong result để tiếp tục các dòng sau
-            using var db = _contextFactory();
-            using var transaction = db.Database.BeginTransaction();
+            ArgumentNullException.ThrowIfNull(rawRows);
+            ArgumentNullException.ThrowIfNull(mappings);
+            var batch = PrepareImportBatch(
+                rawRows,
+                type,
+                mappings,
+                userId,
+                autoCreateReferences,
+                operationId);
+            cancellationToken.ThrowIfCancellationRequested();
 
             try
             {
-                switch (type)
+                return await _writeExecutor.ExecuteAsync(
+                    new DatabaseWriteRequest(
+                        $"dynamic-import.{batch.Type.ToString().ToLowerInvariant()}",
+                        operationId,
+                        IsolationLevel.Serializable),
+                    async (db, token) =>
+                    {
+                        RequireImportPermission(db, userId, batch.Type);
+                        token.ThrowIfCancellationRequested();
+                        var result = new DynamicImportResult();
+                        var rowIdx = 1;
+
+                        switch (batch.Type)
+                        {
+                            case ImportFileType.Category:
+                                ImportCategories(batch.Rows, db, result, ref rowIdx);
+                                break;
+                            case ImportFileType.Product:
+                                rowIdx = await ImportProductsAsync(
+                                    batch.Rows, db, result, batch.AutoCreateReferences, rowIdx, token);
+                                break;
+                            case ImportFileType.ProductSerial:
+                                ImportProductSerials(
+                                    batch.Rows, db, result, batch.AutoCreateReferences, ref rowIdx);
+                                break;
+                            case ImportFileType.StockIn:
+                                rowIdx = await ImportStockInDocumentsAsync(
+                                    batch.Rows, db, result, userId, batch.AutoCreateReferences,
+                                    operationId, rowIdx, token);
+                                break;
+                            case ImportFileType.StockOut:
+                                rowIdx = await ImportStockOutDocumentsAsync(
+                                    batch.Rows, db, result, userId, batch.AutoCreateReferences,
+                                    operationId, rowIdx, token);
+                                break;
+                            case ImportFileType.PurchaseInvoice:
+                                rowIdx = await ImportPurchaseInvoicesAsync(
+                                    batch.Rows, db, result, userId, batch.AutoCreateReferences,
+                                    operationId, rowIdx, token);
+                                break;
+                            case ImportFileType.SalesInvoice:
+                                rowIdx = await ImportSalesInvoicesAsync(
+                                    batch.Rows, db, result, userId, batch.AutoCreateReferences,
+                                    operationId, rowIdx, token);
+                                break;
+                        }
+
+                        token.ThrowIfCancellationRequested();
+                        var operationKey = operationId.ToString("N");
+                        if (result.SuccessCount > 0 && !await db.AuditLogs.AnyAsync(log =>
+                                log.EntityName == "DynamicImport" &&
+                                log.AfterJson != null &&
+                                log.AfterJson.Contains(operationKey), token))
+                        {
+                            db.AuditLogs.Add(new AuditLog
+                            {
+                                EntityName = "DynamicImport",
+                                EntityId = 0,
+                                ActionCode = "IMPORT",
+                                PerformedBy = userId,
+                                PerformedAt = DateTime.UtcNow,
+                                AfterJson = JsonSerializer.Serialize(new
+                                {
+                                    OperationId = operationKey,
+                                    ImportType = batch.Type.ToString(),
+                                    result.SuccessCount,
+                                    ErrorCount = result.Errors.Count
+                                })
+                            });
+                        }
+
+                        return result;
+                    },
+                    (db, token) => VerifyImportAppliedAsync(db, batch, operationId, token),
+                    entityKey: operationId.ToString("N"),
+                    cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (InvalidOperationException ex) when (
+                string.Equals(
+                    ex.Message,
+                    "The current user is not authorized for this action.",
+                    StringComparison.Ordinal))
+            {
+                throw;
+            }
+        }
+
+        private static PreparedImportBatch PrepareImportBatch(
+            IReadOnlyCollection<Dictionary<string, string>> rawRows,
+            ImportFileType type,
+            IReadOnlyDictionary<string, string> mappings,
+            int userId,
+            bool autoCreateReferences,
+            Guid operationId)
+        {
+            if (type == ImportFileType.Unknown || !Enum.IsDefined(type))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(type), type, "Import type must be a defined non-Unknown value.");
+            }
+
+            if (userId <= 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(userId), userId, "User ID must be positive.");
+            }
+
+            if (operationId == Guid.Empty)
+            {
+                throw new ArgumentException("Operation ID cannot be empty.", nameof(operationId));
+            }
+
+            var sourceRows = rawRows
+                .Select(row => row is null
+                    ? throw new ArgumentException(
+                        "Import rows cannot contain null values.", nameof(rawRows))
+                    : new Dictionary<string, string>(row, StringComparer.OrdinalIgnoreCase))
+                .ToArray();
+            var sourceMappings = new Dictionary<string, string>(
+                mappings, StringComparer.OrdinalIgnoreCase);
+            var rows = sourceRows
+                .Select(row => PrepareImportRow(row, sourceMappings, type))
+                .ToArray();
+
+            ValidatePreparedGroups(rows, type);
+            AttachPreparedPayloadMarkers(
+                rows, sourceRows, sourceMappings, type, operationId);
+            return new PreparedImportBatch(type, rows, autoCreateReferences);
+        }
+
+        private static PreparedImportRow PrepareImportRow(
+            Dictionary<string, string> row,
+            Dictionary<string, string> mappings,
+            ImportFileType type) =>
+            type switch
+            {
+                ImportFileType.Category => new PreparedImportRow
                 {
-                    case ImportFileType.Category:
-                        ImportCategories(rawRows, mappings, db, result, ref rowIdx);
-                        break;
-                    case ImportFileType.Product:
-                        ImportProducts(rawRows, mappings, db, result, autoCreateReferences, ref rowIdx);
-                        break;
-                    case ImportFileType.ProductSerial:
-                        ImportProductSerials(rawRows, mappings, db, result, autoCreateReferences, ref rowIdx);
-                        break;
-                    case ImportFileType.PurchaseInvoice:
-                        ImportPurchaseInvoices(rawRows, mappings, db, result, userId, autoCreateReferences, ref rowIdx);
-                        break;
-                    case ImportFileType.SalesInvoice:
-                        ImportSalesInvoices(rawRows, mappings, db, result, userId, autoCreateReferences, ref rowIdx);
-                        break;
+                    CategoryCode = GetMappedString(row, mappings, "CategoryCode", required: true),
+                    DisplayName = GetMappedString(row, mappings, "DisplayName", required: true)
+                },
+                ImportFileType.Product => PrepareProductRow(row, mappings),
+                ImportFileType.ProductSerial => new PreparedImportRow
+                {
+                    SerialNumber = GetMappedString(row, mappings, "SerialNumber", required: true),
+                    ProductCode = GetMappedString(row, mappings, "ProductCode", required: true),
+                    WarehouseName = GetMappedString(row, mappings, "WarehouseName", required: false),
+                    Note = GetMappedString(row, mappings, "Note", required: false)
+                },
+                ImportFileType.StockIn => PrepareStockRow(row, mappings, isStockIn: true),
+                ImportFileType.StockOut => PrepareStockRow(row, mappings, isStockIn: false),
+                ImportFileType.PurchaseInvoice => PrepareInvoiceRow(row, mappings, isPurchase: true),
+                ImportFileType.SalesInvoice => PrepareInvoiceRow(row, mappings, isPurchase: false),
+                _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+            };
+
+        private static PreparedImportRow PrepareProductRow(
+            Dictionary<string, string> row,
+            Dictionary<string, string> mappings)
+        {
+            var costPrice = GetMappedDecimalNull(row, mappings, "CostPrice");
+            var defaultPrice = GetMappedDecimal(row, mappings, "DefaultPrice", required: true);
+            var warranty = GetMappedInt(row, mappings, "WarrantyPeriodMonths") ?? 0;
+            if (costPrice < 0 || defaultPrice < 0 || warranty < 0)
+            {
+                throw new ArgumentException("Product prices and warranty period cannot be negative.");
+            }
+
+            return new PreparedImportRow
+            {
+                ProductCode = GetMappedString(row, mappings, "ProductCode", required: true),
+                DisplayName = GetMappedString(row, mappings, "DisplayName", required: true),
+                Description = GetMappedString(row, mappings, "Description", required: false),
+                CostPrice = costPrice,
+                DefaultPrice = defaultPrice,
+                OriginCountry = GetMappedString(row, mappings, "OriginCountry", required: false),
+                WarrantyPeriodMonths = warranty,
+                IsSerialTracked = GetMappedBool(row, mappings, "IsSerialTracked") ?? false,
+                CategoryName = GetMappedString(row, mappings, "CategoryName", required: true),
+                BrandName = GetMappedString(row, mappings, "BrandName", required: true),
+                DefaultUnitName = GetMappedString(row, mappings, "DefaultUnitName", required: true)
+            };
+        }
+
+        private static PreparedImportRow PrepareStockRow(
+            Dictionary<string, string> row,
+            Dictionary<string, string> mappings,
+            bool isStockIn)
+        {
+            var quantity = GetMappedDecimal(row, mappings, "Quantity", required: true);
+            if (quantity <= 0)
+            {
+                throw new ArgumentException("Stock quantity must be greater than zero.");
+            }
+
+            var serialInput = GetMappedString(row, mappings, "SerialNumbers", required: false);
+            return new PreparedImportRow
+            {
+                DocumentCode = GetMappedString(row, mappings, "DocumentCode", required: false),
+                ImportDate = isStockIn
+                    ? GetMappedDateTime(row, mappings, "ImportDate", required: true)
+                    : null,
+                ExportDate = isStockIn
+                    ? null
+                    : GetMappedDateTime(row, mappings, "ExportDate", required: true),
+                SupplierName = isStockIn
+                    ? GetMappedString(row, mappings, "SupplierName", required: false)
+                    : null,
+                CustomerName = isStockIn
+                    ? null
+                    : GetMappedString(row, mappings, "CustomerName", required: false),
+                WarehouseName = GetMappedString(row, mappings, "WarehouseName", required: false),
+                Notes = GetMappedString(row, mappings, "Notes", required: false),
+                ProductCode = GetMappedString(row, mappings, "ProductCode", required: true),
+                Quantity = quantity,
+                Serials = PrepareSerialNumbers(serialInput)
+            };
+        }
+
+        private static IReadOnlyList<string> PrepareSerialNumbers(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                return Array.Empty<string>();
+            }
+
+            var serials = new List<string>();
+            foreach (var part in input.Split(
+                         new[] { ',', '\n', '\r' },
+                         StringSplitOptions.RemoveEmptyEntries))
+            {
+                var value = part.Trim();
+                var range = Regex.Match(value, @"^(.+?)(\d+)-[^\d]*(\d+)$");
+                if (!range.Success)
+                {
+                    serials.Add(value);
+                    continue;
                 }
 
-                db.SaveChanges();
-                transaction.Commit();
-            }
-            catch (Exception ex)
-            {
-                transaction.Rollback();
-                result.Errors.Add(new RowError
+                if (!long.TryParse(range.Groups[2].Value, out var start) ||
+                    !long.TryParse(range.Groups[3].Value, out var end) ||
+                    end < start)
                 {
-                    RowNumber = 0,
-                    ErrorMessage = $"Lỗi hệ thống trong quá trình import: {ex.Message}"
-                });
+                    throw new ArgumentException($"Invalid serial range '{value}'.");
+                }
+
+                if (end == long.MaxValue)
+                {
+                    throw new ArgumentException(
+                        $"Serial range '{value}' cannot end at the maximum 64-bit value.");
+                }
+
+                var count = end - start + 1;
+                if (count > MaxPreparedSerialsPerRow - serials.Count)
+                {
+                    throw new ArgumentException(
+                        $"Serial range '{value}' exceeds {MaxPreparedSerialsPerRow} values per row.");
+                }
+
+                var prefix = range.Groups[1].Value;
+                var padLength = range.Groups[2].Value.Length;
+                for (long offset = 0; offset < count; offset++)
+                {
+                    serials.Add(prefix + (start + offset).ToString().PadLeft(padLength, '0'));
+                }
             }
 
-            return result;
+            if (serials.Count > MaxPreparedSerialsPerRow)
+            {
+                throw new ArgumentException(
+                    $"A stock row cannot contain more than {MaxPreparedSerialsPerRow} serials.");
+            }
+
+            if (serials.Any(serial => serial.Length > MaxSerialNumberLength))
+            {
+                throw new ArgumentException(
+                    $"Serial numbers cannot exceed {MaxSerialNumberLength} characters.");
+            }
+
+            return Array.AsReadOnly(serials.ToArray());
         }
+        private static PreparedImportRow PrepareInvoiceRow(
+            Dictionary<string, string> row,
+            Dictionary<string, string> mappings,
+            bool isPurchase)
+        {
+            var totalAmount = GetMappedDecimal(row, mappings, "TotalAmount", required: true);
+            var discountAmount = GetMappedDecimalNull(row, mappings, "DiscountAmount") ?? 0;
+            var taxAmount = GetMappedDecimalNull(row, mappings, "TaxAmount") ?? 0;
+            var quantity = GetMappedDecimal(row, mappings, "Quantity", required: true);
+            var unitPrice = GetMappedDecimal(row, mappings, "UnitPrice", required: true);
+            var taxRate = GetMappedDecimalNull(row, mappings, "TaxRate") ?? 0;
+            if (totalAmount < 0 || discountAmount < 0 || taxAmount < 0 ||
+                quantity <= 0 || unitPrice < 0 || taxRate < 0 || taxRate > 1)
+            {
+                throw new ArgumentException(
+                    "Invoice amounts must be non-negative, quantity positive, and tax rate between 0 and 1.");
+            }
+
+            return new PreparedImportRow
+            {
+                InvoiceCode = GetMappedString(row, mappings, "InvoiceCode", required: true),
+                InvoiceDate = GetMappedDateTime(row, mappings, "InvoiceDate", required: true),
+                SupplierName = isPurchase
+                    ? GetMappedString(row, mappings, "SupplierName", required: true)
+                    : null,
+                CustomerName = isPurchase
+                    ? null
+                    : GetMappedString(row, mappings, "CustomerName", required: true),
+                TotalAmount = totalAmount,
+                DiscountAmount = discountAmount,
+                TaxAmount = taxAmount,
+                PaymentStatus = PaymentStatus.Normalize(
+                    GetMappedString(row, mappings, "PaymentStatus", required: false) ?? PaymentStatus.Paid),
+                Notes = GetMappedString(row, mappings, "Notes", required: false),
+                ProductCode = GetMappedString(row, mappings, "ProductCode", required: true),
+                Quantity = quantity,
+                UnitPrice = unitPrice,
+                TaxRate = taxRate
+            };
+        }
+
+        private static void ValidatePreparedGroups(
+            IReadOnlyCollection<PreparedImportRow> rows,
+            ImportFileType type)
+        {
+            if (type is ImportFileType.StockIn or ImportFileType.StockOut)
+            {
+                foreach (var group in GroupStockRows(rows))
+                {
+                    var first = group.First();
+                    var consistent = group.All(row =>
+                        row.ImportDate == first.ImportDate &&
+                        row.ExportDate == first.ExportDate &&
+                        row.SupplierName == first.SupplierName &&
+                        row.CustomerName == first.CustomerName &&
+                        row.WarehouseName == first.WarehouseName &&
+                        row.Notes == first.Notes);
+                    if (!consistent)
+                    {
+                        throw new ArgumentException(
+                            $"Document group '{group.Key}' has inconsistent header values.");
+                    }
+
+                    var serials = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    if (group.SelectMany(row => row.Serials).Any(serial => !serials.Add(serial)))
+                    {
+                        throw new ArgumentException(
+                            $"Duplicate serials are not allowed in document group '{group.Key}'.");
+                    }
+                }
+            }
+
+            if (type is ImportFileType.PurchaseInvoice or ImportFileType.SalesInvoice)
+            {
+                foreach (var group in rows.GroupBy(row => row.InvoiceCode!))
+                {
+                    var first = group.First();
+                    var consistent = group.All(row =>
+                        row.InvoiceDate == first.InvoiceDate &&
+                        row.SupplierName == first.SupplierName &&
+                        row.CustomerName == first.CustomerName &&
+                        row.TotalAmount == first.TotalAmount &&
+                        row.DiscountAmount == first.DiscountAmount &&
+                        row.TaxAmount == first.TaxAmount &&
+                        row.PaymentStatus == first.PaymentStatus &&
+                        row.Notes == first.Notes);
+                    if (!consistent)
+                    {
+                        throw new ArgumentException(
+                            $"Invoice group '{group.Key}' has inconsistent header values.");
+                    }
+                }
+            }
+        }
+
+        private static void AttachPreparedPayloadMarkers(
+            PreparedImportRow[] rows,
+            IReadOnlyList<Dictionary<string, string>> sourceRows,
+            Dictionary<string, string> mappings,
+            ImportFileType type,
+            Guid operationId)
+        {
+            if (type is not (ImportFileType.StockIn or ImportFileType.StockOut or
+                ImportFileType.PurchaseInvoice or ImportFileType.SalesInvoice))
+            {
+                return;
+            }
+
+            var indexedGroups = rows
+                .Select((row, index) => new { Row = row, Index = index })
+                .GroupBy(item => type is ImportFileType.StockIn or ImportFileType.StockOut
+                    ? GetStockGroupKey(item.Row)
+                    : item.Row.InvoiceCode!);
+            foreach (var group in indexedGroups)
+            {
+                var marker = CreatePayloadMarker(
+                    operationId,
+                    type,
+                    group.Select(item => sourceRows[item.Index]),
+                    mappings);
+                var persistedNotes = AttachPayloadMarker(group.First().Row.Notes, marker);
+                foreach (var item in group)
+                {
+                    rows[item.Index] = item.Row with
+                    {
+                        PayloadMarker = marker,
+                        PersistedNotes = persistedNotes
+                    };
+                }
+            }
+        }
+        private static void RequireImportPermission(
+            AppDbContext db,
+            int userId,
+            ImportFileType type)
+        {
+            var action = type switch
+            {
+                ImportFileType.StockIn => PermissionAction.PostStockIn,
+                ImportFileType.StockOut => PermissionAction.PostStockOut,
+                ImportFileType.PurchaseInvoice => PermissionAction.CreatePurchaseInvoice,
+                ImportFileType.SalesInvoice => PermissionAction.CreateSalesInvoice,
+                _ => PermissionAction.ManageMasterData
+            };
+            AuthorizationService.RequireFreshActor(db, userId, action);
+        }
+
+        private static async Task<bool> VerifyImportAppliedAsync(
+            AppDbContext db,
+            PreparedImportBatch batch,
+            Guid operationId,
+            CancellationToken cancellationToken)
+        {
+            switch (batch.Type)
+            {
+                case ImportFileType.Category:
+                    foreach (var row in batch.Rows)
+                    {
+                        if (!await db.Categories.AnyAsync(
+                                category => category.CategoryCode == row.CategoryCode &&
+                                            category.DisplayName == row.DisplayName,
+                                cancellationToken))
+                        {
+                            return false;
+                        }
+                    }
+                    return true;
+                case ImportFileType.Product:
+                    foreach (var row in batch.Rows)
+                    {
+                        if (!await db.Products.AnyAsync(
+                                product => product.ProductCode == row.ProductCode &&
+                                           product.DisplayName == row.DisplayName,
+                                cancellationToken))
+                        {
+                            return false;
+                        }
+                    }
+                    return true;
+                case ImportFileType.ProductSerial:
+                    foreach (var row in batch.Rows)
+                    {
+                        if (!await db.ProductSerials.AnyAsync(
+                                serial => serial.SerialNumber == row.SerialNumber,
+                                cancellationToken))
+                        {
+                            return false;
+                        }
+                    }
+                    return true;
+                case ImportFileType.StockIn:
+                    foreach (var group in GroupStockRows(batch.Rows))
+                    {
+                        var documentCode = GetStockDocumentCode(group.Key, operationId, isStockIn: true);
+                        var document = await db.StockIns.AsNoTracking().SingleOrDefaultAsync(
+                            item => item.DocumentCode == documentCode, cancellationToken);
+                        if (document is null ||
+                            !PayloadMatches(document.Notes, group.First().PayloadMarker!) ||
+                            await db.StockInLines.CountAsync(
+                                line => line.StockInId == document.Id, cancellationToken) != group.Count())
+                        {
+                            return false;
+                        }
+                    }
+                    return true;
+                case ImportFileType.StockOut:
+                    foreach (var group in GroupStockRows(batch.Rows))
+                    {
+                        var documentCode = GetStockDocumentCode(group.Key, operationId, isStockIn: false);
+                        var document = await db.StockOuts.AsNoTracking().SingleOrDefaultAsync(
+                            item => item.DocumentCode == documentCode, cancellationToken);
+                        if (document is null ||
+                            !PayloadMatches(document.Notes, group.First().PayloadMarker!) ||
+                            await db.StockOutLines.CountAsync(
+                                line => line.StockOutId == document.Id, cancellationToken) != group.Count())
+                        {
+                            return false;
+                        }
+                    }
+                    return true;
+                case ImportFileType.PurchaseInvoice:
+                    foreach (var group in batch.Rows.GroupBy(row => row.InvoiceCode!))
+                    {
+                        var invoice = await db.PurchaseInvoices.AsNoTracking().SingleOrDefaultAsync(
+                            item => item.InvoiceCode == group.Key, cancellationToken);
+                        if (invoice is null ||
+                            !PayloadMatches(invoice.Notes, group.First().PayloadMarker!) ||
+                            await db.PurchaseInvoiceLines.CountAsync(
+                                line => line.PurchaseInvoiceId == invoice.Id, cancellationToken) != group.Count())
+                        {
+                            return false;
+                        }
+                    }
+                    return true;
+                case ImportFileType.SalesInvoice:
+                    foreach (var group in batch.Rows.GroupBy(row => row.InvoiceCode!))
+                    {
+                        var invoice = await db.SalesInvoices.AsNoTracking().SingleOrDefaultAsync(
+                            item => item.InvoiceCode == group.Key, cancellationToken);
+                        if (invoice is null ||
+                            !PayloadMatches(invoice.Notes, group.First().PayloadMarker!) ||
+                            await db.SalesInvoiceLines.CountAsync(
+                                line => line.SalesInvoiceId == invoice.Id, cancellationToken) != group.Count())
+                        {
+                            return false;
+                        }
+                    }
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private static IEnumerable<IGrouping<string, PreparedImportRow>> GroupStockRows(
+            IEnumerable<PreparedImportRow> rows) =>
+            rows.GroupBy(GetStockGroupKey);
+
+        private static string GetStockGroupKey(PreparedImportRow row) =>
+            string.IsNullOrWhiteSpace(row.DocumentCode) ? "AUTO-GEN" : row.DocumentCode;
+        private static string GetStockDocumentCode(
+            string sourceCode,
+            Guid operationId,
+            bool isStockIn) =>
+            sourceCode == "AUTO-GEN"
+                ? $"{(isStockIn ? "SI" : "SO")}-{operationId:N}"
+                : sourceCode;
+
+        private static string CreatePayloadMarker(
+            Guid operationId,
+            ImportFileType type,
+            IEnumerable<Dictionary<string, string>> rows,
+            Dictionary<string, string> mappings)
+        {
+            var fieldKeys = GetFieldDefinitions(type)
+                .Select(field => field.Key)
+                .ToArray();
+            var canonicalRows = rows
+                .Select(row => fieldKeys
+                    .Select(field => GetMappedString(row, mappings, field, required: false))
+                    .ToArray())
+                .OrderBy(row => string.Join('\u001F', row), StringComparer.Ordinal)
+                .ToArray();
+            var canonical = new
+            {
+                OperationId = operationId.ToString("N"),
+                ImportType = type.ToString(),
+                Fields = fieldKeys,
+                Rows = canonicalRows
+            };
+            var hash = SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(canonical));
+            return $"[import-payload-sha256:{Convert.ToHexString(hash)}]";
+        }
+
+        private static string AttachPayloadMarker(string? notes, string payloadMarker)
+        {
+            var persistedNotes = string.IsNullOrWhiteSpace(notes)
+                ? payloadMarker
+                : $"{notes.Trim()} {payloadMarker}";
+            if (persistedNotes.Length > 500)
+            {
+                throw new ArgumentException("Ghi chú quá dài sau khi thêm mã xác thực payload.");
+            }
+
+            return persistedNotes;
+        }
+
+        private static bool PayloadMatches(string? notes, string payloadMarker) =>
+            notes?.Contains(payloadMarker, StringComparison.Ordinal) == true;
+
+        private static void EnsurePayloadMatches(string? notes, string payloadMarker)
+        {
+            if (!PayloadMatches(notes, payloadMarker))
+            {
+                throw new InvalidOperationException(
+                    "Import payload does not match the existing document.");
+            }
+        }
+
+        private sealed record PreparedImportBatch(
+            ImportFileType Type,
+            IReadOnlyList<PreparedImportRow> Rows,
+            bool AutoCreateReferences);
+
+        private sealed record PreparedImportRow
+        {
+            public string? CategoryCode { get; init; }
+            public string? DisplayName { get; init; }
+            public string? ProductCode { get; init; }
+            public string? Description { get; init; }
+            public decimal? CostPrice { get; init; }
+            public decimal DefaultPrice { get; init; }
+            public string? OriginCountry { get; init; }
+            public int WarrantyPeriodMonths { get; init; }
+            public bool IsSerialTracked { get; init; }
+            public string? CategoryName { get; init; }
+            public string? BrandName { get; init; }
+            public string? DefaultUnitName { get; init; }
+            public string? SerialNumber { get; init; }
+            public string? WarehouseName { get; init; }
+            public string? Note { get; init; }
+            public string? DocumentCode { get; init; }
+            public DateTime? ImportDate { get; init; }
+            public DateTime? ExportDate { get; init; }
+            public string? SupplierName { get; init; }
+            public string? CustomerName { get; init; }
+            public string? Notes { get; init; }
+            public decimal Quantity { get; init; }
+            public IReadOnlyList<string> Serials { get; init; } = Array.Empty<string>();
+            public string? InvoiceCode { get; init; }
+            public DateTime? InvoiceDate { get; init; }
+            public decimal TotalAmount { get; init; }
+            public decimal DiscountAmount { get; init; }
+            public decimal TaxAmount { get; init; }
+            public string? PaymentStatus { get; init; }
+            public decimal UnitPrice { get; init; }
+            public decimal TaxRate { get; init; }
+            public string? PayloadMarker { get; init; }
+            public string? PersistedNotes { get; init; }
+        };
 
         #region Entity Import Methods
 
         // category dùng mã làm khóa upsert: trùng mã thì cập nhật tên, chưa có thì tạo mới
         private void ImportCategories(
-            List<Dictionary<string, string>> rawRows,
-            Dictionary<string, string> mappings,
+            IReadOnlyList<PreparedImportRow> rows,
             AppDbContext db,
             DynamicImportResult result,
             ref int rowIdx)
         {
-            foreach (var rawRow in rawRows)
+            foreach (var row in rows)
             {
                 rowIdx++;
                 try
                 {
-                    string categoryCode = GetMappedString(rawRow, mappings, "CategoryCode", required: true);
-                    string displayName = GetMappedString(rawRow, mappings, "DisplayName", required: true);
+                    string categoryCode = row.CategoryCode!;
+                    string displayName = row.DisplayName!;
 
                     var existing = db.Categories.FirstOrDefault(c => c.CategoryCode == categoryCode);
                     if (existing != null)
@@ -313,38 +928,39 @@ namespace QuanLyHangHoa.Services.DataImport
                     }
                     result.SuccessCount++;
                 }
-                catch (Exception ex)
+                catch (ArgumentException ex)
                 {
                     result.Errors.Add(new RowError { RowNumber = rowIdx, ErrorMessage = ex.Message });
                 }
             }
         }
 
-        private void ImportProducts(
-            List<Dictionary<string, string>> rawRows,
-            Dictionary<string, string> mappings,
+        private async Task<int> ImportProductsAsync(
+            IReadOnlyList<PreparedImportRow> rows,
             AppDbContext db,
             DynamicImportResult result,
             bool autoCreateReferences,
-            ref int rowIdx)
+            int rowIdx,
+            CancellationToken cancellationToken)
         {
-            foreach (var rawRow in rawRows)
+            foreach (var row in rows)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 rowIdx++;
                 try
                 {
-                    string productCode = GetMappedString(rawRow, mappings, "ProductCode", required: true);
-                    string displayName = GetMappedString(rawRow, mappings, "DisplayName", required: true);
-                    string? description = GetMappedString(rawRow, mappings, "Description", required: false);
-                    decimal? costPrice = GetMappedDecimalNull(rawRow, mappings, "CostPrice");
-                    decimal defaultPrice = GetMappedDecimal(rawRow, mappings, "DefaultPrice", required: true);
-                    string? origin = GetMappedString(rawRow, mappings, "OriginCountry", required: false);
-                    int warranty = GetMappedInt(rawRow, mappings, "WarrantyPeriodMonths") ?? 0;
-                    bool isSerial = GetMappedBool(rawRow, mappings, "IsSerialTracked") ?? false;
+                    string productCode = row.ProductCode!;
+                    string displayName = row.DisplayName!;
+                    string? description = row.Description;
+                    decimal? costPrice = row.CostPrice;
+                    decimal defaultPrice = row.DefaultPrice;
+                    string? origin = row.OriginCountry;
+                    int warranty = row.WarrantyPeriodMonths;
+                    bool isSerial = row.IsSerialTracked;
 
-                    string categoryName = GetMappedString(rawRow, mappings, "CategoryName", required: true);
-                    string brandName = GetMappedString(rawRow, mappings, "BrandName", required: true);
-                    string unitName = GetMappedString(rawRow, mappings, "DefaultUnitName", required: true);
+                    string categoryName = row.CategoryName!;
+                    string brandName = row.BrandName!;
+                    string unitName = row.DefaultUnitName!;
 
                     // các bảng tham chiếu phải có id trước khi gán vào product; tùy chọn auto-create quyết định tạo mới hay báo lỗi
                     // Resolve category
@@ -360,11 +976,11 @@ namespace QuanLyHangHoa.Services.DataImport
                                 IsActive = true
                             };
                             db.Categories.Add(category);
-                            db.SaveChanges();
+                            await db.SaveChangesAsync(cancellationToken);
                         }
                         else
                         {
-                            throw new Exception($"Không tìm thấy nhóm sản phẩm '{categoryName}' và tính năng tự động tạo mới đang tắt.");
+                            throw new ArgumentException($"Không tìm thấy nhóm sản phẩm '{categoryName}' và tính năng tự động tạo mới đang tắt.");
                         }
                     }
 
@@ -381,11 +997,11 @@ namespace QuanLyHangHoa.Services.DataImport
                                 IsActive = true
                             };
                             db.Brands.Add(brand);
-                            db.SaveChanges();
+                            await db.SaveChangesAsync(cancellationToken);
                         }
                         else
                         {
-                            throw new Exception($"Không tìm thấy thương hiệu '{brandName}' và tính năng tự động tạo mới đang tắt.");
+                            throw new ArgumentException($"Không tìm thấy thương hiệu '{brandName}' và tính năng tự động tạo mới đang tắt.");
                         }
                     }
 
@@ -402,11 +1018,11 @@ namespace QuanLyHangHoa.Services.DataImport
                                 IsActive = true
                             };
                             db.Units.Add(unit);
-                            db.SaveChanges();
+                            await db.SaveChangesAsync(cancellationToken);
                         }
                         else
                         {
-                            throw new Exception($"Không tìm thấy đơn vị tính '{unitName}' và tính năng tự động tạo mới đang tắt.");
+                            throw new ArgumentException($"Không tìm thấy đơn vị tính '{unitName}' và tính năng tự động tạo mới đang tắt.");
                         }
                     }
 
@@ -444,17 +1060,18 @@ namespace QuanLyHangHoa.Services.DataImport
                     }
                     result.SuccessCount++;
                 }
-                catch (Exception ex)
+                catch (ArgumentException ex)
                 {
                     result.Errors.Add(new RowError { RowNumber = rowIdx, ErrorMessage = ex.Message });
                 }
             }
+
+            return rowIdx;
         }
 
         // serial có thể cập nhật lại sản phẩm, kho và trạng thái; kho trống dùng kho mặc định đang hoạt động
         private void ImportProductSerials(
-            List<Dictionary<string, string>> rawRows,
-            Dictionary<string, string> mappings,
+            IReadOnlyList<PreparedImportRow> rows,
             AppDbContext db,
             DynamicImportResult result,
             bool autoCreateReferences,
@@ -464,20 +1081,20 @@ namespace QuanLyHangHoa.Services.DataImport
                             ?? db.Warehouses.FirstOrDefault(w => w.IsActive)
                             ?? db.Warehouses.First();
 
-            foreach (var rawRow in rawRows)
+            foreach (var row in rows)
             {
                 rowIdx++;
                 try
                 {
-                    string serialNumber = GetMappedString(rawRow, mappings, "SerialNumber", required: true);
-                    string productCode = GetMappedString(rawRow, mappings, "ProductCode", required: true);
-                    string? warehouseName = GetMappedString(rawRow, mappings, "WarehouseName", required: false);
-                    string? note = GetMappedString(rawRow, mappings, "Note", required: false);
+                    string serialNumber = row.SerialNumber!;
+                    string productCode = row.ProductCode!;
+                    string? warehouseName = row.WarehouseName;
+                    string? note = row.Note;
 
                     var product = db.Products.FirstOrDefault(p => p.ProductCode == productCode);
                     if (product == null)
                     {
-                        throw new Exception($"Không tìm thấy sản phẩm có mã '{productCode}'.");
+                        throw new ArgumentException($"Không tìm thấy sản phẩm có mã '{productCode}'.");
                     }
 
                     int whId = warehouse.Id;
@@ -490,7 +1107,7 @@ namespace QuanLyHangHoa.Services.DataImport
                         }
                         else if (!autoCreateReferences)
                         {
-                            throw new Exception($"Không tìm thấy kho '{warehouseName}'.");
+                            throw new ArgumentException($"Không tìm thấy kho '{warehouseName}'.");
                         }
                     }
 
@@ -516,7 +1133,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     }
                     result.SuccessCount++;
                 }
-                catch (Exception ex)
+                catch (ArgumentException ex)
                 {
                     result.Errors.Add(new RowError { RowNumber = rowIdx, ErrorMessage = ex.Message });
                 }
@@ -536,28 +1153,28 @@ namespace QuanLyHangHoa.Services.DataImport
             decimal BaseQuantity,
             string[] SerialNumbers);
 
-        private void ImportStockInDocuments(
-            List<Dictionary<string, string>> rawRows,
-            Dictionary<string, string> mappings,
+        private async Task<int> ImportStockInDocumentsAsync(
+            IReadOnlyList<PreparedImportRow> rows,
+            AppDbContext db,
             DynamicImportResult result,
             int userId,
             bool autoCreateReferences,
-            ref int rowIdx)
+            Guid operationId,
+            int rowIdx,
+            CancellationToken cancellationToken)
         {
             // mọi dòng cùng mã được xem là một chứng từ; mã trống được gom vào một phiếu tự sinh
-            var grouped = rawRows.GroupBy(row =>
-            {
-                var code = GetMappedString(row, mappings, "DocumentCode", required: false);
-                return string.IsNullOrWhiteSpace(code) ? "AUTO-GEN" : code;
-            });
+            var grouped = GroupStockRows(rows);
 
             foreach (var group in grouped)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var groupRows = group.ToList();
                 var firstRowNumber = rowIdx + 1;
                 rowIdx += groupRows.Count;
-                using var db = _contextFactory();
-                using var transaction = db.Database.BeginTransaction();
+                var savepointName = $"dynamic_import_{firstRowNumber}";
+                await db.Database.CurrentTransaction!.CreateSavepointAsync(
+                    savepointName, cancellationToken);
 
                 try
                 {
@@ -568,10 +1185,11 @@ namespace QuanLyHangHoa.Services.DataImport
                         .FirstOrDefault()
                         ?? throw new InventoryDomainException("Không tìm thấy kho đang hoạt động.");
                     var firstRow = groupRows[0];
-                    var importDate = GetMappedDateTime(firstRow, mappings, "ImportDate", required: true);
-                    var supplierName = GetMappedString(firstRow, mappings, "SupplierName", required: false);
-                    var notes = GetMappedString(firstRow, mappings, "Notes", required: false);
-                    var warehouseName = GetMappedString(firstRow, mappings, "WarehouseName", required: false);
+                    var importDate = firstRow.ImportDate!.Value;
+                    var supplierName = firstRow.SupplierName;
+                    var payloadMarker = firstRow.PayloadMarker!;
+                    var persistedNotes = firstRow.PersistedNotes!;
+                    var warehouseName = firstRow.WarehouseName;
                     var warehouse = string.IsNullOrWhiteSpace(warehouseName)
                         ? defaultWarehouse
                         : db.Warehouses.SingleOrDefault(item => item.DisplayName == warehouseName && item.IsActive)
@@ -597,22 +1215,33 @@ namespace QuanLyHangHoa.Services.DataImport
                         }
                     }
 
-                    var documentCode = group.Key == "AUTO-GEN"
-                        ? $"SI-{DateTime.UtcNow:yyyyMMddHHmmssfff}-{Guid.NewGuid():N}"[..32]
-                        : group.Key;
-                    if (db.StockIns.Any(item => item.DocumentCode == documentCode))
+                    var documentCode = GetStockDocumentCode(group.Key, operationId, isStockIn: true);
+                    var existingDocument = db.StockIns
+                        .AsNoTracking()
+                        .SingleOrDefault(item => item.DocumentCode == documentCode);
+                    if (existingDocument is not null)
                     {
-                        throw new InventoryDomainException($"Mã phiếu nhập '{documentCode}' đã tồn tại.");
+                        var existingLineCount = db.StockInLines.Count(line => line.StockInId == existingDocument.Id);
+                        EnsurePayloadMatches(existingDocument.Notes, payloadMarker);
+                        if (existingLineCount == groupRows.Count)
+                        {
+                            result.SuccessCount += groupRows.Count;
+                            await db.Database.CurrentTransaction!.ReleaseSavepointAsync(
+                                savepointName, cancellationToken);
+                            continue;
+                        }
+
+                        throw new InventoryDomainException($"Mã phiếu nhập '{documentCode}' đã tồn tại nhưng số dòng không khớp.");
                     }
 
                     // preparedLines tách bước kiểm tra khỏi bước ghi; documentSerials chặn serial lặp giữa nhiều dòng của cùng phiếu
                     // baseQuantity là số lượng sau quy đổi về đơn vị cơ sở, dùng cho tồn kho và số lượng serial
                     var preparedLines = new List<PreparedStockInImportLine>();
-                    var documentSerials = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
                     foreach (var itemRow in groupRows)
                     {
-                        var productCode = GetMappedString(itemRow, mappings, "ProductCode", required: true);
-                        var quantity = GetMappedDecimal(itemRow, mappings, "Quantity", required: true);
+                        var productCode = itemRow.ProductCode!;
+                        var quantity = itemRow.Quantity;
                         if (quantity <= 0)
                         {
                             throw new InventoryDomainException("Stock-in quantity must be greater than zero.");
@@ -630,16 +1259,7 @@ namespace QuanLyHangHoa.Services.DataImport
                         }
 
                         var baseQuantity = quantity * conversionFactor;
-                        var serialNumbers = StockInService.ParseSerialRange(
-                                GetMappedString(itemRow, mappings, "SerialNumbers", required: false))
-                            .Select(serial => serial.Trim())
-                            .Where(serial => serial.Length > 0)
-                            .ToArray();
-                        if (serialNumbers.Length != serialNumbers.Distinct(StringComparer.OrdinalIgnoreCase).Count() ||
-                            serialNumbers.Any(serial => !documentSerials.Add(serial)))
-                        {
-                            throw new InventoryDomainException("Duplicate serials are not allowed.");
-                        }
+                        var serialNumbers = itemRow.Serials.ToArray();
 
                         if (product.IsSerialTracked &&
                             (baseQuantity != decimal.Truncate(baseQuantity) || serialNumbers.Length != (int)baseQuantity))
@@ -674,7 +1294,7 @@ namespace QuanLyHangHoa.Services.DataImport
                         WarehouseId = warehouse.Id,
                         Supplier = supplier,
                         PurposeCode = "Purchase",
-                        Notes = notes,
+                        Notes = persistedNotes,
                         Status = StockDocumentStatus.Approved.ToString(),
                         CreatedBy = userId,
                         CreatedAt = now,
@@ -705,7 +1325,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     }
 
                     // cần lưu phiếu và các dòng trước để lấy id thật cho sổ kho và liên kết LastStockInLineId
-                    db.SaveChanges();
+                    await db.SaveChangesAsync(cancellationToken);
                     var postingService = new InventoryPostingService(
                         new EfInventoryUnitOfWork(db),
                         new DbDefaultWarehouseProvider(db),
@@ -735,44 +1355,58 @@ namespace QuanLyHangHoa.Services.DataImport
                         }
                     }
 
-                    db.SaveChanges();
-                    transaction.Commit();
+                    await db.SaveChangesAsync(cancellationToken);
+                    await db.Database.CurrentTransaction!.ReleaseSavepointAsync(
+                        savepointName, cancellationToken);
                     result.SuccessCount += groupRows.Count;
                 }
-                catch (Exception ex)
+                catch (ArgumentException ex)
                 {
-                    transaction.Rollback();
-                    result.Errors.Add(new RowError
-                    {
-                        RowNumber = firstRowNumber,
-                        ErrorMessage = $"Lỗi tại nhóm phiếu nhập {group.Key}: {ex.Message}"
-                    });
+                    await RecordStockGroupErrorAsync(
+                        db,
+                        savepointName,
+                        result,
+                        firstRowNumber,
+                        $"Lỗi tại nhóm phiếu nhập {group.Key}: {ex.Message}",
+                        cancellationToken);
+                }
+                catch (InventoryDomainException ex)
+                {
+                    await RecordStockGroupErrorAsync(
+                        db,
+                        savepointName,
+                        result,
+                        firstRowNumber,
+                        $"Lỗi tại nhóm phiếu nhập {group.Key}: {ex.Message}",
+                        cancellationToken);
                 }
             }
+
+            return rowIdx;
         }
 
-        // mỗi phiếu xuất có transaction riêng: một phiếu lỗi không làm mất các phiếu hợp lệ khác trong file
-        private void ImportStockOutDocuments(
-            List<Dictionary<string, string>> rawRows,
-            Dictionary<string, string> mappings,
+        // mỗi phiếu xuất dùng một savepoint trong transaction chung để rollback đúng nhóm lỗi
+        private async Task<int> ImportStockOutDocumentsAsync(
+            IReadOnlyList<PreparedImportRow> rows,
+            AppDbContext db,
             DynamicImportResult result,
             int userId,
             bool autoCreateReferences,
-            ref int rowIdx)
+            Guid operationId,
+            int rowIdx,
+            CancellationToken cancellationToken)
         {
-            var grouped = rawRows.GroupBy(row =>
-            {
-                var code = GetMappedString(row, mappings, "DocumentCode", required: false);
-                return string.IsNullOrWhiteSpace(code) ? "AUTO-GEN" : code;
-            });
+            var grouped = GroupStockRows(rows);
 
             foreach (var group in grouped)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var groupRows = group.ToList();
                 var firstRowNumber = rowIdx + 1;
                 rowIdx += groupRows.Count;
-                using var db = _contextFactory();
-                using var transaction = db.Database.BeginTransaction();
+                var savepointName = $"dynamic_import_{firstRowNumber}";
+                await db.Database.CurrentTransaction!.CreateSavepointAsync(
+                    savepointName, cancellationToken);
 
                 try
                 {
@@ -783,10 +1417,11 @@ namespace QuanLyHangHoa.Services.DataImport
                         .FirstOrDefault()
                         ?? throw new InventoryDomainException("Không tìm thấy kho đang hoạt động.");
                     var firstRow = groupRows[0];
-                    var exportDate = GetMappedDateTime(firstRow, mappings, "ExportDate", required: true);
-                    var customerName = GetMappedString(firstRow, mappings, "CustomerName", required: false);
-                    var notes = GetMappedString(firstRow, mappings, "Notes", required: false);
-                    var warehouseName = GetMappedString(firstRow, mappings, "WarehouseName", required: false);
+                    var exportDate = firstRow.ExportDate!.Value;
+                    var customerName = firstRow.CustomerName;
+                    var payloadMarker = firstRow.PayloadMarker!;
+                    var persistedNotes = firstRow.PersistedNotes!;
+                    var warehouseName = firstRow.WarehouseName;
                     var warehouse = string.IsNullOrWhiteSpace(warehouseName)
                         ? defaultWarehouse
                         : db.Warehouses.SingleOrDefault(item => item.DisplayName == warehouseName && item.IsActive)
@@ -818,21 +1453,32 @@ namespace QuanLyHangHoa.Services.DataImport
                         };
                     }
 
-                    var documentCode = group.Key == "AUTO-GEN"
-                        ? $"SO-{DateTime.UtcNow:yyyyMMddHHmmssfff}-{Guid.NewGuid():N}"[..32]
-                        : group.Key;
-                    if (db.StockOuts.Any(item => item.DocumentCode == documentCode))
+                    var documentCode = GetStockDocumentCode(group.Key, operationId, isStockIn: false);
+                    var existingDocument = db.StockOuts
+                        .AsNoTracking()
+                        .SingleOrDefault(item => item.DocumentCode == documentCode);
+                    if (existingDocument is not null)
                     {
-                        throw new InventoryDomainException($"Mã phiếu xuất '{documentCode}' đã tồn tại.");
+                        var existingLineCount = db.StockOutLines.Count(line => line.StockOutId == existingDocument.Id);
+                        EnsurePayloadMatches(existingDocument.Notes, payloadMarker);
+                        if (existingLineCount == groupRows.Count)
+                        {
+                            result.SuccessCount += groupRows.Count;
+                            await db.Database.CurrentTransaction!.ReleaseSavepointAsync(
+                                savepointName, cancellationToken);
+                            continue;
+                        }
+
+                        throw new InventoryDomainException($"Mã phiếu xuất '{documentCode}' đã tồn tại nhưng số dòng không khớp.");
                     }
 
                     // kiểm tra đủ tồn và trạng thái từng serial trước khi tạo phiếu, tránh ghi dở dang rồi mới phát hiện thiếu hàng
                     var preparedLines = new List<PreparedStockOutImportLine>();
-                    var documentSerials = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
                     foreach (var itemRow in groupRows)
                     {
-                        var productCode = GetMappedString(itemRow, mappings, "ProductCode", required: true);
-                        var quantity = GetMappedDecimal(itemRow, mappings, "Quantity", required: true);
+                        var productCode = itemRow.ProductCode!;
+                        var quantity = itemRow.Quantity;
                         if (quantity <= 0)
                         {
                             throw new InventoryDomainException("Stock-out quantity must be greater than zero.");
@@ -850,16 +1496,7 @@ namespace QuanLyHangHoa.Services.DataImport
                         }
 
                         var baseQuantity = quantity * conversionFactor;
-                        var serialNumbers = StockInService.ParseSerialRange(
-                                GetMappedString(itemRow, mappings, "SerialNumbers", required: false))
-                            .Select(serial => serial.Trim())
-                            .Where(serial => serial.Length > 0)
-                            .ToArray();
-                        if (serialNumbers.Length != serialNumbers.Distinct(StringComparer.OrdinalIgnoreCase).Count() ||
-                            serialNumbers.Any(serial => !documentSerials.Add(serial)))
-                        {
-                            throw new InventoryDomainException("Duplicate serials are not allowed.");
-                        }
+                        var serialNumbers = itemRow.Serials.ToArray();
 
                         if (product.IsSerialTracked &&
                             (baseQuantity != decimal.Truncate(baseQuantity) || serialNumbers.Length != (int)baseQuantity))
@@ -912,7 +1549,7 @@ namespace QuanLyHangHoa.Services.DataImport
                         WarehouseId = warehouse.Id,
                         Customer = customer,
                         PurposeCode = "Sale",
-                        Notes = notes,
+                        Notes = persistedNotes,
                         Status = StockDocumentStatus.Approved.ToString(),
                         CreatedBy = userId,
                         CreatedAt = now,
@@ -942,7 +1579,7 @@ namespace QuanLyHangHoa.Services.DataImport
                         persistedLines.Add((prepared, line));
                     }
 
-                    db.SaveChanges();
+                    await db.SaveChangesAsync(cancellationToken);
                     var postingService = new InventoryPostingService(
                         new EfInventoryUnitOfWork(db),
                         new DbDefaultWarehouseProvider(db),
@@ -972,47 +1609,114 @@ namespace QuanLyHangHoa.Services.DataImport
                         }
                     }
 
-                    db.SaveChanges();
-                    transaction.Commit();
+                    await db.SaveChangesAsync(cancellationToken);
+                    await db.Database.CurrentTransaction!.ReleaseSavepointAsync(
+                        savepointName, cancellationToken);
                     result.SuccessCount += groupRows.Count;
                 }
-                catch (Exception ex)
+                catch (ArgumentException ex)
                 {
-                    transaction.Rollback();
-                    result.Errors.Add(new RowError
-                    {
-                        RowNumber = firstRowNumber,
-                        ErrorMessage = $"Lỗi tại nhóm phiếu xuất {group.Key}: {ex.Message}"
-                    });
+                    await RecordStockGroupErrorAsync(
+                        db,
+                        savepointName,
+                        result,
+                        firstRowNumber,
+                        $"Lỗi tại nhóm phiếu xuất {group.Key}: {ex.Message}",
+                        cancellationToken);
+                }
+                catch (InventoryDomainException ex)
+                {
+                    await RecordStockGroupErrorAsync(
+                        db,
+                        savepointName,
+                        result,
+                        firstRowNumber,
+                        $"Lỗi tại nhóm phiếu xuất {group.Key}: {ex.Message}",
+                        cancellationToken);
                 }
             }
+
+            return rowIdx;
+        }
+
+        private static async Task RecordStockGroupErrorAsync(
+            AppDbContext db,
+            string savepointName,
+            DynamicImportResult result,
+            int rowNumber,
+            string message,
+            CancellationToken cancellationToken)
+        {
+            await db.Database.CurrentTransaction!.RollbackToSavepointAsync(
+                savepointName,
+                cancellationToken);
+            db.ChangeTracker.Clear();
+            result.Errors.Add(new RowError
+            {
+                RowNumber = rowNumber,
+                ErrorMessage = message
+            });
         }
 
         // các dòng cùng InvoiceCode tạo một phần đầu hóa đơn và nhiều dòng chi tiết
-        private void ImportPurchaseInvoices(
-            List<Dictionary<string, string>> rawRows,
-            Dictionary<string, string> mappings,
+        private async Task<int> ImportPurchaseInvoicesAsync(
+            IReadOnlyList<PreparedImportRow> rows,
             AppDbContext db,
             DynamicImportResult result,
             int userId,
             bool autoCreateReferences,
-            ref int rowIdx)
+            Guid operationId,
+            int rowIdx,
+            CancellationToken cancellationToken)
         {
-            var grouped = rawRows.GroupBy(r => GetMappedString(r, mappings, "InvoiceCode", required: true));
+            var grouped = rows.GroupBy(row => row.InvoiceCode!);
 
             foreach (var group in grouped)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 try
                 {
-                    var firstRow = group.First();
-                    DateTime invoiceDate = GetMappedDateTime(firstRow, mappings, "InvoiceDate", required: true);
-                    string supplierName = GetMappedString(firstRow, mappings, "SupplierName", required: true);
-                    decimal totalAmount = GetMappedDecimal(firstRow, mappings, "TotalAmount", required: true);
-                    decimal discount = GetMappedDecimalNull(firstRow, mappings, "DiscountAmount") ?? 0;
-                    decimal taxAmount = GetMappedDecimalNull(firstRow, mappings, "TaxAmount") ?? 0;
-                    string status = PaymentStatus.Normalize(GetMappedString(firstRow, mappings, "PaymentStatus", required: false) ?? PaymentStatus.Paid);
-                    string? notes = GetMappedString(firstRow, mappings, "Notes", required: false);
+                    var groupRows = group.ToList();
+                    var firstRow = groupRows[0];
+                    DateTime invoiceDate = firstRow.InvoiceDate!.Value;
+                    string supplierName = firstRow.SupplierName!;
+                    decimal totalAmount = firstRow.TotalAmount;
+                    decimal discount = firstRow.DiscountAmount;
+                    decimal taxAmount = firstRow.TaxAmount;
+                    string status = firstRow.PaymentStatus!;
 
+
+                    var preparedLines = new List<(Product Product, decimal Quantity, decimal UnitPrice, decimal TaxRate)>();
+                    foreach (var itemRow in groupRows)
+                    {
+                        rowIdx++;
+                        string productCode = itemRow.ProductCode!;
+                        decimal qty = itemRow.Quantity;
+                        decimal unitPrice = itemRow.UnitPrice;
+                        decimal taxRate = itemRow.TaxRate;
+                        var product = db.Products.FirstOrDefault(p => p.ProductCode == productCode)
+                            ?? throw new ArgumentException($"Không tìm thấy sản phẩm '{productCode}'.");
+                        preparedLines.Add((product, qty, unitPrice, taxRate));
+                    }
+                    var payloadMarker = firstRow.PayloadMarker!;
+                    var existingInvoice = await db.PurchaseInvoices
+                        .AsNoTracking()
+                        .SingleOrDefaultAsync(item => item.InvoiceCode == group.Key, cancellationToken);
+                    if (existingInvoice is not null)
+                    {
+                        EnsurePayloadMatches(existingInvoice.Notes, payloadMarker);
+                        var existingLineCount = await db.PurchaseInvoiceLines.CountAsync(
+                            line => line.PurchaseInvoiceId == existingInvoice.Id,
+                            cancellationToken);
+                        if (existingLineCount != groupRows.Count)
+                        {
+                            throw new InvalidOperationException(
+                                "Import replay does not match the existing invoice lines.");
+                        }
+
+                        result.SuccessCount += groupRows.Count;
+                        continue;
+                    }
                     var supplier = db.Suppliers.FirstOrDefault(s => s.DisplayName == supplierName);
                     if (supplier == null)
                     {
@@ -1020,11 +1724,11 @@ namespace QuanLyHangHoa.Services.DataImport
                         {
                             supplier = new Supplier { DisplayName = supplierName, SupplierCode = $"SUP-{Guid.NewGuid().ToString().Substring(0, 8).ToUpperInvariant()}", IsActive = true };
                             db.Suppliers.Add(supplier);
-                            db.SaveChanges();
+                            await db.SaveChangesAsync(cancellationToken);
                         }
                         else
                         {
-                            throw new Exception($"Không tìm thấy nhà cung cấp '{supplierName}'.");
+                            throw new ArgumentException($"Không tìm thấy nhà cung cấp '{supplierName}'.");
                         }
                     }
 
@@ -1037,75 +1741,101 @@ namespace QuanLyHangHoa.Services.DataImport
                         TaxAmount = taxAmount,
                         GrandTotal = totalAmount,
                         PaymentStatus = status,
-                        Notes = notes,
+                        Notes = firstRow.PersistedNotes,
                         CreatedBy = userId,
                         CreatedAt = DateTime.Now
                     };
 
                     db.PurchaseInvoices.Add(invoice);
-                    db.SaveChanges();
+                    await db.SaveChangesAsync(cancellationToken);
 
-                    foreach (var itemRow in group)
+                    foreach (var item in preparedLines)
                     {
-                        rowIdx++;
-                        string productCode = GetMappedString(itemRow, mappings, "ProductCode", required: true);
-                        decimal qty = GetMappedDecimal(itemRow, mappings, "Quantity", required: true);
-                        decimal unitPrice = GetMappedDecimal(itemRow, mappings, "UnitPrice", required: true);
-                        decimal taxRate = GetMappedDecimalNull(itemRow, mappings, "TaxRate") ?? 0;
-
-                        var product = db.Products.FirstOrDefault(p => p.ProductCode == productCode);
-                        if (product == null)
-                            throw new Exception($"Không tìm thấy sản phẩm '{productCode}'.");
-
                         var line = new PurchaseInvoiceLine
                         {
                             PurchaseInvoiceId = invoice.Id,
-                            ProductId = product.Id,
-                            UnitId = product.DefaultUnitId,
-                            Quantity = qty,
-                            UnitPrice = unitPrice,
-                            TaxRate = taxRate,
-                            SubTotal = qty * unitPrice,
-                            TaxAmount = qty * unitPrice * taxRate,
-                            GrandTotal = (qty * unitPrice) * (1 + taxRate)
+                            ProductId = item.Product.Id,
+                            UnitId = item.Product.DefaultUnitId,
+                            Quantity = item.Quantity,
+                            UnitPrice = item.UnitPrice,
+                            TaxRate = item.TaxRate,
+                            SubTotal = item.Quantity * item.UnitPrice,
+                            TaxAmount = item.Quantity * item.UnitPrice * item.TaxRate,
+                            GrandTotal = (item.Quantity * item.UnitPrice) * (1 + item.TaxRate)
                         };
 
                         db.PurchaseInvoiceLines.Add(line);
                     }
                     result.SuccessCount += group.Count();
                 }
-                catch (Exception ex)
+                catch (ArgumentException ex)
                 {
                     result.Errors.Add(new RowError { RowNumber = rowIdx, ErrorMessage = $"Lỗi hóa đơn mua {group.Key}: {ex.Message}" });
                 }
             }
+
+            return rowIdx;
         }
 
         // cách nhóm giống hóa đơn mua nhưng tham chiếu khách hàng và giá bán
-        private void ImportSalesInvoices(
-            List<Dictionary<string, string>> rawRows,
-            Dictionary<string, string> mappings,
+        private async Task<int> ImportSalesInvoicesAsync(
+            IReadOnlyList<PreparedImportRow> rows,
             AppDbContext db,
             DynamicImportResult result,
             int userId,
             bool autoCreateReferences,
-            ref int rowIdx)
+            Guid operationId,
+            int rowIdx,
+            CancellationToken cancellationToken)
         {
-            var grouped = rawRows.GroupBy(r => GetMappedString(r, mappings, "InvoiceCode", required: true));
+            var grouped = rows.GroupBy(row => row.InvoiceCode!);
 
             foreach (var group in grouped)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 try
                 {
-                    var firstRow = group.First();
-                    DateTime invoiceDate = GetMappedDateTime(firstRow, mappings, "InvoiceDate", required: true);
-                    string customerName = GetMappedString(firstRow, mappings, "CustomerName", required: true);
-                    decimal totalAmount = GetMappedDecimal(firstRow, mappings, "TotalAmount", required: true);
-                    decimal discount = GetMappedDecimalNull(firstRow, mappings, "DiscountAmount") ?? 0;
-                    decimal taxAmount = GetMappedDecimalNull(firstRow, mappings, "TaxAmount") ?? 0;
-                    string status = PaymentStatus.Normalize(GetMappedString(firstRow, mappings, "PaymentStatus", required: false) ?? PaymentStatus.Paid);
-                    string? notes = GetMappedString(firstRow, mappings, "Notes", required: false);
+                    var groupRows = group.ToList();
+                    var firstRow = groupRows[0];
+                    DateTime invoiceDate = firstRow.InvoiceDate!.Value;
+                    string customerName = firstRow.CustomerName!;
+                    decimal totalAmount = firstRow.TotalAmount;
+                    decimal discount = firstRow.DiscountAmount;
+                    decimal taxAmount = firstRow.TaxAmount;
+                    string status = firstRow.PaymentStatus!;
 
+
+                    var preparedLines = new List<(Product Product, decimal Quantity, decimal UnitPrice, decimal TaxRate)>();
+                    foreach (var itemRow in groupRows)
+                    {
+                        rowIdx++;
+                        string productCode = itemRow.ProductCode!;
+                        decimal qty = itemRow.Quantity;
+                        decimal unitPrice = itemRow.UnitPrice;
+                        decimal taxRate = itemRow.TaxRate;
+                        var product = db.Products.FirstOrDefault(p => p.ProductCode == productCode)
+                            ?? throw new ArgumentException($"Không tìm thấy sản phẩm '{productCode}'.");
+                        preparedLines.Add((product, qty, unitPrice, taxRate));
+                    }
+                    var payloadMarker = firstRow.PayloadMarker!;
+                    var existingInvoice = await db.SalesInvoices
+                        .AsNoTracking()
+                        .SingleOrDefaultAsync(item => item.InvoiceCode == group.Key, cancellationToken);
+                    if (existingInvoice is not null)
+                    {
+                        EnsurePayloadMatches(existingInvoice.Notes, payloadMarker);
+                        var existingLineCount = await db.SalesInvoiceLines.CountAsync(
+                            line => line.SalesInvoiceId == existingInvoice.Id,
+                            cancellationToken);
+                        if (existingLineCount != groupRows.Count)
+                        {
+                            throw new InvalidOperationException(
+                                "Import replay does not match the existing invoice lines.");
+                        }
+
+                        result.SuccessCount += groupRows.Count;
+                        continue;
+                    }
                     var customer = db.Customers.FirstOrDefault(c => c.DisplayName == customerName);
                     if (customer == null)
                     {
@@ -1113,11 +1843,11 @@ namespace QuanLyHangHoa.Services.DataImport
                         {
                             customer = new Customer { DisplayName = customerName, CustomerCode = $"CUS-{Guid.NewGuid().ToString().Substring(0, 8).ToUpperInvariant()}", IsActive = true };
                             db.Customers.Add(customer);
-                            db.SaveChanges();
+                            await db.SaveChangesAsync(cancellationToken);
                         }
                         else
                         {
-                            throw new Exception($"Không tìm thấy khách hàng '{customerName}'.");
+                            throw new ArgumentException($"Không tìm thấy khách hàng '{customerName}'.");
                         }
                     }
 
@@ -1130,48 +1860,40 @@ namespace QuanLyHangHoa.Services.DataImport
                         TaxAmount = taxAmount,
                         GrandTotal = totalAmount,
                         PaymentStatus = status,
-                        Notes = notes,
+                        Notes = firstRow.PersistedNotes,
                         CreatedBy = userId,
                         CreatedAt = DateTime.Now
                     };
 
                     db.SalesInvoices.Add(invoice);
-                    db.SaveChanges();
+                    await db.SaveChangesAsync(cancellationToken);
 
-                    foreach (var itemRow in group)
+                    foreach (var item in preparedLines)
                     {
-                        rowIdx++;
-                        string productCode = GetMappedString(itemRow, mappings, "ProductCode", required: true);
-                        decimal qty = GetMappedDecimal(itemRow, mappings, "Quantity", required: true);
-                        decimal unitPrice = GetMappedDecimal(itemRow, mappings, "UnitPrice", required: true);
-                        decimal taxRate = GetMappedDecimalNull(itemRow, mappings, "TaxRate") ?? 0;
-
-                        var product = db.Products.FirstOrDefault(p => p.ProductCode == productCode);
-                        if (product == null)
-                            throw new Exception($"Không tìm thấy sản phẩm '{productCode}'.");
-
                         var line = new SalesInvoiceLine
                         {
                             SalesInvoiceId = invoice.Id,
-                            ProductId = product.Id,
-                            UnitId = product.DefaultUnitId,
-                            Quantity = qty,
-                            UnitPrice = unitPrice,
-                            TaxRate = taxRate,
-                            SubTotal = qty * unitPrice,
-                            TaxAmount = qty * unitPrice * taxRate,
-                            GrandTotal = (qty * unitPrice) * (1 + taxRate)
+                            ProductId = item.Product.Id,
+                            UnitId = item.Product.DefaultUnitId,
+                            Quantity = item.Quantity,
+                            UnitPrice = item.UnitPrice,
+                            TaxRate = item.TaxRate,
+                            SubTotal = item.Quantity * item.UnitPrice,
+                            TaxAmount = item.Quantity * item.UnitPrice * item.TaxRate,
+                            GrandTotal = (item.Quantity * item.UnitPrice) * (1 + item.TaxRate)
                         };
 
                         db.SalesInvoiceLines.Add(line);
                     }
                     result.SuccessCount += group.Count();
                 }
-                catch (Exception ex)
+                catch (ArgumentException ex)
                 {
                     result.Errors.Add(new RowError { RowNumber = rowIdx, ErrorMessage = $"Lỗi hóa đơn bán {group.Key}: {ex.Message}" });
                 }
             }
+
+            return rowIdx;
         }
 
         #endregion

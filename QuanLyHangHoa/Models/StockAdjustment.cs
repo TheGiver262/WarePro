@@ -42,4 +42,6 @@ public partial class StockAdjustment
     public virtual ICollection<StockAdjustmentLine> Lines { get; set; } = new List<StockAdjustmentLine>();
 
     public virtual Warehouse Warehouse { get; set; } = null!;
+    public byte[] RowVersion { get; set; } = [];
+
 }

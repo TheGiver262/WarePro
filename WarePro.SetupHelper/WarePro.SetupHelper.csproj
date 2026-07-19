@@ -8,12 +8,13 @@
     <Nullable>enable</Nullable>
     <AssemblyName>WarePro.SetupHelper</AssemblyName>
     <RootNamespace>WarePro.SetupHelper</RootNamespace>
-    <Version>1.0.0</Version>
-    <FileVersion>1.0.0.0</FileVersion>
-    <InformationalVersion>1.0.0</InformationalVersion>
+    <Version>1.1.0</Version>
+    <FileVersion>1.1.1.0</FileVersion>
+    <InformationalVersion>1.1.0</InformationalVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\WarePro.Core\WarePro.Core.csproj" />
+    <PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
   </ItemGroup>
 </Project>

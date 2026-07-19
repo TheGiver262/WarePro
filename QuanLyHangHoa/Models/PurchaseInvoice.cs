@@ -36,4 +36,6 @@ public partial class PurchaseInvoice
     public virtual StockIn? StockIn { get; set; }
 
     public virtual Supplier Supplier { get; set; } = null!;
+    public byte[] RowVersion { get; set; } = [];
+
 }

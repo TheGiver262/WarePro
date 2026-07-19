@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace QuanLyHangHoa.Models;
@@ -31,4 +31,6 @@ public partial class WarrantyCoverage
     public virtual SalesInvoice? SalesInvoice { get; set; }
 
     public virtual ICollection<WarrantyClaim> WarrantyClaims { get; set; } = new List<WarrantyClaim>();
+    public byte[] RowVersion { get; set; } = [];
+
 }

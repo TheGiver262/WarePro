@@ -18,6 +18,14 @@
     </UserControl.Resources>
 
     <Grid Background="{StaticResource AppBackgroundBrush}">
+        <TextBlock Panel.ZIndex="10"
+                   Text="{Binding WriteStatus}"
+                   Style="{StaticResource TypographyCaption}"
+                   Foreground="{StaticResource AppSecondaryBrush}"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Top"
+                   Margin="0,12,0,0"
+                   IsHitTestVisible="False"/>
         <!-- ═══════════════════════════════════════════ -->
         <!-- LIST VIEW                                   -->
         <!-- ═══════════════════════════════════════════ -->

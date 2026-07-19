@@ -7,6 +7,7 @@ using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Views;
 using QuanLyHangHoa.Data;
 using System;
+using System.Threading.Tasks;
 using System.Windows;
 using ClosedXML.Excel;
 using System.Text.Json;
@@ -107,7 +108,7 @@ namespace QuanLyHangHoa.ViewModels
         partial void OnSearchStatusChanged(string? value) => ApplyFilters();
 
         [RelayCommand(CanExecute = nameof(CanManage))]
-        private void OpenAddSupplierDialog()
+        private async Task OpenAddSupplierDialog()
         {
             var vm = new SupplierEditViewModel();
             var window = new SupplierEditWindow { DataContext = vm };
@@ -115,29 +116,37 @@ namespace QuanLyHangHoa.ViewModels
             {
                 var newSup = new Supplier();
                 vm.ApplyTo(newSup);
-                _service.Add(newSup, _currentUser.Id);
+                await _service.AddAsync(newSup, _currentUser.Id, Guid.NewGuid());
                 LoadData();
             }
         }
 
         [RelayCommand(CanExecute = nameof(CanManage))]
         // dialog tách state edit khỏi danh sách; reload chỉ sau update thành công
-        private void EditSupplier(Supplier supplier)
+        private async Task EditSupplier(Supplier supplier)
         {
-            var beforeJson = Serialize(supplier);
+            var expectedRowVersion = supplier.RowVersion.ToArray();
             var vm = new SupplierEditViewModel(supplier);
             var window = new SupplierEditWindow { DataContext = vm };
             if (window.ShowDialog() == true)
             {
                 vm.ApplyTo(supplier);
-                _service.Update(supplier, beforeJson, _currentUser.Id);
+                try
+                {
+    await _service.UpdateAsync(supplier.Id, supplier, expectedRowVersion, _currentUser.Id, Guid.NewGuid());
+                }
+                catch (DatabaseWriteConflictException)
+                {
+                    LoadData();
+                    return;
+                }
                 LoadData();
             }
         }
 
         [RelayCommand(CanExecute = nameof(CanManage))]
         // supplier đã có nhập/hóa đơn mua không xóa cứng để giữ lịch sử
-        private void DeleteSupplier(Supplier supplier)
+        private async Task DeleteSupplier(Supplier supplier)
         {
             using var db = _contextFactory();
             // 1. Kiểm tra phát sinh dữ liệu
@@ -159,7 +168,11 @@ namespace QuanLyHangHoa.ViewModels
             {
                 try 
                 {
-                    _service.Delete(supplier.Id, _currentUser.Id);
+                    await _service.DeleteAsync(supplier.Id, supplier.RowVersion, _currentUser.Id, Guid.NewGuid());
+                    LoadData();
+                }
+                catch (DatabaseWriteConflictException)
+                {
                     LoadData();
                 }
                 catch (Exception ex)

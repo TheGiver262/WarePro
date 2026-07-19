@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
@@ -11,10 +13,12 @@ namespace QuanLyHangHoa.Services
     public class BrandService
     {
         private readonly Func<AppDbContext> _contextFactory;
+        private readonly DatabaseWriteExecutor _writeExecutor;
 
         public BrandService(Func<AppDbContext> contextFactory)
         {
             _contextFactory = contextFactory;
+            _writeExecutor = new DatabaseWriteExecutor(contextFactory);
         }
 
         // AsNoTracking phù hợp danh sách chỉ đọc, tránh EF giữ bản sao không cần thiết trong context
@@ -25,60 +29,42 @@ namespace QuanLyHangHoa.Services
         }
 
         // dữ liệu và audit nằm chung transaction để không có thay đổi nào thiếu dấu vết
-        public void Add(Brand brand, int performedBy)
+        public Task UpdateAsync(
+            int id, Brand updated, byte[] expectedRowVersion, int performedBy,
+            Guid operationId, CancellationToken cancellationToken = default)
         {
-            using var db = _contextFactory();
-            using var transaction = db.Database.BeginTransaction();
-            db.Brands.Add(brand);
-            db.SaveChanges();
-            AddAudit(db, "CREATE", brand.Id, null, Serialize(brand), performedBy);
-            transaction.Commit();
-        }
+            ArgumentNullException.ThrowIfNull(expectedRowVersion);
+            var rowVersion = expectedRowVersion.ToArray();
+            var code = updated.BrandCode.Trim();
+            var name = updated.DisplayName.Trim();
+            var country = updated.OriginCountry?.Trim();
+            var isActive = updated.IsActive;
 
-        public void Update(Brand brand, string beforeJson, int performedBy)
-        {
-            using var db = _contextFactory();
-            using var transaction = db.Database.BeginTransaction();
-            db.Brands.Update(brand);
-            db.SaveChanges();
-            AddAudit(db, "UPDATE", brand.Id, beforeJson, Serialize(brand), performedBy);
-            transaction.Commit();
-        }
-
-        public void Delete(int id, int performedBy)
-        {
-            using var db = _contextFactory();
-            var brand = db.Brands.Find(id);
-            if (brand != null)
-            {
-                using var transaction = db.Database.BeginTransaction();
-                var beforeJson = Serialize(brand);
-                // thương hiệu đã được sản phẩm tham chiếu chỉ được ngừng hoạt động; xóa cứng sẽ làm mất quan hệ lịch sử
-                if (db.Products.Any(product => product.BrandId == id))
+            return _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("brand.update", operationId),
+                async (db, token) =>
                 {
-                    brand.IsActive = false;
-                    db.SaveChanges();
-                    AddAudit(db, "DEACTIVATE", id, beforeJson, Serialize(brand), performedBy);
-                }
-                else
-                {
-                    db.Brands.Remove(brand);
-                    db.SaveChanges();
-                    AddAudit(db, "DELETE", id, beforeJson, null, performedBy);
-                }
-
-                transaction.Commit();
-            }
+                    AuthorizationService.RequireFreshActor(db, performedBy, PermissionAction.ManageMasterData);
+                    var entity = await db.Brands.SingleOrDefaultAsync(item => item.Id == id, token);
+                    if (entity is null) return;
+                    db.Entry(entity).Property(item => item.RowVersion).OriginalValue = rowVersion;
+                    var before = Serialize(entity);
+                    entity.BrandCode = code;
+                    entity.DisplayName = name;
+                    entity.OriginCountry = country;
+                    entity.IsActive = isActive;
+                    AddAuditEntry(db, "UPDATE", id, before, Serialize(entity), performedBy);
+                },
+                (db, token) => db.Brands.AnyAsync(item => item.Id == id &&
+                    item.BrandCode == code && item.DisplayName == name &&
+                    item.OriginCountry == country && item.IsActive == isActive &&
+                    item.RowVersion != rowVersion, token),
+                cancellationToken: cancellationToken);
         }
 
-        private string Serialize(Brand b)
-        {
-            return JsonSerializer.Serialize(new { b.Id, b.BrandCode, b.DisplayName, b.OriginCountry, b.IsActive });
-        }
-
-        // before/after là snapshot gọn dùng khi tra cứu lịch sử chỉnh sửa
-        private void AddAudit(AppDbContext db, string action, int entityId, string? before, string? after, int performedBy)
-        {
+        private static void AddAuditEntry(
+            AppDbContext db, string action, int entityId,
+            string? before, string? after, int performedBy) =>
             db.AuditLogs.Add(new AuditLog
             {
                 EntityName = "Brand",
@@ -89,7 +75,77 @@ namespace QuanLyHangHoa.Services
                 PerformedBy = performedBy,
                 PerformedAt = DateTime.Now
             });
-            db.SaveChanges();
+        public Task<int> AddAsync(
+            Brand brand, int performedBy, Guid operationId,
+            CancellationToken cancellationToken = default)
+        {
+            var code = brand.BrandCode.Trim();
+            var name = brand.DisplayName.Trim();
+            var country = brand.OriginCountry?.Trim();
+            var isActive = brand.IsActive;
+
+            return _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("brand.add", operationId),
+                async (db, token) =>
+                {
+                    AuthorizationService.RequireFreshActor(db, performedBy, PermissionAction.ManageMasterData);
+                    if (await db.Brands.AnyAsync(item => item.BrandCode == code, token))
+                    {
+                        throw new InvalidOperationException($"Brand code '{code}' already exists.");
+                    }
+
+                    var created = new Brand
+                    {
+                        BrandCode = code,
+                        DisplayName = name,
+                        OriginCountry = country,
+                        IsActive = isActive
+                    };
+                    db.Brands.Add(created);
+                    await db.SaveChangesAsync(token);
+                    AddAuditEntry(db, "CREATE", created.Id, null, Serialize(created), performedBy);
+                    return created.Id;
+                },
+                (db, token) => db.Brands.AnyAsync(item =>
+                    item.BrandCode == code && item.DisplayName == name &&
+                    item.OriginCountry == country && item.IsActive == isActive, token),
+                cancellationToken: cancellationToken);
         }
+
+        public Task DeleteAsync(
+            int id, byte[] expectedRowVersion, int performedBy, Guid operationId,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(expectedRowVersion);
+            var rowVersion = expectedRowVersion.ToArray();
+
+            return _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("brand.delete", operationId),
+                async (db, token) =>
+                {
+                    AuthorizationService.RequireFreshActor(db, performedBy, PermissionAction.ManageMasterData);
+                    var entity = await db.Brands.SingleOrDefaultAsync(item => item.Id == id, token);
+                    if (entity is null) return;
+                    db.Entry(entity).Property(item => item.RowVersion).OriginalValue = rowVersion;
+                    var before = Serialize(entity);
+                    if (await db.Products.AnyAsync(product => product.BrandId == id, token))
+                    {
+                        entity.IsActive = false;
+                        AddAuditEntry(db, "DEACTIVATE", id, before, Serialize(entity), performedBy);
+                    }
+                    else
+                    {
+                        db.Brands.Remove(entity);
+                        AddAuditEntry(db, "DELETE", id, before, null, performedBy);
+                    }
+                },
+                (db, token) => db.Brands.AllAsync(item => item.Id != id || !item.IsActive, token),
+                cancellationToken: cancellationToken);
+        }
+        private static string Serialize(Brand b)
+        {
+            return JsonSerializer.Serialize(new { b.Id, b.BrandCode, b.DisplayName, b.OriginCountry, b.IsActive });
+        }
+
     }
 }

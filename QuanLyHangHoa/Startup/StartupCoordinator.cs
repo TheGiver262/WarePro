@@ -3,7 +3,6 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Configuration;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Services;
@@ -25,7 +24,7 @@ public interface IStartupRuntime
 /// <summary>
 /// điều phối toàn bộ điều kiện bắt buộc trước khi giao diện được phép dùng cơ sở dữ liệu.
 /// </summary>
-public sealed class StartupCoordinator
+public sealed class StartupCoordinator : IAsyncDisposable
 {
     private readonly IStartupRuntime _runtime;
 
@@ -132,6 +131,12 @@ public sealed class StartupCoordinator
             GetLogPathSafely());
 
     // lỗi khi tính đường dẫn log không được che kết quả startup ban đầu.
+    public async ValueTask DisposeAsync()
+    {
+        if (_runtime is IAsyncDisposable disposable)
+            await disposable.DisposeAsync().ConfigureAwait(false);
+    }
+
     private string GetLogPathSafely()
     {
         try
@@ -148,8 +153,9 @@ public sealed class StartupCoordinator
 /// <summary>
 /// runtime thật nối coordinator với cấu hình máy, SqlClient và bộ khởi tạo cơ sở dữ liệu.
 /// </summary>
-public sealed class DefaultStartupRuntime : IStartupRuntime
+public sealed class DefaultStartupRuntime : IStartupRuntime, IAsyncDisposable
 {
+    private ClientSessionLease? _sessionLease;
     public WareProSettings? LoadSettings() => new WareProSettingsStore().Load();
 
     public string ResolveConnectionString(WareProSettings? settings) =>
@@ -181,26 +187,69 @@ public sealed class DefaultStartupRuntime : IStartupRuntime
         }
     }
 
-    public Task InitializeDatabaseAsync(string connectionString, CancellationToken cancellationToken)
+    public async Task InitializeDatabaseAsync(
+        string connectionString,
+        CancellationToken cancellationToken)
     {
-        // DatabaseInitializer là API đồng bộ; chạy nền để phần nâng cấp dài không khóa UI thread lúc startup.
-        return Task.Run(() =>
-        {
-            // context mới chỉ phục vụ lần khởi tạo này, không mang tracking state sang màn hình đăng nhập.
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlServer(connectionString)
-                .Options;
-            var initializer = new DatabaseInitializer(
-                () => new AppDbContext(options),
-                WareProPaths.Current.InstallDirectory,
-                connectionString);
-            initializer.Initialize(cancellationToken);
-        }, cancellationToken);
-    }
+        var readiness = new DatabaseReadinessService(ReadDatabaseSnapshotAsync);
+        var result = await readiness.CheckDatabaseReadyAsync(
+            connectionString,
+            GetAppVersion(),
+            cancellationToken);
+        if (result.Status == DatabaseReadinessStatus.UpgradeRequired)
+            throw new StartupFailureException("DB-UPGRADE-REQUIRED", "Hãy chạy bộ cài để nâng database.", result.Code);
+        if (result.Status == DatabaseReadinessStatus.ClientUpdateRequired)
+            throw new StartupFailureException("DB-CLIENT-UPDATE-REQUIRED", "Client hiện tại không tương thích database.", result.Code);
+        if (result.Status == DatabaseReadinessStatus.Unavailable)
+            throw new StartupFailureException("DB-UNAVAILABLE", "Không đọc được trạng thái database.", result.Code);
 
+        _sessionLease = await ClientSessionLease.RegisterAsync(
+            connectionString,
+            GetAppVersion().ToString(3),
+            cancellationToken);
+    }
+    private static async Task<DatabaseReadinessSnapshot> ReadDatabaseSnapshotAsync(
+        string connectionString,
+        CancellationToken cancellationToken)
+    {
+        await using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            DECLARE @SchemaVersion INT = 0;
+            DECLARE @MinimumClientVersion NVARCHAR(32) = N'1.0.0';
+            IF OBJECT_ID(N'dbo.__WareProSchemaVersion', N'U') IS NOT NULL
+            BEGIN
+                EXEC sys.sp_executesql
+                    N'SELECT @value = ISNULL(MAX([Version]), 0) FROM dbo.__WareProSchemaVersion;',
+                    N'@value INT OUTPUT',
+                    @value = @SchemaVersion OUTPUT;
+                IF COL_LENGTH(N'dbo.__WareProSchemaVersion', N'MinimumClientVersion') IS NOT NULL
+                    EXEC sys.sp_executesql
+                        N'SELECT @value = COALESCE(MAX(NULLIF([MinimumClientVersion], N'''')), N''1.0.0'') FROM dbo.__WareProSchemaVersion;',
+                        N'@value NVARCHAR(32) OUTPUT',
+                        @value = @MinimumClientVersion OUTPUT;
+            END;
+            SELECT @SchemaVersion, @MinimumClientVersion;
+            """;
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        if (!await reader.ReadAsync(cancellationToken))
+            return new DatabaseReadinessSnapshot(0, "1.0.0", 0);
+        return new DatabaseReadinessSnapshot(reader.GetInt32(0), reader.GetString(1), 0);
+    }
+    private static Version GetAppVersion() =>
+        typeof(StartupCoordinator).Assembly.GetName().Version ?? new Version("0.0.0");
     public string GetLogPath()
     {
         var directory = WareProPaths.Current.UserLogDirectory;
         return Path.Combine(directory, $"crash-{DateTimeOffset.UtcNow:yyyyMMdd}.log");
+    }
+    public async ValueTask DisposeAsync()
+    {
+        if (_sessionLease is not null)
+        {
+            await _sessionLease.DisposeAsync().ConfigureAwait(false);
+            _sessionLease = null;
+        }
     }
 }

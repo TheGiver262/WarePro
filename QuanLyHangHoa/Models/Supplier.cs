@@ -21,4 +21,6 @@ public partial class Supplier
     public virtual ICollection<PurchaseInvoice> PurchaseInvoices { get; set; } = new List<PurchaseInvoice>();
 
     public virtual ICollection<StockIn> StockIns { get; set; } = new List<StockIn>();
+    public byte[] RowVersion { get; set; } = [];
+
 }

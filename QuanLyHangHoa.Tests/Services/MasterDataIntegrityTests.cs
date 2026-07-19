@@ -65,14 +65,17 @@ public class MasterDataIntegrityTests
     [InlineData("ProductSerial")]
     [InlineData("StockBalance")]
     [InlineData("StockTransferLine")]
-    public void DeleteProduct_deactivates_product_with_dependency(string dependencyName)
+    public async Task DeleteProduct_deactivates_product_with_dependency(string dependencyName)
     {
         using var connection = CreateDatabase();
         SeedProduct(connection, isActive: true);
         SeedProductDependency(connection, dependencyName);
+        byte[] rowVersion;
+        using (var db = CreateContext(connection))
+            rowVersion = db.Products.AsNoTracking().Single(item => item.Id == 100).RowVersion;
         var service = new ProductService(() => CreateContext(connection));
 
-        service.DeleteProduct(100, userId: 1);
+        await service.DeleteProductAsync(100, rowVersion, userId: 1, Guid.NewGuid());
 
         using var assertContext = CreateContext(connection);
         Assert.False(assertContext.Products.Single(product => product.Id == 100).IsActive);
@@ -80,7 +83,7 @@ public class MasterDataIntegrityTests
     }
 
     [Fact]
-    public void DeleteUnit_deactivates_unit_with_dependency()
+    public async Task DeleteUnit_deactivates_unit_with_dependency()
     {
         using var connection = CreateDatabase();
         using (var db = CreateContext(connection))
@@ -90,8 +93,11 @@ public class MasterDataIntegrityTests
             db.SaveChanges();
         }
 
+        byte[] rowVersion;
+        using (var db = CreateContext(connection))
+            rowVersion = db.Units.AsNoTracking().Single(unit => unit.Id == 10).RowVersion;
         var service = new UnitService(() => CreateContext(connection));
-        service.Delete(10, performedBy: 1);
+        await service.DeleteAsync(10, rowVersion, performedBy: 1, Guid.NewGuid());
 
         using var assertContext = CreateContext(connection);
         Assert.False(assertContext.Units.Single(unit => unit.Id == 10).IsActive);
@@ -99,19 +105,19 @@ public class MasterDataIntegrityTests
     }
 
     [Fact]
-    public void Create_rolls_back_when_audit_insert_fails()
+    public async Task Create_rolls_back_when_audit_insert_fails()
     {
         using var connection = CreateDatabaseWithFailingAudit();
         var service = new ProductService(() => CreateContext(connection));
 
-        Assert.ThrowsAny<Exception>(() => service.AddProduct(NewProduct(100), userId: 1));
+        await Assert.ThrowsAnyAsync<Exception>(() => service.AddProductAsync(NewProduct(100), userId: 1, Guid.NewGuid()));
 
         using var assertContext = CreateContext(connection);
         Assert.Empty(assertContext.Products);
     }
 
     [Fact]
-    public void Update_rolls_back_when_audit_insert_fails()
+    public async Task Update_rolls_back_when_audit_insert_fails()
     {
         using var connection = CreateDatabase();
         using (var db = CreateContext(connection))
@@ -122,31 +128,41 @@ public class MasterDataIntegrityTests
         InstallFailingAuditTrigger(connection);
         var service = new CategoryService(() => CreateContext(connection));
 
-        Assert.ThrowsAny<Exception>(() => service.Update(
+        byte[] rowVersion;
+        using (var db = CreateContext(connection))
+            rowVersion = db.Categories.AsNoTracking().Single(item => item.Id == 20).RowVersion;
+
+        await Assert.ThrowsAnyAsync<Exception>(() => service.UpdateAsync(
+            20,
             new Category { Id = 20, CategoryCode = "NEW", DisplayName = "New", IsActive = true },
-            beforeJson: "{}",
-            performedBy: 1));
+            rowVersion,
+            performedBy: 1,
+            Guid.NewGuid()));
 
         using var assertContext = CreateContext(connection);
         Assert.Equal("OLD", assertContext.Categories.Single().CategoryCode);
     }
 
     [Fact]
-    public void Deactivate_rolls_back_when_audit_insert_fails()
+    public async Task Deactivate_rolls_back_when_audit_insert_fails()
     {
         using var connection = CreateDatabase();
         SeedProduct(connection, isActive: true);
         InstallFailingAuditTrigger(connection);
+        byte[] rowVersion;
+        using (var db = CreateContext(connection))
+            rowVersion = db.Products.AsNoTracking().Single(item => item.Id == 100).RowVersion;
         var service = new ProductService(() => CreateContext(connection));
 
-        Assert.ThrowsAny<Exception>(() => service.DeactivateProduct(100, userId: 1));
+        await Assert.ThrowsAnyAsync<Exception>(() =>
+            service.DeactivateProductAsync(100, rowVersion, userId: 1, Guid.NewGuid()));
 
         using var assertContext = CreateContext(connection);
         Assert.True(assertContext.Products.Single().IsActive);
     }
 
     [Fact]
-    public void Delete_rolls_back_when_audit_insert_fails()
+    public async Task Delete_rolls_back_when_audit_insert_fails()
     {
         using var connection = CreateDatabase();
         using (var db = CreateContext(connection))
@@ -155,9 +171,13 @@ public class MasterDataIntegrityTests
             db.SaveChanges();
         }
         InstallFailingAuditTrigger(connection);
+        byte[] rowVersion;
+        using (var db = CreateContext(connection))
+            rowVersion = db.Units.AsNoTracking().Single(unit => unit.Id == 10).RowVersion;
         var service = new UnitService(() => CreateContext(connection));
 
-        Assert.ThrowsAny<Exception>(() => service.Delete(10, performedBy: 1));
+        await Assert.ThrowsAnyAsync<Exception>(() =>
+            service.DeleteAsync(10, rowVersion, performedBy: 1, Guid.NewGuid()));
 
         using var assertContext = CreateContext(connection);
         Assert.Equal("BOX", assertContext.Units.Single().UnitCode);
@@ -241,6 +261,16 @@ public class MasterDataIntegrityTests
         connection.Open();
         using var db = CreateContext(connection);
         db.Database.EnsureCreated();
+        db.AppUsers.Add(new AppUser
+        {
+            Id = 1,
+            Username = "admin",
+            FullName = "Administrator",
+            PasswordHash = "hash",
+            RoleCode = "Quản trị viên",
+            IsActive = true
+        });
+        db.SaveChanges();
         return connection;
     }
 

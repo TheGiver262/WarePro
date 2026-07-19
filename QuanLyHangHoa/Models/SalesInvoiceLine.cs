@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace QuanLyHangHoa.Models;
@@ -35,4 +35,6 @@ public partial class SalesInvoiceLine
     public virtual StockOutLine? StockOutLine { get; set; }
 
     public virtual Unit Unit { get; set; } = null!;
+    public byte[] RowVersion { get; set; } = [];
+
 }

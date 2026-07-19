@@ -5,6 +5,7 @@ using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Views;
 using System;
+using System.Threading.Tasks;
 using System.Collections.ObjectModel;
 using System.Collections.Generic;
 using System.Linq;
@@ -95,7 +96,7 @@ namespace QuanLyHangHoa.ViewModels
         partial void OnSearchStatusChanged(string? value) => ApplyFilters();
 
         [RelayCommand(CanExecute = nameof(CanManage))]
-        private void OpenAddCategoryDialog()
+        private async Task OpenAddCategoryDialog()
         {
             var vm = new CategoryEditViewModel();
             var window = new CategoryEditWindow { DataContext = vm };
@@ -103,7 +104,7 @@ namespace QuanLyHangHoa.ViewModels
             {
                 var newCat = new Category();
                 vm.ApplyTo(newCat);
-                _service.Add(newCat, _currentUser.Id);
+                await _service.AddAsync(newCat, _currentUser.Id, Guid.NewGuid());
 
                 LoadCategories();
             }
@@ -111,15 +112,23 @@ namespace QuanLyHangHoa.ViewModels
 
         [RelayCommand(CanExecute = nameof(CanManage))]
         // dialog sửa bản sao field; chỉ ApplyTo và gọi service khi người dùng xác nhận
-        private void EditCategory(Category category)
+        private async Task EditCategory(Category category)
         {
-            var beforeJson = Serialize(category);
+            var expectedRowVersion = category.RowVersion.ToArray();
             var vm = new CategoryEditViewModel(category);
             var window = new CategoryEditWindow { DataContext = vm };
             if (window.ShowDialog() == true)
             {
                 vm.ApplyTo(category);
-                _service.Update(category, beforeJson, _currentUser.Id);
+                try
+                {
+    await _service.UpdateAsync(category.Id, category, expectedRowVersion, _currentUser.Id, Guid.NewGuid());
+                }
+                catch (DatabaseWriteConflictException)
+                {
+                    LoadCategories();
+                    return;
+                }
 
                 LoadCategories();
             }
@@ -127,7 +136,7 @@ namespace QuanLyHangHoa.ViewModels
 
         [RelayCommand(CanExecute = nameof(CanManage))]
         // category có product sẽ inactive để giữ khóa ngoại; danh sách reload sau service commit
-        private void DeleteCategory(Category category)
+        private async Task DeleteCategory(Category category)
         {
             using var db = _contextFactory();
             // 1. Kiểm tra phát sinh dữ liệu
@@ -148,7 +157,11 @@ namespace QuanLyHangHoa.ViewModels
             {
                 try 
                 {
-                    _service.Delete(category.Id, _currentUser.Id);
+                    await _service.DeleteAsync(category.Id, category.RowVersion, _currentUser.Id, Guid.NewGuid());
+                    LoadCategories();
+                }
+                catch (DatabaseWriteConflictException)
+                {
                     LoadCategories();
                 }
                 catch (Exception ex)

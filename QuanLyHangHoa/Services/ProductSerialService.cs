@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
@@ -13,10 +15,12 @@ namespace QuanLyHangHoa.Services
     public class ProductSerialService
     {
         private readonly Func<AppDbContext> _contextFactory;
+        private readonly DatabaseWriteExecutor _writeExecutor;
 
         public ProductSerialService(Func<AppDbContext> contextFactory)
         {
             _contextFactory = contextFactory;
+            _writeExecutor = new DatabaseWriteExecutor(contextFactory);
         }
 
         public List<ProductSerial> SearchSerials(string serial, string product, string brand, string status, DateTime? fromDate = null, DateTime? toDate = null, string note = "")
@@ -74,39 +78,42 @@ namespace QuanLyHangHoa.Services
         }
 
         // thay note và audit nằm cùng transaction để không có thay đổi thiếu lịch sử hoặc lịch sử giả.
-        public void UpdateNote(int serialId, string? note, int userId)
+        public Task UpdateNoteAsync(
+            int serialId, string? note, byte[] expectedRowVersion, int userId,
+            Guid operationId, CancellationToken cancellationToken = default)
         {
-            using var db = _contextFactory();
-            using var transaction = db.Database.BeginTransaction();
-            var serial = db.ProductSerials.SingleOrDefault(item => item.Id == serialId)
-                ?? throw new InvalidOperationException("Không tìm thấy serial.");
-            var beforeJson = System.Text.Json.JsonSerializer.Serialize(new { serial.Note });
+            ArgumentNullException.ThrowIfNull(expectedRowVersion);
+            var rowVersion = expectedRowVersion.ToArray();
+            var normalizedNote = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
 
-            serial.Note = note;
-            db.AuditLogs.Add(new AuditLog
-            {
-                EntityName = "ProductSerial",
-                EntityId = serial.Id,
-                ActionCode = "UPDATE",
-                PerformedBy = userId,
-                PerformedAt = DateTime.UtcNow,
-                BeforeJson = beforeJson,
-                AfterJson = System.Text.Json.JsonSerializer.Serialize(new { serial.Note })
-            });
-
-            try
-            {
-                db.SaveChanges();
-                transaction.Commit();
-            }
-            catch
-            {
-                transaction.Rollback();
-                throw;
-            }
+            return _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("product-serial.update-note", operationId),
+                async (db, token) =>
+                {
+                    AuthorizationService.RequireFreshActor(db, userId, PermissionAction.ManageMasterData);
+                    var serial = await db.ProductSerials.SingleOrDefaultAsync(
+                        item => item.Id == serialId,
+                        token) ?? throw new InvalidOperationException("Không tìm thấy serial.");
+                    db.Entry(serial).Property(item => item.RowVersion).OriginalValue = rowVersion;
+                    var beforeJson = System.Text.Json.JsonSerializer.Serialize(new { serial.Note });
+                    serial.Note = normalizedNote;
+                    db.AuditLogs.Add(new AuditLog
+                    {
+                        EntityName = "ProductSerial",
+                        EntityId = serial.Id,
+                        ActionCode = "UPDATE",
+                        PerformedBy = userId,
+                        PerformedAt = DateTime.UtcNow,
+                        BeforeJson = beforeJson,
+                        AfterJson = System.Text.Json.JsonSerializer.Serialize(new { serial.Note })
+                    });
+                },
+                (db, token) => db.ProductSerials.AnyAsync(item =>
+                    item.Id == serialId && item.Note == normalizedNote &&
+                    item.RowVersion != rowVersion,
+                    token),
+                cancellationToken: cancellationToken);
         }
-
-        // cùng filter dùng cho danh sách, phân trang và count để tổng số không lệch dữ liệu hiển thị.
         private IQueryable<ProductSerial> ApplySerialFilters(IQueryable<ProductSerial> query, string serial, string product, string brand, string status, DateTime? fromDate, DateTime? toDate, string note)
         {
             if (!string.IsNullOrWhiteSpace(status) && status != "All")

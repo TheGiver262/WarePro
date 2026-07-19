@@ -8,7 +8,6 @@ using CommunityToolkit.Mvvm.Input;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Services;
-using QuanLyHangHoa.Services.DataImport;
 using QuanLyHangHoa.Views;
 
 namespace QuanLyHangHoa.ViewModels
@@ -16,7 +15,6 @@ namespace QuanLyHangHoa.ViewModels
     public partial class AppUserViewModel : ObservableObject
     {
         private readonly AppUserService _userService;
-        private readonly DataImportManager _importManager = new();
         private readonly AppUser _currentUser;
         private CancellationTokenSource? _filterDebounceCts;
 
@@ -142,14 +140,15 @@ namespace QuanLyHangHoa.ViewModels
                 FullName = user.FullName,
                 RoleCode = user.RoleCode,
                 IsActive = user.IsActive,
-                PasswordHash = "" 
+                PasswordHash = "",
+                RowVersion = user.RowVersion.ToArray()
             };
             IsEditPanelOpen = true;
         }
 
         [RelayCommand]
         // service đọc lại actor và target trong serializable transaction; ViewModel chỉ validate field và hiển thị lỗi
-        private void SaveUser()
+        private async Task SaveUser()
         {
             if (string.IsNullOrWhiteSpace(CurrentInputUser.FullName) || string.IsNullOrWhiteSpace(CurrentInputUser.Username))
             {
@@ -163,30 +162,41 @@ namespace QuanLyHangHoa.ViewModels
                 return;
             }
 
+            var operationId = Guid.NewGuid();
             try
             {
                 if (CurrentInputUser.Id == 0)
                 {
-                    _userService.AddUser(CurrentInputUser, _currentUser.Id);
+                    await _userService.AddUserAsync(CurrentInputUser, _currentUser.Id, operationId);
                 }
                 else
                 {
-                    _userService.UpdateUser(CurrentInputUser.Id, CurrentInputUser, _currentUser.Id);
+                    await _userService.UpdateUserAsync(CurrentInputUser.Id, CurrentInputUser, CurrentInputUser.RowVersion.ToArray(), _currentUser.Id, operationId);
                 }
 
                 LoadData();
                 IsEditPanelOpen = false;
                 SelectedUser = null;
             }
-            catch (Exception ex)
+            catch (DatabaseWriteConflictException)
             {
-                System.Windows.MessageBox.Show(ex.Message, "Lỗi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                LoadData();
+                ClearInput();
+                System.Windows.MessageBox.Show(
+                    "Người dùng đã thay đổi trên máy khác. Danh sách đã được tải lại.",
+                    "Dữ liệu đã thay đổi",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Warning);
+            }
+            catch (Exception)
+            {
+                System.Windows.MessageBox.Show(DatabaseWriteUi.TechnicalErrorMessage, "Lỗi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
 
         [RelayCommand]
         // dependency quyết định lời xác nhận xóa cứng hay inactive; service kiểm tra lại trước khi commit
-        private void DeleteUser(AppUser? user)
+        private async Task DeleteUser(AppUser? user)
         {
             if (user == null) return;
 
@@ -205,31 +215,54 @@ namespace QuanLyHangHoa.ViewModels
             {
                 try
                 {
-                    _userService.DeleteUser(user.Id, _currentUser.Id);
+                    await _userService.DeleteUserAsync(user.Id, user.RowVersion.ToArray(), _currentUser.Id, Guid.NewGuid());
                     LoadData();
                     if (SelectedUser?.Id == user.Id) ClearInput();
                 }
-                catch (Exception ex)
+                catch (DatabaseWriteConflictException)
                 {
-                    System.Windows.MessageBox.Show(ex.Message, "Lỗi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                    LoadData();
+                    if (SelectedUser?.Id == user.Id) ClearInput();
+                    System.Windows.MessageBox.Show(
+                        "Người dùng đã thay đổi trên máy khác. Danh sách đã được tải lại.",
+                        "Dữ liệu đã thay đổi",
+                        System.Windows.MessageBoxButton.OK,
+                        System.Windows.MessageBoxImage.Warning);
+                }
+                catch (Exception)
+                {
+                    System.Windows.MessageBox.Show(DatabaseWriteUi.TechnicalErrorMessage, "Lỗi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
                 }
             }
         }
 
         [RelayCommand]
         // không đổi IsActive trực tiếp trên row; gọi service để giữ rule admin cuối và audit
-        private void ToggleStatus(AppUser? user)
+        private async Task ToggleStatus(AppUser? user)
         {
             if (user == null) return;
 
             try
             {
-                _userService.ToggleUserStatus(user.Id, _currentUser.Id);
+                await _userService.ToggleUserStatusAsync(
+                    user.Id,
+                    user.RowVersion.ToArray(),
+                    _currentUser.Id,
+                    Guid.NewGuid());
                 LoadData();
             }
-            catch (Exception ex)
+            catch (DatabaseWriteConflictException)
             {
-                System.Windows.MessageBox.Show(ex.Message, "Lỗi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                LoadData();
+                System.Windows.MessageBox.Show(
+                    "Người dùng đã thay đổi trên máy khác. Danh sách đã được tải lại.",
+                    "Dữ liệu đã thay đổi",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Warning);
+            }
+            catch (Exception)
+            {
+                System.Windows.MessageBox.Show(DatabaseWriteUi.TechnicalErrorMessage, "Lỗi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
 

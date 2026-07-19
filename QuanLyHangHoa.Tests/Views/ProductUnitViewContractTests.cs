@@ -1,4 +1,6 @@
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using Moq;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
@@ -67,6 +69,9 @@ public class ProductUnitViewContractTests
         productUnitService
             .Setup(service => service.GetByProductId(product.Id, It.IsAny<bool>()))
             .Returns([productUnit]);
+        productUnitService.Setup(service => service.DeleteAsync(
+                productUnit.Id, It.IsAny<byte[]>(), 2, It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         var viewModel = new ProductUnitViewModel(
             productUnitService.Object,
@@ -111,7 +116,7 @@ public class ProductUnitViewContractTests
     }
 
     [Fact]
-    public void Delete_command_uses_the_row_parameter()
+    public async Task Delete_command_uses_the_row_parameter()
     {
         var product = new Product { Id = 10, ProductCode = "P10", DisplayName = "Printer" };
         var unit = new Unit { Id = 20, UnitCode = "BOX", DisplayName = "Box", IsActive = true };
@@ -132,6 +137,9 @@ public class ProductUnitViewContractTests
         productUnitService
             .Setup(service => service.GetByProductId(product.Id, It.IsAny<bool>()))
             .Returns([productUnit]);
+        productUnitService.Setup(service => service.DeleteAsync(
+                productUnit.Id, It.IsAny<byte[]>(), 2, It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
         var viewModel = new ProductUnitViewModel(
             productUnitService.Object,
             productService.Object,
@@ -139,10 +147,15 @@ public class ProductUnitViewContractTests
             Manager());
         viewModel.SelectedProductUnit = null;
 
-        viewModel.DeleteCommand.Execute(productUnit);
+        await viewModel.DeleteCommand.ExecuteAsync(productUnit);
 
         productUnitService.Verify(
-            service => service.Delete(productUnit.Id, 2),
+            service => service.DeleteAsync(
+                productUnit.Id,
+                It.IsAny<byte[]>(),
+                2,
+                It.IsAny<Guid>(),
+                It.IsAny<CancellationToken>()),
             Times.Once);
     }
 

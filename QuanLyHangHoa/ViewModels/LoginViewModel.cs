@@ -1,7 +1,9 @@
+using System;
 using System.Threading.Tasks;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Services;
 using QuanLyHangHoa.Views;
 
@@ -57,7 +59,18 @@ namespace QuanLyHangHoa.ViewModels
             }
 
             // BCrypt chạy ở worker để không khóa UI; mọi lỗi đăng nhập dùng thông báo chung, không lộ tài khoản tồn tại
-            var result = await Task.Run(() => _authService.Authenticate(Username, Password));
+            LoginResult result;
+            try
+            {
+                result = await Task.Run(() =>
+                    _authService.AuthenticateAsync(Username, Password, Guid.NewGuid()));
+            }
+            catch (DatabaseWriteConflictException)
+            {
+                ErrorMessage = "Tài khoản vừa thay đổi trên máy khác. Vui lòng thử đăng nhập lại.";
+                return;
+            }
+
             switch (result.Status)
             {
                 case LoginStatus.Success:

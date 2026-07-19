@@ -16,6 +16,7 @@ namespace QuanLyHangHoa
     /// </summary>
     public partial class App : Application
     {
+        private StartupCoordinator? _startupCoordinator;
         // các màn hình khởi tạo sau có thể chờ task này thay vì tự kiểm tra lại cơ sở dữ liệu.
         public static Task DatabaseReady { get; private set; } = Task.CompletedTask;
 
@@ -80,7 +81,8 @@ namespace QuanLyHangHoa
                 return;
             }
 
-            var coordinator = StartupCoordinator.CreateDefault();
+            _startupCoordinator = StartupCoordinator.CreateDefault();
+            var coordinator = _startupCoordinator;
             var result = await coordinator.RunAsync(CancellationToken.None);
             // chỉ hỏi thay credential khi SQL Server xác nhận tài khoản bị từ chối; các lỗi khác giữ nguyên nguyên nhân.
             if (!result.Success && result.ErrorCode == "SQL-CREDENTIAL-REJECTED")
@@ -130,6 +132,17 @@ namespace QuanLyHangHoa
 
         // ba kênh này bao phủ lỗi trên UI thread, thread ngoài WPF và task không được await.
         // handler chỉ ghi log; chính luồng phát sinh vẫn quyết định ứng dụng có dừng hay không.
+        protected override void OnExit(ExitEventArgs e)
+        {
+            try
+            {
+                _startupCoordinator?.DisposeAsync().AsTask().GetAwaiter().GetResult();
+            }
+            finally
+            {
+                base.OnExit(e);
+            }
+        }
         private void RegisterUnhandledExceptionLogging()
         {
             DispatcherUnhandledException += OnDispatcherUnhandledException;

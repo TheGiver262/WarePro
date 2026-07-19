@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Inventory;
@@ -17,27 +19,105 @@ namespace QuanLyHangHoa.Services
         private const string CountedStatus = "đã kiểm kê";
         private const string CompletedStatus = "hoàn thành";
         private readonly Func<AppDbContext> _contextFactory;
+        private readonly DatabaseWriteExecutor _writeExecutor;
 
         public StockCountService(Func<AppDbContext> contextFactory)
         {
             _contextFactory = contextFactory;
+            _writeExecutor = new DatabaseWriteExecutor(contextFactory);
         }
 
-        public void CreateSession(StockCountSession session, int userId)
+        public async Task CreateAsync(
+            StockCountSession session,
+            int userId,
+            Guid operationId,
+            CancellationToken cancellationToken = default)
         {
-            using var db = _contextFactory();
-            AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockAdjustment);
-            session.CreatedBy = userId;
-            db.StockCountSessions.Add(session);
-            db.SaveChanges();
-            AddAudit(db, "CREATE", session.Id, null, Serialize(session), session.CreatedBy);
+            ArgumentNullException.ThrowIfNull(session);
+            var snapshot = new CreateSessionSnapshot(
+                session.SessionCode,
+                session.WarehouseId,
+                session.Status,
+                session.CountDate,
+                session.Notes,
+                session.Lines.Select(line => new CreateLineSnapshot(
+                    line.ProductId,
+                    line.SystemQuantity,
+                    line.CountedQuantity,
+                    line.VarianceQuantity,
+                    line.SerialNumbers)).ToArray());
+
+            var sessionId = await _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("stock-count.create", operationId),
+                async (db, token) =>
+                {
+                    AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockAdjustment);
+                    var freshSession = snapshot.ToEntity(userId);
+                    db.StockCountSessions.Add(freshSession);
+                    await db.SaveChangesAsync(token);
+                    AddAudit(db, "CREATE", freshSession.Id, null, Serialize(freshSession), userId);
+                    return freshSession.Id;
+                },
+                entityKey: snapshot.SessionCode,
+                cancellationToken: cancellationToken);
+            session.Id = sessionId;
         }
 
-        // transaction bao phủ session, chứng từ bù, posting, serial và audit của toàn bộ kết quả.
-        public void ProcessResults(int sessionId, int userId)
+        private sealed record CreateSessionSnapshot(
+            string SessionCode,
+            int WarehouseId,
+            string Status,
+            DateTime CountDate,
+            string? Notes,
+            CreateLineSnapshot[] Lines)
         {
-            using var db = _contextFactory();
-            using var transaction = db.Database.BeginTransaction();
+            public StockCountSession ToEntity(int userId) => new()
+            {
+                SessionCode = SessionCode,
+                WarehouseId = WarehouseId,
+                Status = Status,
+                CountDate = CountDate,
+                Notes = Notes,
+                CreatedBy = userId,
+                Lines = Lines.Select(line => line.ToEntity()).ToList()
+            };
+        }
+
+        private sealed record CreateLineSnapshot(
+            int ProductId,
+            decimal SystemQuantity,
+            decimal CountedQuantity,
+            decimal VarianceQuantity,
+            string? SerialNumbers)
+        {
+            public StockCountLine ToEntity() => new()
+            {
+                ProductId = ProductId,
+                SystemQuantity = SystemQuantity,
+                CountedQuantity = CountedQuantity,
+                VarianceQuantity = VarianceQuantity,
+                SerialNumbers = SerialNumbers
+            };
+        }
+        internal void CreateSession(StockCountSession session, int userId) =>
+            CreateAsync(session, userId, Guid.NewGuid()).GetAwaiter().GetResult();
+
+        public Task ProcessResultsAsync(
+            int sessionId, int userId, Guid operationId,
+            CancellationToken cancellationToken = default) =>
+            _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("stock-count.process-results", operationId),
+                (db, token) => StageProcessResultsAsync(db, sessionId, userId, token),
+                (db, token) => db.StockCountSessions.AnyAsync(
+                    item => item.Id == sessionId && item.Status == CompletedStatus, token),
+                cancellationToken: cancellationToken);
+
+        internal void ProcessResults(int sessionId, int userId) =>
+            ProcessResultsAsync(sessionId, userId, Guid.NewGuid()).GetAwaiter().GetResult();
+
+        private async Task StageProcessResultsAsync(
+            AppDbContext db, int sessionId, int userId, CancellationToken cancellationToken)
+        {
             var actor = AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockAdjustment);
 
             var session = db.StockCountSessions
@@ -116,14 +196,14 @@ namespace QuanLyHangHoa.Services
                         IsActive = true
                     };
                     db.Customers.Add(adjustmentCustomer);
-                    db.SaveChanges();
+                    await db.SaveChangesAsync(cancellationToken);
                 }
             }
 
             // cùng một timestamp và warehouse được dùng cho mọi chứng từ sinh từ phiên kiểm kê.
             var now = DateTime.UtcNow;
             var postingService = new InventoryPostingService(
-                new EfInventoryUnitOfWork(db),
+                new EfInventoryUnitOfWork(db, commitChanges: false),
                 new FixedWarehouseProvider(session.WarehouseId),
                 new UtcClock());
 
@@ -135,7 +215,7 @@ namespace QuanLyHangHoa.Services
 
                 if (line.VarianceQuantity > 0)
                 {
-                    PostStockInCorrection(
+                    await PostStockInCorrectionAsync(
                         db,
                         postingService,
                         session,
@@ -144,11 +224,12 @@ namespace QuanLyHangHoa.Services
                         quantity,
                         serialNumbers,
                         userId,
-                        now);
+                        now,
+                        cancellationToken);
                 }
                 else
                 {
-                    PostStockOutCorrection(
+                    await PostStockOutCorrectionAsync(
                         db,
                         postingService,
                         session,
@@ -158,7 +239,8 @@ namespace QuanLyHangHoa.Services
                         quantity,
                         serialNumbers,
                         userId,
-                        now);
+                        now,
+                        cancellationToken);
                 }
             }
 
@@ -167,13 +249,11 @@ namespace QuanLyHangHoa.Services
             session.ApprovedAt = now;
             session.PostedBy = userId;
             session.PostedAt = now;
-            db.SaveChanges();
             AddAudit(db, "POST", session.Id, beforeJson, Serialize(session), userId);
-            transaction.Commit();
         }
 
         // mỗi line thiếu tạo một phiếu nhập có khóa liên kết session/line để database chống tạo lặp.
-        private static void PostStockInCorrection(
+        private static async Task PostStockInCorrectionAsync(
             AppDbContext db,
             InventoryPostingService postingService,
             StockCountSession session,
@@ -182,7 +262,8 @@ namespace QuanLyHangHoa.Services
             decimal quantity,
             IReadOnlyCollection<string> serialNumbers,
             int userId,
-            DateTime now)
+            DateTime now,
+            CancellationToken cancellationToken)
         {
             var documentLine = new StockInLine
             {
@@ -212,7 +293,7 @@ namespace QuanLyHangHoa.Services
                 Lines = new List<StockInLine> { documentLine }
             };
             db.StockIns.Add(document);
-            db.SaveChanges();
+            await db.SaveChangesAsync(cancellationToken);
 
             postingService.PostStockIn(new PostStockInCommand(
                 document.Id,
@@ -226,19 +307,18 @@ namespace QuanLyHangHoa.Services
 
             if (serialNumbers.Count > 0)
             {
-                var serials = db.ProductSerials
+                var serials = db.ProductSerials.Local
                     .Where(item => serialNumbers.Contains(item.SerialNumber))
                     .ToList();
                 foreach (var serial in serials)
                 {
                     serial.LastStockInLineId = documentLine.Id;
                 }
-                db.SaveChanges();
             }
         }
 
         // mỗi line thừa tạo một phiếu xuất điều chỉnh và đi qua posting service như chứng từ thường.
-        private static void PostStockOutCorrection(
+        private static async Task PostStockOutCorrectionAsync(
             AppDbContext db,
             InventoryPostingService postingService,
             StockCountSession session,
@@ -248,7 +328,8 @@ namespace QuanLyHangHoa.Services
             decimal quantity,
             IReadOnlyCollection<string> serialNumbers,
             int userId,
-            DateTime now)
+            DateTime now,
+            CancellationToken cancellationToken)
         {
             var documentLine = new StockOutLine
             {
@@ -279,7 +360,7 @@ namespace QuanLyHangHoa.Services
                 Lines = new List<StockOutLine> { documentLine }
             };
             db.StockOuts.Add(document);
-            db.SaveChanges();
+            await db.SaveChangesAsync(cancellationToken);
 
             postingService.PostStockOut(new PostStockOutCommand(
                 document.Id,
@@ -293,14 +374,13 @@ namespace QuanLyHangHoa.Services
 
             if (serialNumbers.Count > 0)
             {
-                var serials = db.ProductSerials
+                var serials = db.ProductSerials.Local
                     .Where(item => serialNumbers.Contains(item.SerialNumber))
                     .ToList();
                 foreach (var serial in serials)
                 {
                     serial.LastStockOutLineId = documentLine.Id;
                 }
-                db.SaveChanges();
             }
         }
 
@@ -378,7 +458,6 @@ namespace QuanLyHangHoa.Services
                 PerformedBy = performedBy,
                 PerformedAt = DateTime.UtcNow
             });
-            db.SaveChanges();
         }
 
         private sealed class FixedWarehouseProvider : IDefaultWarehouseProvider

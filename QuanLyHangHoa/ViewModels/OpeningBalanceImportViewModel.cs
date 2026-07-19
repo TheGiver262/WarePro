@@ -11,7 +11,7 @@ using Microsoft.Win32;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
 using QuanLyHangHoa.Services.DataImport;
-using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace QuanLyHangHoa.ViewModels
 {
@@ -258,7 +258,7 @@ namespace QuanLyHangHoa.ViewModels
 
         [RelayCommand]
         // StockIn đi qua OpeningBalanceImportService để áp invariant tồn đầu kỳ; loại khác dùng pipeline dynamic
-        private void ConfirmImport()
+        private async Task ConfirmImport()
         {
             if (!_rawRows.Any())
             {
@@ -270,63 +270,29 @@ namespace QuanLyHangHoa.ViewModels
             {
                 var mappingsDict = ColumnMappings.ToDictionary(mapping => mapping.DbFieldKey, mapping => mapping.ExcelHeader);
                 var importType = SelectedImportTypeItem?.Value ?? ImportFileType.Product;
+                var operationId = Guid.NewGuid();
 
                 if (importType == ImportFileType.StockIn)
                 {
                     var openingRows = BuildOpeningBalanceRows(mappingsDict);
-                    var openingResult = _openingBalanceImportService.ImportRows(openingRows, _postedByUserId);
+                    var openingResult = await _openingBalanceImportService.ImportRowsAsync(openingRows, _postedByUserId, operationId);
                     SuccessCount = openingResult.SuccessCount;
                     Errors = new ObservableCollection<RowError>(openingResult.Errors);
                 }
                 else
                 {
-                    var dynamicResult = _importService.ExecuteImport(
+                    var dynamicResult = await _importService.ExecuteImportAsync(
                         _rawRows,
                         importType,
                         mappingsDict,
                         _postedByUserId,
-                        AutoCreateReferences);
+                        AutoCreateReferences,
+                        operationId);
                     SuccessCount = dynamicResult.SuccessCount;
                     Errors = new ObservableCollection<RowError>(dynamicResult.Errors);
                 }
 
                 StatusMessage = $"Import thành công {SuccessCount} dòng. Thất bại {Errors.Count} dòng.";
-
-                // audit là best-effort sau import; lỗi ghi audit không đảo dữ liệu đã được service commit
-                if (SuccessCount > 0)
-                {
-                    try
-                    {
-                        using var db = _contextFactory();
-                        var importTypeName = SelectedImportTypeItem?.DisplayName ?? "Sản phẩm";
-                        var fileName = System.IO.Path.GetFileName(FilePath);
-                        var detailLog = new
-                        {
-                            ImportType = importType.ToString(),
-                            ImportTypeDisplayName = importTypeName,
-                            FileName = fileName,
-                            SuccessCount,
-                            ErrorCount = Errors.Count,
-                            AutoCreateReferences
-                        };
-
-                        db.AuditLogs.Add(new AuditLog
-                        {
-                            EntityName = "OpeningBalanceImport",
-                            EntityId = 0,
-                            ActionCode = "IMPORT",
-                            PerformedBy = _postedByUserId,
-                            PerformedAt = DateTime.UtcNow,
-                            BeforeJson = null,
-                            AfterJson = JsonSerializer.Serialize(detailLog)
-                        });
-                        db.SaveChanges();
-                    }
-                    catch (Exception auditEx)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Failed to write audit log: {auditEx.Message}");
-                    }
-                }
 
                 ActiveStep = 4;
             }

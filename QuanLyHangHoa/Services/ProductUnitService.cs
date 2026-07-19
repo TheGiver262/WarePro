@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
@@ -14,10 +16,12 @@ namespace QuanLyHangHoa.Services
     public class ProductUnitService
     {
         private readonly Func<AppDbContext> _contextFactory;
+        private readonly DatabaseWriteExecutor? _writeExecutor;
 
         public ProductUnitService(Func<AppDbContext> contextFactory)
         {
             _contextFactory = contextFactory;
+            _writeExecutor = contextFactory is null ? null : new DatabaseWriteExecutor(contextFactory);
         }
 
         public virtual List<ProductUnit> GetByProductId(int productId, bool includeDefault = false)
@@ -58,59 +62,100 @@ namespace QuanLyHangHoa.Services
         }
 
         // các mutation dùng Serializable cùng unique index để chống base unit/mapping trùng do cạnh tranh.
-        public virtual void Add(ProductUnit productUnit, int actorId)
+        public virtual Task AddAsync(
+            ProductUnit productUnit, int actorId, Guid operationId,
+            CancellationToken cancellationToken = default)
         {
             ValidateConversionFactor(productUnit.ConversionFactor);
-            using var db = _contextFactory();
-            using var transaction = db.Database.BeginTransaction(IsolationLevel.Serializable);
-            AuthorizationService.RequireFreshActor(
-                db,
-                actorId,
-                PermissionAction.ManageMasterData);
-            db.ProductUnits.Add(productUnit);
-            db.SaveChanges();
-            transaction.Commit();
+            var productId = productUnit.ProductId;
+            var unitId = productUnit.UnitId;
+            var factor = productUnit.ConversionFactor;
+            var isBase = productUnit.IsBaseUnit;
+            var isPurchase = productUnit.IsPurchaseUnit;
+            var isSales = productUnit.IsSalesUnit;
+
+            return WriteExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("product-unit.add", operationId, IsolationLevel.Serializable),
+                (db, token) =>
+                {
+                    AuthorizationService.RequireFreshActor(db, actorId, PermissionAction.ManageMasterData);
+                    db.ProductUnits.Add(new ProductUnit
+                    {
+                        ProductId = productId,
+                        UnitId = unitId,
+                        ConversionFactor = factor,
+                        IsBaseUnit = isBase,
+                        IsPurchaseUnit = isPurchase,
+                        IsSalesUnit = isSales
+                    });
+                    return Task.CompletedTask;
+                },
+                (db, token) => db.ProductUnits.AnyAsync(item =>
+                    item.ProductId == productId && item.UnitId == unitId &&
+                    item.ConversionFactor == factor && item.IsBaseUnit == isBase &&
+                    item.IsPurchaseUnit == isPurchase && item.IsSalesUnit == isSales,
+                    token),
+                cancellationToken: cancellationToken);
         }
 
-        public virtual void Update(ProductUnit updated, int actorId)
+        public virtual Task UpdateAsync(
+            int id, ProductUnit updated, byte[] expectedRowVersion, int actorId,
+            Guid operationId, CancellationToken cancellationToken = default)
         {
             ValidateConversionFactor(updated.ConversionFactor);
-            using var db = _contextFactory();
-            using var transaction = db.Database.BeginTransaction(IsolationLevel.Serializable);
-            AuthorizationService.RequireFreshActor(
-                db,
-                actorId,
-                PermissionAction.ManageMasterData);
-            var productUnit = db.ProductUnits.Find(updated.Id);
-            if (productUnit == null)
-                return;
+            ArgumentNullException.ThrowIfNull(expectedRowVersion);
+            var rowVersion = expectedRowVersion.ToArray();
+            var unitId = updated.UnitId;
+            var factor = updated.ConversionFactor;
+            var isBase = updated.IsBaseUnit;
+            var isPurchase = updated.IsPurchaseUnit;
+            var isSales = updated.IsSalesUnit;
 
-            productUnit.UnitId = updated.UnitId;
-            productUnit.ConversionFactor = updated.ConversionFactor;
-            productUnit.IsBaseUnit = updated.IsBaseUnit;
-            productUnit.IsPurchaseUnit = updated.IsPurchaseUnit;
-            productUnit.IsSalesUnit = updated.IsSalesUnit;
-            db.SaveChanges();
-            transaction.Commit();
+            return WriteExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("product-unit.update", operationId, IsolationLevel.Serializable),
+                async (db, token) =>
+                {
+                    AuthorizationService.RequireFreshActor(db, actorId, PermissionAction.ManageMasterData);
+                    var entity = await db.ProductUnits.SingleOrDefaultAsync(item => item.Id == id, token);
+                    if (entity is null) return;
+                    db.Entry(entity).Property(item => item.RowVersion).OriginalValue = rowVersion;
+                    entity.UnitId = unitId;
+                    entity.ConversionFactor = factor;
+                    entity.IsBaseUnit = isBase;
+                    entity.IsPurchaseUnit = isPurchase;
+                    entity.IsSalesUnit = isSales;
+                },
+                (db, token) => db.ProductUnits.AnyAsync(item => item.Id == id &&
+                    item.UnitId == unitId && item.ConversionFactor == factor &&
+                    item.IsBaseUnit == isBase && item.IsPurchaseUnit == isPurchase &&
+                    item.IsSalesUnit == isSales && item.RowVersion != rowVersion,
+                    token),
+                cancellationToken: cancellationToken);
         }
 
-        public virtual void Delete(int id, int actorId)
+        public virtual Task DeleteAsync(
+            int id, byte[] expectedRowVersion, int actorId, Guid operationId,
+            CancellationToken cancellationToken = default)
         {
-            using var db = _contextFactory();
-            using var transaction = db.Database.BeginTransaction(IsolationLevel.Serializable);
-            AuthorizationService.RequireFreshActor(
-                db,
-                actorId,
-                PermissionAction.ManageMasterData);
-            var productUnit = db.ProductUnits.Find(id);
-            if (productUnit == null)
-                return;
+            ArgumentNullException.ThrowIfNull(expectedRowVersion);
+            var rowVersion = expectedRowVersion.ToArray();
 
-            db.ProductUnits.Remove(productUnit);
-            db.SaveChanges();
-            transaction.Commit();
+            return WriteExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("product-unit.delete", operationId, IsolationLevel.Serializable),
+                async (db, token) =>
+                {
+                    AuthorizationService.RequireFreshActor(db, actorId, PermissionAction.ManageMasterData);
+                    var entity = await db.ProductUnits.SingleOrDefaultAsync(item => item.Id == id, token);
+                    if (entity is null) return;
+                    db.Entry(entity).Property(item => item.RowVersion).OriginalValue = rowVersion;
+                    db.ProductUnits.Remove(entity);
+                },
+                (db, token) => db.ProductUnits.AllAsync(item => item.Id != id, token),
+                cancellationToken: cancellationToken);
         }
 
+        private DatabaseWriteExecutor WriteExecutor =>
+            _writeExecutor ?? throw new InvalidOperationException("A database context factory is required for mutations.");
         // sang đơn vị gốc dùng phép nhân; thiếu mapping được coi là factor 1 để tương thích dữ liệu cũ.
         public virtual decimal ConvertToBaseUnit(int productId, int sourceUnitId, decimal quantity)
         {

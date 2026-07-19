@@ -16,13 +16,13 @@ public class AppUserServiceTests
     private const string ManagerRole = "Quản lý";
 
     [Fact]
-    public void AddUser_rejects_non_administrator_actor_without_writes()
+    public async Task AddUser_rejects_non_administrator_actor_without_writes()
     {
         using var connection = CreateDatabase(User(20, ManagerRole));
         var service = CreateService(connection);
 
-        Assert.Throws<InvalidOperationException>(() =>
-            service.AddUser(User(30, ManagerRole), performedByUserId: 20));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.AddUserAsync(User(30, ManagerRole), performedByUserId: 20, Guid.NewGuid()));
 
         using var db = CreateContext(connection);
         Assert.DoesNotContain(db.AppUsers, user => user.Id == 30);
@@ -30,15 +30,17 @@ public class AppUserServiceTests
     }
 
     [Fact]
-    public void UpdateUser_rejects_inactive_administrator_actor_without_writes()
+    public async Task UpdateUser_rejects_inactive_administrator_actor_without_writes()
     {
         using var connection = CreateDatabase(
             User(10, ManagerRole),
             User(11, AdministratorRole, isActive: false));
         var service = CreateService(connection);
 
-        Assert.Throws<InvalidOperationException>(() =>
-            service.UpdateUser(10, User(10, AdministratorRole), performedByUserId: 11));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.UpdateUserAsync(
+                10, User(10, AdministratorRole), RowVersion(connection, 10),
+                performedByUserId: 11, Guid.NewGuid()));
 
         using var db = CreateContext(connection);
         Assert.Equal(ManagerRole, db.AppUsers.Single(user => user.Id == 10).RoleCode);
@@ -46,14 +48,14 @@ public class AppUserServiceTests
     }
 
     [Fact]
-    public void ToggleUserStatus_rejects_non_administrator_actor_without_writes()
+    public async Task ToggleUserStatus_rejects_non_administrator_actor_without_writes()
     {
         using var connection = CreateDatabase(
             User(10, ManagerRole),
             User(20, ManagerRole));
         var service = CreateService(connection);
 
-        Assert.Throws<InvalidOperationException>(() => service.ToggleUserStatus(10, 20));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.ToggleUserStatusAsync(10, RowVersion(connection, 10), 20, Guid.NewGuid()));
 
         using var db = CreateContext(connection);
         Assert.True(db.AppUsers.Single(user => user.Id == 10).IsActive);
@@ -61,12 +63,12 @@ public class AppUserServiceTests
     }
 
     [Fact]
-    public void DeleteUser_rejects_missing_actor_without_writes()
+    public async Task DeleteUser_rejects_missing_actor_without_writes()
     {
         using var connection = CreateDatabase(User(10, ManagerRole));
         var service = CreateService(connection);
 
-        Assert.Throws<InvalidOperationException>(() => service.DeleteUser(10, 99));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteUserAsync(10, RowVersion(connection, 10), 99, Guid.NewGuid()));
 
         using var db = CreateContext(connection);
         Assert.Contains(db.AppUsers, user => user.Id == 10);
@@ -74,11 +76,11 @@ public class AppUserServiceTests
     }
 
     [Theory]
-    [InlineData("AddUser(", "db.AppUsers.Any(u => u.Username")]
-    [InlineData("UpdateUser(", "var existing = db.AppUsers")]
-    [InlineData("ToggleUserStatus(", "var user = db.AppUsers")]
-    [InlineData("DeleteUser(", "var user = db.AppUsers")]
-    public void Mutation_starts_serializable_transaction_before_actor_and_target_queries(
+    [InlineData("AddUserAsync(", "if (await db.AppUsers.AnyAsync")]
+    [InlineData("UpdateUserAsync(", "var existing = await db.AppUsers")]
+    [InlineData("ToggleUserStatusAsync(", "var user = await db.AppUsers")]
+    [InlineData("DeleteUserAsync(", "var user = await db.AppUsers")]
+    public void Mutation_uses_executor_with_serializable_isolation_before_actor_and_target_queries(
         string methodMarker,
         string targetMarker)
     {
@@ -89,26 +91,26 @@ public class AppUserServiceTests
             "AppUserService.cs"));
         var method = ExtractMethod(source, methodMarker);
 
-        var transactionIndex = method.IndexOf(
-            "BeginTransaction(IsolationLevel.Serializable)",
-            StringComparison.Ordinal);
-        var actorIndex = method.IndexOf("var actor = db.AppUsers", StringComparison.Ordinal);
+        var executorIndex = method.IndexOf("_writeExecutor.ExecuteAsync", StringComparison.Ordinal);
+        var isolationIndex = method.IndexOf("IsolationLevel.Serializable", StringComparison.Ordinal);
+        var actorIndex = method.IndexOf("AuthorizationService.RequireFreshActor", StringComparison.Ordinal);
         var targetIndex = method.IndexOf(targetMarker, StringComparison.Ordinal);
 
-        Assert.True(transactionIndex >= 0, $"{methodMarker} must request Serializable isolation.");
-        Assert.True(actorIndex > transactionIndex, $"{methodMarker} must reload the actor after starting its transaction.");
-        Assert.True(targetIndex > actorIndex, $"{methodMarker} must load/check the target after actor revalidation.");
+        Assert.True(executorIndex >= 0, $"{methodMarker} must use the common write executor.");
+        Assert.True(isolationIndex > executorIndex, $"{methodMarker} must request Serializable isolation.");
+        Assert.True(actorIndex > isolationIndex, $"{methodMarker} must reload the actor inside the executor callback.");
+        Assert.True(targetIndex > actorIndex, $"{methodMarker} must query the target after actor revalidation.");
     }
 
     [Fact]
-    public void ToggleUserStatus_rejects_self_deactivation()
+    public async Task ToggleUserStatus_rejects_self_deactivation()
     {
         using var connection = CreateDatabase(
             User(10, AdministratorRole),
             User(11, AdministratorRole));
         var service = CreateService(connection);
 
-        Assert.Throws<InvalidOperationException>(() => service.ToggleUserStatus(10, 10));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.ToggleUserStatusAsync(10, RowVersion(connection, 10), 10, Guid.NewGuid()));
 
         using var db = CreateContext(connection);
         Assert.True(db.AppUsers.Single(user => user.Id == 10).IsActive);
@@ -116,15 +118,17 @@ public class AppUserServiceTests
     }
 
     [Fact]
-    public void UpdateUser_rejects_self_demotion()
+    public async Task UpdateUser_rejects_self_demotion()
     {
         using var connection = CreateDatabase(
             User(10, AdministratorRole),
             User(11, AdministratorRole));
         var service = CreateService(connection);
 
-        Assert.Throws<InvalidOperationException>(() =>
-            service.UpdateUser(10, User(10, ManagerRole), performedByUserId: 10));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.UpdateUserAsync(
+                10, User(10, ManagerRole), RowVersion(connection, 10),
+                performedByUserId: 10, Guid.NewGuid()));
 
         using var db = CreateContext(connection);
         Assert.Equal(AdministratorRole, db.AppUsers.Single(user => user.Id == 10).RoleCode);
@@ -132,50 +136,52 @@ public class AppUserServiceTests
     }
 
     [Fact]
-    public void UpdateUser_rejects_demotion_of_last_active_administrator()
+    public async Task UpdateUser_rejects_demotion_of_last_active_administrator()
     {
         using var connection = CreateDatabase(
             User(10, AdministratorRole),
             User(20, ManagerRole));
         var service = CreateService(connection);
 
-        Assert.Throws<InvalidOperationException>(() =>
-            service.UpdateUser(10, User(10, ManagerRole), performedByUserId: 20));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.UpdateUserAsync(
+                10, User(10, ManagerRole), RowVersion(connection, 10),
+                performedByUserId: 20, Guid.NewGuid()));
 
         using var db = CreateContext(connection);
         Assert.Equal(AdministratorRole, db.AppUsers.Single(user => user.Id == 10).RoleCode);
     }
 
     [Fact]
-    public void ToggleUserStatus_rejects_deactivation_of_last_active_administrator()
+    public async Task ToggleUserStatus_rejects_deactivation_of_last_active_administrator()
     {
         using var connection = CreateDatabase(
             User(10, AdministratorRole),
             User(20, ManagerRole));
         var service = CreateService(connection);
 
-        Assert.Throws<InvalidOperationException>(() => service.ToggleUserStatus(10, 20));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.ToggleUserStatusAsync(10, RowVersion(connection, 10), 20, Guid.NewGuid()));
 
         using var db = CreateContext(connection);
         Assert.True(db.AppUsers.Single(user => user.Id == 10).IsActive);
     }
 
     [Fact]
-    public void DeleteUser_rejects_deletion_of_last_active_administrator()
+    public async Task DeleteUser_rejects_deletion_of_last_active_administrator()
     {
         using var connection = CreateDatabase(
             User(10, AdministratorRole),
             User(20, ManagerRole));
         var service = CreateService(connection);
 
-        Assert.Throws<InvalidOperationException>(() => service.DeleteUser(10, 20));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.DeleteUserAsync(10, RowVersion(connection, 10), 20, Guid.NewGuid()));
 
         using var db = CreateContext(connection);
         Assert.True(db.AppUsers.Single(user => user.Id == 10).IsActive);
     }
 
     [Fact]
-    public void DeleteUser_deactivates_referenced_user()
+    public async Task DeleteUser_deactivates_referenced_user()
     {
         using var connection = CreateDatabase(
             User(10, AdministratorRole),
@@ -194,7 +200,7 @@ public class AppUserServiceTests
         }
         var service = CreateService(connection);
 
-        service.DeleteUser(20, 10);
+        await service.DeleteUserAsync(20, RowVersion(connection, 20), 10, Guid.NewGuid());
 
         using var assertContext = CreateContext(connection);
         Assert.False(assertContext.AppUsers.Single(user => user.Id == 20).IsActive);
@@ -221,6 +227,12 @@ public class AppUserServiceTests
         db.AppUsers.AddRange(users);
         db.SaveChanges();
         return connection;
+    }
+
+    private static byte[] RowVersion(SqliteConnection connection, int userId)
+    {
+        using var db = CreateContext(connection);
+        return db.AppUsers.AsNoTracking().Single(user => user.Id == userId).RowVersion;
     }
 
     private static AppUserService CreateService(SqliteConnection connection) =>

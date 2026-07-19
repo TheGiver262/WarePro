@@ -12,7 +12,7 @@ namespace QuanLyHangHoa.Tests.Services;
 public sealed class StockDraftEditLifecycleTests
 {
     [Fact]
-    public void StockIn_rejects_detail_edits_after_submission()
+    public async Task StockIn_rejects_detail_edits_after_submission()
     {
         using var connection = OpenDatabase();
         var document = new StockIn
@@ -29,11 +29,12 @@ public sealed class StockDraftEditLifecycleTests
 
         var service = new StockInService(() => DatabaseHelper.CreateContext(connection));
 
-        AssertPendingEditRejected(() => service.SaveDraft(document, new List<StockInLine>(), 1));
+        await AssertPendingEditRejectedAsync(() => service.SaveDraftAsync(
+            document, new List<StockInLine>(), 1, Guid.NewGuid()));
     }
 
     [Fact]
-    public void StockOut_rejects_detail_edits_after_submission()
+    public async Task StockOut_rejects_detail_edits_after_submission()
     {
         using var connection = OpenDatabase();
         var document = new StockOut
@@ -51,11 +52,12 @@ public sealed class StockDraftEditLifecycleTests
 
         var service = new StockOutService(() => DatabaseHelper.CreateContext(connection));
 
-        AssertPendingEditRejected(() => service.SaveDraft(document, new List<StockOutLine>(), 1));
+        await AssertPendingEditRejectedAsync(() => service.SaveDraftAsync(
+            document, new List<StockOutLine>(), 1, Guid.NewGuid()));
     }
 
     [Fact]
-    public void Transfer_rejects_detail_edits_after_submission()
+    public async Task Transfer_rejects_detail_edits_after_submission()
     {
         using var connection = OpenDatabase();
         var document = new StockTransfer
@@ -72,11 +74,12 @@ public sealed class StockDraftEditLifecycleTests
 
         var service = new StockTransferService(() => DatabaseHelper.CreateContext(connection));
 
-        AssertPendingEditRejected(() => service.SaveDraft(document, new List<StockTransferLine>(), 1));
+        await AssertPendingEditRejectedAsync(() => service.SaveDraftAsync(
+            document, new List<StockTransferLine>(), 1, Guid.NewGuid()));
     }
 
     [Fact]
-    public void Adjustment_rejects_detail_edits_after_submission()
+    public async Task Adjustment_rejects_detail_edits_after_submission()
     {
         using var connection = OpenDatabase();
         var document = new StockAdjustment
@@ -92,12 +95,13 @@ public sealed class StockDraftEditLifecycleTests
 
         var service = new StockAdjustmentService(() => DatabaseHelper.CreateContext(connection));
 
-        AssertPendingEditRejected(() => service.SaveDraft(document, new List<StockAdjustmentLine>(), 1));
+        await AssertPendingEditRejectedAsync(() => service.SaveDraftAsync(
+            document, new List<StockAdjustmentLine>(), 1, Guid.NewGuid()));
     }
 
-    private static void AssertPendingEditRejected(Action edit)
+    private static async Task AssertPendingEditRejectedAsync(Func<Task> edit)
     {
-        var error = Assert.Throws<InventoryDomainException>(edit);
+        var error = await Assert.ThrowsAsync<InventoryDomainException>(edit);
         Assert.Equal("Only draft documents can be edited.", error.Message);
     }
 

@@ -1,21 +1,26 @@
 using System;
-using System.Data;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
-using BCrypt.Net;
-using Microsoft.EntityFrameworkCore;
 
 namespace QuanLyHangHoa.Services
 {
     public class AppUserService
     {
+        private const string AdministratorRole = "Quản trị viên";
         private readonly Func<AppDbContext> _contextFactory;
+        private readonly DatabaseWriteExecutor _writeExecutor;
 
         public AppUserService(Func<AppDbContext> contextFactory)
         {
             _contextFactory = contextFactory;
+            _writeExecutor = new DatabaseWriteExecutor(contextFactory);
         }
 
         public List<AppUser> GetAllUsers()
@@ -24,265 +29,388 @@ namespace QuanLyHangHoa.Services
             return db.AppUsers.AsNoTracking().ToList();
         }
 
-        // serializable giữ kiểm tra trùng tên và kiểm tra quyền trong cùng ảnh chụp dữ liệu khi nhiều quản trị viên thao tác đồng thời
-        public void AddUser(AppUser user, int performedByUserId)
+        public Task<int> AddUserAsync(
+            AppUser user,
+            int performedByUserId,
+            Guid operationId,
+            CancellationToken cancellationToken = default)
         {
-            using var db = _contextFactory();
-            using var transaction = db.Database.BeginTransaction(IsolationLevel.Serializable);
-            var actor = db.AppUsers.SingleOrDefault(existingUser => existingUser.Id == performedByUserId);
-            EnsureActorCanManageUsers(actor);
-            
-            // chặn trùng trước để trả thông báo rõ; unique constraint trong database vẫn là lớp bảo vệ cuối
-            if (db.AppUsers.Any(u => u.Username == user.Username))
-            {
-                throw new InvalidOperationException($"Tên tài khoản '{user.Username}' đã tồn tại trong hệ thống. Vui lòng chọn tên khác.");
-            }
+            ArgumentNullException.ThrowIfNull(user);
+            var requestedId = user.Id;
+            var username = user.Username.Trim();
+            var fullName = user.FullName.Trim();
+            var roleCode = user.RoleCode;
+            var isActive = user.IsActive;
+            var password = string.IsNullOrWhiteSpace(user.PasswordHash)
+                ? username
+                : user.PasswordHash;
+            var passwordHash = BCrypt.Net.BCrypt.HashPassword(password);
+            var createdAt = DateTime.Now;
 
-            // mật khẩu đầu vào chỉ tồn tại trong bộ nhớ; trước khi lưu luôn được đổi thành BCrypt hash
-            if (string.IsNullOrWhiteSpace(user.PasswordHash))
-            {
-                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.Username);
-            }
-            else
-            {
-                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.PasswordHash);
-            }
-
-            user.CreatedBy = performedByUserId;
-            user.CreatedAt = DateTime.Now;
-            user.MustChangePassword = true; 
-            
-            try
-            {
-                db.AppUsers.Add(user);
-                db.SaveChanges();
-
-                // snapshot ẩn danh chỉ giữ trường cần audit, tránh serialize navigation vòng của EF
-                var newState = new { user.Username, user.FullName, user.RoleCode, user.IsActive };
-                AddAudit(db, "AppUser", user.Id, "CREATE", performedByUserId, null, newState);
-                db.SaveChanges();
-                transaction.Commit();
-            }
-            catch (Exception ex)
-            {
-                var message = ex.InnerException?.Message ?? ex.Message;
-                throw new Exception($"Lỗi khi lưu người dùng: {message}", ex);
-            }
-        }
-
-        // không cho tự khóa hoặc tự hạ quyền; mọi đường làm mất admin đang hoạt động cuối cùng đều bị chặn
-        public void UpdateUser(int targetUserId, AppUser updatedUser, int performedByUserId)
-        {
-            using var db = _contextFactory();
-            using var transaction = db.Database.BeginTransaction(IsolationLevel.Serializable);
-            var actor = db.AppUsers.SingleOrDefault(user => user.Id == performedByUserId);
-            EnsureActorCanManageUsers(actor);
-            var existing = db.AppUsers.Find(targetUserId);
-            if (existing != null)
-            {
-                var isSelf = targetUserId == performedByUserId;
-
-                if (isSelf && existing.IsActive && !updatedUser.IsActive)
+            return _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest(
+                    "app-user.add",
+                    operationId,
+                    IsolationLevel.Serializable),
+                async (db, token) =>
                 {
-                    throw new InvalidOperationException("Bạn không thể tự dừng tài khoản của chính mình.");
-                }
+                    AuthorizationService.RequireFreshActor(
+                        db,
+                        performedByUserId,
+                        PermissionAction.ManageUsers);
 
-                if (isSelf && IsAdministrator(existing) && !IsAdministrator(updatedUser))
-                {
-                    throw new InvalidOperationException("Bạn không thể tự hạ quyền quản trị của chính mình.");
-                }
+                    if (await db.AppUsers.AnyAsync(item => item.Username == username, token))
+                    {
+                        throw new InvalidOperationException(
+                            $"Tên tài khoản '{username}' đã tồn tại trong hệ thống. Vui lòng chọn tên khác.");
+                    }
 
-                if (IsActiveAdministrator(existing) && !IsActiveAdministrator(updatedUser))
-                {
-                    EnsureAnotherActiveAdministrator(db, targetUserId);
-                }
+                    var created = new AppUser
+                    {
+                        Username = username,
+                        PasswordHash = passwordHash,
+                        FullName = fullName,
+                        RoleCode = roleCode,
+                        IsActive = isActive,
+                        MustChangePassword = true,
+                        CreatedBy = performedByUserId,
+                        CreatedAt = createdAt
+                    };
+                    if (requestedId > 0)
+                    {
+                        created.Id = requestedId;
+                    }
 
-                // chụp trạng thái trước khi sửa để audit thể hiện đúng thay đổi
-                var oldState = new { existing.FullName, existing.RoleCode, existing.IsActive };
-                
-                existing.FullName = updatedUser.FullName;
-                existing.RoleCode = updatedUser.RoleCode;
-                existing.IsActive = updatedUser.IsActive;
-
-                // chuỗi không có tiền tố BCrypt được xem là mật khẩu mới dạng rõ và phải hash trước khi lưu
-                if (!string.IsNullOrWhiteSpace(updatedUser.PasswordHash) && !updatedUser.PasswordHash.StartsWith("$2"))
-                {
-                    existing.PasswordHash = BCrypt.Net.BCrypt.HashPassword(updatedUser.PasswordHash);
-                    existing.LastPasswordChangedAt = DateTime.Now;
-                }
-                
-                db.SaveChanges();
-                
-                // trạng thái sau không chứa password hash
-                var newState = new { existing.FullName, existing.RoleCode, existing.IsActive };
-                
-                AddAudit(db, "AppUser", existing.Id, "UPDATE", performedByUserId, oldState, newState);
-                db.SaveChanges();
-                transaction.Commit();
-            }
-        }
-
-        // bật/tắt tài khoản cũng phải kiểm tra actor mới từ database, không tin user object cũ trên giao diện
-        public void ToggleUserStatus(int userId, int performedByUserId)
-        {
-            using var db = _contextFactory();
-            using var transaction = db.Database.BeginTransaction(IsolationLevel.Serializable);
-            var actor = db.AppUsers.SingleOrDefault(existingUser => existingUser.Id == performedByUserId);
-            EnsureActorCanManageUsers(actor);
-            var user = db.AppUsers.Find(userId);
-            if (user != null)
-            {
-                if (user.IsActive && userId == performedByUserId)
-                {
-                    throw new InvalidOperationException("Bạn không thể tự dừng tài khoản của chính mình.");
-                }
-
-                if (IsActiveAdministrator(user))
-                {
-                    EnsureAnotherActiveAdministrator(db, userId);
-                }
-                var oldState = new { user.IsActive, user.Username };
-                user.IsActive = !user.IsActive;
-                
-                string action = user.IsActive ? "ACTIVATE" : "DEACTIVATE";
-                
-                db.SaveChanges();
-                
-                var newState = new { user.IsActive, user.Username };
-                AddAudit(db, "AppUser", user.Id, action, performedByUserId, oldState, newState);
-                db.SaveChanges();
-                transaction.Commit();
-            }
-        }
-
-        public void DeleteUser(int id, int performedByUserId)
-        {
-            using var db = _contextFactory();
-            using var transaction = db.Database.BeginTransaction(IsolationLevel.Serializable);
-            var actor = db.AppUsers.SingleOrDefault(user => user.Id == performedByUserId);
-            EnsureActorCanManageUsers(actor);
-
-            if (id == performedByUserId)
-            {
-                throw new InvalidOperationException("Bạn không thể tự xoá tài khoản của chính mình.");
-            }
-
-            var user = db.AppUsers.Find(id);
-            if (user == null)
-            {
-                return;
-            }
-
-            if (IsActiveAdministrator(user))
-            {
-                EnsureAnotherActiveAdministrator(db, id);
-            }
-
-            try
-            {
-                // giữ snapshot trước khi xóa hoặc chuyển inactive để lịch sử vẫn đọc được
-                var oldState = new { user.Username, user.FullName, user.RoleCode, user.IsActive };
-
-                if (HasDependencies(db, id))
-                {
-                    user.IsActive = false;
-                    db.SaveChanges();
+                    db.AppUsers.Add(created);
+                    await db.SaveChangesAsync(token);
                     AddAudit(
                         db,
-                        "AppUser",
-                        id,
-                        "DEACTIVATE",
+                        created.Id,
+                        "CREATE",
                         performedByUserId,
-                        oldState,
-                        new { user.Username, user.FullName, user.RoleCode, user.IsActive });
-                }
-                else
+                        null,
+                        Snapshot(created));
+                    return created.Id;
+                },
+                (db, token) => db.AppUsers.AnyAsync(item =>
+                    item.Username == username &&
+                    item.FullName == fullName &&
+                    item.RoleCode == roleCode &&
+                    item.IsActive == isActive &&
+                    item.CreatedBy == performedByUserId,
+                    token),
+                cancellationToken: cancellationToken);
+        }
+
+        public Task UpdateUserAsync(
+            int targetUserId,
+            AppUser updatedUser,
+            byte[] expectedRowVersion,
+            int performedByUserId,
+            Guid operationId,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(updatedUser);
+            ArgumentNullException.ThrowIfNull(expectedRowVersion);
+            var rowVersion = expectedRowVersion.ToArray();
+            var fullName = updatedUser.FullName.Trim();
+            var roleCode = updatedUser.RoleCode;
+            var isActive = updatedUser.IsActive;
+            var passwordHash = !string.IsNullOrWhiteSpace(updatedUser.PasswordHash) &&
+                !updatedUser.PasswordHash.StartsWith("$2", StringComparison.Ordinal)
+                    ? BCrypt.Net.BCrypt.HashPassword(updatedUser.PasswordHash)
+                    : null;
+            var changedAt = passwordHash is null ? (DateTime?)null : DateTime.Now;
+
+            return _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest(
+                    "app-user.update",
+                    operationId,
+                    IsolationLevel.Serializable),
+                async (db, token) =>
                 {
-                    db.AppUsers.Remove(user);
-                    db.SaveChanges();
-                    AddAudit(db, "AppUser", id, "DELETE", performedByUserId, oldState, null);
-                }
+                    AuthorizationService.RequireFreshActor(
+                        db,
+                        performedByUserId,
+                        PermissionAction.ManageUsers);
+                    var existing = await db.AppUsers.SingleOrDefaultAsync(
+                        item => item.Id == targetUserId,
+                        token);
+                    if (existing is null)
+                    {
+                        return;
+                    }
 
-                db.SaveChanges();
-                transaction.Commit();
-            }
-            catch (Exception ex)
-            {
-                var message = ex.InnerException?.Message ?? ex.Message;
-                throw new Exception($"Lỗi khi xoá người dùng: {message}", ex);
-            }
+                    db.Entry(existing).Property(item => item.RowVersion).OriginalValue = rowVersion;
+                    var requestedState = new AppUser
+                    {
+                        RoleCode = roleCode,
+                        IsActive = isActive
+                    };
+                    var isSelf = targetUserId == performedByUserId;
+                    if (isSelf && existing.IsActive && !isActive)
+                    {
+                        throw new InvalidOperationException("Bạn không thể tự dừng tài khoản của chính mình.");
+                    }
+
+                    if (isSelf && IsAdministrator(existing) && !IsAdministrator(requestedState))
+                    {
+                        throw new InvalidOperationException("Bạn không thể tự hạ quyền quản trị của chính mình.");
+                    }
+
+                    if (IsActiveAdministrator(existing) && !IsActiveAdministrator(requestedState))
+                    {
+                        await EnsureAnotherActiveAdministratorAsync(db, targetUserId, token);
+                    }
+
+                    var before = Snapshot(existing);
+                    existing.FullName = fullName;
+                    existing.RoleCode = roleCode;
+                    existing.IsActive = isActive;
+                    if (passwordHash is not null)
+                    {
+                        existing.PasswordHash = passwordHash;
+                        existing.LastPasswordChangedAt = changedAt;
+                    }
+
+                    AddAudit(
+                        db,
+                        existing.Id,
+                        "UPDATE",
+                        performedByUserId,
+                        before,
+                        Snapshot(existing));
+                },
+                (db, token) => db.AppUsers.AnyAsync(item =>
+                    item.Id == targetUserId &&
+                    item.FullName == fullName &&
+                    item.RoleCode == roleCode &&
+                    item.IsActive == isActive &&
+                    (passwordHash == null || item.PasswordHash == passwordHash) &&
+                    item.RowVersion != rowVersion,
+                    token),
+                cancellationToken: cancellationToken);
         }
 
-
-        private static void EnsureActorCanManageUsers(AppUser? actor)
+        public Task ToggleUserStatusAsync(
+            int userId,
+            byte[] expectedRowVersion,
+            int performedByUserId,
+            Guid operationId,
+            CancellationToken cancellationToken = default)
         {
-            if (actor == null || !IsActiveAdministrator(actor))
-            {
-                throw new InvalidOperationException("Only an active administrator can manage users.");
-            }
+            ArgumentNullException.ThrowIfNull(expectedRowVersion);
+            var rowVersion = expectedRowVersion.ToArray();
+            bool? resultingStatus = null;
+
+            return _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest(
+                    "app-user.toggle-status",
+                    operationId,
+                    IsolationLevel.Serializable),
+                async (db, token) =>
+                {
+                    AuthorizationService.RequireFreshActor(
+                        db,
+                        performedByUserId,
+                        PermissionAction.ManageUsers);
+                    var user = await db.AppUsers.SingleOrDefaultAsync(item => item.Id == userId, token);
+                    if (user is null)
+                    {
+                        return;
+                    }
+
+                    db.Entry(user).Property(item => item.RowVersion).OriginalValue = rowVersion;
+                    if (user.IsActive && userId == performedByUserId)
+                    {
+                        throw new InvalidOperationException("Bạn không thể tự dừng tài khoản của chính mình.");
+                    }
+
+                    if (IsActiveAdministrator(user))
+                    {
+                        await EnsureAnotherActiveAdministratorAsync(db, userId, token);
+                    }
+
+                    var before = Snapshot(user);
+                    user.IsActive = !user.IsActive;
+                    resultingStatus = user.IsActive;
+                    AddAudit(
+                        db,
+                        user.Id,
+                        user.IsActive ? "ACTIVATE" : "DEACTIVATE",
+                        performedByUserId,
+                        before,
+                        Snapshot(user));
+                },
+                (db, token) => resultingStatus.HasValue
+                    ? db.AppUsers.AnyAsync(item =>
+                        item.Id == userId &&
+                        item.IsActive == resultingStatus.Value &&
+                        item.RowVersion != rowVersion,
+                        token)
+                    : Task.FromResult(false),
+                cancellationToken: cancellationToken);
         }
 
-        private static bool IsAdministrator(AppUser user) =>
-            string.Equals(user.RoleCode, "Quản trị viên", StringComparison.OrdinalIgnoreCase);
-
-        private static bool IsActiveAdministrator(AppUser user) =>
-            user.IsActive && IsAdministrator(user);
-
-        // truy vấn loại tài khoản mục tiêu ra khỏi tập đếm; phải còn ít nhất một quản trị viên khác đang active
-        private static void EnsureAnotherActiveAdministrator(AppDbContext db, int targetUserId)
+        public Task DeleteUserAsync(
+            int id,
+            byte[] expectedRowVersion,
+            int performedByUserId,
+            Guid operationId,
+            CancellationToken cancellationToken = default)
         {
-            var anotherActiveAdministratorExists = db.AppUsers.Any(user =>
-                user.Id != targetUserId &&
-                user.IsActive &&
-                user.RoleCode == "Quản trị viên");
+            ArgumentNullException.ThrowIfNull(expectedRowVersion);
+            var rowVersion = expectedRowVersion.ToArray();
 
-            if (!anotherActiveAdministratorExists)
-            {
-                throw new InvalidOperationException("Hệ thống phải luôn có ít nhất một quản trị viên đang hoạt động.");
-            }
+            return _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest(
+                    "app-user.delete",
+                    operationId,
+                    IsolationLevel.Serializable),
+                async (db, token) =>
+                {
+                    AuthorizationService.RequireFreshActor(
+                        db,
+                        performedByUserId,
+                        PermissionAction.ManageUsers);
+                    if (id == performedByUserId)
+                    {
+                        throw new InvalidOperationException("Bạn không thể tự xoá tài khoản của chính mình.");
+                    }
+
+                    var user = await db.AppUsers.SingleOrDefaultAsync(item => item.Id == id, token);
+                    if (user is null)
+                    {
+                        return;
+                    }
+
+                    db.Entry(user).Property(item => item.RowVersion).OriginalValue = rowVersion;
+                    if (IsActiveAdministrator(user))
+                    {
+                        await EnsureAnotherActiveAdministratorAsync(db, id, token);
+                    }
+
+                    var before = Snapshot(user);
+                    if (await HasDependenciesAsync(db, id, token))
+                    {
+                        user.IsActive = false;
+                        AddAudit(
+                            db,
+                            id,
+                            "DEACTIVATE",
+                            performedByUserId,
+                            before,
+                            Snapshot(user));
+                    }
+                    else
+                    {
+                        db.AppUsers.Remove(user);
+                        AddAudit(db, id, "DELETE", performedByUserId, before, null);
+                    }
+                },
+                (db, token) => db.AppUsers.AllAsync(item => item.Id != id || !item.IsActive, token),
+                cancellationToken: cancellationToken);
         }
+
         public bool HasDependencies(int userId)
         {
             using var db = _contextFactory();
             return HasDependencies(db, userId);
         }
 
-        // tài khoản đã ký tạo/duyệt/ghi sổ dữ liệu nghiệp vụ chỉ được vô hiệu hóa, không xóa khóa ngoại lịch sử
-        private static bool HasDependencies(AppDbContext db, int userId)
+        private static bool IsAdministrator(AppUser user) =>
+            string.Equals(user.RoleCode, AdministratorRole, StringComparison.OrdinalIgnoreCase);
+
+        private static bool IsActiveAdministrator(AppUser user) =>
+            user.IsActive && IsAdministrator(user);
+
+        private static async Task EnsureAnotherActiveAdministratorAsync(
+            AppDbContext db,
+            int targetUserId,
+            CancellationToken cancellationToken)
         {
-            return db.AppUsers.Any(user => user.CreatedBy == userId) ||
-                   db.AuditLogs.Any(log => log.PerformedBy == userId) ||
-                   db.PurchaseInvoices.Any(invoice => invoice.CreatedBy == userId) ||
-                   db.SalesInvoices.Any(invoice => invoice.CreatedBy == userId) ||
-                   db.StockAdjustments.Any(document =>
-                       document.CreatedBy == userId || document.ApprovedBy == userId || document.PostedBy == userId) ||
-                   db.StockCountSessions.Any(document =>
-                       document.CreatedBy == userId || document.ApprovedBy == userId || document.PostedBy == userId) ||
-                   db.StockIns.Any(document =>
-                       document.CreatedBy == userId || document.ApprovedBy == userId || document.PostedBy == userId) ||
-                   db.StockLedgers.Any(ledger => ledger.PostedBy == userId) ||
-                   db.StockOuts.Any(document =>
-                       document.CreatedBy == userId || document.ApprovedBy == userId || document.PostedBy == userId) ||
-                   db.StockTransfers.Any(document =>
-                       document.CreatedBy == userId || document.ApprovedBy == userId || document.PostedBy == userId) ||
-                   db.WarrantyClaims.Any(claim =>
-                       claim.ApprovedBy == userId || claim.ProcessedBy == userId);
+            var exists = await db.AppUsers.AnyAsync(user =>
+                user.Id != targetUserId &&
+                user.IsActive &&
+                user.RoleCode == AdministratorRole,
+                cancellationToken);
+            if (!exists)
+            {
+                throw new InvalidOperationException(
+                    "Hệ thống phải luôn có ít nhất một quản trị viên đang hoạt động.");
+            }
         }
 
-        // method chỉ add log vào cùng context; transaction của thao tác chính quyết định commit hoặc rollback cả hai
-        private void AddAudit(AppDbContext db, string entityName, int entityId, string action, int userId, object? oldValues = null, object? newValues = null)
+        private static bool HasDependencies(AppDbContext db, int userId) =>
+            db.AppUsers.Any(user => user.CreatedBy == userId) ||
+            db.AuditLogs.Any(log => log.PerformedBy == userId) ||
+            db.PurchaseInvoices.Any(invoice => invoice.CreatedBy == userId) ||
+            db.SalesInvoices.Any(invoice => invoice.CreatedBy == userId) ||
+            db.StockAdjustments.Any(document =>
+                document.CreatedBy == userId || document.ApprovedBy == userId || document.PostedBy == userId) ||
+            db.StockCountSessions.Any(document =>
+                document.CreatedBy == userId || document.ApprovedBy == userId || document.PostedBy == userId) ||
+            db.StockIns.Any(document =>
+                document.CreatedBy == userId || document.ApprovedBy == userId || document.PostedBy == userId) ||
+            db.StockLedgers.Any(ledger => ledger.PostedBy == userId) ||
+            db.StockOuts.Any(document =>
+                document.CreatedBy == userId || document.ApprovedBy == userId || document.PostedBy == userId) ||
+            db.StockTransfers.Any(document =>
+                document.CreatedBy == userId || document.ApprovedBy == userId || document.PostedBy == userId) ||
+            db.WarrantyClaims.Any(claim => claim.ApprovedBy == userId || claim.ProcessedBy == userId);
+
+        private static async Task<bool> HasDependenciesAsync(
+            AppDbContext db,
+            int userId,
+            CancellationToken cancellationToken) =>
+            await db.AppUsers.AnyAsync(user => user.CreatedBy == userId, cancellationToken) ||
+            await db.AuditLogs.AnyAsync(log => log.PerformedBy == userId, cancellationToken) ||
+            await db.PurchaseInvoices.AnyAsync(invoice => invoice.CreatedBy == userId, cancellationToken) ||
+            await db.SalesInvoices.AnyAsync(invoice => invoice.CreatedBy == userId, cancellationToken) ||
+            await db.StockAdjustments.AnyAsync(document =>
+                document.CreatedBy == userId || document.ApprovedBy == userId || document.PostedBy == userId,
+                cancellationToken) ||
+            await db.StockCountSessions.AnyAsync(document =>
+                document.CreatedBy == userId || document.ApprovedBy == userId || document.PostedBy == userId,
+                cancellationToken) ||
+            await db.StockIns.AnyAsync(document =>
+                document.CreatedBy == userId || document.ApprovedBy == userId || document.PostedBy == userId,
+                cancellationToken) ||
+            await db.StockLedgers.AnyAsync(ledger => ledger.PostedBy == userId, cancellationToken) ||
+            await db.StockOuts.AnyAsync(document =>
+                document.CreatedBy == userId || document.ApprovedBy == userId || document.PostedBy == userId,
+                cancellationToken) ||
+            await db.StockTransfers.AnyAsync(document =>
+                document.CreatedBy == userId || document.ApprovedBy == userId || document.PostedBy == userId,
+                cancellationToken) ||
+            await db.WarrantyClaims.AnyAsync(claim =>
+                claim.ApprovedBy == userId || claim.ProcessedBy == userId,
+                cancellationToken);
+
+        private static object Snapshot(AppUser user) => new
         {
-            var log = new AuditLog
+            user.Username,
+            user.FullName,
+            user.RoleCode,
+            user.IsActive
+        };
+
+        private static void AddAudit(
+            AppDbContext db,
+            int entityId,
+            string action,
+            int userId,
+            object? oldValues,
+            object? newValues) =>
+            db.AuditLogs.Add(new AuditLog
             {
-                EntityName = entityName,
+                EntityName = "AppUser",
                 EntityId = entityId,
                 ActionCode = action,
                 PerformedBy = userId,
                 PerformedAt = DateTime.Now,
-                BeforeJson = oldValues != null ? System.Text.Json.JsonSerializer.Serialize(oldValues) : null,
-                AfterJson = newValues != null ? System.Text.Json.JsonSerializer.Serialize(newValues) : null
-            };
-            db.AuditLogs.Add(log);
-        }
+                BeforeJson = oldValues is null ? null : JsonSerializer.Serialize(oldValues),
+                AfterJson = newValues is null ? null : JsonSerializer.Serialize(newValues)
+            });
     }
 }

@@ -11,7 +11,7 @@ public class StockCountMutationServiceTests
     [Fact]
     public void UpdateDraft_updates_counted_values_without_changing_status()
     {
-        using var connection = CreateDatabase(out var sessionId, out var lineId);
+        using var connection = CreateDatabase(out var sessionId, out var lineId, out var rowVersion);
         var service = new StockCountService(() => CreateContext(connection));
 
         service.UpdateDraft(
@@ -21,6 +21,7 @@ public class StockCountMutationServiceTests
                 new StockCountLine
                 {
                     Id = lineId,
+                    RowVersion = rowVersion,
                     CountedQuantity = 7,
                     SerialNumbers = "SN-1,SN-2"
                 }
@@ -39,7 +40,7 @@ public class StockCountMutationServiceTests
     [Fact]
     public void CommitSession_updates_counted_values_and_marks_session_counted()
     {
-        using var connection = CreateDatabase(out var sessionId, out var lineId);
+        using var connection = CreateDatabase(out var sessionId, out var lineId, out var rowVersion);
         var service = new StockCountService(() => CreateContext(connection));
 
         service.CommitSession(
@@ -49,6 +50,7 @@ public class StockCountMutationServiceTests
                 new StockCountLine
                 {
                     Id = lineId,
+                    RowVersion = rowVersion,
                     CountedQuantity = 4
                 }
             },
@@ -62,7 +64,7 @@ public class StockCountMutationServiceTests
         Assert.Equal(-1, line.VarianceQuantity);
     }
 
-    private static SqliteConnection CreateDatabase(out int sessionId, out int lineId)
+    private static SqliteConnection CreateDatabase(out int sessionId, out int lineId, out byte[] rowVersion)
     {
         var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
@@ -101,6 +103,7 @@ public class StockCountMutationServiceTests
         db.SaveChanges();
         sessionId = session.Id;
         lineId = session.Lines.Single().Id;
+        rowVersion = session.Lines.Single().RowVersion.ToArray();
         return connection;
     }
 

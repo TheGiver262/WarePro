@@ -280,7 +280,7 @@ namespace QuanLyHangHoa.ViewModels
                 }
 
                 StatusMessage = "Đang xử lý dữ liệu từ Excel...";
-                var result = await _importService.ImportFromExcelAsync(excelPath, _currentUser.Id);
+                var result = await _importService.ImportFromExcelAsync(excelPath, _currentUser.Id, Guid.NewGuid());
                 
                 StatusMessage = result.Message;
                 if (result.SuccessCount > 0)

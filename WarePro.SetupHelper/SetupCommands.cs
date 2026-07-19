@@ -1,10 +1,12 @@
 using System.Data;
+using System.Data.Common;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Text.Json;
 using Microsoft.Data.SqlClient;
 using Microsoft.Win32;
 using QuanLyHangHoa.Configuration;
+using WarePro.Database;
 
 namespace WarePro.SetupHelper;
 
@@ -20,6 +22,10 @@ public enum SetupExitCode
     ConnectionFailed = 22,
     InsufficientDatabasePermission = 23,
     SqlVersionUnsupported = 24,
+    ActiveClients = 25,
+    BackupFailed = 26,
+    MigrationFailed = 27,
+    ValidationFailed = 28,
     ConfigWriteFailed = 30
 }
 
@@ -56,6 +62,15 @@ public interface ISetupProbe
         string configPath,
         SetupMode mode,
         CancellationToken cancellationToken);
+
+    Task<SetupProbeResult> UpgradeDatabaseAsync(string configPath, Version appVersion, int expectedSchema, CancellationToken cancellationToken) =>
+        Task.FromResult(new SetupProbeResult(SetupExitCode.MigrationFailed, "Database upgrade is not available."));
+    Task<SetupProbeResult> PrepareDatabaseAsync(string configPath, Version appVersion, int expectedSchema, string? bootstrapSecretFile, CancellationToken cancellationToken) =>
+        UpgradeDatabaseAsync(configPath, appVersion, expectedSchema, cancellationToken);
+    Task<SetupProbeResult> FinalizeDatabaseAsync(string configPath, Version appVersion, int expectedSchema, CancellationToken cancellationToken) =>
+        Task.FromResult(new SetupProbeResult(SetupExitCode.MigrationFailed, "Database finalize is not available."));
+    Task<SetupProbeResult> RollbackDatabaseAsync(string configPath, Version appVersion, int expectedSchema, CancellationToken cancellationToken) =>
+        Task.FromResult(new SetupProbeResult(SetupExitCode.MigrationFailed, "Database rollback is not available."));
 }
 
 public interface ISetupConfigWriter
@@ -107,6 +122,8 @@ public sealed class SetupCommands
             "detect-sql" => await DetectSqlAsync(arguments, cancellationToken),
             "write-config" => WriteConfig(arguments),
             "test-connection" => await TestConnectionAsync(arguments, cancellationToken),
+            "upgrade-database" or "prepare-database" or "finalize-database" or "rollback-database" =>
+                await DatabaseCutoverAsync(arguments, cancellationToken),
             _ => Invalid("Unknown command.")
         };
     }
@@ -149,6 +166,50 @@ public sealed class SetupCommands
         }
     }
 
+    private async Task<SetupExecutionResult> DatabaseCutoverAsync(
+        IReadOnlyList<string> arguments,
+        CancellationToken cancellationToken)
+    {
+        if (!TryParseOptions(
+                arguments,
+                ["--config", "--app-version", "--expected-schema", "--bootstrap-secret-file", "--log"],
+                out var options,
+                out var error)
+            || !Required(options, "--config", out var configPath)
+            || !Required(options, "--app-version", out var appVersionText)
+            || !Required(options, "--expected-schema", out var schemaText)
+            || !Version.TryParse(appVersionText, out var appVersion)
+            || !int.TryParse(schemaText, out var expectedSchema)
+            || expectedSchema < 1)
+            return Invalid(error ?? "--config, --app-version and --expected-schema are required.");
+
+        var absoluteConfigPath = Path.GetFullPath(configPath);
+        var bootstrapSecretFile = options.GetValueOrDefault("--bootstrap-secret-file");
+        if (!string.IsNullOrWhiteSpace(bootstrapSecretFile))
+            bootstrapSecretFile = Path.GetFullPath(bootstrapSecretFile);
+
+        try
+        {
+            var result = arguments[0].ToLowerInvariant() switch
+            {
+                "upgrade-database" or "prepare-database" =>
+                    await _probe.PrepareDatabaseAsync(
+                        absoluteConfigPath, appVersion, expectedSchema, bootstrapSecretFile, cancellationToken),
+                "finalize-database" =>
+                    await _probe.FinalizeDatabaseAsync(
+                        absoluteConfigPath, appVersion, expectedSchema, cancellationToken),
+                "rollback-database" =>
+                    await _probe.RollbackDatabaseAsync(
+                        absoluteConfigPath, appVersion, expectedSchema, cancellationToken),
+                _ => new SetupProbeResult(SetupExitCode.InvalidArguments, "Unknown database cutover command.")
+            };
+            return FromProbe(result);
+        }
+        catch (Exception ex)
+        {
+            return Result(SetupExitCode.MigrationFailed, "Database cutover failed.", detail: ex.Message);
+        }
+    }
     private SetupExecutionResult WriteConfig(IReadOnlyList<string> arguments)
     {
         if (!TryParseOptions(
@@ -419,6 +480,78 @@ public sealed class SqlSetupProbe : ISetupProbe
         productMajorVersion >= 16
         && edition.Contains("Express Edition", StringComparison.OrdinalIgnoreCase);
 
+    public Task<SetupProbeResult> UpgradeDatabaseAsync(
+        string configPath,
+        Version appVersion,
+        int expectedSchema,
+        CancellationToken cancellationToken) =>
+        PrepareDatabaseAsync(configPath, appVersion, expectedSchema, null, cancellationToken);
+
+    public async Task<SetupProbeResult> PrepareDatabaseAsync(
+        string configPath,
+        Version appVersion,
+        int expectedSchema,
+        string? bootstrapSecretFile,
+        CancellationToken cancellationToken) =>
+        await RunCutoverAsync(
+            configPath,
+            connectionString => DatabaseUpgradeRunner.PrepareAsync(
+                connectionString, appVersion, expectedSchema, bootstrapSecretFile, cancellationToken));
+
+    public async Task<SetupProbeResult> FinalizeDatabaseAsync(
+        string configPath,
+        Version appVersion,
+        int expectedSchema,
+        CancellationToken cancellationToken) =>
+        await RunCutoverAsync(
+            configPath,
+            connectionString => DatabaseUpgradeRunner.FinalizeAsync(
+                connectionString, appVersion, expectedSchema, cancellationToken));
+
+    public async Task<SetupProbeResult> RollbackDatabaseAsync(
+        string configPath,
+        Version appVersion,
+        int expectedSchema,
+        CancellationToken cancellationToken) =>
+        await RunCutoverAsync(
+            configPath,
+            connectionString => DatabaseUpgradeRunner.RollbackAsync(
+                connectionString, appVersion, expectedSchema, cancellationToken));
+
+    private static async Task<SetupProbeResult> RunCutoverAsync(
+        string configPath,
+        Func<string, Task> operation)
+    {
+        try
+        {
+            var settings = new WareProSettingsStore(configPath).Load()
+                ?? throw new InvalidOperationException("Configuration is invalid.");
+            var connectionString = new ConnectionStringFactory(
+                new SqlCredentialStore(),
+                () => null,
+                () => settings).Resolve(settings);
+            await operation(connectionString);
+            return new SetupProbeResult(SetupExitCode.Success, "Database cutover command completed.");
+        }
+        catch (WareProCredentialException ex)
+        {
+            return new SetupProbeResult(
+                SetupExitCode.ValidationFailed,
+                "SQL credential must be saved in Windows Credential Manager before installation.",
+                TechnicalDetail: ex.ToString());
+        }
+        catch (DatabaseUpgradeException ex)
+        {
+            return new SetupProbeResult(ex.ExitCode, ex.Message, TechnicalDetail: ex.ToString());
+        }
+        catch (Exception ex)
+        {
+            return new SetupProbeResult(
+                SetupExitCode.MigrationFailed,
+                "Database cutover command failed.",
+                TechnicalDetail: ex.Message);
+        }
+    }
     public async Task<SetupProbeResult> TestConnectionAsync(
         string configPath,
         SetupMode mode,
@@ -557,5 +690,717 @@ public sealed class SqlSetupProbe : ISetupProbe
         using var root = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, view);
         using var key = root.OpenSubKey(InstanceRegistryPath, writable: false);
         return key?.GetValue(instanceName) is string value && !string.IsNullOrWhiteSpace(value);
+    }
+}
+
+internal sealed class DatabaseUpgradeException : Exception
+{
+    public DatabaseUpgradeException(SetupExitCode exitCode, string message) : base(message) => ExitCode = exitCode;
+    public DatabaseUpgradeException(SetupExitCode exitCode, string message, Exception innerException) : base(message, innerException) => ExitCode = exitCode;
+    public SetupExitCode ExitCode { get; }
+}
+
+internal static class MaintenanceCommandTimeouts
+{
+    private const int DefaultCatalogSeconds = 60;
+    private const int DefaultMigrationSeconds = 300;
+    private const int DefaultBackupSeconds = 600;
+    private const int DefaultVerifySeconds = 300;
+    private const int DefaultRestoreSeconds = 600;
+
+    public static int CatalogSeconds => Read("WAREPRO_SQL_CATALOG_TIMEOUT_SECONDS", DefaultCatalogSeconds);
+    public static int MigrationSeconds => Read("WAREPRO_SQL_MIGRATION_TIMEOUT_SECONDS", DefaultMigrationSeconds);
+    public static int BackupSeconds => Read("WAREPRO_SQL_BACKUP_TIMEOUT_SECONDS", DefaultBackupSeconds);
+    public static int VerifySeconds => Read("WAREPRO_SQL_VERIFY_TIMEOUT_SECONDS", DefaultVerifySeconds);
+    public static int RestoreSeconds => Read("WAREPRO_SQL_RESTORE_TIMEOUT_SECONDS", DefaultRestoreSeconds);
+
+    private static int Read(string variable, int fallback) =>
+        int.TryParse(Environment.GetEnvironmentVariable(variable), out var value) && value > 0
+            ? value
+            : fallback;
+}
+internal static class DatabaseUpgradeRunner
+{
+    private const int SupportedSchema = 6;
+
+    public static Task RunAsync(
+        string connectionString,
+        Version appVersion,
+        int expectedSchema,
+        CancellationToken cancellationToken) =>
+        PrepareAsync(connectionString, appVersion, expectedSchema, null, cancellationToken);
+
+    public static async Task PrepareAsync(
+        string connectionString,
+        Version appVersion,
+        int expectedSchema,
+        string? bootstrapSecretFile,
+        CancellationToken cancellationToken)
+    {
+        ValidateRelease(appVersion, expectedSchema);
+        string? bootstrapHash = null;
+        if (!string.IsNullOrWhiteSpace(bootstrapSecretFile))
+        {
+            try
+            {
+                var password = await File.ReadAllTextAsync(bootstrapSecretFile, cancellationToken);
+                if (password.Length < 12)
+                    throw new DatabaseUpgradeException(SetupExitCode.ValidationFailed, "Bootstrap admin password must contain at least 12 characters.");
+                bootstrapHash = BCrypt.Net.BCrypt.HashPassword(password);
+                password = string.Empty;
+            }
+            finally
+            {
+                try { File.Delete(bootstrapSecretFile); } catch { }
+            }
+        }
+
+        var existingCutover = await ResolveExistingCutoverAsync(connectionString, cancellationToken);
+        if (existingCutover is { Status: "Prepared" }
+            && existingCutover.PreparedByVersion == appVersion.ToString(3)
+            && existingCutover.ExpectedSchema == expectedSchema)
+            return;
+        if (existingCutover is { Status: "Preparing" or "Prepared" })
+            await RollbackAsync(connectionString, appVersion, expectedSchema, cancellationToken);
+
+        string? backupPath = null;
+        var installerCreatedDatabase = false;
+        var accessRestricted = false;
+        try
+        {
+            var opened = await OpenConnectionWithCreationAsync(connectionString, cancellationToken);
+            installerCreatedDatabase = opened.CreatedDatabase;
+            await using var inspection = opened.Connection;
+            await SetMaintenanceContextAsync(inspection, cancellationToken);
+            await AcquireMaintenanceLockAsync(inspection, cancellationToken);
+            var classification = await ClassifyDatabaseAsync(inspection, cancellationToken);
+            if (classification == DatabaseClassification.Unrelated)
+                throw new DatabaseUpgradeException(
+                    SetupExitCode.ValidationFailed,
+                    "The target database is not empty and does not have a valid WarePro signature.");
+
+            await DeleteStaleSessionsAsync(inspection, cancellationToken);
+            if (await CountActiveSessionsAsync(inspection, cancellationToken) > 0)
+                throw new DatabaseUpgradeException(SetupExitCode.ActiveClients, "Active clients are still connected.");
+
+            // restricted mode kicks unregistered legacy connections before backup or DDL and stays until finalize/rollback.
+            await inspection.DisposeAsync();
+            await SetDatabaseAccessAsync(connectionString, restricted: true, cancellationToken);
+            accessRestricted = true;
+
+            await using var connection = await OpenConnectionAsync(connectionString, cancellationToken);
+            await SetMaintenanceContextAsync(connection, cancellationToken);
+            await AcquireMaintenanceLockAsync(connection, cancellationToken);
+            if (!installerCreatedDatabase)
+                backupPath = await CreateAndVerifyBackupAsync(connection, cancellationToken);
+
+            await SaveCutoverStateAsync(
+                connection, backupPath, appVersion, expectedSchema, "Preparing",
+                installerCreatedDatabase, cancellationToken);
+            await ExecuteAsync(connection, "ALTER DATABASE CURRENT SET READ_COMMITTED_SNAPSHOT ON WITH ROLLBACK IMMEDIATE;", cancellationToken);
+
+            await using var transaction = (SqlTransaction)await connection.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                if (classification == DatabaseClassification.Empty)
+                {
+                    foreach (var batch in DatabaseSchemaScripts.BaselineBatches)
+                        await ExecuteAsync(connection, batch, cancellationToken, transaction);
+                }
+
+                await ExecuteAsync(
+                    connection,
+                    DatabaseSchemaScripts.BuildUpgradeSql(expectedSchema, appVersion.ToString(3)),
+                    cancellationToken,
+                    transaction);
+
+                var hasUsers = Convert.ToInt32(await ExecuteScalarAsync(
+                    connection,
+                    "SELECT CASE WHEN EXISTS (SELECT 1 FROM dbo.AppUser) THEN 1 ELSE 0 END;",
+                    cancellationToken,
+                    transaction)) == 1;
+                if (!hasUsers)
+                {
+                    if (bootstrapHash is null)
+                        throw new DatabaseUpgradeException(SetupExitCode.ValidationFailed, "A bootstrap admin secret is required for a fresh database.");
+                    await ExecuteAsync(
+                        connection,
+                        """
+                        INSERT INTO dbo.AppUser
+                            (Username, PasswordHash, FullName, RoleCode, IsActive, MustChangePassword)
+                        VALUES
+                            (N'admin', @passwordHash, N'Quản trị viên', N'Admin', 1, 1);
+                        """,
+                        cancellationToken,
+                        transaction,
+                        ("@passwordHash", bootstrapHash));
+                }
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(CancellationToken.None);
+                throw;
+            }
+
+            await ValidateAsync(connection, expectedSchema, cancellationToken);
+            await SaveCutoverStateAsync(
+                connection, backupPath, appVersion, expectedSchema, "Prepared",
+                installerCreatedDatabase, cancellationToken);
+        }
+        catch (DatabaseUpgradeException)
+        {
+            await RecoverFailedPrepareAsync(connectionString, backupPath, installerCreatedDatabase, accessRestricted);
+            throw;
+        }
+        catch (Exception ex) when (ex is SqlException or InvalidOperationException)
+        {
+            await RecoverFailedPrepareAsync(connectionString, backupPath, installerCreatedDatabase, accessRestricted);
+            var recovery = backupPath is null ? string.Empty : $" Verified backup retained at {backupPath}.";
+            throw new DatabaseUpgradeException(SetupExitCode.MigrationFailed, "Database migration failed." + recovery, ex);
+        }
+    }
+    public static async Task FinalizeAsync(
+        string connectionString,
+        Version appVersion,
+        int expectedSchema,
+        CancellationToken cancellationToken)
+    {
+        ValidateRelease(appVersion, expectedSchema);
+        await using (var connection = await OpenConnectionAsync(connectionString, cancellationToken))
+        {
+            await SetMaintenanceContextAsync(connection, cancellationToken);
+            await AcquireMaintenanceLockAsync(connection, cancellationToken);
+            await DeleteStaleSessionsAsync(connection, cancellationToken);
+            if (await CountActiveSessionsAsync(connection, cancellationToken) > 0)
+                throw new DatabaseUpgradeException(SetupExitCode.ActiveClients, "Active clients are still connected.");
+            await ValidateAsync(connection, expectedSchema, cancellationToken);
+
+            var ready = Convert.ToInt32(await ExecuteScalarAsync(
+                connection,
+                """
+                SELECT CASE WHEN EXISTS
+                (
+                    SELECT 1 FROM dbo.__WareProUpgradeCutover
+                    WHERE Id = 1 AND Status = N'Prepared'
+                      AND PreparedByVersion = @version AND ExpectedSchema = @schema
+                ) THEN 1 ELSE 0 END;
+                """,
+                cancellationToken,
+                ("@version", appVersion.ToString(3)), ("@schema", expectedSchema)));
+            if (ready != 1)
+                throw new DatabaseUpgradeException(SetupExitCode.ValidationFailed, "Database cutover is not prepared for this release.");
+
+            await using var transaction = (SqlTransaction)await connection.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                await ExecuteAsync(
+                    connection,
+                    DatabaseSchemaScripts.BuildFinalizeSql(expectedSchema, appVersion.ToString(3)),
+                    cancellationToken,
+                    transaction);
+                await ExecuteAsync(
+                    connection,
+                    "UPDATE dbo.__WareProUpgradeCutover SET Status = N'Finalized', CompletedAtUtc = SYSUTCDATETIME() WHERE Id = 1;",
+                    cancellationToken,
+                    transaction);
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(CancellationToken.None);
+                throw;
+            }
+        }
+        await SetDatabaseAccessAsync(connectionString, restricted: false, cancellationToken);
+    }
+
+    public static async Task RollbackAsync(
+        string connectionString,
+        Version appVersion,
+        int expectedSchema,
+        CancellationToken cancellationToken)
+    {
+        ValidateRelease(appVersion, expectedSchema);
+        string? backupPath = null;
+        var installerCreatedDatabase = false;
+        try
+        {
+            await using var target = await OpenExistingConnectionAsync(connectionString, cancellationToken);
+            if (target is null)
+                return;
+            await SetMaintenanceContextAsync(target, cancellationToken);
+            await AcquireMaintenanceLockAsync(target, cancellationToken);
+            await DeleteStaleSessionsAsync(target, cancellationToken);
+            if (await CountActiveSessionsAsync(target, cancellationToken) > 0)
+                throw new DatabaseUpgradeException(SetupExitCode.ActiveClients, "Active clients are still connected.");
+            if (Convert.ToInt32(await ExecuteScalarAsync(
+                    target,
+                    "SELECT CASE WHEN OBJECT_ID(N'dbo.__WareProUpgradeCutover', N'U') IS NULL THEN 0 ELSE 1 END;",
+                    cancellationToken)) == 1)
+            {
+                backupPath = Convert.ToString(await ExecuteScalarAsync(
+                    target,
+                    "SELECT TOP (1) BackupPath FROM dbo.__WareProUpgradeCutover WHERE Id = 1;",
+                    cancellationToken));
+                if (Convert.ToInt32(await ExecuteScalarAsync(target,
+                        "SELECT CASE WHEN COL_LENGTH(N'dbo.__WareProUpgradeCutover', N'InstallerCreatedDatabase') IS NULL THEN 0 ELSE 1 END;",
+                        cancellationToken)) == 1)
+                    installerCreatedDatabase = Convert.ToBoolean(await ExecuteScalarAsync(
+                        target,
+                        "SELECT TOP (1) InstallerCreatedDatabase FROM dbo.__WareProUpgradeCutover WHERE Id = 1;",
+                        cancellationToken));
+            }
+        }
+        catch (SqlException ex) when (ex.Number == 4060)
+        {
+            // A previous rollback may already have removed an installer-created database.
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(backupPath))
+            await RestoreBackupAsync(connectionString, backupPath, cancellationToken);
+        else if (installerCreatedDatabase)
+            await DropDatabaseAsync(connectionString, cancellationToken);
+        else
+            await SetDatabaseAccessAsync(connectionString, restricted: false, cancellationToken);
+    }
+    private enum DatabaseClassification
+    {
+        Empty = 0,
+        WarePro = 1,
+        LegacyWarePro = 2,
+        Unrelated = 3
+    }
+
+    private static async Task<DatabaseClassification> ClassifyDatabaseAsync(
+        SqlConnection connection,
+        CancellationToken cancellationToken)
+    {
+        var value = Convert.ToInt32(await ExecuteScalarAsync(connection, """
+            DECLARE @UserTableCount int =
+            (
+                SELECT COUNT(*) FROM sys.tables WHERE is_ms_shipped = 0
+            );
+            IF @UserTableCount = 0
+            BEGIN
+                SELECT 0;
+                RETURN;
+            END;
+
+            IF OBJECT_ID(N'dbo.__WareProDatabaseIdentity', N'U') IS NOT NULL
+               AND EXISTS
+               (
+                   SELECT 1 FROM dbo.__WareProDatabaseIdentity
+                   WHERE Id = 1
+                     AND ProductId = 'F65EAB95-A3F8-4D8D-9AF5-4839FCA38E21'
+                     AND ProductName = N'WarePro'
+               )
+            BEGIN
+                SELECT 1;
+                RETURN;
+            END;
+
+            IF OBJECT_ID(N'dbo.__WareProUpgradeCutover', N'U') IS NOT NULL
+               AND COL_LENGTH(N'dbo.__WareProUpgradeCutover', N'InstallerCreatedDatabase') IS NOT NULL
+               AND EXISTS
+               (
+                   SELECT 1 FROM dbo.__WareProUpgradeCutover
+                   WHERE Id = 1 AND InstallerCreatedDatabase = 1
+                     AND Status IN (N'Preparing', N'Prepared')
+               )
+            BEGIN
+                SELECT 1;
+                RETURN;
+            END;
+
+            DECLARE @DistinctiveLegacyShape bit = 0;
+            IF OBJECT_ID(N'dbo.ProductUnit', N'U') IS NOT NULL
+               AND COL_LENGTH(N'dbo.ProductUnit', N'ConversionFactor') IS NOT NULL
+               AND EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = N'CK_ProductUnit_ConversionFactor_Positive')
+               AND OBJECT_ID(N'dbo.StockIn', N'U') IS NOT NULL
+               AND COL_LENGTH(N'dbo.StockIn', N'DocumentCode') IS NOT NULL
+               AND OBJECT_ID(N'dbo.StockInLine', N'U') IS NOT NULL
+               AND COL_LENGTH(N'dbo.StockInLine', N'BaseQuantity') IS NOT NULL
+               AND EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_StockInLine_StockIn' AND parent_object_id = OBJECT_ID(N'dbo.StockInLine'))
+               AND OBJECT_ID(N'dbo.StockOut', N'U') IS NOT NULL
+               AND COL_LENGTH(N'dbo.StockOut', N'DocumentCode') IS NOT NULL
+               AND OBJECT_ID(N'dbo.StockOutLine', N'U') IS NOT NULL
+               AND COL_LENGTH(N'dbo.StockOutLine', N'BaseQuantity') IS NOT NULL
+               AND EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_StockOutLine_StockOut' AND parent_object_id = OBJECT_ID(N'dbo.StockOutLine'))
+               AND OBJECT_ID(N'dbo.StockLedger', N'U') IS NOT NULL
+               AND COL_LENGTH(N'dbo.StockLedger', N'SourceDocumentType') IS NOT NULL
+               AND EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_StockLedger_Warehouse_Product_PostedAt' AND object_id = OBJECT_ID(N'dbo.StockLedger'))
+               AND EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_StockLedger_SourceDocument' AND object_id = OBJECT_ID(N'dbo.StockLedger'))
+                SET @DistinctiveLegacyShape = 1;
+
+            SELECT CASE WHEN @DistinctiveLegacyShape = 1 THEN 2 ELSE 3 END;
+            """, cancellationToken));
+        return (DatabaseClassification)value;
+    }    private static void ValidateRelease(Version appVersion, int expectedSchema)
+    {
+        if (expectedSchema != SupportedSchema || appVersion < new Version("1.1.0"))
+            throw new DatabaseUpgradeException(SetupExitCode.ValidationFailed, "Release compatibility validation failed.");
+    }
+
+    private static Task SetMaintenanceContextAsync(SqlConnection connection, CancellationToken token) =>
+        ExecuteAsync(
+            connection,
+            "EXEC sys.sp_set_session_context @key = N'WareProMaintenance', @value = 1;",
+            token);
+
+    private static async Task AcquireMaintenanceLockAsync(SqlConnection connection, CancellationToken cancellationToken)
+    {
+        await using var command = new SqlCommand("""
+            DECLARE @result INT;
+            EXEC @result = sys.sp_getapplock
+                @Resource = @resource,
+                @LockMode = 'Exclusive',
+                @LockOwner = 'Session',
+                @LockTimeout = 0;
+            SELECT @result;
+            """, connection);
+        command.CommandTimeout = MaintenanceCommandTimeouts.CatalogSeconds;
+        command.Parameters.Add("@resource", SqlDbType.NVarChar, 255).Value =
+            "WAREPRO:SCHEMAMAINTENANCE:" + connection.Database.Trim().ToUpperInvariant();
+        if (Convert.ToInt32(await command.ExecuteScalarAsync(cancellationToken)) < 0)
+            throw new DatabaseUpgradeException(SetupExitCode.ActiveClients, "Active clients are still connected.");
+    }
+
+    private static Task DeleteStaleSessionsAsync(SqlConnection connection, CancellationToken cancellationToken) =>
+        ExecuteAsync(connection, """
+            IF OBJECT_ID(N'dbo.__WareProClientSession', N'U') IS NOT NULL
+                EXEC sys.sp_executesql
+                    N'DELETE FROM dbo.__WareProClientSession WHERE LastSeenUtc < DATEADD(SECOND, -90, SYSUTCDATETIME());';
+            """, cancellationToken);
+
+    private static async Task<int> CountActiveSessionsAsync(SqlConnection connection, CancellationToken cancellationToken) =>
+        Convert.ToInt32(await ExecuteScalarAsync(connection, """
+            DECLARE @ActiveSessions INT = 0;
+            IF OBJECT_ID(N'dbo.__WareProClientSession', N'U') IS NOT NULL
+                EXEC sys.sp_executesql
+                    N'SELECT @value = COUNT(*) FROM dbo.__WareProClientSession;',
+                    N'@value INT OUTPUT',
+                    @value = @ActiveSessions OUTPUT;
+            SELECT @ActiveSessions;
+            """, cancellationToken));
+
+    private static async Task<string> CreateAndVerifyBackupAsync(SqlConnection connection, CancellationToken cancellationToken)
+    {
+        string? path = null;
+        try
+        {
+            var directory = Convert.ToString(await ExecuteScalarAsync(
+                connection,
+                "SELECT CONVERT(nvarchar(4000), SERVERPROPERTY('InstanceDefaultBackupPath'));",
+                cancellationToken));
+            if (string.IsNullOrWhiteSpace(directory))
+                throw new InvalidOperationException("SQL Server backup directory is unavailable.");
+
+            path = Path.Combine(directory, $"WarePro-{connection.Database}-{DateTime.UtcNow:yyyyMMddHHmmssfff}-{Guid.NewGuid():N}.bak");
+            var database = connection.Database.Replace("]", "]]", StringComparison.Ordinal);
+            await ExecuteAsync(connection, $"BACKUP DATABASE [{database}] TO DISK = @path WITH CHECKSUM, INIT;", cancellationToken, MaintenanceCommandTimeouts.BackupSeconds, ("@path", path));
+            await ExecuteAsync(connection, "RESTORE VERIFYONLY FROM DISK = @path WITH CHECKSUM;", cancellationToken, MaintenanceCommandTimeouts.VerifySeconds, ("@path", path));
+            return path;
+        }
+        catch (Exception ex) when (ex is SqlException or InvalidOperationException)
+        {
+            throw new DatabaseUpgradeException(SetupExitCode.BackupFailed, "Database backup or verification failed.", ex);
+        }
+    }
+
+    private static Task SaveCutoverStateAsync(
+        SqlConnection connection,
+        string? backupPath,
+        Version appVersion,
+        int expectedSchema,
+        string status,
+        bool installerCreatedDatabase,
+        CancellationToken token) =>
+        ExecuteAsync(connection, """
+            IF OBJECT_ID(N'dbo.__WareProUpgradeCutover', N'U') IS NULL
+                CREATE TABLE dbo.__WareProUpgradeCutover
+                (
+                    Id int NOT NULL CONSTRAINT PK___WareProUpgradeCutover PRIMARY KEY,
+                    Status nvarchar(32) NOT NULL,
+                    BackupPath nvarchar(4000) NULL,
+                    PreparedByVersion nvarchar(32) NOT NULL,
+                    ExpectedSchema int NOT NULL,
+                    InstallerCreatedDatabase bit NOT NULL CONSTRAINT DF___WareProUpgradeCutover_InstallerCreated DEFAULT (0),
+                    PreparedAtUtc datetime2(0) NOT NULL,
+                    CompletedAtUtc datetime2(0) NULL
+                );
+            IF COL_LENGTH(N'dbo.__WareProUpgradeCutover', N'ExpectedSchema') IS NULL
+                ALTER TABLE dbo.__WareProUpgradeCutover ADD ExpectedSchema int NULL;
+            IF COL_LENGTH(N'dbo.__WareProUpgradeCutover', N'InstallerCreatedDatabase') IS NULL
+                ALTER TABLE dbo.__WareProUpgradeCutover ADD InstallerCreatedDatabase bit NOT NULL
+                    CONSTRAINT DF___WareProUpgradeCutover_InstallerCreated DEFAULT (0);
+            MERGE dbo.__WareProUpgradeCutover AS target
+            USING (SELECT 1 AS Id) AS source ON target.Id = source.Id
+            WHEN MATCHED THEN UPDATE SET
+                Status = @status,
+                BackupPath = CASE
+                    WHEN target.Status IN (N'Preparing', N'Prepared')
+                     AND target.PreparedByVersion = @version
+                     AND target.ExpectedSchema = @schema
+                    THEN COALESCE(target.BackupPath, @backupPath) ELSE @backupPath END,
+                PreparedByVersion = @version, ExpectedSchema = @schema,
+                InstallerCreatedDatabase = CASE
+                    WHEN target.Status IN (N'Preparing', N'Prepared')
+                     AND target.PreparedByVersion = @version
+                     AND target.ExpectedSchema = @schema
+                    THEN target.InstallerCreatedDatabase | @installerCreated ELSE @installerCreated END,
+                PreparedAtUtc = SYSUTCDATETIME(), CompletedAtUtc = NULL
+            WHEN NOT MATCHED THEN INSERT
+                (Id, Status, BackupPath, PreparedByVersion, ExpectedSchema, InstallerCreatedDatabase, PreparedAtUtc)
+                VALUES (1, @status, @backupPath, @version, @schema, @installerCreated, SYSUTCDATETIME());
+            """, token,
+            ("@status", status), ("@backupPath", (object?)backupPath ?? DBNull.Value),
+            ("@version", appVersion.ToString(3)), ("@schema", expectedSchema),
+            ("@installerCreated", installerCreatedDatabase));    private static async Task ValidateAsync(SqlConnection connection, int expectedSchema, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var shapePredicate = DatabaseSchemaScripts.ShapeValidationPredicate;
+            var validationContract = shapePredicate + DatabaseSchemaScripts.BuildUpgradeSql(expectedSchema, "1.1.0");
+            foreach (var marker in new[]
+                     {
+                         "TYPE_NAME", "max_length", "AuditArchiveManifest", "UX_AuditArchiveManifest_OperationId",
+                         "FK_StockTransfer_FromWarehouse", "FK_StockTransferLine_StockTransfer", "RowVersion"
+                     })
+                if (!validationContract.Contains(marker, StringComparison.Ordinal))
+                    throw new InvalidOperationException("Schema validation predicate is incomplete.");
+
+            var valid = Convert.ToInt32(await ExecuteScalarAsync(connection, $"""
+                SELECT CASE WHEN
+                    (SELECT Version FROM dbo.__WareProSchemaVersion WHERE Id = 1) = @schema
+                    AND OBJECT_ID(N'dbo.AppUser', N'U') IS NOT NULL
+                    AND OBJECT_ID(N'dbo.Product', N'U') IS NOT NULL
+                    AND OBJECT_ID(N'dbo.Warehouse', N'U') IS NOT NULL
+                    AND OBJECT_ID(N'dbo.StockBalance', N'U') IS NOT NULL
+                    AND OBJECT_ID(N'dbo.__WareProClientSession', N'U') IS NOT NULL
+                    AND COL_LENGTH(N'dbo.AppUser', N'RowVersion') IS NOT NULL
+                    AND COL_LENGTH(N'dbo.Product', N'RowVersion') IS NOT NULL
+                    AND COL_LENGTH(N'dbo.StockBalance', N'RowVersion') IS NOT NULL
+                    AND ({shapePredicate})
+                    THEN 1 ELSE 0 END;
+                """, cancellationToken, ("@schema", expectedSchema)));
+            if (valid != 1)
+                throw new InvalidOperationException("Schema shape or release metadata does not match.");
+        }
+        catch (Exception ex)
+        {
+            throw new DatabaseUpgradeException(SetupExitCode.ValidationFailed, "Database validation failed.", ex);
+        }
+    }
+
+    private static async Task SetDatabaseAccessAsync(
+        string connectionString,
+        bool restricted,
+        CancellationToken token)
+    {
+        var target = new SqlConnectionStringBuilder(connectionString);
+        var database = target.InitialCatalog;
+        if (string.IsNullOrWhiteSpace(database))
+            throw new DatabaseUpgradeException(SetupExitCode.ValidationFailed, "Target database is required.");
+        var escaped = database.Replace("]", "]]", StringComparison.Ordinal);
+        target.InitialCatalog = "master";
+        await using var master = new SqlConnection(target.ConnectionString);
+        await master.OpenAsync(token);
+        await ExecuteAsync(
+            master,
+            $"ALTER DATABASE [{escaped}] SET {(restricted ? "RESTRICTED_USER" : "MULTI_USER")} WITH ROLLBACK IMMEDIATE;",
+            token);
+    }
+
+    private static async Task RestoreBackupAsync(
+        string connectionString,
+        string backupPath,
+        CancellationToken token)
+    {
+        var target = new SqlConnectionStringBuilder(connectionString);
+        var database = target.InitialCatalog;
+        var escaped = database.Replace("]", "]]", StringComparison.Ordinal);
+        target.InitialCatalog = "master";
+        await using var master = new SqlConnection(target.ConnectionString);
+        await master.OpenAsync(token);
+        await ExecuteAsync(master, $"ALTER DATABASE [{escaped}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;", token, MaintenanceCommandTimeouts.RestoreSeconds);
+        await ExecuteAsync(master, $"RESTORE DATABASE [{escaped}] FROM DISK = @path WITH REPLACE, CHECKSUM;", token, MaintenanceCommandTimeouts.RestoreSeconds, ("@path", backupPath));
+        await ExecuteAsync(master, $"ALTER DATABASE [{escaped}] SET MULTI_USER WITH ROLLBACK IMMEDIATE;", token, MaintenanceCommandTimeouts.RestoreSeconds);
+    }
+
+    private static async Task DropDatabaseAsync(string connectionString, CancellationToken token)
+    {
+        var target = new SqlConnectionStringBuilder(connectionString);
+        var database = target.InitialCatalog;
+        var escaped = database.Replace("]", "]]", StringComparison.Ordinal);
+        target.InitialCatalog = "master";
+        await using var master = new SqlConnection(target.ConnectionString);
+        await master.OpenAsync(token);
+        await ExecuteAsync(master, $"ALTER DATABASE [{escaped}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{escaped}];", token);
+    }
+
+    private static async Task RecoverFailedPrepareAsync(
+        string connectionString,
+        string? backupPath,
+        bool installerCreatedDatabase,
+        bool accessRestricted)
+    {
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(backupPath))
+                await RestoreBackupAsync(connectionString, backupPath, CancellationToken.None);
+            else if (installerCreatedDatabase)
+                await DropDatabaseAsync(connectionString, CancellationToken.None);
+            else if (accessRestricted)
+                await SetDatabaseAccessAsync(connectionString, restricted: false, CancellationToken.None);
+        }
+        catch
+        {
+            // Keep original failure. A retained backup or restricted database remains fail-closed for manual recovery.
+        }
+    }
+
+    private static async Task<SqlConnection> OpenConnectionAsync(string connectionString, CancellationToken cancellationToken) =>
+        (await OpenConnectionWithCreationAsync(connectionString, cancellationToken)).Connection;
+
+    private static async Task<(SqlConnection Connection, bool CreatedDatabase)> OpenConnectionWithCreationAsync(
+        string connectionString,
+        CancellationToken cancellationToken)
+    {
+        var target = new SqlConnectionStringBuilder(connectionString);
+        if (string.IsNullOrWhiteSpace(target.InitialCatalog))
+            throw new DatabaseUpgradeException(SetupExitCode.ValidationFailed, "Target database is required.");
+
+        var existing = await OpenExistingConnectionAsync(connectionString, cancellationToken);
+        if (existing is not null)
+            return (existing, false);
+
+        var master = new SqlConnectionStringBuilder(target.ConnectionString) { InitialCatalog = "master" };
+        await using var masterConnection = new SqlConnection(master.ConnectionString);
+        await masterConnection.OpenAsync(cancellationToken);
+        var database = target.InitialCatalog.Replace("]", "]]", StringComparison.Ordinal);
+        await using var command = new SqlCommand($"CREATE DATABASE [{database}];", masterConnection)
+        {
+            CommandTimeout = MaintenanceCommandTimeouts.MigrationSeconds
+        };
+        await command.ExecuteNonQueryAsync(cancellationToken);
+
+        var created = new SqlConnection(target.ConnectionString);
+        await created.OpenAsync(cancellationToken);
+        return (created, true);
+    }
+
+    private static async Task<SqlConnection?> OpenExistingConnectionAsync(
+        string connectionString,
+        CancellationToken cancellationToken)
+    {
+        var connection = new SqlConnection(connectionString);
+        try
+        {
+            await connection.OpenAsync(cancellationToken);
+            return connection;
+        }
+        catch (SqlException ex) when (ex.Number == 4060)
+        {
+            await connection.DisposeAsync();
+            return null;
+        }
+    }
+
+    private sealed record CutoverState(
+        string Status,
+        string? BackupPath,
+        string PreparedByVersion,
+        int ExpectedSchema,
+        bool InstallerCreatedDatabase);
+
+    private static async Task<CutoverState?> ResolveExistingCutoverAsync(
+        string connectionString,
+        CancellationToken token)
+    {
+        await using var connection = await OpenExistingConnectionAsync(connectionString, token);
+        if (connection is null || Convert.ToInt32(await ExecuteScalarAsync(connection,
+                "SELECT CASE WHEN OBJECT_ID(N'dbo.__WareProUpgradeCutover', N'U') IS NULL THEN 0 ELSE 1 END;", token)) == 0)
+            return null;
+
+        var hasCreatedFlag = Convert.ToInt32(await ExecuteScalarAsync(connection,
+            "SELECT CASE WHEN COL_LENGTH(N'dbo.__WareProUpgradeCutover', N'InstallerCreatedDatabase') IS NULL THEN 0 ELSE 1 END;", token)) == 1;
+        var sql = hasCreatedFlag
+            ? "SELECT TOP (1) Status, BackupPath, PreparedByVersion, ExpectedSchema, InstallerCreatedDatabase FROM dbo.__WareProUpgradeCutover WHERE Id = 1;"
+            : "SELECT TOP (1) Status, BackupPath, PreparedByVersion, ExpectedSchema, CAST(0 AS bit) FROM dbo.__WareProUpgradeCutover WHERE Id = 1;";
+        await using var command = new SqlCommand(sql, connection)
+        {
+            CommandTimeout = MaintenanceCommandTimeouts.CatalogSeconds
+        };
+        await using var reader = await command.ExecuteReaderAsync(token);
+        if (!await reader.ReadAsync(token))
+            return null;
+        return new CutoverState(
+            reader.GetString(0), reader.IsDBNull(1) ? null : reader.GetString(1),
+            reader.GetString(2), reader.GetInt32(3), reader.GetBoolean(4));
+    }
+    private static Task ExecuteAsync(
+        SqlConnection connection,
+        string sql,
+        CancellationToken token,
+        params (string Name, object Value)[] parameters) =>
+        ExecuteAsync(connection, sql, token, MaintenanceCommandTimeouts.MigrationSeconds, parameters);
+
+    private static async Task ExecuteAsync(
+        SqlConnection connection,
+        string sql,
+        CancellationToken token,
+        int commandTimeout,
+        params (string Name, object Value)[] parameters)
+    {
+        await using var command = new SqlCommand(sql, connection)
+        {
+            CommandTimeout = commandTimeout
+        };
+        foreach (var (name, value) in parameters) command.Parameters.AddWithValue(name, value);
+        await command.ExecuteNonQueryAsync(token);
+    }
+
+    private static async Task ExecuteAsync(
+        SqlConnection connection,
+        string sql,
+        CancellationToken token,
+        SqlTransaction transaction,
+        params (string Name, object Value)[] parameters)
+    {
+        await using var command = new SqlCommand(sql, connection, transaction)
+        {
+            CommandTimeout = MaintenanceCommandTimeouts.MigrationSeconds
+        };
+        foreach (var (name, value) in parameters) command.Parameters.AddWithValue(name, value);
+        await command.ExecuteNonQueryAsync(token);
+    }
+
+    private static async Task<object?> ExecuteScalarAsync(
+        SqlConnection connection,
+        string sql,
+        CancellationToken token,
+        params (string Name, object Value)[] parameters)
+    {
+        await using var command = new SqlCommand(sql, connection)
+        {
+            CommandTimeout = MaintenanceCommandTimeouts.CatalogSeconds
+        };
+        foreach (var (name, value) in parameters) command.Parameters.AddWithValue(name, value);
+        return await command.ExecuteScalarAsync(token);
+    }
+
+    private static async Task<object?> ExecuteScalarAsync(
+        SqlConnection connection,
+        string sql,
+        CancellationToken token,
+        SqlTransaction transaction)
+    {
+        await using var command = new SqlCommand(sql, connection, transaction)
+        {
+            CommandTimeout = MaintenanceCommandTimeouts.CatalogSeconds
+        };
+        return await command.ExecuteScalarAsync(token);
     }
 }

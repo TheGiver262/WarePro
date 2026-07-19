@@ -67,4 +67,6 @@ public partial class StockCountLine : ObservableObject
     }
 
     public virtual StockCountSession Session { get; set; } = null!;
+    public byte[] RowVersion { get; set; } = [];
+
 }

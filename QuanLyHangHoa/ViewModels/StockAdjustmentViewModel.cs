@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Linq;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -108,6 +110,8 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private int _totalCount;
         [ObservableProperty] private int _draftCount;
         [ObservableProperty] private int _postedCount;
+        [ObservableProperty] private bool _isWriting;
+        [ObservableProperty] private string _writeStatus = string.Empty;
 
         // Detail Data
         [ObservableProperty] private int _editingId;
@@ -140,6 +144,18 @@ namespace QuanLyHangHoa.ViewModels
                 IsEditMode = false;
             }
         }
+
+        private Task<bool> ExecuteWriteAsync(
+            Func<CancellationToken, Task> write,
+            CancellationToken cancellationToken) =>
+            DatabaseWriteUi.ExecuteAsync(
+                write,
+                () => IsWriting,
+                value => IsWriting = value,
+                value => WriteStatus = value,
+                LoadData,
+                message => MessageBox.Show(message, "Lỗi"),
+                cancellationToken);
 
         public StockAdjustmentViewModel(AppUser currentUser, Func<AppDbContext>? contextFactory = null)
         {
@@ -342,8 +358,9 @@ namespace QuanLyHangHoa.ViewModels
 
         [RelayCommand]
         // draft lưu header/dòng nhưng chưa cập nhật balance, ledger hoặc serial
-        private void SaveDraft()
+        private async Task SaveDraft(CancellationToken cancellationToken)
         {
+            var operationId = Guid.NewGuid();
             if (!Validate()) return;
 
             try
@@ -369,21 +386,24 @@ namespace QuanLyHangHoa.ViewModels
                     DraftSerials = string.IsNullOrWhiteSpace(l.SerialNumbers) ? null : l.SerialNumbers
                 }).ToList();
 
-                _adjustmentService.SaveDraft(adj, lineModels, _currentUser.Id);
+                if (!await ExecuteWriteAsync(
+                    async _ => await _adjustmentService.SaveDraftAsync(adj, lineModels, _currentUser.Id, operationId, cancellationToken),
+                    cancellationToken)) return;
                 MessageBox.Show("Đã lưu bản nháp.", "Thông báo");
                 EditingId = adj.Id;
                 Status = adj.Status;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                MessageBox.Show(ex.Message, "Lỗi");
+                MessageBox.Show(DatabaseWriteUi.TechnicalErrorMessage, "Lỗi");
             }
         }
 
         [RelayCommand]
         // service kiểm tra quyền, lifecycle, số lượng và serial rồi mới ghi sổ trong một transaction
-        private void ConfirmAndPost()
+        private async Task ConfirmAndPost(CancellationToken cancellationToken)
         {
+            var operationId = Guid.NewGuid();
             if (StockDocumentUiLifecycle.IsPosted(Status)) return;
             var isDraft = StockDocumentUiLifecycle.IsDraft(Status);
             if (isDraft && !CanUserEdit)
@@ -430,10 +450,14 @@ namespace QuanLyHangHoa.ViewModels
                         ProductSerialId = string.IsNullOrWhiteSpace(line.SerialNumbers) ? line.SelectedSerial?.Id : null,
                         DraftSerials = string.IsNullOrWhiteSpace(line.SerialNumbers) ? null : line.SerialNumbers
                     }).ToList();
-                    _adjustmentService.SaveDraft(adjustment, lineModels, _currentUser.Id);
+                    if (!await ExecuteWriteAsync(
+                        async _ => await _adjustmentService.SaveDraftAsync(adjustment, lineModels, _currentUser.Id, operationId, cancellationToken),
+                        cancellationToken)) return;
                     EditingId = adjustment.Id;
                     Status = adjustment.Status;
-                    _adjustmentService.SubmitForApproval(EditingId, _currentUser.Id);
+                    if (!await ExecuteWriteAsync(
+                        async _ => await _adjustmentService.SubmitForApprovalAsync(EditingId, _currentUser.Id, operationId, cancellationToken),
+                        cancellationToken)) return;
                     Status = DocumentStatus.PendingApproval;
                     if (!IsAdminOrManager)
                     {
@@ -444,17 +468,21 @@ namespace QuanLyHangHoa.ViewModels
                 }
                 if (StockDocumentUiLifecycle.IsPendingApproval(Status))
                 {
-                    _adjustmentService.Approve(EditingId, _currentUser.Id);
+                    if (!await ExecuteWriteAsync(
+                        async _ => await _adjustmentService.ApproveAsync(EditingId, _currentUser.Id, operationId, cancellationToken),
+                        cancellationToken)) return;
                     Status = DocumentStatus.Approved;
                 }
-                _adjustmentService.Post(EditingId, _currentUser.Id);
+                if (!await ExecuteWriteAsync(
+                    async _ => await _adjustmentService.PostAsync(EditingId, _currentUser.Id, operationId, cancellationToken),
+                    cancellationToken)) return;
                 Status = DocumentStatus.Posted;
                 MessageBox.Show("Đã ghi sổ thành công.", "Thông báo");
                 BackToList();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                MessageBox.Show(ex.Message, "Lỗi");
+                MessageBox.Show(DatabaseWriteUi.TechnicalErrorMessage, "Lỗi");
             }
         }
 
@@ -503,9 +531,9 @@ namespace QuanLyHangHoa.ViewModels
                     MessageBox.Show("Xuất Excel thành công!", "Thông báo");
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                MessageBox.Show($"Lỗi khi xuất Excel: {ex.Message}", "Lỗi");
+                MessageBox.Show(DatabaseWriteUi.TechnicalErrorMessage, "Lỗi");
             }
         }
 

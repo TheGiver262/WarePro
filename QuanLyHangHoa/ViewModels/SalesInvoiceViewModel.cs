@@ -447,7 +447,7 @@ namespace QuanLyHangHoa.ViewModels
 
         [RelayCommand]
         // ViewModel chỉ validate input và map line; service kiểm tra actor, phiếu xuất, tiền, coverage và commit atomic
-        private void SaveInvoice()
+        private async Task SaveInvoiceAsync()
         {
             if (IsViewMode) return;
 
@@ -500,16 +500,24 @@ namespace QuanLyHangHoa.ViewModels
                     SalesInvoiceId = invoice.Id
                 }).ToList();
 
-                _invoiceService.SaveSalesInvoice(invoice, _currentUser.Id);
+                var operationId = Guid.NewGuid();
+                await _invoiceService.SaveSalesInvoiceAsync(invoice, _currentUser.Id, operationId);
                 MessageBox.Show("Lưu hoá đơn thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
 
                 ResetForm();
                 LoadData();
                 SelectedTabIndex = 0;
             }
-            catch (Exception ex)
+            catch (DatabaseWriteConflictException)
             {
-                MessageBox.Show($"Lỗi khi lưu hoá đơn: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Hóa đơn đã được thay đổi ở máy khác. Dữ liệu mới nhất sẽ được tải lại.", "Dữ liệu đã thay đổi", MessageBoxButton.OK, MessageBoxImage.Warning);
+                ResetForm();
+                LoadData();
+                SelectedTabIndex = 0;
+            }
+            catch (Exception)
+            {
+                MessageBox.Show(DatabaseWriteUi.TechnicalErrorMessage, "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

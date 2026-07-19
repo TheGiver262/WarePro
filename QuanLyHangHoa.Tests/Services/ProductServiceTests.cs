@@ -12,13 +12,13 @@ namespace QuanLyHangHoa.Tests.Services;
 public class ProductServiceTests
 {
     [Fact]
-    public void DeleteProduct_hard_deletes_pristine_product()
+    public async Task DeleteProduct_hard_deletes_pristine_product()
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
         using (var seedContext = CreateContext(connection))
         {
-            seedContext.Database.EnsureCreated();
+            DatabaseHelper.SeedBasicData(seedContext);
             seedContext.Products.Add(new Product
             {
                 Id = 1099,
@@ -33,8 +33,11 @@ public class ProductServiceTests
             seedContext.SaveChanges();
         }
 
+        byte[] rowVersion;
+        using (var db = CreateContext(connection))
+            rowVersion = db.Products.AsNoTracking().Single(item => item.Id == 1099).RowVersion;
         var service = new ProductService(() => CreateContext(connection));
-        service.DeleteProduct(1099, userId: 1);
+        await service.DeleteProductAsync(1099, rowVersion, userId: 1, Guid.NewGuid());
 
         using var assertContext = CreateContext(connection);
         Assert.Empty(assertContext.Products);

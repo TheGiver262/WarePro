@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
 using QuanLyHangHoa.Data;
 using System.Text;
 using System.Text.Json;
@@ -38,6 +39,8 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private DateTime _archiveFromDate = new DateTime(DateTime.Now.Year - 1, 1, 1);
         [ObservableProperty] private DateTime _archiveToDate = new DateTime(DateTime.Now.Year - 1, 12, 31);
         [ObservableProperty] private string _archiveValidationMessage = string.Empty;
+        private Guid? _archiveOperationId;
+        private string? _archiveFilePath;
 
         public ObservableCollection<string> EntityNames { get; } = new();
         public ObservableCollection<string> ActionCodes { get; } = new();
@@ -134,6 +137,7 @@ namespace QuanLyHangHoa.ViewModels
         [RelayCommand]
         private void OpenArchiveDialog()
         {
+            ResetArchiveOperation();
             ArchiveFromDate = new DateTime(DateTime.Now.Year - 1, 1, 1);
             ArchiveToDate = new DateTime(DateTime.Now.Year - 1, 12, 31);
             ArchiveValidationMessage = string.Empty;
@@ -141,11 +145,15 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
-        private void CloseArchiveDialog() => IsArchiveDialogOpen = false;
+        private void CloseArchiveDialog()
+        {
+            ResetArchiveOperation();
+            IsArchiveDialogOpen = false;
+        }
 
         [RelayCommand]
         // service xuất file, hash SHA-256, tạo manifest và chỉ sau đó mới xóa log trong transaction
-        private void ConfirmArchive()
+        private async Task ConfirmArchive()
         {
             ArchiveValidationMessage = string.Empty;
 
@@ -161,46 +169,59 @@ namespace QuanLyHangHoa.ViewModels
                 return;
             }
 
-            var oldLogs = _auditService.GetLogsBetween(ArchiveFromDate, ArchiveToDate);
-            if (!oldLogs.Any())
+            if (_archiveOperationId is null)
             {
-                MessageBox.Show($"Không có nhật ký nào từ {ArchiveFromDate:dd/MM/yyyy} đến {ArchiveToDate:dd/MM/yyyy} để lưu trữ.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
+                var oldLogs = _auditService.GetLogsBetween(ArchiveFromDate, ArchiveToDate);
+                if (!oldLogs.Any())
+                {
+                    MessageBox.Show($"Không có nhật ký nào từ {ArchiveFromDate:dd/MM/yyyy} đến {ArchiveToDate:dd/MM/yyyy} để lưu trữ.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                var confirm = MessageBox.Show($"Tìm thấy {oldLogs.Count} bản ghi. Bạn có muốn xuất ra Excel sau đó xóa chúng khỏi hệ thống không?",
+                    "Xác nhận lưu trữ", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                if (confirm != MessageBoxResult.Yes) return;
+
+                // Step 1: Export to Excel
+                var saveFileDialog = new SaveFileDialog
+                {
+                    Filter = "Excel Files (*.xlsx)|*.xlsx",
+                    FileName = $"AuditLog_Archive_{ArchiveFromDate:yyyyMMdd}_{ArchiveToDate:yyyyMMdd}.xlsx",
+                    Title = "Lưu tệp nhật ký lưu trữ"
+                };
+
+                if (saveFileDialog.ShowDialog() != true) return;
+
+                _archiveOperationId = Guid.NewGuid();
+                _archiveFilePath = saveFileDialog.FileName;
             }
 
-            var confirm = MessageBox.Show($"Tìm thấy {oldLogs.Count} bản ghi. Bạn có muốn xuất ra Excel sau đó xóa chúng khỏi hệ thống không?", 
-                "Xác nhận lưu trữ", MessageBoxButton.YesNo, MessageBoxImage.Question);
-
-            if (confirm != MessageBoxResult.Yes) return;
-
-            // Step 1: Export to Excel
-            var saveFileDialog = new SaveFileDialog
+            try
             {
-                Filter = "Excel Files (*.xlsx)|*.xlsx",
-                FileName = $"AuditLog_Archive_{ArchiveFromDate:yyyyMMdd}_{ArchiveToDate:yyyyMMdd}.xlsx",
-                Title = "Lưu tệp nhật ký lưu trữ"
-            };
-
-            if (saveFileDialog.ShowDialog() == true)
-            {
-                try
-                {
-                    var manifest = _auditService.ArchiveLogs(
-                        ArchiveFromDate,
-                        ArchiveToDate,
-                        _currentUser.Id,
-                        saveFileDialog.FileName,
-                        ExportLogsToExcel);
-                    int count = manifest.RowCount;
-                    MessageBox.Show($"Đã xuất tệp thành công và xóa {count} bản ghi nhật ký khỏi hệ thống.", "Thành công", MessageBoxButton.OK, MessageBoxImage.Information);
-                    IsArchiveDialogOpen = false;
-                    LoadLogs();
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Lỗi trong quá trình lưu trữ: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+                var manifest = await _auditService.ArchiveLogsAsync(
+                    ArchiveFromDate,
+                    ArchiveToDate,
+                    _currentUser.Id,
+                    _archiveFilePath!,
+                    ExportLogsToExcel,
+                    _archiveOperationId.Value);
+                int count = manifest.RowCount;
+                ResetArchiveOperation();
+                MessageBox.Show($"Đã xuất tệp thành công và xóa {count} bản ghi nhật ký khỏi hệ thống.", "Thành công", MessageBoxButton.OK, MessageBoxImage.Information);
+                IsArchiveDialogOpen = false;
+                LoadLogs();
             }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi trong quá trình lưu trữ: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void ResetArchiveOperation()
+        {
+            _archiveOperationId = null;
+            _archiveFilePath = null;
         }
 
         private void ExportLogsToExcel(IEnumerable<AuditLog> logs, string filePath)
@@ -268,7 +289,7 @@ namespace QuanLyHangHoa.ViewModels
             {
                 var performerName = log.Performer?.FullName ?? "Hệ thống";
                 var actionCode = (log.ActionCode ?? "UNKNOWN").ToUpperInvariant();
-                
+
                 string actionText = actionCode switch
                 {
                     "CREATE" => "đã thêm mới",
@@ -335,7 +356,7 @@ namespace QuanLyHangHoa.ViewModels
                 using var doc = JsonDocument.Parse(json);
                 // List of common name properties in order of preference
                 string[] possibleKeys = { "Username", "DisplayName", "FullName", "CategoryName", "CustomerName", "SupplierName", "BrandName", "WarehouseName", "ProductCode", "Code", "FileName", "SessionCode" };
-                
+
                 foreach (var key in possibleKeys)
                 {
                     if (doc.RootElement.TryGetProperty(key, out var prop))

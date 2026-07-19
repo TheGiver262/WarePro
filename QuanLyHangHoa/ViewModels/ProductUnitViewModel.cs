@@ -1,9 +1,11 @@
 using System;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
 
@@ -149,7 +151,7 @@ namespace QuanLyHangHoa.ViewModels
 
         [RelayCommand(CanExecute = nameof(CanManage))]
         // ConversionFactor là số đơn vị cơ sở trên một đơn vị chọn; service kiểm tra dương, trùng và base-unit invariant
-        private void Save()
+        private async Task Save()
         {
             if (!EnsureCanManage())
                 return;
@@ -164,12 +166,12 @@ namespace QuanLyHangHoa.ViewModels
             {
                 if (SelectedProductUnit == null)
                 {
-                    _service.Add(new ProductUnit
+                    await _service.AddAsync(new ProductUnit
                     {
                         ProductId = SelectedProduct.Id,
                         UnitId = SelectedUnitId,
                         ConversionFactor = ConversionFactor
-                    }, _currentUser.Id);
+                    }, _currentUser.Id, Guid.NewGuid());
                 }
                 else
                 {
@@ -183,22 +185,27 @@ namespace QuanLyHangHoa.ViewModels
                         IsPurchaseUnit = SelectedProductUnit.IsPurchaseUnit,
                         IsSalesUnit = SelectedProductUnit.IsSalesUnit
                     };
-                    _service.Update(updated, _currentUser.Id);
+                    await _service.UpdateAsync(updated.Id, updated, SelectedProductUnit.RowVersion, _currentUser.Id, Guid.NewGuid());
                 }
 
                 StatusMessage = "Đã lưu đơn vị quy đổi.";
                 LoadProductUnits(SelectedProduct.Id);
                 Clear();
             }
-            catch (Exception ex)
+            catch (DatabaseWriteConflictException)
             {
-                StatusMessage = $"Không thể lưu đơn vị quy đổi: {ex.Message}";
+                LoadProductUnits(SelectedProduct.Id);
+                Clear();
+            }
+            catch (Exception)
+            {
+                StatusMessage = DatabaseWriteUi.TechnicalErrorMessage;
             }
         }
 
         [RelayCommand(CanExecute = nameof(CanManage))]
         // service chặn xóa đơn vị cơ sở hoặc quan hệ cần thiết; chỉ reload sau khi xóa thành công
-        private void Delete(ProductUnit? productUnit)
+        private async Task Delete(ProductUnit? productUnit)
         {
             if (!EnsureCanManage())
                 return;
@@ -209,14 +216,19 @@ namespace QuanLyHangHoa.ViewModels
 
             try
             {
-                _service.Delete(target.Id, _currentUser.Id);
+                await _service.DeleteAsync(target.Id, target.RowVersion, _currentUser.Id, Guid.NewGuid());
                 StatusMessage = "Đã xóa đơn vị quy đổi.";
                 LoadProductUnits(SelectedProduct.Id);
                 Clear();
             }
-            catch (Exception ex)
+            catch (DatabaseWriteConflictException)
             {
-                StatusMessage = $"Không thể xóa đơn vị quy đổi: {ex.Message}";
+                LoadProductUnits(SelectedProduct.Id);
+                Clear();
+            }
+            catch (Exception)
+            {
+                StatusMessage = DatabaseWriteUi.TechnicalErrorMessage;
             }
         }
 

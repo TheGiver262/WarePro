@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
@@ -11,10 +13,12 @@ namespace QuanLyHangHoa.Services
     public class CategoryService
     {
         private readonly Func<AppDbContext> _contextFactory;
+        private readonly DatabaseWriteExecutor _writeExecutor;
 
         public CategoryService(Func<AppDbContext> contextFactory)
         {
             _contextFactory = contextFactory;
+            _writeExecutor = new DatabaseWriteExecutor(contextFactory);
         }
 
         // danh sách được sắp theo mã để màn hình và file xuất có thứ tự ổn định
@@ -24,60 +28,123 @@ namespace QuanLyHangHoa.Services
             return db.Categories.AsNoTracking().OrderBy(c => c.CategoryCode).ToList();
         }
 
-        // insert và audit phải cùng thành công hoặc cùng rollback
-        public void Add(Category category, int performedBy)
+        public Task<int> AddAsync(
+            Category category,
+            int performedBy,
+            Guid operationId,
+            CancellationToken cancellationToken = default)
         {
-            using var db = _contextFactory();
-            using var transaction = db.Database.BeginTransaction();
-            db.Categories.Add(category);
-            db.SaveChanges();
-            AddAudit(db, "CREATE", category.Id, null, Serialize(category), performedBy);
-            transaction.Commit();
-        }
+            var code = category.CategoryCode.Trim();
+            var name = category.DisplayName.Trim();
+            var isActive = category.IsActive;
 
-        public void Update(Category category, string beforeJson, int performedBy)
-        {
-            using var db = _contextFactory();
-            using var transaction = db.Database.BeginTransaction();
-            db.Categories.Update(category);
-            db.SaveChanges();
-            AddAudit(db, "UPDATE", category.Id, beforeJson, Serialize(category), performedBy);
-            transaction.Commit();
-        }
-
-        public void Delete(int id, int performedBy)
-        {
-            using var db = _contextFactory();
-            var category = db.Categories.Find(id);
-            if (category != null)
-            {
-                using var transaction = db.Database.BeginTransaction();
-                var beforeJson = Serialize(category);
-                // nhóm hàng đang có sản phẩm được chuyển inactive thay vì xóa khóa ngoại
-                if (db.Products.Any(product => product.CategoryId == id))
+            return _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("category.add", operationId),
+                async (db, token) =>
                 {
-                    category.IsActive = false;
-                    db.SaveChanges();
-                    AddAudit(db, "DEACTIVATE", id, beforeJson, Serialize(category), performedBy);
-                }
-                else
-                {
-                    db.Categories.Remove(category);
-                    db.SaveChanges();
-                    AddAudit(db, "DELETE", id, beforeJson, null, performedBy);
-                }
+                    AuthorizationService.RequireFreshActor(db, performedBy, PermissionAction.ManageMasterData);
+                    if (await db.Categories.AnyAsync(item => item.CategoryCode == code, token))
+                    {
+                        throw new InvalidOperationException($"Category code '{code}' already exists.");
+                    }
 
-                transaction.Commit();
-            }
+                    var created = new Category { CategoryCode = code, DisplayName = name, IsActive = isActive };
+                    db.Categories.Add(created);
+                    await db.SaveChangesAsync(token);
+                    AddAudit(db, "CREATE", created.Id, null, Serialize(created), performedBy);
+                    return created.Id;
+                },
+                (db, token) => db.Categories.AnyAsync(
+                    item => item.CategoryCode == code && item.DisplayName == name && item.IsActive == isActive,
+                    token),
+                cancellationToken: cancellationToken);
         }
 
-        private string Serialize(Category c)
+        public Task UpdateAsync(
+            int id,
+            Category updated,
+            byte[] expectedRowVersion,
+            int performedBy,
+            Guid operationId,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(expectedRowVersion);
+            var rowVersion = expectedRowVersion.ToArray();
+            var code = updated.CategoryCode.Trim();
+            var name = updated.DisplayName.Trim();
+            var isActive = updated.IsActive;
+
+            return _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("category.update", operationId),
+                async (db, token) =>
+                {
+                    AuthorizationService.RequireFreshActor(db, performedBy, PermissionAction.ManageMasterData);
+                    var entity = await db.Categories.SingleOrDefaultAsync(item => item.Id == id, token);
+                    if (entity is null)
+                    {
+                        return;
+                    }
+
+                    db.Entry(entity).Property(item => item.RowVersion).OriginalValue = rowVersion;
+                    var before = Serialize(entity);
+                    entity.CategoryCode = code;
+                    entity.DisplayName = name;
+                    entity.IsActive = isActive;
+                    AddAudit(db, "UPDATE", id, before, Serialize(entity), performedBy);
+                },
+                (db, token) => db.Categories.AnyAsync(
+                    item => item.Id == id && item.CategoryCode == code &&
+                        item.DisplayName == name && item.IsActive == isActive &&
+                        item.RowVersion != rowVersion,
+                    token),
+                cancellationToken: cancellationToken);
+        }
+
+        public Task DeleteAsync(
+            int id,
+            byte[] expectedRowVersion,
+            int performedBy,
+            Guid operationId,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(expectedRowVersion);
+            var rowVersion = expectedRowVersion.ToArray();
+
+            return _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("category.delete", operationId),
+                async (db, token) =>
+                {
+                    AuthorizationService.RequireFreshActor(db, performedBy, PermissionAction.ManageMasterData);
+                    var entity = await db.Categories.SingleOrDefaultAsync(item => item.Id == id, token);
+                    if (entity is null)
+                    {
+                        return;
+                    }
+
+                    db.Entry(entity).Property(item => item.RowVersion).OriginalValue = rowVersion;
+                    var before = Serialize(entity);
+                    if (await db.Products.AnyAsync(product => product.CategoryId == id, token))
+                    {
+                        entity.IsActive = false;
+                        AddAudit(db, "DEACTIVATE", id, before, Serialize(entity), performedBy);
+                    }
+                    else
+                    {
+                        db.Categories.Remove(entity);
+                        AddAudit(db, "DELETE", id, before, null, performedBy);
+                    }
+                },
+                (db, token) => db.Categories.AllAsync(item => item.Id != id || !item.IsActive, token),
+                cancellationToken: cancellationToken);
+        }
+
+        private static string Serialize(Category c)
         {
             return JsonSerializer.Serialize(new { c.Id, c.CategoryCode, c.DisplayName, c.IsActive });
         }
 
         // lưu người thao tác và hai trạng thái để có thể đối chiếu khi cần
-        private void AddAudit(AppDbContext db, string action, int entityId, string? before, string? after, int performedBy)
+        private static void AddAudit(AppDbContext db, string action, int entityId, string? before, string? after, int performedBy)
         {
             db.AuditLogs.Add(new AuditLog
             {
@@ -89,7 +156,6 @@ namespace QuanLyHangHoa.Services
                 PerformedBy = performedBy,
                 PerformedAt = DateTime.Now
             });
-            db.SaveChanges();
         }
     }
 }

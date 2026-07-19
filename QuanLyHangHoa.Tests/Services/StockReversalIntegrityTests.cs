@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
@@ -239,13 +240,13 @@ public sealed class StockReversalIntegrityTests
     }
 
     [Fact]
-    public void View_model_never_reports_zero_adjustment_as_success()
+    public async Task View_model_never_reports_zero_adjustment_as_success()
     {
         string? shownMessage = null;
         string? shownTitle = null;
         var viewModel = new StockReversalViewModel(
             new AppUser { Id = 7, Username = "admin" },
-            (_, _, _) => 0,
+            (_, _, _, _, _) => Task.FromResult(0),
             (message, title) =>
             {
                 shownMessage = message;
@@ -257,7 +258,7 @@ public sealed class StockReversalIntegrityTests
             Reason = "Nhập nhầm"
         };
 
-        viewModel.ReverseDocumentCommand.Execute(null);
+        await viewModel.ReverseDocumentCommand.ExecuteAsync(null);
 
         Assert.Equal("Không tìm thấy chứng từ kho đã ghi sổ.", viewModel.StatusMessage);
         Assert.Equal(viewModel.StatusMessage, shownMessage);

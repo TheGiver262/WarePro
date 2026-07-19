@@ -32,4 +32,6 @@ public partial class StockOutLine
     public virtual StockOut StockOut { get; set; } = null!;
 
     public virtual Unit Unit { get; set; } = null!;
+    public byte[] RowVersion { get; set; } = [];
+
 }

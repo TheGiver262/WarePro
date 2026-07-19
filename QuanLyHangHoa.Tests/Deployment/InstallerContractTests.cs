@@ -56,7 +56,7 @@ public class InstallerContractTests
     }
 
     [Fact]
-    public void Upgrade_mode_preserves_existing_config_and_never_enters_full_sql_mode()
+    public void Upgrade_mode_requires_existing_config_and_never_enters_full_sql_mode()
     {
         var script = ReadInstaller();
 
@@ -64,10 +64,11 @@ public class InstallerContractTests
         Assert.Contains("WAREPROMODE", script, StringComparison.Ordinal);
         Assert.Contains("PreviousInstallExists", script, StringComparison.Ordinal);
         Assert.Contains("(not UpgradeMode) and", script, StringComparison.Ordinal);
-        Assert.Contains("if UpgradeMode and FileExists(FinalConfig) then", script, StringComparison.Ordinal);
+        Assert.Contains("if UpgradeMode or ResumeFullMode then", script, StringComparison.Ordinal);
+        Assert.Contains("if not FileExists(FinalConfig) then", script, StringComparison.Ordinal);
+        Assert.Contains("ConfigToTest := FinalConfig", script, StringComparison.Ordinal);
         Assert.Contains("PageID = wpSelectComponents", script, StringComparison.Ordinal);
     }
-
     [Fact]
     public void App_only_mode_never_runs_or_downloads_sql()
     {
@@ -102,16 +103,17 @@ public class InstallerContractTests
     }
 
     [Fact]
-    public void App_only_sql_authentication_defers_connection_test_until_first_run()
+    public void App_only_sql_authentication_requires_pre_provisioned_credential_before_upgrade()
     {
         var script = ReadInstaller();
 
-        Assert.Contains("CompareText(SelectedAuthentication, 'SqlPassword') <> 0", script, StringComparison.Ordinal);
-        Assert.Contains("first-run credential", script, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("credential must already exist in Windows Credential Manager", script, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("TestConfiguration(ConfigToTest, '--mode app-only'", script, StringComparison.Ordinal);
+        Assert.Contains("'prepare-database --config ' + AddQuotes(FinalConfig)", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("first-run credential", script, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("--username", script, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("--password", script, StringComparison.OrdinalIgnoreCase);
     }
-
     [Fact]
     public void Installer_packages_seed_helper_and_machine_log_path()
     {
@@ -172,11 +174,37 @@ public class InstallerContractTests
         Assert.Contains("MainWindowHandle", script, StringComparison.Ordinal);
         Assert.Contains("/WAREPROMODE=upgrade", script, StringComparison.Ordinal);
         Assert.Contains("evidence-", script, StringComparison.Ordinal);
+        Assert.Contains("PendingFullInstall", script, StringComparison.Ordinal);
+        Assert.Contains("RestartRequiredRerunInstaller", script, StringComparison.Ordinal);
+        Assert.Contains("command=prepare-database exit=0", script, StringComparison.Ordinal);
+        Assert.Contains("command=finalize-database exit=0", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("DeferredUntilRestart", script, StringComparison.Ordinal);
         Assert.DoesNotContain("'evidence.json'", script, StringComparison.Ordinal);
         Assert.DoesNotContain("DROP DATABASE", script, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("delete SQL", script, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void Fresh_full_install_does_not_reuse_a_stale_machine_config()
+    {
+        var script = ReadInstaller();
+
+        Assert.Contains("if UpgradeMode or ResumeFullMode then", script, StringComparison.Ordinal);
+        Assert.Contains("ConfigToTest := FinalConfig", script, StringComparison.Ordinal);
+        Assert.Contains("ConfigToTest := StagingConfig", script, StringComparison.Ordinal);
+        Assert.Contains("WriteConfiguration(StagingConfig", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsFullMode and FileExists(FinalConfig)", script, StringComparison.Ordinal);
+    }    [Fact]
+    public void Database_cutover_commands_use_single_release_defines()
+    {
+        var script = ReadInstaller();
+
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(script, @"#define\s+MyAppVersion\b"));
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(script, @"#define\s+MySchemaRelease\b"));
+        Assert.DoesNotContain("--app-version 1.1.0", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("--expected-schema 6", script, StringComparison.Ordinal);
+        Assert.Contains("--app-version {#MyAppVersion} --expected-schema {#MySchemaRelease}", script, StringComparison.Ordinal);
+    }
     private static string ReadInstaller() => File.ReadAllText(Path.Combine(
         Root, "installer", "WarePro.iss"));
 

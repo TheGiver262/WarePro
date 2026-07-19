@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Inventory;
@@ -15,10 +17,12 @@ namespace QuanLyHangHoa.Services
     public class StockOutService
     {
         private readonly Func<AppDbContext> _contextFactory;
+        private readonly DatabaseWriteExecutor _writeExecutor;
 
         public StockOutService(Func<AppDbContext> contextFactory)
         {
             _contextFactory = contextFactory;
+            _writeExecutor = new DatabaseWriteExecutor(contextFactory);
         }
 
         public List<StockOut> GetAll()
@@ -141,100 +145,177 @@ namespace QuanLyHangHoa.Services
         }
 
         // API tiện ích này vẫn đi đủ Draft → PendingApproval → Approved → Posted, không bỏ qua lifecycle.
-        public void Create(StockOut stockOut, List<StockOutLine> lines, int userId)
+        public async Task CreateAsync(
+            StockOut stockOut,
+            List<StockOutLine> lines,
+            int userId,
+            Guid operationId,
+            CancellationToken cancellationToken = default)
         {
-            SaveDraft(stockOut, lines, userId);
-            SubmitForApproval(stockOut.Id, userId);
-            Approve(stockOut.Id, userId);
-            Post(stockOut.Id, userId);
+            await SaveDraftAsync(stockOut, lines, userId, operationId, cancellationToken);
+            await SubmitForApprovalAsync(stockOut.Id, userId, operationId, cancellationToken);
+            await ApproveAsync(stockOut.Id, userId, operationId, cancellationToken);
+            await PostAsync(stockOut.Id, userId, operationId, cancellationToken);
         }
 
-        public void SaveDraft(StockOut stockOut, List<StockOutLine> lines, int userId)
+        internal void Create(StockOut stockOut, List<StockOutLine> lines, int userId) =>
+            CreateAsync(stockOut, lines, userId, Guid.NewGuid()).GetAwaiter().GetResult();
+
+        public async Task SaveDraftAsync(
+            StockOut stockOut,
+            List<StockOutLine> lines,
+            int userId,
+            Guid operationId,
+            CancellationToken cancellationToken = default)
         {
-            using var db = _contextFactory();
+            var timestamp = DateTime.Now;
+            var snapshot = new SaveDraftSnapshot(
+                stockOut.Id,
+                string.IsNullOrWhiteSpace(stockOut.DocumentCode) ? $"SO-{timestamp:yyyyMMddHHmmss}" : stockOut.DocumentCode,
+                stockOut.CustomerId,
+                stockOut.WarehouseId,
+                stockOut.PurposeCode,
+                stockOut.ExportDate,
+                stockOut.Notes,
+                stockOut.StockCountSessionId,
+                stockOut.StockCountLineId,
+                stockOut.RowVersion.ToArray(),
+                lines.Select(line => new SaveDraftLineSnapshot(
+                    line.ProductId,
+                    line.UnitId,
+                    line.Quantity,
+                    line.UnitPrice,
+                    line.ProductSerials.Select(serial => serial.SerialNumber).ToArray())).ToArray(),
+                timestamp);
+            if (snapshot.Id > 0 && snapshot.RowVersion.Length == 0)
+            {
+                throw new ArgumentException("RowVersion is required for draft updates.", nameof(stockOut));
+            }
+
+            var savedId = await _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("stock-out.save-draft", operationId),
+                (db, token) => StageSaveDraftAsync(db, snapshot, userId, token),
+                entityKey: snapshot.DocumentCode,
+                cancellationToken: cancellationToken);
+            stockOut.Id = savedId;
+            stockOut.DocumentCode = snapshot.DocumentCode;
+        }
+
+        internal void SaveDraft(StockOut stockOut, List<StockOutLine> lines, int userId) =>
+            SaveDraftAsync(stockOut, lines, userId, Guid.NewGuid()).GetAwaiter().GetResult();
+
+        private async Task<int> StageSaveDraftAsync(
+            AppDbContext db,
+            SaveDraftSnapshot snapshot,
+            int userId,
+            CancellationToken cancellationToken)
+        {
             AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockOut);
-            
+
             StockOut? existing = null;
-            if (stockOut.Id > 0)
+            if (snapshot.Id > 0)
             {
                 existing = db.StockOuts
-                    .Include(s => s.Lines)
-                    .FirstOrDefault(s => s.Id == stockOut.Id);
+                    .Include(item => item.Lines)
+                    .FirstOrDefault(item => item.Id == snapshot.Id);
             }
 
-            // draft giữ serial dạng chuỗi và quy đổi quantity để chưa tác động ProductSerial thật.
-            var productIds = lines.Select(l => l.ProductId).Distinct().ToList();
-            var unitMap = db.ProductUnits
-                .Where(pu => productIds.Contains(pu.ProductId))
-                .ToList();
+            var productIds = snapshot.Lines.Select(line => line.ProductId).Distinct().ToList();
+            var unitMap = db.ProductUnits.Where(unit => productIds.Contains(unit.ProductId)).ToList();
+            var freshLines = BuildStockOut(snapshot.Lines, unitMap);
 
-            foreach (var line in lines)
+            if (existing is not null)
             {
-                var serials = line.ProductSerials?.Select(ps => ps.SerialNumber.Trim()).Where(s => !string.IsNullOrEmpty(s)).ToList() ?? new List<string>();
-                if (serials.Any())
-                {
-                    line.DraftSerials = string.Join(",", serials);
-                }
-                else
-                {
-                    line.DraftSerials = null;
-                }
-                // tách navigation để EF không đổi trạng thái serial khi mới lưu draft.
-                line.ProductSerials = new List<ProductSerial>(); // Prevent EF from modifying ProductSerials
-
-                // BaseQuantity là quantity theo đơn vị gốc dùng cho kiểm tra và trừ tồn.
-                var pu = unitMap.FirstOrDefault(u => u.ProductId == line.ProductId && u.UnitId == line.UnitId);
-                line.BaseQuantity = line.Quantity * (pu?.ConversionFactor ?? 1m);
-            }
-
-            if (existing != null)
-            {
-                var lifecycle = new StockDocumentLifecycleService();
-                lifecycle.EnsureCanEditDetails(ParseStatus(existing.Status));
-
+                new StockDocumentLifecycleService().EnsureCanEditDetails(ParseStatus(existing.Status));
                 var beforeJson = Serialize(existing);
+                db.Entry(existing).Property(item => item.RowVersion).OriginalValue = snapshot.RowVersion;
 
-                existing.WarehouseId = stockOut.WarehouseId;
-                existing.CustomerId = stockOut.CustomerId;
-                existing.ExportDate = stockOut.ExportDate;
-                existing.Notes = stockOut.Notes;
-                existing.UpdatedAt = DateTime.Now;
+                existing.WarehouseId = snapshot.WarehouseId;
+                existing.CustomerId = snapshot.CustomerId;
+                existing.ExportDate = snapshot.ExportDate;
+                existing.Notes = snapshot.Notes;
+                existing.UpdatedAt = snapshot.Timestamp;
                 existing.UpdatedBy = userId;
-
-                // thay toàn bộ line draft để không giữ dữ liệu người dùng đã xóa.
                 db.StockOutLines.RemoveRange(existing.Lines);
-                existing.Lines = lines;
-
-                db.SaveChanges();
-                stockOut.Id = existing.Id;
-                stockOut.Status = existing.Status;
-
-                var afterJson = Serialize(existing);
-                AddAudit(db, "UPDATE", existing.Id, beforeJson, afterJson, userId);
+                existing.Lines = freshLines;
+                AddAudit(db, "UPDATE", existing.Id, beforeJson, Serialize(existing), userId);
+                return existing.Id;
             }
-            else
+
+            var freshStockOut = new StockOut
             {
-                stockOut.Lines = lines;
-                stockOut.CreatedBy = userId;
-                stockOut.CreatedAt = DateTime.Now;
-                stockOut.Status = DocumentStatus.Draft;
-
-                if (string.IsNullOrWhiteSpace(stockOut.DocumentCode))
-                {
-                    stockOut.DocumentCode = $"SO-{DateTime.Now:yyyyMMddHHmmss}";
-                }
-
-                db.StockOuts.Add(stockOut);
-                db.SaveChanges();
-
-                var afterJson = Serialize(stockOut);
-                AddAudit(db, "CREATE", stockOut.Id, null, afterJson, userId);
-            }
+                DocumentCode = snapshot.DocumentCode,
+                CustomerId = snapshot.CustomerId,
+                WarehouseId = snapshot.WarehouseId,
+                PurposeCode = snapshot.PurposeCode,
+                Status = DocumentStatus.Draft,
+                ExportDate = snapshot.ExportDate,
+                Notes = snapshot.Notes,
+                CreatedBy = userId,
+                CreatedAt = snapshot.Timestamp,
+                StockCountSessionId = snapshot.StockCountSessionId,
+                StockCountLineId = snapshot.StockCountLineId,
+                Lines = freshLines
+            };
+            db.StockOuts.Add(freshStockOut);
+            await db.SaveChangesAsync(cancellationToken);
+            AddAudit(db, "CREATE", freshStockOut.Id, null, Serialize(freshStockOut), userId);
+            return freshStockOut.Id;
         }
 
-        public virtual void SubmitForApproval(int stockOutId, int userId)
+        private static List<StockOutLine> BuildStockOut(
+            IReadOnlyList<SaveDraftLineSnapshot> snapshots,
+            IReadOnlyList<ProductUnit> unitMap) =>
+            snapshots.Select(line => new StockOutLine
+            {
+                ProductId = line.ProductId,
+                UnitId = line.UnitId,
+                Quantity = line.Quantity,
+                UnitPrice = line.UnitPrice,
+                BaseQuantity = line.Quantity * (unitMap.FirstOrDefault(unit =>
+                    unit.ProductId == line.ProductId && unit.UnitId == line.UnitId)?.ConversionFactor ?? 1m),
+                DraftSerials = line.SerialNumbers.Length == 0
+                    ? null
+                    : string.Join(",", line.SerialNumbers.Select(serial => serial.Trim()).Where(serial => serial.Length > 0)),
+                ProductSerials = new List<ProductSerial>()
+            }).ToList();
+
+        private sealed record SaveDraftSnapshot(
+            int Id,
+            string DocumentCode,
+            int CustomerId,
+            int WarehouseId,
+            string PurposeCode,
+            DateTime? ExportDate,
+            string? Notes,
+            int? StockCountSessionId,
+            int? StockCountLineId,
+            byte[] RowVersion,
+            SaveDraftLineSnapshot[] Lines,
+            DateTime Timestamp);
+
+        private sealed record SaveDraftLineSnapshot(
+            int ProductId,
+            int UnitId,
+            decimal Quantity,
+            decimal UnitPrice,
+            string[] SerialNumbers);
+
+        public Task SubmitForApprovalAsync(
+            int stockOutId, int userId, Guid operationId,
+            CancellationToken cancellationToken = default) =>
+            _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("stock-out.submit", operationId),
+                (db, token) => StageSubmitForApprovalAsync(db, stockOutId, userId),
+                (db, token) => db.StockOuts.AnyAsync(
+                    item => item.Id == stockOutId && item.Status == DocumentStatus.PendingApproval, token),
+                cancellationToken: cancellationToken);
+
+        internal virtual void SubmitForApproval(int stockOutId, int userId) =>
+            SubmitForApprovalAsync(stockOutId, userId, Guid.NewGuid()).GetAwaiter().GetResult();
+
+        private Task StageSubmitForApprovalAsync(AppDbContext db, int stockOutId, int userId)
         {
-            using var db = _contextFactory();
             AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockOut);
             var stockOut = db.StockOuts.SingleOrDefault(item => item.Id == stockOutId)
                 ?? throw new InventoryDomainException("Không tìm thấy phiếu xuất kho.");
@@ -243,13 +324,25 @@ namespace QuanLyHangHoa.Services
             stockOut.Status = lifecycle.SubmitForApproval(ParseStatus(stockOut.Status)).ToString();
             stockOut.UpdatedBy = userId;
             stockOut.UpdatedAt = DateTime.UtcNow;
-            db.SaveChanges();
             AddAudit(db, "SUBMIT", stockOut.Id, beforeJson, Serialize(stockOut), userId);
+            return Task.CompletedTask;
         }
 
-        public virtual void Approve(int stockOutId, int userId)
+        public Task ApproveAsync(
+            int stockOutId, int userId, Guid operationId,
+            CancellationToken cancellationToken = default) =>
+            _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("stock-out.approve", operationId),
+                (db, token) => StageApproveAsync(db, stockOutId, userId),
+                (db, token) => db.StockOuts.AnyAsync(
+                    item => item.Id == stockOutId && item.Status == DocumentStatus.Approved, token),
+                cancellationToken: cancellationToken);
+
+        internal virtual void Approve(int stockOutId, int userId) =>
+            ApproveAsync(stockOutId, userId, Guid.NewGuid()).GetAwaiter().GetResult();
+
+        private Task StageApproveAsync(AppDbContext db, int stockOutId, int userId)
         {
-            using var db = _contextFactory();
             var actor = AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockOut);
             var stockOut = db.StockOuts.SingleOrDefault(item => item.Id == stockOutId)
                 ?? throw new InventoryDomainException("Không tìm thấy phiếu xuất kho.");
@@ -262,15 +355,25 @@ namespace QuanLyHangHoa.Services
             stockOut.ApprovedAt = DateTime.UtcNow;
             stockOut.UpdatedBy = userId;
             stockOut.UpdatedAt = DateTime.UtcNow;
-            db.SaveChanges();
             AddAudit(db, "APPROVE", stockOut.Id, beforeJson, Serialize(stockOut), userId);
+            return Task.CompletedTask;
         }
 
-        // transaction ngoài bao phủ trạng thái, balance, serial, ledger và audit của mọi line.
-        public void Post(int stockOutId, int userId)
+        public Task PostAsync(
+            int stockOutId, int userId, Guid operationId,
+            CancellationToken cancellationToken = default) =>
+            _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("stock-out.post", operationId),
+                (db, token) => StagePostAsync(db, stockOutId, userId),
+                (db, token) => db.StockOuts.AnyAsync(
+                    item => item.Id == stockOutId && item.Status == DocumentStatus.Posted, token),
+                cancellationToken: cancellationToken);
+
+        internal void Post(int stockOutId, int userId) =>
+            PostAsync(stockOutId, userId, Guid.NewGuid()).GetAwaiter().GetResult();
+
+        private Task StagePostAsync(AppDbContext db, int stockOutId, int userId)
         {
-            using var db = _contextFactory();
-            using var transaction = db.Database.BeginTransaction();
             var actor = AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockOut);
 
             var stockOut = db.StockOuts
@@ -379,10 +482,9 @@ namespace QuanLyHangHoa.Services
             // SaveChanges này vẫn nằm trong transaction; lỗi ở bất kỳ line posting nào sẽ rollback trạng thái PostedBy/PostedAt.
             stockOut.PostedBy = userId;
             stockOut.PostedAt = DateTime.UtcNow;
-            db.SaveChanges();
 
             var postingService = new InventoryPostingService(
-                new EfInventoryUnitOfWork(db),
+                new EfInventoryUnitOfWork(db, commitChanges: false),
                 new DbDefaultWarehouseProvider(db),
                 new SystemClock());
 
@@ -415,12 +517,10 @@ namespace QuanLyHangHoa.Services
                     }
                 }
             }
-            db.SaveChanges();
 
             var afterJson = Serialize(stockOut);
             AddAudit(db, "POST", stockOut.Id, beforeJson, afterJson, userId);
-
-            transaction.Commit();
+            return Task.CompletedTask;
         }
 
         // chuỗi tiếng Việt cũ được map về enum chuẩn để dữ liệu legacy vẫn dùng chung state machine.
@@ -479,25 +579,43 @@ namespace QuanLyHangHoa.Services
             public DateTime Now => DateTime.Now;
         }
 
-        public virtual void Delete(int id, int userId)
+        public Task DeleteAsync(
+            int id,
+            byte[] expectedRowVersion,
+            int userId,
+            Guid operationId,
+            CancellationToken cancellationToken = default)
         {
-            using var db = _contextFactory();
-            AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockOut);
-            var stockOut = db.StockOuts
-                .Include(s => s.Lines)
-                .FirstOrDefault(s => s.Id == id);
+            ArgumentNullException.ThrowIfNull(expectedRowVersion);
+            if (expectedRowVersion.Length == 0)
+            {
+                throw new ArgumentException("RowVersion is required.", nameof(expectedRowVersion));
+            }
 
-            if (stockOut == null) throw new Exception("Không tìm thấy phiếu xuất kho.");
-            if (stockOut.Status == DocumentStatus.Posted || stockOut.Status == "đã ghi sổ")
-                throw new Exception("Không thể xóa phiếu đã ghi sổ.");
+            var rowVersion = expectedRowVersion.ToArray();
+            return _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("stock-out.delete", operationId),
+                (db, token) => StageDeleteAsync(db, id, rowVersion, userId),
+                entityKey: id.ToString(),
+                cancellationToken: cancellationToken);
+        }
+        private Task StageDeleteAsync(AppDbContext db, int id, byte[] expectedRowVersion, int userId)
+        {
+            AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockOut);
+            var stockOut = db.StockOuts.Include(item => item.Lines).FirstOrDefault(item => item.Id == id)
+                ?? throw new Exception("KhÃ´ng tÃ¬m tháº¥y phiáº¿u xuáº¥t kho.");
+            if (stockOut.Status == DocumentStatus.Posted || stockOut.Status == "Ä‘Ã£ ghi sá»•")
+            {
+                throw new Exception("KhÃ´ng thá»ƒ xÃ³a phiáº¿u Ä‘Ã£ ghi sá»•.");
+            }
+
+            db.Entry(stockOut).Property(item => item.RowVersion).OriginalValue = expectedRowVersion;
 
             var beforeJson = JsonSerializer.Serialize(new { stockOut.Id, stockOut.DocumentCode });
-
             db.StockOutLines.RemoveRange(stockOut.Lines);
             db.StockOuts.Remove(stockOut);
-            db.SaveChanges();
-
             AddAudit(db, "DELETE", id, beforeJson, null, userId);
+            return Task.CompletedTask;
         }
 
         private string Serialize(StockOut s)
@@ -542,7 +660,6 @@ namespace QuanLyHangHoa.Services
                 PerformedBy = performedBy,
                 PerformedAt = DateTime.Now
             });
-            db.SaveChanges();
         }
     }
 }

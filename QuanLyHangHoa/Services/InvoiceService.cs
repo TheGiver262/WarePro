@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
@@ -10,70 +12,257 @@ namespace QuanLyHangHoa.Services
     public partial class InvoiceService
     {
         private readonly Func<AppDbContext> _contextFactory;
+        private readonly DatabaseWriteExecutor _writeExecutor;
 
         public InvoiceService(Func<AppDbContext> contextFactory)
         {
-            _contextFactory = contextFactory;
+            _contextFactory = contextFactory ?? throw new ArgumentNullException(nameof(contextFactory));
+            _writeExecutor = new DatabaseWriteExecutor(_contextFactory);
         }
 
-        // serializable giữ kiểm tra quyền, chứng từ kho, hóa đơn và bảo hành trong một transaction không bị chen dữ liệu
-        public void SaveSalesInvoice(SalesInvoice invoice, int actorId)
+        public async Task<int> SaveSalesInvoiceAsync(
+            SalesInvoice invoice,
+            int actorId,
+            Guid operationId,
+            CancellationToken cancellationToken = default)
         {
-            using var db = _contextFactory();
-            using var transaction = db.Database.BeginTransaction(System.Data.IsolationLevel.Serializable);
-            AuthorizationService.RequireFreshActor(db, actorId, PermissionAction.CreateSalesInvoice);
+            ArgumentNullException.ThrowIfNull(invoice);
+            var input = CreateSalesInvoiceCandidate(invoice);
+            var expectedRowVersion = invoice.RowVersion.ToArray();
             var isNew = invoice.Id == 0;
-            if (isNew)
-            {
-                invoice.CreatedBy = actorId;
-            }
-            try
-            {
-                var stockOut = PrepareSalesInvoice(db, invoice);
-                UpsertSalesInvoice(db, invoice);
-                ReconcileWarrantyCoverages(db, invoice, stockOut);
-                transaction.Commit();
-            }
-            catch
-            {
-                transaction.Rollback();
-                if (isNew)
+
+            var invoiceId = await _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest(
+                    "invoice.sales.save",
+                    operationId,
+                    System.Data.IsolationLevel.Serializable),
+                async (db, token) =>
                 {
-                    invoice.Id = 0;
-                }
-                throw;
+                    AuthorizationService.RequireFreshActor(
+                        db,
+                        actorId,
+                        PermissionAction.CreateSalesInvoice);
+
+                    var candidate = CreateSalesInvoiceCandidate(input);
+                    if (isNew)
+                    {
+                        candidate.CreatedBy = actorId;
+                    }
+
+                    var stockOut = PrepareSalesInvoice(db, candidate);
+                    var savedId = await UpsertSalesInvoiceAsync(
+                        db,
+                        candidate,
+                        expectedRowVersion,
+                        token);
+                    ReconcileWarrantyCoverages(db, candidate, stockOut);
+                    return savedId;
+                },
+                (db, token) => VerifySalesInvoiceAsync(
+                    db,
+                    input.Id,
+                    input.InvoiceCode,
+                    input.StockOutId,
+                    input.CustomerId,
+                    actorId,
+                    expectedRowVersion,
+                    token),
+                entityKey: input.InvoiceCode,
+                cancellationToken: cancellationToken);
+
+            invoice.Id = invoiceId;
+            await using (var refresh = _contextFactory())
+            {
+                invoice.RowVersion = await refresh.SalesInvoices.AsNoTracking()
+                    .Where(item => item.Id == invoiceId)
+                    .Select(item => item.RowVersion)
+                    .SingleAsync(cancellationToken);
             }
+            return invoiceId;
         }
 
-        // actor được đọc mới từ database ngay trong transaction; object từ UI không quyết định quyền
-        public void SavePurchaseInvoice(PurchaseInvoice invoice, int actorId)
+        public async Task<int> SavePurchaseInvoiceAsync(
+            PurchaseInvoice invoice,
+            int actorId,
+            Guid operationId,
+            CancellationToken cancellationToken = default)
         {
-            using var db = _contextFactory();
-            using var transaction = db.Database.BeginTransaction(System.Data.IsolationLevel.Serializable);
-            AuthorizationService.RequireFreshActor(db, actorId, PermissionAction.CreatePurchaseInvoice);
+            ArgumentNullException.ThrowIfNull(invoice);
+            var input = CreatePurchaseInvoiceCandidate(invoice);
+            var expectedRowVersion = invoice.RowVersion.ToArray();
             var isNew = invoice.Id == 0;
-            if (isNew)
-            {
-                invoice.CreatedBy = actorId;
-            }
-            try
-            {
-                PreparePurchaseInvoice(db, invoice);
-                UpsertPurchaseInvoice(db, invoice);
-                transaction.Commit();
-            }
-            catch
-            {
-                transaction.Rollback();
-                if (isNew)
+
+            var invoiceId = await _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest(
+                    "invoice.purchase.save",
+                    operationId,
+                    System.Data.IsolationLevel.Serializable),
+                async (db, token) =>
                 {
-                    invoice.Id = 0;
-                }
-                throw;
+                    AuthorizationService.RequireFreshActor(
+                        db,
+                        actorId,
+                        PermissionAction.CreatePurchaseInvoice);
+
+                    var candidate = CreatePurchaseInvoiceCandidate(input);
+                    if (isNew)
+                    {
+                        candidate.CreatedBy = actorId;
+                    }
+
+                    PreparePurchaseInvoice(db, candidate);
+                    return await UpsertPurchaseInvoiceAsync(
+                        db,
+                        candidate,
+                        expectedRowVersion,
+                        token);
+                },
+                (db, token) => VerifyPurchaseInvoiceAsync(
+                    db,
+                    input.Id,
+                    input.InvoiceCode,
+                    input.StockInId,
+                    input.SupplierId,
+                    actorId,
+                    expectedRowVersion,
+                    token),
+                entityKey: input.InvoiceCode,
+                cancellationToken: cancellationToken);
+
+            invoice.Id = invoiceId;
+            await using (var refresh = _contextFactory())
+            {
+                invoice.RowVersion = await refresh.PurchaseInvoices.AsNoTracking()
+                    .Where(item => item.Id == invoiceId)
+                    .Select(item => item.RowVersion)
+                    .SingleAsync(cancellationToken);
             }
+            return invoiceId;
         }
 
-        // tổng hóa đơn luôn tính lại từ dòng bằng decimal, không tin các tổng số gửi từ giao diện
+        private static SalesInvoice CreateSalesInvoiceCandidate(SalesInvoice source) => new()
+        {
+            Id = source.Id,
+            InvoiceCode = source.InvoiceCode.Trim(),
+            CustomerId = source.CustomerId,
+            StockOutId = source.StockOutId,
+            InvoiceDate = source.InvoiceDate,
+            SubTotal = source.SubTotal,
+            TaxAmount = source.TaxAmount,
+            GrandTotal = source.GrandTotal,
+            PaidAmount = source.PaidAmount,
+            PaymentStatus = source.PaymentStatus,
+            DueDate = source.DueDate,
+            CreatedBy = source.CreatedBy,
+            CreatedAt = source.CreatedAt,
+            Notes = source.Notes?.Trim(),
+            RowVersion = source.RowVersion.ToArray(),
+            Lines = source.Lines.Select(line => new SalesInvoiceLine
+            {
+                ProductId = line.ProductId,
+                UnitId = line.UnitId,
+                StockOutLineId = line.StockOutLineId,
+                Quantity = line.Quantity,
+                UnitPrice = line.UnitPrice,
+                TaxRate = line.TaxRate
+            }).ToList()
+        };
+
+        private static PurchaseInvoice CreatePurchaseInvoiceCandidate(PurchaseInvoice source) => new()
+        {
+            Id = source.Id,
+            InvoiceCode = source.InvoiceCode.Trim(),
+            SupplierId = source.SupplierId,
+            StockInId = source.StockInId,
+            InvoiceDate = source.InvoiceDate,
+            SubTotal = source.SubTotal,
+            TaxAmount = source.TaxAmount,
+            GrandTotal = source.GrandTotal,
+            PaidAmount = source.PaidAmount,
+            PaymentStatus = source.PaymentStatus,
+            DueDate = source.DueDate,
+            CreatedBy = source.CreatedBy,
+            CreatedAt = source.CreatedAt,
+            Notes = source.Notes?.Trim(),
+            RowVersion = source.RowVersion.ToArray(),
+            Lines = source.Lines.Select(line => new PurchaseInvoiceLine
+            {
+                ProductId = line.ProductId,
+                UnitId = line.UnitId,
+                StockInLineId = line.StockInLineId,
+                Quantity = line.Quantity,
+                UnitPrice = line.UnitPrice,
+                TaxRate = line.TaxRate
+            }).ToList()
+        };
+
+        private static Task<bool> VerifySalesInvoiceAsync(
+            AppDbContext db,
+            int invoiceId,
+            string invoiceCode,
+            int? stockOutId,
+            int customerId,
+            int actorId,
+            byte[] expectedRowVersion,
+            CancellationToken cancellationToken)
+        {
+            return db.SalesInvoices.AsNoTracking().AnyAsync(item =>
+                (invoiceId == 0 || item.Id == invoiceId)
+                && item.InvoiceCode == invoiceCode
+                && item.StockOutId == stockOutId
+                && item.CustomerId == customerId
+                && (invoiceId != 0 || item.CreatedBy == actorId)
+                && (invoiceId == 0 || item.RowVersion != expectedRowVersion),
+                cancellationToken);
+        }
+
+        private static Task<bool> VerifyPurchaseInvoiceAsync(
+            AppDbContext db,
+            int invoiceId,
+            string invoiceCode,
+            int? stockInId,
+            int supplierId,
+            int actorId,
+            byte[] expectedRowVersion,
+            CancellationToken cancellationToken)
+        {
+            return db.PurchaseInvoices.AsNoTracking().AnyAsync(item =>
+                (invoiceId == 0 || item.Id == invoiceId)
+                && item.InvoiceCode == invoiceCode
+                && item.StockInId == stockInId
+                && item.SupplierId == supplierId
+                && (invoiceId != 0 || item.CreatedBy == actorId)
+                && (invoiceId == 0 || item.RowVersion != expectedRowVersion),
+                cancellationToken);
+        }
+
+        internal void SaveSalesInvoice(SalesInvoice invoice, int actorId)
+        {
+            if (invoice.Id != 0 && invoice.RowVersion.Length == 0)
+            {
+                using var db = _contextFactory();
+                invoice.RowVersion = db.SalesInvoices.AsNoTracking()
+                    .Where(item => item.Id == invoice.Id)
+                    .Select(item => item.RowVersion)
+                    .Single();
+            }
+
+            SaveSalesInvoiceAsync(invoice, actorId, Guid.NewGuid()).GetAwaiter().GetResult();
+        }
+
+        internal void SavePurchaseInvoice(PurchaseInvoice invoice, int actorId)
+        {
+            if (invoice.Id != 0 && invoice.RowVersion.Length == 0)
+            {
+                using var db = _contextFactory();
+                invoice.RowVersion = db.PurchaseInvoices.AsNoTracking()
+                    .Where(item => item.Id == invoice.Id)
+                    .Select(item => item.RowVersion)
+                    .Single();
+            }
+
+            SavePurchaseInvoiceAsync(invoice, actorId, Guid.NewGuid()).GetAwaiter().GetResult();
+        }
         private static void CalculateSalesInvoice(SalesInvoice invoice)
         {
             if (invoice.Lines == null || invoice.Lines.Count == 0)

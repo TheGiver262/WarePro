@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace QuanLyHangHoa.Models;
@@ -21,4 +21,6 @@ public partial class StockBalance
     public virtual Product Product { get; set; } = null!;
 
     public virtual Warehouse Warehouse { get; set; } = null!;
+    public byte[] RowVersion { get; set; } = [];
+
 }

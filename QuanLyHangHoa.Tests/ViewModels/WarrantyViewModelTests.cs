@@ -14,7 +14,7 @@ namespace QuanLyHangHoa.Tests.ViewModels
     public class WarrantyViewModelTests
     {
         [Fact]
-        public void CreateWarrantyClaimPassesFormValuesToService()
+        public async Task CreateWarrantyClaimPassesFormValuesToService()
         {
             using var connection = new Microsoft.Data.Sqlite.SqliteConnection("Data Source=:memory:");
             connection.Open();
@@ -55,7 +55,7 @@ namespace QuanLyHangHoa.Tests.ViewModels
             }
 
             var viewModel = new WarrantyViewModel(
-                new AppUser { Id = 42, FullName = "Nhan vien" },
+                new AppUser { Id = 1, FullName = "Nhan vien" },
                 () => DatabaseHelper.CreateContext(connection),
                 (msg, title) => { });
 
@@ -66,14 +66,14 @@ namespace QuanLyHangHoa.Tests.ViewModels
             viewModel.SerialNumber = "SERIAL-001";
             viewModel.ProblemDescription = "Loi man hinh";
 
-            viewModel.CreateWarrantyClaimCommand.Execute(null);
+            await viewModel.CreateWarrantyClaimCommand.ExecuteAsync(null);
 
             using (var assertContext = DatabaseHelper.CreateContext(connection))
             {
                 var claim = Assert.Single(assertContext.WarrantyClaims);
                 Assert.Equal("WC-001", claim.ClaimCode);
                 Assert.Equal("Loi man hinh", claim.ProblemDescription);
-                Assert.Equal(42, claim.ProcessedBy);
+                Assert.Equal(1, claim.ProcessedBy);
                 Assert.Equal("InWarrantyProcess", assertContext.ProductSerials.First(s => s.Id == 500).CurrentStatus);
             }
 
@@ -82,8 +82,27 @@ namespace QuanLyHangHoa.Tests.ViewModels
             Assert.Equal(string.Empty, viewModel.ProblemDescription);
         }
 
+        
         [Fact]
-        public void CompleteRepairPassesClaimIdConclusionAndCurrentUserToService()
+        public async Task CreateWarrantyClaim_hides_untrusted_provider_exception_detail()
+        {
+            var messages = new List<string>();
+            var viewModel = new WarrantyViewModel(
+                new AppUser { Id = 1 },
+                () => throw new InvalidOperationException("Server=secret; SQL syntax near password"),
+                (message, _) => messages.Add(message));
+            viewModel.ClaimCode = "WC-SECRET";
+            viewModel.SerialNumber = "SERIAL-SECRET";
+            viewModel.ProblemDescription = "Provider failure";
+
+            await viewModel.CreateWarrantyClaimCommand.ExecuteAsync(null);
+
+            Assert.Equal(DatabaseWriteUi.TechnicalErrorMessage, viewModel.StatusMessage);
+            Assert.Equal([DatabaseWriteUi.TechnicalErrorMessage], messages);
+            Assert.DoesNotContain("secret", viewModel.StatusMessage, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("SQL", viewModel.StatusMessage, StringComparison.OrdinalIgnoreCase);
+        }[Fact]
+        public async Task CompleteRepairPassesClaimIdConclusionAndCurrentUserToService()
         {
             using var connection = new Microsoft.Data.Sqlite.SqliteConnection("Data Source=:memory:");
             connection.Open();
@@ -142,7 +161,7 @@ namespace QuanLyHangHoa.Tests.ViewModels
             }
 
             var viewModel = new WarrantyViewModel(
-                new AppUser { Id = 42 },
+                new AppUser { Id = 1 },
                 () => DatabaseHelper.CreateContext(connection),
                 (msg, title) => { });
 
@@ -153,7 +172,7 @@ namespace QuanLyHangHoa.Tests.ViewModels
             }
 
             viewModel.TechnicalConclusion = "Fixed screen";
-            viewModel.CompleteRepairCommand.Execute(null);
+            await viewModel.CompleteRepairCommand.ExecuteAsync(null);
 
             using (var assertContext = DatabaseHelper.CreateContext(connection))
             {
@@ -161,7 +180,7 @@ namespace QuanLyHangHoa.Tests.ViewModels
                 Assert.NotNull(claim);
                 Assert.Equal("Ready", claim.Status);
                 Assert.Equal("Fixed screen", claim.TechnicalConclusion);
-                Assert.Equal(42, claim.ApprovedBy);
+                Assert.Equal(1, claim.ApprovedBy);
                 
                 var serial = assertContext.ProductSerials.Find(claim.ProductSerialId);
                 Assert.NotNull(serial);
@@ -253,7 +272,7 @@ namespace QuanLyHangHoa.Tests.ViewModels
             using var connection = new Microsoft.Data.Sqlite.SqliteConnection("Data Source=:memory:");
             connection.Open();
             var viewModel = new WarrantyViewModel(
-                new AppUser { Id = 42 },
+                new AppUser { Id = 1 },
                 () => DatabaseHelper.CreateContext(connection),
                 (message, title) => { });
 
@@ -284,7 +303,7 @@ namespace QuanLyHangHoa.Tests.ViewModels
             using var connection = new Microsoft.Data.Sqlite.SqliteConnection("Data Source=:memory:");
             connection.Open();
             var viewModel = new WarrantyViewModel(
-                new AppUser { Id = 42 },
+                new AppUser { Id = 1 },
                 () => DatabaseHelper.CreateContext(connection),
                 (message, title) => { });
             viewModel.SelectedWarranty = new WarrantyClaim

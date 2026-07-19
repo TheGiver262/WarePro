@@ -54,4 +54,6 @@ public partial class StockOut
     public virtual Warehouse Warehouse { get; set; } = null!;
 
     public virtual ICollection<WarrantyClaim> WarrantyClaims { get; set; } = new List<WarrantyClaim>();
+    public byte[] RowVersion { get; set; } = [];
+
 }

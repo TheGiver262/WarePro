@@ -12,26 +12,26 @@ public class MasterDataDependencyUiContractTests
     [Fact]
     public void Product_delete_shows_structured_dependencies_and_reaches_service_mutation()
     {
-        var method = ReadMethod("ProductViewModel.cs", "private void DeleteProduct", "[RelayCommand]");
+        var method = ReadMethod("ProductViewModel.cs", "private async Task DeleteProduct", "[RelayCommand]");
 
         Assert.Contains("_service.GetDependencies(product.Id)", method);
         Assert.DoesNotContain("_service.HasTransactionHistory(product.Id)", method);
         Assert.Contains("dependency.Name", method);
         Assert.Contains("dependency.Count", method);
-        Assert.Contains("_service.DeleteProduct(product.Id, _currentUser.Id)", method);
+        Assert.Contains("await _service.DeleteProductAsync(product.Id, product.RowVersion, _currentUser.Id, Guid.NewGuid())", method);
         Assert.Equal(1, Count(method, "return;"));
     }
 
     [Fact]
     public void App_user_delete_distinguishes_deactivation_from_permanent_delete()
     {
-        var method = ReadMethod("AppUserViewModel.cs", "private void DeleteUser", "[RelayCommand]");
+        var method = ReadMethod("AppUserViewModel.cs", "private async Task DeleteUser", "[RelayCommand]");
 
         Assert.Contains("_userService.HasDependencies(user.Id)", method);
         Assert.Contains("chuyển trạng thái người dùng sang 'Dừng'", method);
         Assert.Contains("xoá vĩnh viễn", method);
         Assert.DoesNotContain("Thao tác này không thể hoàn tác", method);
-        Assert.Contains("_userService.DeleteUser(user.Id, _currentUser.Id)", method);
+        Assert.Contains("await _userService.DeleteUserAsync(user.Id, user.RowVersion.ToArray(), _currentUser.Id, Guid.NewGuid())", method);
     }
 
     [Fact]

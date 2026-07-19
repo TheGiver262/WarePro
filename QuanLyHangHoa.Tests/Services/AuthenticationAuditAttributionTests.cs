@@ -12,7 +12,7 @@ public class AuthenticationAuditAttributionTests
     [Theory]
     [InlineData("missing")]
     [InlineData("known")]
-    public void Failed_login_is_system_owned_and_records_attempted_username(string attemptedUsername)
+    public async Task Failed_login_is_system_owned_and_records_attempted_username(string attemptedUsername)
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
@@ -33,7 +33,7 @@ public class AuthenticationAuditAttributionTests
 
         var service = new AuthenticationService(() => CreateContext(connection));
 
-        var result = service.Authenticate(attemptedUsername, "wrong-pass");
+        var result = await service.AuthenticateAsync(attemptedUsername, "wrong-pass", Guid.NewGuid());
 
         Assert.Equal(LoginStatus.InvalidCredentials, result.Status);
         using var assertContext = CreateContext(connection);

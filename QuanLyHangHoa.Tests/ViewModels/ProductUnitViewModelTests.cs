@@ -1,17 +1,20 @@
 using Moq;
+using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
 using QuanLyHangHoa.ViewModels;
 using Xunit;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace QuanLyHangHoa.Tests.ViewModels;
 
 public class ProductUnitViewModelTests
 {
     [Fact]
-    public void SaveCommand_AddsNewProductUnit_WhenSelectedProductUnitIsNull()
+    public async Task SaveCommand_AddsNewProductUnit_WhenSelectedProductUnitIsNull()
     {
         // Arrange
         var mockProductUnitService = new Mock<ProductUnitService>(new object[] { null! });
@@ -24,6 +27,9 @@ public class ProductUnitViewModelTests
         mockProductService.Setup(s => s.GetAllProducts(It.IsAny<bool>())).Returns(products);
         mockRefDataService.Setup(s => s.GetAllUnits(It.IsAny<bool>())).Returns(units);
         mockProductUnitService.Setup(s => s.GetByProductId(It.IsAny<int>(), It.IsAny<bool>())).Returns(new List<ProductUnit>());
+        mockProductUnitService.Setup(s => s.AddAsync(
+                It.IsAny<ProductUnit>(), It.IsAny<int>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         var viewModel = new ProductUnitViewModel(
             mockProductUnitService.Object,
@@ -35,14 +41,16 @@ public class ProductUnitViewModelTests
         viewModel.ConversionFactor = 12m;
 
         // Act
-        viewModel.SaveCommand.Execute(null);
+        await viewModel.SaveCommand.ExecuteAsync(null);
 
         // Assert
-        mockProductUnitService.Verify(s => s.Add(It.Is<ProductUnit>(pu => 
-            pu.ProductId == 10 && 
-            pu.UnitId == 20 && 
+        mockProductUnitService.Verify(s => s.AddAsync(It.Is<ProductUnit>(pu =>
+            pu.ProductId == 10 &&
+            pu.UnitId == 20 &&
             pu.ConversionFactor == 12m),
-            2), Times.Once);
+            2,
+            It.IsAny<Guid>(),
+            It.IsAny<CancellationToken>()), Times.Once);
         Assert.Equal("Đã lưu đơn vị quy đổi.", viewModel.StatusMessage);
     }
 
@@ -65,7 +73,7 @@ public class ProductUnitViewModelTests
 
         // Assert
         mockProductUnitService.Verify(
-            s => s.Add(It.IsAny<ProductUnit>(), It.IsAny<int>()),
+            s => s.AddAsync(It.IsAny<ProductUnit>(), It.IsAny<int>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
             Times.Never);
         Assert.Equal("Chưa chọn hàng hóa hoặc đơn vị.", viewModel.StatusMessage);
     }
@@ -96,12 +104,12 @@ public class ProductUnitViewModelTests
         Assert.False(viewModel.DeleteCommand.CanExecute(null));
         Assert.False(viewModel.OpenAddUnitWindowCommand.CanExecute(null));
         productUnitService.Verify(
-            service => service.Add(It.IsAny<ProductUnit>(), It.IsAny<int>()),
+            service => service.AddAsync(It.IsAny<ProductUnit>(), It.IsAny<int>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
     [Fact]
-    public void Rejected_update_preserves_visible_product_unit_and_surfaces_error()
+    public async Task Rejected_update_hides_technical_provider_detail()
     {
         var product = new Product { Id = 10, DisplayName = "Printer" };
         var oldUnit = new Unit { Id = 20, DisplayName = "Box" };
@@ -125,8 +133,14 @@ public class ProductUnitViewModelTests
             .Setup(service => service.GetByProductId(product.Id, It.IsAny<bool>()))
             .Returns([existing]);
         productUnitService
-            .Setup(service => service.Update(It.IsAny<ProductUnit>(), 2))
-            .Throws(new InvalidOperationException("not authorized"));
+            .Setup(service => service.UpdateAsync(
+                It.IsAny<int>(),
+                It.IsAny<ProductUnit>(),
+                It.IsAny<byte[]>(),
+                2,
+                It.IsAny<Guid>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("not authorized"));
         var viewModel = new ProductUnitViewModel(
             productUnitService.Object,
             productService.Object,
@@ -136,11 +150,12 @@ public class ProductUnitViewModelTests
         viewModel.SelectedUnitId = newUnit.Id;
         viewModel.ConversionFactor = 24m;
 
-        viewModel.SaveCommand.Execute(null);
+        await viewModel.SaveCommand.ExecuteAsync(null);
 
         Assert.Equal(oldUnit.Id, existing.UnitId);
         Assert.Equal(12m, existing.ConversionFactor);
-        Assert.Contains("not authorized", viewModel.StatusMessage);
+        Assert.Equal(DatabaseWriteUi.TechnicalErrorMessage, viewModel.StatusMessage);
+        Assert.DoesNotContain("not authorized", viewModel.StatusMessage, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -177,10 +192,10 @@ public class ProductUnitViewModelTests
         viewModel.DeleteCommand.Execute(null);
         Assert.False(opened);
         productUnitService.Verify(
-            service => service.Add(It.IsAny<ProductUnit>(), It.IsAny<int>()),
+            service => service.AddAsync(It.IsAny<ProductUnit>(), It.IsAny<int>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
             Times.Never);
         productUnitService.Verify(
-            service => service.Delete(It.IsAny<int>(), It.IsAny<int>()),
+            service => service.DeleteAsync(It.IsAny<int>(), It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 

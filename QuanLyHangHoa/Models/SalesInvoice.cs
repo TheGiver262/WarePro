@@ -38,4 +38,6 @@ public partial class SalesInvoice
     public virtual StockOut? StockOut { get; set; }
 
     public virtual ICollection<WarrantyCoverage> WarrantyCoverages { get; set; } = new List<WarrantyCoverage>();
+    public byte[] RowVersion { get; set; } = [];
+
 }

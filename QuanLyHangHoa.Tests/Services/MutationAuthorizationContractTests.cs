@@ -9,31 +9,31 @@ public class MutationAuthorizationContractTests
 
     public static TheoryData<string, string, string> DirectGuardCases => new()
     {
-        { "InvoiceService.cs", "public void SaveSalesInvoice(", "PermissionAction.CreateSalesInvoice" },
-        { "InvoiceService.cs", "public void SavePurchaseInvoice(", "PermissionAction.CreatePurchaseInvoice" },
-        { "StockInService.cs", "public virtual void SaveDraft(", "PermissionAction.PostStockIn" },
-        { "StockInService.cs", "public virtual void SubmitForApproval(", "PermissionAction.PostStockIn" },
-        { "StockInService.cs", "public virtual void Approve(", "PermissionAction.PostStockIn" },
-        { "StockInService.cs", "public virtual void Post(", "PermissionAction.PostStockIn" },
-        { "StockInService.cs", "public virtual void Delete(", "PermissionAction.PostStockIn" },
-        { "StockOutService.cs", "public void SaveDraft(", "PermissionAction.PostStockOut" },
-        { "StockOutService.cs", "public virtual void SubmitForApproval(", "PermissionAction.PostStockOut" },
-        { "StockOutService.cs", "public virtual void Approve(", "PermissionAction.PostStockOut" },
-        { "StockOutService.cs", "public void Post(", "PermissionAction.PostStockOut" },
-        { "StockOutService.cs", "public virtual void Delete(", "PermissionAction.PostStockOut" },
-        { "StockTransferService.cs", "public virtual void SaveDraft(", "PermissionAction.PostStockAdjustment" },
-        { "StockTransferService.cs", "public virtual void SubmitForApproval(", "PermissionAction.PostStockAdjustment" },
-        { "StockTransferService.cs", "public virtual void Approve(", "PermissionAction.PostStockAdjustment" },
-        { "StockTransferService.cs", "public virtual void Post(", "PermissionAction.PostStockAdjustment" },
-        { "StockTransferService.cs", "public virtual void Delete(", "PermissionAction.PostStockAdjustment" },
-        { "StockAdjustmentService.cs", "public virtual void SaveDraft(", "PermissionAction.PostStockAdjustment" },
-        { "StockAdjustmentService.cs", "public virtual void SubmitForApproval(", "PermissionAction.PostStockAdjustment" },
-        { "StockAdjustmentService.cs", "public virtual void Approve(", "PermissionAction.PostStockAdjustment" },
-        { "StockAdjustmentService.cs", "public void Post(", "PermissionAction.PostStockAdjustment" },
-        { "StockCountService.cs", "public void CreateSession(", "PermissionAction.PostStockAdjustment" },
-        { "StockCountService.cs", "public void ProcessResults(", "PermissionAction.PostStockAdjustment" },
-        { "StockCountService.Mutations.cs", "private void SaveDraftLines(", "PermissionAction.PostStockAdjustment" },
-        { "StockReversalService.cs", "public int ReverseDocument(", "PermissionAction.PostStockAdjustment" },
+        { "InvoiceService.cs", "public async Task<int> SaveSalesInvoiceAsync(", "PermissionAction.CreateSalesInvoice" },
+        { "InvoiceService.cs", "public async Task<int> SavePurchaseInvoiceAsync(", "PermissionAction.CreatePurchaseInvoice" },
+        { "StockInService.cs", "private async Task<int> StageSaveDraftAsync(", "PermissionAction.PostStockIn" },
+        { "StockInService.cs", "private Task StageSubmitForApprovalAsync(", "PermissionAction.PostStockIn" },
+        { "StockInService.cs", "private Task StageApproveAsync(", "PermissionAction.PostStockIn" },
+        { "StockInService.cs", "private Task StagePostAsync(", "PermissionAction.PostStockIn" },
+        { "StockInService.cs", "private Task StageDeleteAsync(", "PermissionAction.PostStockIn" },
+        { "StockOutService.cs", "private async Task<int> StageSaveDraftAsync(", "PermissionAction.PostStockOut" },
+        { "StockOutService.cs", "private Task StageSubmitForApprovalAsync(", "PermissionAction.PostStockOut" },
+        { "StockOutService.cs", "private Task StageApproveAsync(", "PermissionAction.PostStockOut" },
+        { "StockOutService.cs", "private Task StagePostAsync(", "PermissionAction.PostStockOut" },
+        { "StockOutService.cs", "private Task StageDeleteAsync(", "PermissionAction.PostStockOut" },
+        { "StockTransferService.cs", "private async Task<int> StageSaveDraftAsync(", "PermissionAction.PostStockAdjustment" },
+        { "StockTransferService.cs", "private Task StageSubmitForApprovalAsync(", "PermissionAction.PostStockAdjustment" },
+        { "StockTransferService.cs", "private Task StageApproveAsync(", "PermissionAction.PostStockAdjustment" },
+        { "StockTransferService.cs", "private Task StagePostAsync(", "PermissionAction.PostStockAdjustment" },
+        { "StockTransferService.cs", "private Task StageDeleteAsync(", "PermissionAction.PostStockAdjustment" },
+        { "StockAdjustmentService.cs", "private async Task<int> StageSaveDraftAsync(", "PermissionAction.PostStockAdjustment" },
+        { "StockAdjustmentService.cs", "private Task StageSubmitForApprovalAsync(", "PermissionAction.PostStockAdjustment" },
+        { "StockAdjustmentService.cs", "private Task StageApproveAsync(", "PermissionAction.PostStockAdjustment" },
+        { "StockAdjustmentService.cs", "private Task StagePostAsync(", "PermissionAction.PostStockAdjustment" },
+        { "StockCountService.cs", "public async Task CreateAsync(", "PermissionAction.PostStockAdjustment" },
+        { "StockCountService.cs", "private async Task StageProcessResultsAsync(", "PermissionAction.PostStockAdjustment" },
+        { "StockCountService.Mutations.cs", "private Task StageSaveDraftLinesAsync(", "PermissionAction.PostStockAdjustment" },
+        { "StockReversalService.cs", "private static async Task<int> StageReverseDocumentAsync(", "PermissionAction.PostStockAdjustment" },
         { "ProductSerialImportService.cs", "public async Task<(int SuccessCount, string Message)> ImportFromExcelAsync(", "PermissionAction.ManageMasterData" }
     };
 
@@ -51,26 +51,26 @@ public class MutationAuthorizationContractTests
     }
 
     [Theory]
-    [InlineData("public void UpdateDraft(")]
-    [InlineData("public void CommitSession(")]
+    [InlineData("public Task UpdateDraftAsync(")]
+    [InlineData("public Task CommitSessionAsync(")]
     public void Stock_count_public_edit_methods_forward_actor_to_guarded_helper(string marker)
     {
         var method = ExtractMethod(ReadService("StockCountService.Mutations.cs"), marker);
 
-        Assert.Contains("SaveDraftLines(sessionId, lines, userId", method);
+        Assert.Contains("StageSaveDraftLinesAsync(", method);
     }
 
     public static TheoryData<string, string, string> TransactionCases => new()
     {
-        { "InvoiceService.cs", "public void SaveSalesInvoice(", "PrepareSalesInvoice" },
-        { "InvoiceService.cs", "public void SavePurchaseInvoice(", "PreparePurchaseInvoice" },
-        { "StockInService.cs", "public virtual void Post(", "var stockIn =" },
-        { "StockOutService.cs", "public void Post(", "var stockOut =" },
-        { "StockTransferService.cs", "public virtual void Post(", "var stockTransfer =" },
-        { "StockAdjustmentService.cs", "public void Post(", "var adjustment =" },
-        { "StockCountService.cs", "public void ProcessResults(", "var session =" },
-        { "StockCountService.Mutations.cs", "private void SaveDraftLines(", "var session =" },
-        { "StockReversalService.cs", "public int ReverseDocument(", "db.StockAdjustments.Any" }
+        { "InvoiceService.cs", "public async Task<int> SaveSalesInvoiceAsync(", "PrepareSalesInvoice" },
+        { "InvoiceService.cs", "public async Task<int> SavePurchaseInvoiceAsync(", "PreparePurchaseInvoice" },
+        { "StockInService.cs", "private Task StagePostAsync(", "var stockIn =" },
+        { "StockOutService.cs", "private Task StagePostAsync(", "var stockOut =" },
+        { "StockTransferService.cs", "private Task StagePostAsync(", "var stockTransfer =" },
+        { "StockAdjustmentService.cs", "private Task StagePostAsync(", "var adjustment =" },
+        { "StockCountService.cs", "private async Task StageProcessResultsAsync(", "var session =" },
+        { "StockCountService.Mutations.cs", "private Task StageSaveDraftLinesAsync(", "var session =" },
+        { "StockReversalService.cs", "private static async Task<int> StageReverseDocumentAsync(", "db.StockAdjustments.Any" }
     };
 
     [Theory]
@@ -82,39 +82,59 @@ public class MutationAuthorizationContractTests
     {
         var method = ExtractMethod(ReadService(fileName), methodMarker);
         var transactionIndex = method.IndexOf("BeginTransaction", StringComparison.Ordinal);
+        if (transactionIndex < 0)
+        {
+            transactionIndex = method.IndexOf("new DatabaseWriteRequest", StringComparison.Ordinal);
+        }
         var guardIndex = method.IndexOf("AuthorizationService.RequireFreshActor", StringComparison.Ordinal);
         var targetIndex = method.IndexOf(targetMarker, StringComparison.Ordinal);
 
-        Assert.True(transactionIndex >= 0, $"{methodMarker} must start a transaction.");
-        Assert.True(guardIndex > transactionIndex, $"{methodMarker} must authorize inside its transaction.");
+        Assert.True(guardIndex >= 0, $"{methodMarker} must authorize its actor.");
+        if (!methodMarker.Contains("Stage", StringComparison.Ordinal))
+        {
+            Assert.True(transactionIndex >= 0, $"{methodMarker} must start an executor transaction.");
+            Assert.True(guardIndex > transactionIndex, $"{methodMarker} must authorize inside its transaction.");
+        }
+
         Assert.True(targetIndex > guardIndex, $"{methodMarker} must authorize before target access or writes.");
     }
 
+    [Theory]
+    [InlineData("StockInService.cs")]
+    [InlineData("StockOutService.cs")]
+    [InlineData("StockTransferService.cs")]
+    public void Inventory_delete_is_async_and_has_no_public_sync_bypass(string fileName)
+    {
+        var source = ReadService(fileName);
+
+        Assert.Contains("public Task DeleteAsync(", source);
+        Assert.DoesNotContain("public virtual void Delete(", source);
+    }
     public static TheoryData<string, string> ViewModelActorCases => new()
     {
-        { "SalesInvoiceViewModel.cs", "_invoiceService.SaveSalesInvoice(invoice, _currentUser.Id)" },
-        { "PurchaseInvoiceViewModel.cs", "_invoiceService.SavePurchaseInvoice(invoice, _currentUser.Id)" },
-        { "StockInViewModel.cs", "_stockInService.SaveDraft(si, siLines, _currentUser.Id)" },
-        { "StockInViewModel.cs", "_stockInService.SubmitForApproval(StockInId, _currentUser.Id)" },
-        { "StockInViewModel.cs", "_stockInService.Approve(StockInId, _currentUser.Id)" },
-        { "StockInViewModel.cs", "_stockInService.Post(StockInId, _currentUser.Id)" },
-        { "StockOutViewModel.cs", "_stockOutService.SaveDraft(so, soLines, _currentUser.Id)" },
-        { "StockOutViewModel.cs", "_stockOutService.SubmitForApproval(StockOutId, _currentUser.Id)" },
-        { "StockOutViewModel.cs", "_stockOutService.Approve(StockOutId, _currentUser.Id)" },
-        { "StockOutViewModel.cs", "_stockOutService.Post(StockOutId, _currentUser.Id)" },
-        { "StockTransferViewModel.cs", "_stockTransferService.SaveDraft(st, stLines, _currentUser.Id)" },
-        { "StockTransferViewModel.cs", "_stockTransferService.SubmitForApproval(StockTransferId, _currentUser.Id)" },
-        { "StockTransferViewModel.cs", "_stockTransferService.Approve(StockTransferId, _currentUser.Id)" },
-        { "StockTransferViewModel.cs", "_stockTransferService.Post(StockTransferId, _currentUser.Id)" },
-        { "StockAdjustmentViewModel.cs", "_adjustmentService.SaveDraft(adj, lineModels, _currentUser.Id)" },
-        { "StockAdjustmentViewModel.cs", "_adjustmentService.Approve(EditingId, _currentUser.Id)" },
-        { "StockAdjustmentViewModel.cs", "_adjustmentService.Post(EditingId, _currentUser.Id)" },
-        { "StockCountViewModel.cs", "_stockCountService.CreateSession(session, _currentUser.Id)" },
-        { "StockCountViewModel.cs", "_stockCountService.UpdateDraft(SelectedSession.Id, SelectedSessionLines, _currentUser.Id)" },
-        { "StockCountViewModel.cs", "_stockCountService.CommitSession(currentId, SelectedSessionLines, _currentUser.Id)" },
-        { "StockCountViewModel.cs", "_stockCountService.ProcessResults(session.Id, _currentUser.Id)" },
-        { "StockReversalViewModel.cs", "_reverseDocument(DocumentType, documentId, _currentUser.Id)" },
-        { "ProductSerialViewModel.cs", "_importService.ImportFromExcelAsync(excelPath, _currentUser.Id)" }
+        { "SalesInvoiceViewModel.cs", "await _invoiceService.SaveSalesInvoiceAsync(invoice, _currentUser.Id, operationId)" },
+        { "PurchaseInvoiceViewModel.cs", "await _invoiceService.SavePurchaseInvoiceAsync(invoice, _currentUser.Id, operationId)" },
+        { "StockInViewModel.cs", "await _stockInService.SaveDraftAsync(si, siLines, _currentUser.Id, operationId, cancellationToken)" },
+        { "StockInViewModel.cs", "await _stockInService.SubmitForApprovalAsync(StockInId, _currentUser.Id, operationId, cancellationToken)" },
+        { "StockInViewModel.cs", "await _stockInService.ApproveAsync(StockInId, _currentUser.Id, operationId, cancellationToken)" },
+        { "StockInViewModel.cs", "await _stockInService.PostAsync(StockInId, _currentUser.Id, operationId, cancellationToken)" },
+        { "StockOutViewModel.cs", "await _stockOutService.SaveDraftAsync(so, soLines, _currentUser.Id, operationId, cancellationToken)" },
+        { "StockOutViewModel.cs", "await _stockOutService.SubmitForApprovalAsync(StockOutId, _currentUser.Id, operationId, cancellationToken)" },
+        { "StockOutViewModel.cs", "await _stockOutService.ApproveAsync(StockOutId, _currentUser.Id, operationId, cancellationToken)" },
+        { "StockOutViewModel.cs", "await _stockOutService.PostAsync(StockOutId, _currentUser.Id, operationId, cancellationToken)" },
+        { "StockTransferViewModel.cs", "await _stockTransferService.SaveDraftAsync(st, stLines, _currentUser.Id, operationId, cancellationToken)" },
+        { "StockTransferViewModel.cs", "await _stockTransferService.SubmitForApprovalAsync(StockTransferId, _currentUser.Id, operationId, cancellationToken)" },
+        { "StockTransferViewModel.cs", "await _stockTransferService.ApproveAsync(StockTransferId, _currentUser.Id, operationId, cancellationToken)" },
+        { "StockTransferViewModel.cs", "await _stockTransferService.PostAsync(StockTransferId, _currentUser.Id, operationId, cancellationToken)" },
+        { "StockAdjustmentViewModel.cs", "await _adjustmentService.SaveDraftAsync(adj, lineModels, _currentUser.Id, operationId, cancellationToken)" },
+        { "StockAdjustmentViewModel.cs", "await _adjustmentService.ApproveAsync(EditingId, _currentUser.Id, operationId, cancellationToken)" },
+        { "StockAdjustmentViewModel.cs", "await _adjustmentService.PostAsync(EditingId, _currentUser.Id, operationId, cancellationToken)" },
+        { "StockCountViewModel.cs", "await _stockCountService.CreateAsync(session, _currentUser.Id, operationId, cancellationToken)" },
+        { "StockCountViewModel.cs", "await _stockCountService.UpdateDraftAsync(SelectedSession.Id, SelectedSessionLines, _currentUser.Id, operationId, cancellationToken)" },
+        { "StockCountViewModel.cs", "await _stockCountService.CommitSessionAsync(currentId, SelectedSessionLines, _currentUser.Id, operationId, cancellationToken)" },
+        { "StockCountViewModel.cs", "await _stockCountService.ProcessResultsAsync(session.Id, _currentUser.Id, operationId, cancellationToken)" },
+        { "StockReversalViewModel.cs", "await _reverseDocument(DocumentType, documentId, _currentUser.Id, operationId, cancellationToken)" },
+        { "ProductSerialViewModel.cs", "_importService.ImportFromExcelAsync(excelPath, _currentUser.Id, Guid.NewGuid())" }
     };
 
     [Theory]

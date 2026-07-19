@@ -305,156 +305,176 @@ namespace QuanLyHangHoa.ViewModels
         }
 
         [RelayCommand]
-        // lấy serial đã chọn và input hiện tại thành snapshot rồi giao CreateClaim kiểm tra coverage lần cuối
-        private void CreateWarrantyClaim(object? parameter)
+        private async Task CreateWarrantyClaimAsync(object? parameter)
         {
             if (!Validate()) return;
+            var operationId = Guid.NewGuid();
 
             try
             {
-                var claimId = _warrantyService.CreateClaim(
+                var claimId = await _warrantyService.CreateClaimAsync(
                     ClaimCode.Trim(),
                     SerialNumber.Trim(),
                     ProblemDescription.Trim(),
-                    _currentUser.Id);
+                    _currentUser.Id,
+                    operationId);
 
                 StatusMessage = $"Đã tạo phiếu bảo hành #{claimId}.";
                 _showMessage(StatusMessage, "Thông báo");
                 ResetForm();
-                _ = LoadData();
+                await LoadData();
 
                 if (parameter is Window window)
                 {
                     window.Close();
                 }
             }
-            catch (InvalidOperationException ex)
+            catch (Exception)
             {
-                StatusMessage = ex.Message;
-                _showMessage(ex.Message, "Lỗi bảo hành");
-            }
-            catch (Exception ex)
-            {
-                StatusMessage = "Không thể tạo phiếu bảo hành.";
-                _showMessage($"{StatusMessage} {ex.Message}", "Lỗi bảo hành");
+                StatusMessage = DatabaseWriteUi.TechnicalErrorMessage;
+                _showMessage(DatabaseWriteUi.TechnicalErrorMessage, "Lỗi bảo hành");
             }
         }
 
         [RelayCommand(CanExecute = nameof(IsSelectedWarrantyMutable))]
-        // sửa mô tả/ngày dự kiến; status không đi qua form edit mà phải dùng action riêng
-        private void SaveWarranty()
+        private async Task SaveWarrantyAsync()
         {
-            if (SelectedWarranty == null) return;
-            try
-            {
-                _warrantyService.UpdateClaim(SelectedWarranty);
-                _showMessage("Cập nhật phiếu bảo hành thành công!", "Thông báo");
-                _ = LoadData();
-            }
-            catch (Exception ex)
-            {
-                _showMessage(ex.Message, "Lỗi");
-            }
+            var selected = SelectedWarranty;
+            if (selected == null) return;
+            await RunWarrantyActionAsync(
+                operationId => _warrantyService.UpdateClaimAsync(
+                    selected.Id,
+                    selected.ProblemDescription,
+                    selected.ExpectedReturnDate,
+                    selected.RowVersion,
+                    _currentUser.Id,
+                    operationId),
+                "Cập nhật phiếu bảo hành thành công!");
         }
 
         [RelayCommand(CanExecute = nameof(IsSelectedWarrantyMutable))]
-        // service chỉ cho xóa claim chưa terminal và chưa phát sinh chứng từ kho
-        private void DeleteWarranty()
+        private async Task DeleteWarrantyAsync()
         {
-            if (SelectedWarranty == null) return;
-            if (MessageBox.Show("Bạn có chắc chắn muốn xóa phiếu bảo hành này?", "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+            var selected = SelectedWarranty;
+            if (selected == null) return;
+            if (MessageBox.Show("Bạn có chắc chắn muốn xóa phiếu bảo hành này?", "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
             {
-                try
-                {
-                    _warrantyService.DeleteClaim(SelectedWarranty.Id);
-                    _showMessage("Đã xóa phiếu bảo hành.", "Thông báo");
-                    _ = LoadData();
-                }
-                catch (Exception ex)
-                {
-                    _showMessage(ex.Message, "Lỗi");
-                }
+                return;
             }
+
+            await RunWarrantyActionAsync(
+                operationId => _warrantyService.DeleteClaimAsync(
+                    selected.Id,
+                    selected.RowVersion,
+                    _currentUser.Id,
+                    operationId),
+                "Đã xóa phiếu bảo hành.");
         }
 
         [RelayCommand(CanExecute = nameof(CanCompleteRepair))]
-        private void CompleteRepair()
+        private async Task CompleteRepairAsync()
         {
-            if (SelectedWarranty == null) return;
-            RunWarrantyAction(
-                () => _warrantyService.CompleteRepair(SelectedWarranty.Id, TechnicalConclusion.Trim(), _currentUser.Id),
+            var selected = SelectedWarranty;
+            if (selected == null) return;
+            await RunWarrantyActionAsync(
+                operationId => _warrantyService.CompleteRepairAsync(
+                    selected.Id,
+                    TechnicalConclusion.Trim(),
+                    _currentUser.Id,
+                    selected.RowVersion,
+                    operationId),
                 "Đã hoàn tất sửa bảo hành.");
         }
 
         [RelayCommand(CanExecute = nameof(CanSendManufacturer))]
-        private void SendManufacturer()
+        private async Task SendManufacturerAsync()
         {
-            if (SelectedWarranty == null) return;
-            RunWarrantyAction(
-                () => _warrantyService.SendToManufacturer(
-                    SelectedWarranty.Id,
+            var selected = SelectedWarranty;
+            if (selected == null) return;
+            await RunWarrantyActionAsync(
+                operationId => _warrantyService.SendToManufacturerAsync(
+                    selected.Id,
                     ManufacturerName.Trim(),
                     ManufacturerTrackingCode.Trim(),
                     ManufacturerExpectedReturnDate,
                     ManufacturerNote.Trim(),
-                    _currentUser.Id),
+                    _currentUser.Id,
+                    selected.RowVersion,
+                    operationId),
                 "Đã gửi hãng bảo hành.");
         }
 
         [RelayCommand(CanExecute = nameof(CanReceiveManufacturerRepaired))]
-        private void ReceiveManufacturerRepaired()
+        private async Task ReceiveManufacturerRepairedAsync()
         {
-            if (SelectedWarranty == null) return;
-            RunWarrantyAction(
-                () => _warrantyService.ReceiveFromManufacturerRepaired(
-                    SelectedWarranty.Id, TechnicalConclusion.Trim(), _currentUser.Id),
+            var selected = SelectedWarranty;
+            if (selected == null) return;
+            await RunWarrantyActionAsync(
+                operationId => _warrantyService.ReceiveFromManufacturerRepairedAsync(
+                    selected.Id,
+                    TechnicalConclusion.Trim(),
+                    _currentUser.Id,
+                    selected.RowVersion,
+                    operationId),
                 "Hãng đã sửa xong, serial cũ trả lại khách.");
         }
 
         [RelayCommand(CanExecute = nameof(CanReceiveManufacturerReplaced))]
-        // action này có thể nhập + xuất serial mới và chuyển coverage trong một transaction service
-        private void ReceiveManufacturerReplaced()
+        private async Task ReceiveManufacturerReplacedAsync()
         {
-            if (SelectedWarranty == null) return;
+            var selected = SelectedWarranty;
+            if (selected == null) return;
             if (string.IsNullOrWhiteSpace(NewManufacturerSerial))
             {
                 _showMessage("Vui lòng nhập Serial mới từ hãng.", "Cảnh báo");
                 return;
             }
-            RunWarrantyAction(
-                () => _warrantyService.ReceiveFromManufacturerReplaced(
-                    SelectedWarranty.Id,
+
+            await RunWarrantyActionAsync(
+                operationId => _warrantyService.ReceiveFromManufacturerReplacedAsync(
+                    selected.Id,
                     NewManufacturerSerial.Trim(),
                     TechnicalConclusion.Trim(),
-                    _currentUser.Id),
+                    _currentUser.Id,
+                    selected.RowVersion,
+                    operationId),
                 "Hãng đã đổi mới, đã tạo phiếu nhập/xuất kho tự động.");
         }
 
         [RelayCommand(CanExecute = nameof(CanRejectWarranty))]
-        private void RejectWarranty()
+        private async Task RejectWarrantyAsync()
         {
-            if (SelectedWarranty == null) return;
-            RunWarrantyAction(
-                () => _warrantyService.RejectClaim(SelectedWarranty.Id, RejectionReason.Trim(), _currentUser.Id),
+            var selected = SelectedWarranty;
+            if (selected == null) return;
+            await RunWarrantyActionAsync(
+                operationId => _warrantyService.RejectClaimAsync(
+                    selected.Id,
+                    RejectionReason.Trim(),
+                    _currentUser.Id,
+                    selected.RowVersion,
+                    operationId),
                 "Đã từ chối và trả máy cho khách.");
         }
 
         [RelayCommand(CanExecute = nameof(CanReplaceWarrantySerial))]
-        // thay trực tiếp yêu cầu serial cùng sản phẩm đang InStock; hết hàng phải chuyển luồng gửi hãng
-        private void ReplaceWarrantySerial()
+        private async Task ReplaceWarrantySerialAsync()
         {
-            if (SelectedWarranty == null) return;
+            var selected = SelectedWarranty;
+            if (selected == null) return;
             if (string.IsNullOrWhiteSpace(ReplacementSerialNumber))
             {
                 _showMessage("Vui lòng nhập Serial thay thế.", "Cảnh báo");
                 return;
             }
-            RunWarrantyAction(
-                () => _warrantyService.ReplaceSerial(
-                    SelectedWarranty.Id,
+
+            await RunWarrantyActionAsync(
+                operationId => _warrantyService.ReplaceSerialAsync(
+                    selected.Id,
                     ReplacementSerialNumber.Trim(),
                     TechnicalConclusion.Trim(),
-                    _currentUser.Id),
+                    selected.RowVersion,
+                    _currentUser.Id,
+                    operationId),
                 "Đã đổi serial bảo hành từ kho.");
         }
 
@@ -571,21 +591,30 @@ namespace QuanLyHangHoa.ViewModels
             ProblemDescription = string.Empty;
         }
 
-        // wrapper thống nhất try/catch, thông báo và reload; rollback thuộc service của từng action
-        private void RunWarrantyAction(Action action, string successMessage)
+        private async Task RunWarrantyActionAsync(
+            Func<Guid, Task> action,
+            string successMessage)
         {
+            var operationId = Guid.NewGuid();
             try
             {
-                action();
+                await action(operationId);
                 StatusMessage = successMessage;
                 _showMessage(StatusMessage, "Thông báo");
-                _ = LoadData();
+                await LoadData();
                 IsDetailPanelOpen = false;
             }
-            catch (Exception ex)
+            catch (DatabaseWriteConflictException)
             {
-                StatusMessage = ex.Message;
-                _showMessage(ex.Message, "Lỗi bảo hành");
+                StatusMessage = "Phiếu bảo hành đã được thay đổi ở máy khác.";
+                _showMessage($"{StatusMessage} Dữ liệu mới nhất sẽ được tải lại.", "Dữ liệu đã thay đổi");
+                await LoadData();
+                IsDetailPanelOpen = false;
+            }
+            catch (Exception)
+            {
+                StatusMessage = DatabaseWriteUi.TechnicalErrorMessage;
+                _showMessage(DatabaseWriteUi.TechnicalErrorMessage, "Lỗi bảo hành");
             }
         }
 

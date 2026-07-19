@@ -1,6 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using QuanLyHangHoa.Configuration;
 using QuanLyHangHoa.Models;
 
@@ -22,11 +26,45 @@ public partial class AppDbContext : DbContext
 
     public static string GetConnectionString() => ConnectionStringFactory.CreateDefault().Resolve();
 
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        PrepareSqliteRowVersions();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(
+        bool acceptAllChangesOnSuccess,
+        CancellationToken cancellationToken = default)
+    {
+        PrepareSqliteRowVersions();
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    private void PrepareSqliteRowVersions()
+    {
+        if (!string.Equals(Database.ProviderName, "Microsoft.EntityFrameworkCore.Sqlite", StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        foreach (var entry in ChangeTracker.Entries()
+                     .Where(item => item.State is EntityState.Added or EntityState.Modified))
+        {
+            var rowVersion = entry.Metadata.FindProperty("RowVersion");
+            if (rowVersion is null)
+            {
+                continue;
+            }
+
+            entry.Property("RowVersion").CurrentValue = Guid.NewGuid().ToByteArray();
+        }
+    }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
         {
-            optionsBuilder.UseSqlServer(GetConnectionString());
+            AppDbContextOptionsFactory.Configure(optionsBuilder, GetConnectionString());
         }
     }
 
@@ -88,6 +126,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<WarrantyCoverage> WarrantyCoverages { get; set; }
 
+    public virtual DbSet<WareProClientSession> WareProClientSessions { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // test SQLite và SQL Server dùng cú pháp timestamp mặc định khác nhau nhưng cùng ý nghĩa UTC hiện tại.
@@ -146,6 +186,7 @@ public partial class AppDbContext : DbContext
         {
             entity.ToTable("AuditArchiveManifest");
             entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.OperationId, "UX_AuditArchiveManifest_OperationId").IsUnique();
             entity.Property(e => e.FileName).HasMaxLength(260);
             entity.Property(e => e.Sha256Hash).HasMaxLength(64).IsFixedLength();
             entity.Property(e => e.RangeStartUtc).HasPrecision(0);
@@ -526,9 +567,9 @@ public partial class AppDbContext : DbContext
             // mỗi cặp kho-sản phẩm có đúng một dòng tổng tồn; ba quantity là optimistic concurrency token.
             entity.HasIndex(e => new { e.WarehouseId, e.ProductId }, "UX_StockBalance_Warehouse_Product").IsUnique();
 
-            entity.Property(e => e.AvailableQuantity).HasColumnType("decimal(18, 2)").IsConcurrencyToken();
-            entity.Property(e => e.OnHandQuantity).HasColumnType("decimal(18, 2)").IsConcurrencyToken();
-            entity.Property(e => e.ReservedQuantity).HasColumnType("decimal(18, 2)").IsConcurrencyToken();
+            entity.Property(e => e.AvailableQuantity).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.OnHandQuantity).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.ReservedQuantity).HasColumnType("decimal(18, 2)");
 
             entity.HasOne(d => d.Product).WithMany(p => p.StockBalances)
                 .HasForeignKey(d => d.ProductId)
@@ -1021,6 +1062,62 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.SalesInvoiceId)
                 .HasConstraintName("FK_WarrantyCoverage_SalesInvoice");
         });
+
+        modelBuilder.Entity<WareProClientSession>(entity =>
+        {
+            entity.HasKey(e => e.SessionId).HasName("PK___WareProClientSession");
+            entity.ToTable("__WareProClientSession");
+            entity.HasIndex(e => e.LastSeenUtc, "IX___WareProClientSession_LastSeenUtc");
+            entity.Property(e => e.MachineName).HasMaxLength(255);
+            entity.Property(e => e.AppVersion).HasMaxLength(32);
+            entity.Property(e => e.StartedAtUtc).HasPrecision(0);
+            entity.Property(e => e.LastSeenUtc).HasPrecision(0);
+        });
+
+        modelBuilder.Entity<AppUser>().Property(e => e.RowVersion).IsRowVersion();
+        modelBuilder.Entity<AuditArchiveManifest>().Property(e => e.RowVersion).IsRowVersion();
+        modelBuilder.Entity<Brand>().Property(e => e.RowVersion).IsRowVersion();
+        modelBuilder.Entity<Category>().Property(e => e.RowVersion).IsRowVersion();
+        modelBuilder.Entity<Customer>().Property(e => e.RowVersion).IsRowVersion();
+        modelBuilder.Entity<Product>().Property(e => e.RowVersion).IsRowVersion();
+        modelBuilder.Entity<ProductSerial>().Property(e => e.RowVersion).IsRowVersion();
+        modelBuilder.Entity<ProductUnit>().Property(e => e.RowVersion).IsRowVersion();
+        modelBuilder.Entity<PurchaseInvoice>().Property(e => e.RowVersion).IsRowVersion();
+        modelBuilder.Entity<PurchaseInvoiceLine>().Property(e => e.RowVersion).IsRowVersion();
+        modelBuilder.Entity<SalesInvoice>().Property(e => e.RowVersion).IsRowVersion();
+        modelBuilder.Entity<SalesInvoiceLine>().Property(e => e.RowVersion).IsRowVersion();
+        modelBuilder.Entity<StockAdjustment>().Property(e => e.RowVersion).IsRowVersion();
+        modelBuilder.Entity<StockAdjustmentLine>().Property(e => e.RowVersion).IsRowVersion();
+        modelBuilder.Entity<StockBalance>().Property(e => e.RowVersion).IsRowVersion();
+        modelBuilder.Entity<StockCountLine>().Property(e => e.RowVersion).IsRowVersion();
+        modelBuilder.Entity<StockCountSession>().Property(e => e.RowVersion).IsRowVersion();
+        modelBuilder.Entity<StockIn>().Property(e => e.RowVersion).IsRowVersion();
+        modelBuilder.Entity<StockInLine>().Property(e => e.RowVersion).IsRowVersion();
+        modelBuilder.Entity<StockOut>().Property(e => e.RowVersion).IsRowVersion();
+        modelBuilder.Entity<StockOutLine>().Property(e => e.RowVersion).IsRowVersion();
+        modelBuilder.Entity<StockTransfer>().Property(e => e.RowVersion).IsRowVersion();
+        modelBuilder.Entity<StockTransferLine>().Property(e => e.RowVersion).IsRowVersion();
+        modelBuilder.Entity<Supplier>().Property(e => e.RowVersion).IsRowVersion();
+        modelBuilder.Entity<Unit>().Property(e => e.RowVersion).IsRowVersion();
+        modelBuilder.Entity<Warehouse>().Property(e => e.RowVersion).IsRowVersion();
+        modelBuilder.Entity<WarrantyClaim>().Property(e => e.RowVersion).IsRowVersion();
+        modelBuilder.Entity<WarrantyCoverage>().Property(e => e.RowVersion).IsRowVersion();
+        modelBuilder.Entity<WareProClientSession>().Property(e => e.RowVersion).IsRowVersion();
+
+        if (isSqlite)
+        {
+            foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+            {
+                if (entityType.FindProperty("RowVersion") is not null)
+                {
+                    var rowVersion = modelBuilder.Entity(entityType.ClrType)
+                        .Property<byte[]>("RowVersion")
+                        .HasDefaultValueSql("randomblob(8)");
+                    rowVersion.Metadata.SetBeforeSaveBehavior(PropertySaveBehavior.Save);
+                    rowVersion.Metadata.SetAfterSaveBehavior(PropertySaveBehavior.Save);
+                }
+            }
+        }
 
         OnModelCreatingPartial(modelBuilder);
     }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -18,6 +19,7 @@ namespace QuanLyHangHoa.ViewModels
         private readonly ReferenceDataService _refDataService;
         private readonly AppUser _currentUser;
         private string? _beforeJson;
+        private readonly byte[]? _expectedRowVersion;
 
         [ObservableProperty] private Product _product;
         [ObservableProperty] private string _title;
@@ -47,11 +49,13 @@ namespace QuanLyHangHoa.ViewModels
                     DefaultUnitId = Units.FirstOrDefault()?.Id ?? 0
                 };
                 _beforeJson = null;
+                _expectedRowVersion = null;
             }
             else
             {
                 Title = "CHỈNH SỬA SẢN PHẨM";
                 _beforeJson = Serialize(product);
+                _expectedRowVersion = product.RowVersion.ToArray();
 
                 // clone giữ cửa sổ chỉnh sửa độc lập; Cancel không làm đổi row đang bind
                 // Clone for editing
@@ -74,7 +78,7 @@ namespace QuanLyHangHoa.ViewModels
 
         [RelayCommand]
         // form kiểm tra mã/tên; service xử lý insert/update, audit và transaction theo actor hiện tại
-        private void Confirm(Window window)
+        private async Task Confirm(Window window)
         {
             if (string.IsNullOrWhiteSpace(Product.ProductCode) || string.IsNullOrWhiteSpace(Product.DisplayName))
             {
@@ -86,12 +90,17 @@ namespace QuanLyHangHoa.ViewModels
             {
                 if (Product.Id == 0)
                 {
-                    _service.AddProduct(Product, _currentUser.Id);
+                    await _service.AddProductAsync(Product, _currentUser.Id, Guid.NewGuid());
                 }
                 else
                 {
-                    _service.UpdateProduct(Product, _currentUser.Id);
+                    await _service.UpdateProductAsync(Product.Id, Product, _expectedRowVersion!, _currentUser.Id, Guid.NewGuid());
                 }
+                window.DialogResult = true;
+                window.Close();
+            }
+            catch (DatabaseWriteConflictException)
+            {
                 window.DialogResult = true;
                 window.Close();
             }

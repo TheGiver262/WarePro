@@ -129,7 +129,7 @@ public class WarrantyClaimServiceTests
         var service = new WarrantyClaimService(() => CreateContext(connection));
 
         Assert.NotNull(service.GetCoverageBySerial("WARRANTY-001"));
-        var claimId = service.CreateClaim("WC-0001", "WARRANTY-001", "Screen flicker", userId: 4);
+        var claimId = service.CreateClaim("WC-0001", "WARRANTY-001", "Screen flicker", userId: 1);
 
         using var assertContext = CreateContext(connection);
         var claim = Assert.Single(assertContext.WarrantyClaims);
@@ -138,7 +138,7 @@ public class WarrantyClaimServiceTests
         Assert.Equal("Open", claim.Status);
         Assert.Equal("Screen flicker", claim.ProblemDescription);
         Assert.Equal(serialId, claim.ProductSerialId);
-        Assert.Equal(4, claim.ProcessedBy);
+        Assert.Equal(1, claim.ProcessedBy);
     }
 
     [Fact]
@@ -187,7 +187,7 @@ public class WarrantyClaimServiceTests
                 "WC-FUTURE",
                 "WARRANTY-FUTURE",
                 "Not started",
-                userId: 4));
+                userId: 1));
 
         using var assertContext = CreateContext(connection);
         Assert.Empty(assertContext.WarrantyClaims);
@@ -244,7 +244,7 @@ public class WarrantyClaimServiceTests
         var service = new WarrantyClaimService(() => CreateContext(connection));
 
         // Should allow creating another claim instead of throwing exception
-        var claimId2 = service.CreateClaim("WC-0002", "WARRANTY-002", "Battery issue", userId: 4);
+        var claimId2 = service.CreateClaim("WC-0002", "WARRANTY-002", "Battery issue", userId: 1);
 
         using var assertContext = CreateContext(connection);
         var claims = assertContext.WarrantyClaims.ToList();
@@ -254,7 +254,7 @@ public class WarrantyClaimServiceTests
     }
 
     [Fact]
-    public void CreateClaim_wraps_database_constraint_errors()
+    public void CreateClaim_rejects_duplicate_code_before_write()
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
@@ -268,10 +268,12 @@ public class WarrantyClaimServiceTests
         var service = new WarrantyClaimService(() => CreateContext(connection));
 
         var exception = Assert.Throws<InvalidOperationException>(
-            () => service.CreateClaim("WC-DUP", "WARRANTY-DUP-CODE", "Duplicate code", userId: 4));
+            () => service.CreateClaim("WC-DUP", "WARRANTY-DUP-CODE", "Duplicate code", userId: 1));
 
-        Assert.Contains("Không thể tạo phiếu bảo hành", exception.Message);
-        Assert.IsType<DbUpdateException>(exception.InnerException);
+        Assert.Contains("đã tồn tại", exception.Message);
+        Assert.Null(exception.InnerException);
+        using var assertion = CreateContext(connection);
+        Assert.Single(assertion.WarrantyClaims);
     }
 
     [Fact]
@@ -347,7 +349,7 @@ public class WarrantyClaimServiceTests
             Assert.Equal("InWarrantyProcess", serial.CurrentStatus);
 
             var claim2 = assertContext.WarrantyClaims.First();
-            var service2 = new WarrantyClaimService(() => assertContext);
+            var service2 = new WarrantyClaimService(() => CreateContext(connection));
             service2.DeleteClaim(claim2.Id);
         }
 
@@ -357,6 +359,56 @@ public class WarrantyClaimServiceTests
             Assert.NotNull(serial);
             Assert.Equal("Sold", serial.CurrentStatus);
         }
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task ReplaceSerialAsync_rolls_back_claim_serial_stockout_and_audit_on_late_failure()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        var claimId = SeedReplacementClaim(connection, "Ready", twoReplacementSerials: false);
+
+        ReplacementSnapshot before;
+        byte[] rowVersion;
+        int auditCount;
+        using (var snapshotContext = CreateContext(connection))
+        {
+            before = ReadReplacementSnapshot(snapshotContext, claimId);
+            rowVersion = snapshotContext.WarrantyClaims
+                .Single(item => item.Id == claimId)
+                .RowVersion
+                .ToArray();
+            auditCount = snapshotContext.AuditLogs.Count();
+        }
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = """
+                CREATE TRIGGER FailWarrantyClaimClose
+                BEFORE UPDATE OF Status ON WarrantyClaim
+                WHEN NEW.Status = 'Closed'
+                BEGIN
+                    SELECT RAISE(ABORT, 'forced late warranty failure');
+                END;
+                """;
+            command.ExecuteNonQuery();
+        }
+
+        var service = new WarrantyClaimService(() => CreateContext(connection));
+
+        await Assert.ThrowsAsync<DbUpdateException>(() =>
+            service.ReplaceSerialAsync(
+                claimId,
+                "REPLACEMENT-1",
+                "late failure",
+                rowVersion,
+                userId: 4,
+                Guid.NewGuid()));
+
+        using var assertion = CreateContext(connection);
+        Assert.Equal(before, ReadReplacementSnapshot(assertion, claimId));
+        Assert.Equal(auditCount, assertion.AuditLogs.Count());
+        Assert.Equal("Ready", assertion.WarrantyClaims.Single(item => item.Id == claimId).Status);
     }
 
     private static AppDbContext CreateContext(SqliteConnection connection)

@@ -297,7 +297,7 @@ namespace QuanLyHangHoa.ViewModels
 
         [RelayCommand(CanExecute = nameof(CanManage))]
         // lấy dependency để giải thích deactivate/xóa cứng; service kiểm tra lại và audit khi commit
-        private void DeleteProduct(Product? product)
+        private async Task DeleteProduct(Product? product)
         {
             if (product == null) return;
 
@@ -321,7 +321,12 @@ namespace QuanLyHangHoa.ViewModels
             {
                 try
                 {
-                    _service.DeleteProduct(product.Id, _currentUser.Id);
+                    await _service.DeleteProductAsync(product.Id, product.RowVersion, _currentUser.Id, Guid.NewGuid());
+                    LoadCounts();
+                    LoadData();
+                }
+                catch (DatabaseWriteConflictException)
+                {
                     LoadCounts();
                     LoadData();
                 }

@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Inventory;
@@ -11,13 +13,18 @@ namespace QuanLyHangHoa.Services
     public class ProductService
     {
         private readonly Func<AppDbContext> _contextFactory;
+        private readonly DatabaseWriteExecutor? _writeExecutor;
 
         public ProductService(Func<AppDbContext> contextFactory)
         {
             _contextFactory = contextFactory;
+            _writeExecutor = contextFactory is null ? null : new DatabaseWriteExecutor(contextFactory);
         }
 
         // Include nạp đủ dữ liệu hiển thị và số dư trong một lần; AsNoTracking vì kết quả không sửa trực tiếp
+        private DatabaseWriteExecutor WriteExecutor =>
+            _writeExecutor ?? throw new InvalidOperationException("A database context factory is required for mutations.");
+
         public virtual List<Product> GetAllProducts(bool onlyActive = false)
         {
             using var db = _contextFactory();
@@ -148,60 +155,132 @@ namespace QuanLyHangHoa.Services
         }
 
         // cần SaveChanges lần đầu để lấy Product.Id rồi mới tạo audit tham chiếu đúng id
-        public virtual void AddProduct(Product p, int userId)
+        public virtual Task<int> AddProductAsync(
+            Product product, int userId, Guid operationId,
+            CancellationToken cancellationToken = default)
         {
-            using var db = _contextFactory();
-            using var transaction = db.Database.BeginTransaction();
-            db.Products.Add(p);
-            db.SaveChanges();
+            var code = product.ProductCode.Trim();
+            var name = product.DisplayName.Trim();
+            var description = product.Description?.Trim();
+            var costPrice = product.CostPrice;
+            var categoryId = product.CategoryId;
+            var brandId = product.BrandId;
+            var defaultUnitId = product.DefaultUnitId;
+            var defaultPrice = product.DefaultPrice;
+            var country = product.OriginCountry?.Trim();
+            var warrantyMonths = product.WarrantyPeriodMonths;
+            var serialTracked = product.IsSerialTracked;
+            var isActive = product.IsActive;
 
-            AddAudit(db, "Product", p.Id, "CREATE", userId, null, new { p.ProductCode, p.DisplayName, p.IsActive });
-            db.SaveChanges();
-            transaction.Commit();
+            return WriteExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("product.add", operationId),
+                async (db, token) =>
+                {
+                    AuthorizationService.RequireFreshActor(db, userId, PermissionAction.ManageMasterData);
+                    if (await db.Products.AnyAsync(item => item.ProductCode == code, token))
+                    {
+                        throw new InvalidOperationException($"Product code '{code}' already exists.");
+                    }
+
+                    var created = new Product
+                    {
+                        ProductCode = code,
+                        DisplayName = name,
+                        Description = description,
+                        CostPrice = costPrice,
+                        CategoryId = categoryId,
+                        BrandId = brandId,
+                        DefaultUnitId = defaultUnitId,
+                        DefaultPrice = defaultPrice,
+                        OriginCountry = country,
+                        WarrantyPeriodMonths = warrantyMonths,
+                        IsSerialTracked = serialTracked,
+                        IsActive = isActive
+                    };
+                    db.Products.Add(created);
+                    await db.SaveChangesAsync(token);
+                    AddAudit(db, "Product", created.Id, "CREATE", userId, null,
+                        new { created.ProductCode, created.DisplayName, created.IsActive });
+                    return created.Id;
+                },
+                (db, token) => db.Products.AnyAsync(item =>
+                    item.ProductCode == code && item.DisplayName == name &&
+                    item.CategoryId == categoryId && item.BrandId == brandId &&
+                    item.DefaultUnitId == defaultUnitId && item.DefaultPrice == defaultPrice &&
+                    item.IsActive == isActive, token),
+                cancellationToken: cancellationToken);
         }
-
-        // tải entity đang được EF theo dõi rồi chép từng trường cho phép, tránh ghi đè navigation hoặc dữ liệu ngoài form
-        public virtual void UpdateProduct(Product updated, int userId)
+        public virtual Task UpdateProductAsync(
+            int id, Product updated, byte[] expectedRowVersion, int userId,
+            Guid operationId, CancellationToken cancellationToken = default)
         {
-            using var db = _contextFactory();
-            var p = db.Products.Find(updated.Id);
-            if (p == null) return;
-            using var transaction = db.Database.BeginTransaction();
-            
-            var oldState = new { p.ProductCode, p.DisplayName, p.IsActive };
+            ArgumentNullException.ThrowIfNull(expectedRowVersion);
+            var rowVersion = expectedRowVersion.ToArray();
+            var code = updated.ProductCode.Trim();
+            var name = updated.DisplayName.Trim();
+            var categoryId = updated.CategoryId;
+            var brandId = updated.BrandId;
+            var unitId = updated.DefaultUnitId;
+            var price = updated.DefaultPrice;
+            var country = updated.OriginCountry?.Trim();
+            var warranty = updated.WarrantyPeriodMonths;
+            var serialTracked = updated.IsSerialTracked;
+            var isActive = updated.IsActive;
 
-            p.ProductCode = updated.ProductCode;
-            p.DisplayName = updated.DisplayName;
-            p.CategoryId = updated.CategoryId;
-            p.BrandId = updated.BrandId;
-            p.DefaultUnitId = updated.DefaultUnitId;
-            p.DefaultPrice = updated.DefaultPrice;
-            p.OriginCountry = updated.OriginCountry;
-            p.WarrantyPeriodMonths = updated.WarrantyPeriodMonths;
-            p.IsSerialTracked = updated.IsSerialTracked;
-            p.IsActive = updated.IsActive;
-
-            db.SaveChanges();
-
-            AddAudit(db, "Product", p.Id, "UPDATE", userId, oldState, new { p.ProductCode, p.DisplayName, p.IsActive });
-            db.SaveChanges();
-            transaction.Commit();
+            return WriteExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("product.update", operationId),
+                async (db, token) =>
+                {
+                    AuthorizationService.RequireFreshActor(db, userId, PermissionAction.ManageMasterData);
+                    var entity = await db.Products.SingleOrDefaultAsync(item => item.Id == id, token);
+                    if (entity is null) return;
+                    db.Entry(entity).Property(item => item.RowVersion).OriginalValue = rowVersion;
+                    var before = new { entity.ProductCode, entity.DisplayName, entity.IsActive };
+                    entity.ProductCode = code;
+                    entity.DisplayName = name;
+                    entity.CategoryId = categoryId;
+                    entity.BrandId = brandId;
+                    entity.DefaultUnitId = unitId;
+                    entity.DefaultPrice = price;
+                    entity.OriginCountry = country;
+                    entity.WarrantyPeriodMonths = warranty;
+                    entity.IsSerialTracked = serialTracked;
+                    entity.IsActive = isActive;
+                    AddAudit(db, "Product", id, "UPDATE", userId, before,
+                        new { entity.ProductCode, entity.DisplayName, entity.IsActive });
+                },
+                (db, token) => db.Products.AnyAsync(item => item.Id == id &&
+                    item.ProductCode == code && item.DisplayName == name &&
+                    item.CategoryId == categoryId && item.BrandId == brandId &&
+                    item.DefaultUnitId == unitId && item.DefaultPrice == price &&
+                    item.OriginCountry == country && item.WarrantyPeriodMonths == warranty &&
+                    item.IsSerialTracked == serialTracked && item.IsActive == isActive &&
+                    item.RowVersion != rowVersion, token),
+                cancellationToken: cancellationToken);
         }
-
-        public virtual void DeactivateProduct(int id, int userId)
+        public virtual Task DeactivateProductAsync(
+            int id, byte[] expectedRowVersion, int userId, Guid operationId,
+            CancellationToken cancellationToken = default)
         {
-            using var db = _contextFactory();
-            var p = db.Products.Find(id);
-            if (p == null) return;
-            using var transaction = db.Database.BeginTransaction();
-            p.IsActive = false;
-            db.SaveChanges();
+            ArgumentNullException.ThrowIfNull(expectedRowVersion);
+            var rowVersion = expectedRowVersion.ToArray();
 
-            AddAudit(db, "Product", id, "DEACTIVATE", userId, new { Status = "Active" }, new { Status = "Inactive" });
-            db.SaveChanges();
-            transaction.Commit();
+            return WriteExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("product.deactivate", operationId),
+                async (db, token) =>
+                {
+                    AuthorizationService.RequireFreshActor(db, userId, PermissionAction.ManageMasterData);
+                    var entity = await db.Products.SingleOrDefaultAsync(item => item.Id == id, token);
+                    if (entity is null) return;
+                    db.Entry(entity).Property(item => item.RowVersion).OriginalValue = rowVersion;
+                    entity.IsActive = false;
+                    AddAudit(db, "Product", id, "DEACTIVATE", userId,
+                        new { Status = "Active" }, new { Status = "Inactive" });
+                },
+                (db, token) => db.Products.AnyAsync(item =>
+                    item.Id == id && !item.IsActive && item.RowVersion != rowVersion, token),
+                cancellationToken: cancellationToken);
         }
-
         public virtual bool HasTransactionHistory(int id)
         {
             return GetDependencies(id).Any(dependency => dependency.Count > 0);
@@ -234,35 +313,51 @@ namespace QuanLyHangHoa.Services
             };
         }
 
-        public virtual void DeleteProduct(int id, int userId)
+        public virtual Task DeleteProductAsync(
+            int id, byte[] expectedRowVersion, int userId, Guid operationId,
+            CancellationToken cancellationToken = default)
         {
-            using var db = _contextFactory();
-            var p = db.Products.Find(id);
-            if (p == null) return;
-            using var transaction = db.Database.BeginTransaction();
+            ArgumentNullException.ThrowIfNull(expectedRowVersion);
+            var rowVersion = expectedRowVersion.ToArray();
 
-            var oldState = new { p.ProductCode, p.DisplayName };
-            // sản phẩm có lịch sử chỉ chuyển inactive; sản phẩm chưa từng dùng mới được xóa khỏi database
-            var hasDependencies = GetDependencies(db, id).Any(dependency => dependency.Count > 0);
-
-            if (hasDependencies)
-            {
-                p.IsActive = false;
-                db.SaveChanges();
-                AddAudit(db, "Product", id, "DEACTIVATE", userId, oldState, new { p.ProductCode, p.DisplayName, p.IsActive });
-            }
-            else
-            {
-                db.Products.Remove(p);
-                db.SaveChanges();
-                AddAudit(db, "Product", id, "DELETE", userId, oldState, null);
-            }
-
-            db.SaveChanges();
-            transaction.Commit();
+            return WriteExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("product.delete", operationId),
+                async (db, token) =>
+                {
+                    AuthorizationService.RequireFreshActor(db, userId, PermissionAction.ManageMasterData);
+                    var entity = await db.Products.SingleOrDefaultAsync(item => item.Id == id, token);
+                    if (entity is null) return;
+                    db.Entry(entity).Property(item => item.RowVersion).OriginalValue = rowVersion;
+                    var before = new { entity.ProductCode, entity.DisplayName };
+                    if (await HasDependenciesAsync(db, id, token))
+                    {
+                        entity.IsActive = false;
+                        AddAudit(db, "Product", id, "DEACTIVATE", userId, before,
+                            new { entity.ProductCode, entity.DisplayName, entity.IsActive });
+                    }
+                    else
+                    {
+                        db.Products.Remove(entity);
+                        AddAudit(db, "Product", id, "DELETE", userId, before, null);
+                    }
+                },
+                (db, token) => db.Products.AllAsync(item => item.Id != id || !item.IsActive, token),
+                cancellationToken: cancellationToken);
         }
 
-        // tồn đầu kỳ đi qua InventoryPostingService để số dư, ledger và trạng thái serial được cập nhật cùng quy tắc nhập kho
+        private static async Task<bool> HasDependenciesAsync(
+            AppDbContext db, int productId, CancellationToken token) =>
+            await db.ProductUnits.AnyAsync(item => item.ProductId == productId, token) ||
+            await db.ProductSerials.AnyAsync(item => item.ProductId == productId, token) ||
+            await db.StockBalances.AnyAsync(item => item.ProductId == productId, token) ||
+            await db.StockTransferLines.AnyAsync(item => item.ProductId == productId, token) ||
+            await db.PurchaseInvoiceLines.AnyAsync(item => item.ProductId == productId, token) ||
+            await db.SalesInvoiceLines.AnyAsync(item => item.ProductId == productId, token) ||
+            await db.StockInLines.AnyAsync(item => item.ProductId == productId, token) ||
+            await db.StockOutLines.AnyAsync(item => item.ProductId == productId, token) ||
+            await db.StockAdjustmentLines.AnyAsync(item => item.ProductId == productId, token) ||
+            await db.StockCountLines.AnyAsync(item => item.ProductId == productId, token) ||
+            await db.StockLedgers.AnyAsync(item => item.ProductId == productId, token);
         public virtual void AddInitialStock(int productId, List<string> serialNumbers, int userId)
         {
             using var db = _contextFactory();

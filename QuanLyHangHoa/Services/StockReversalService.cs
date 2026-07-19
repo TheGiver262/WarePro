@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Inventory;
@@ -15,16 +17,42 @@ public sealed class StockReversalService
 {
     private const string ReversalType = "Reversal";
     private readonly Func<AppDbContext> _contextFactory;
+    private readonly DatabaseWriteExecutor _writeExecutor;
 
     public StockReversalService(Func<AppDbContext> contextFactory)
     {
         _contextFactory = contextFactory ?? throw new ArgumentNullException(nameof(contextFactory));
+        _writeExecutor = new DatabaseWriteExecutor(_contextFactory);
     }
 
-    // transaction giữ kiểm tra idempotency, balance, serial, chứng từ bù và trạng thái nguồn thành một đơn vị.
-    public int ReverseDocument(string sourceType, int sourceId, int userId)
+    public Task<int> ReverseDocumentAsync(
+        string sourceType, int sourceId, int userId, Guid operationId,
+        CancellationToken cancellationToken = default)
     {
         var normalizedSourceType = NormalizeSourceType(sourceType);
+        return _writeExecutor.ExecuteAsync(
+            new DatabaseWriteRequest("stock-reversal.reverse", operationId),
+            (db, token) => StageReverseDocumentAsync(
+                db, normalizedSourceType, sourceId, userId, token),
+            (db, token) => db.StockAdjustments.AnyAsync(adjustment =>
+                adjustment.AdjustmentType == ReversalType &&
+                adjustment.ReferenceDocumentType == normalizedSourceType &&
+                adjustment.ReferenceDocumentId == sourceId,
+                token),
+            entityKey: $"{normalizedSourceType}:{sourceId}",
+            cancellationToken: cancellationToken);
+    }
+
+    internal int ReverseDocument(string sourceType, int sourceId, int userId) =>
+        ReverseDocumentAsync(sourceType, sourceId, userId, Guid.NewGuid()).GetAwaiter().GetResult();
+
+    private static async Task<int> StageReverseDocumentAsync(
+        AppDbContext db,
+        string normalizedSourceType,
+        int sourceId,
+        int userId,
+        CancellationToken cancellationToken)
+    {
         if (sourceId <= 0)
         {
             throw new InventoryDomainException("Mã chứng từ kho không hợp lệ.");
@@ -35,13 +63,9 @@ public sealed class StockReversalService
             throw new InventoryDomainException("Người thực hiện đảo chứng từ không hợp lệ.");
         }
 
-        using var db = _contextFactory();
-        using var transaction = db.Database.BeginTransaction();
         AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockAdjustment);
 
-        try
-        {
-            // kiểm tra trước kết hợp unique filtered index trong database để chặn reversal lặp do cạnh tranh.
+        // kiểm tra trước kết hợp unique filtered index trong database để chặn reversal lặp do cạnh tranh.
             if (db.StockAdjustments.Any(adjustment =>
                     adjustment.AdjustmentType == ReversalType &&
                     adjustment.ReferenceDocumentType == normalizedSourceType &&
@@ -87,7 +111,7 @@ public sealed class StockReversalService
             };
 
             db.StockAdjustments.Add(reversal);
-            db.SaveChanges();
+            await db.SaveChangesAsync(cancellationToken);
 
             // mỗi entry nguồn sinh một entry ngược chiều, cùng quantity và vị trí để audit có thể đối chiếu 1-1.
             foreach (var entry in entries)
@@ -118,20 +142,11 @@ public sealed class StockReversalService
                 PerformedAt = now
             });
 
-            db.SaveChanges();
-            transaction.Commit();
             return reversal.Id;
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            throw new InventoryDomainException("Tồn kho vừa thay đổi. Vui lòng tải lại và thử lại.");
-        }
     }
 
-    public int ReversePostedLedgerDocument(string sourceType, int sourceId, int userId)
-    {
-        return ReverseDocument(sourceType, sourceId, userId);
-    }
+    internal int ReversePostedLedgerDocument(string sourceType, int sourceId, int userId) =>
+        ReverseDocument(sourceType, sourceId, userId);
 
     private static string NormalizeSourceType(string sourceType)
     {

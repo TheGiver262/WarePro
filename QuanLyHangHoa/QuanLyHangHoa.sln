@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WarePro.SetupHelper", "..\W
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WarePro.Core", "..\WarePro.Core\WarePro.Core.csproj", "{24E994A7-9483-4218-8C72-0E7A90E7984D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WarePro.SqlServer.Tests", "..\WarePro.SqlServer.Tests\WarePro.SqlServer.Tests.csproj", "{AA35B3CB-DAF5-40C8-94FF-0E376D16CF4D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -69,6 +71,18 @@ Global
 		{24E994A7-9483-4218-8C72-0E7A90E7984D}.Release|x64.Build.0 = Release|Any CPU
 		{24E994A7-9483-4218-8C72-0E7A90E7984D}.Release|x86.ActiveCfg = Release|Any CPU
 		{24E994A7-9483-4218-8C72-0E7A90E7984D}.Release|x86.Build.0 = Release|Any CPU
+		{AA35B3CB-DAF5-40C8-94FF-0E376D16CF4D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AA35B3CB-DAF5-40C8-94FF-0E376D16CF4D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AA35B3CB-DAF5-40C8-94FF-0E376D16CF4D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{AA35B3CB-DAF5-40C8-94FF-0E376D16CF4D}.Debug|x64.Build.0 = Debug|Any CPU
+		{AA35B3CB-DAF5-40C8-94FF-0E376D16CF4D}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{AA35B3CB-DAF5-40C8-94FF-0E376D16CF4D}.Debug|x86.Build.0 = Debug|Any CPU
+		{AA35B3CB-DAF5-40C8-94FF-0E376D16CF4D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AA35B3CB-DAF5-40C8-94FF-0E376D16CF4D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AA35B3CB-DAF5-40C8-94FF-0E376D16CF4D}.Release|x64.ActiveCfg = Release|Any CPU
+		{AA35B3CB-DAF5-40C8-94FF-0E376D16CF4D}.Release|x64.Build.0 = Release|Any CPU
+		{AA35B3CB-DAF5-40C8-94FF-0E376D16CF4D}.Release|x86.ActiveCfg = Release|Any CPU
+		{AA35B3CB-DAF5-40C8-94FF-0E376D16CF4D}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
