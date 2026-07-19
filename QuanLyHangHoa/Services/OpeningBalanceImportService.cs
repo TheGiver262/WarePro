@@ -81,6 +81,7 @@ public sealed class OpeningBalanceImportService
         ArgumentNullException.ThrowIfNull(rows);
         cancellationToken.ThrowIfCancellationRequested();
 
+        // clone thành snapshot scalar vì executor có thể gọi lại callback; không đọc lại enumerable hoặc object do bên gọi còn giữ.
         var sourceRows = rows.Select(CloneRow).ToArray();
         var shapeResult = new ImportResult<OpeningBalanceImportRow>();
         var preparedRows = PrepareScalarRows(sourceRows, shapeResult);
@@ -92,6 +93,7 @@ public sealed class OpeningBalanceImportService
         var payloadMarker = CreatePayloadMarker(preparedRows);
         var documentCode = $"SI-OB-{operationId:N}";
         var postedAt = DateTime.UtcNow;
+        // ảnh chụp này dùng để phân biệt lần ghi đã commit nhưng client mất kết nối với một lần ghi chưa hoàn tất.
         var expectedCommittedRows = preparedRows
             .Select(row => (
                 row.ProductId,
@@ -132,6 +134,7 @@ public sealed class OpeningBalanceImportService
                         return Success(sourceRows, committedRowCount);
                     }
 
+                    // quy tắc phụ thuộc database phải kiểm tra lại trong từng attempt vì sản phẩm, đơn vị hoặc serial có thể vừa đổi.
                     var validationResult = new ImportResult<OpeningBalanceImportRow>();
                     var validatedRows = await ValidateDatabaseRulesAsync(
                         db,
@@ -172,6 +175,7 @@ public sealed class OpeningBalanceImportService
                     };
                     db.StockIns.Add(stockIn);
 
+                    // giữ cặp dữ liệu đã kiểm tra và entity để sau flush có đúng line id khi nối lịch sử serial.
                     var persistedLines = new List<(ValidatedOpeningBalanceRow Prepared, StockInLine Line)>();
                     foreach (var prepared in validatedRows.OrderBy(row => row.ProductId))
                     {
@@ -192,6 +196,7 @@ public sealed class OpeningBalanceImportService
                     }
 
                     await db.SaveChangesAsync(token);
+                    // flush để lấy stockIn.Id cho posting và line.Id cho liên kết lịch sử serial.
                     var warehouseProvider = new FixedWarehouseProvider(warehouseId);
                     var postingService = new InventoryPostingService(
                         new EfInventoryUnitOfWork(db),
@@ -201,6 +206,7 @@ public sealed class OpeningBalanceImportService
                     foreach (var item in persistedLines)
                     {
                         token.ThrowIfCancellationRequested();
+                        // sổ kho và số dư chỉ đi qua posting service; import không tự cộng tồn để tránh hai nguồn sự thật.
                         postingService.PostStockIn(new PostStockInCommand(
                             stockIn.Id,
                             warehouseId,
@@ -225,6 +231,7 @@ public sealed class OpeningBalanceImportService
 
                     return Success(sourceRows, sourceRows.Length);
                 },
+                // verifier đọc trạng thái tự nhiên của phiếu, dòng và marker thay vì tin riêng operation id.
                 (db, token) => VerifyCommittedRowsAsync(
                     db,
                     documentCode,

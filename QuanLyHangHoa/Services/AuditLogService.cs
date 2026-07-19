@@ -120,6 +120,7 @@ public sealed class AuditLogService
         cancellationToken.ThrowIfCancellationRequested();
 
         var finalPath = Path.GetFullPath(filePath);
+        // file tạm gắn với operation id để lần gọi lại tìm đúng file phục hồi nếu manifest đã commit; file chưa được công bố trước lúc đó
         var recoveryPath = BuildRecoveryPath(finalPath, operationId);
         var existing = await FindManifestAsync(operationId, cancellationToken);
         if (existing is not null)
@@ -129,6 +130,7 @@ public sealed class AuditLogService
             return existing;
         }
 
+        // sắp xếp ổn định theo thời gian rồi id để lần đọc trong transaction có thể phát hiện tập log trong khoảng đã thay đổi
         IReadOnlyList<AuditLog> snapshot;
         await using (var readContext = _contextFactory())
         {
@@ -151,6 +153,7 @@ public sealed class AuditLogService
             ?? throw new InvalidOperationException("Archive directory is invalid.");
         Directory.CreateDirectory(directory);
         File.Delete(recoveryPath);
+        // xuất file nằm ngoài transaction vì thao tác đĩa có thể lâu; transaction phía dưới sẽ kiểm tra lại snapshot trước khi ghi manifest
         export(snapshot, recoveryPath);
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -186,6 +189,7 @@ public sealed class AuditLogService
                         return replay;
                     }
 
+                    // đọc lại trong mức Serializable để manifest chỉ mô tả đúng tập log đã được ghi vào file tạm
                     var currentLogs = await db.AuditLogs
                         .Where(log => log.PerformedAt >= start && log.PerformedAt <= end)
                         .OrderBy(log => log.PerformedAt)
@@ -219,6 +223,7 @@ public sealed class AuditLogService
         }
         catch
         {
+            // lỗi sau commit có thể làm client tưởng thất bại; chỉ xóa file phục hồi khi DB xác nhận chưa có manifest
             if (!await ManifestExistsAsync(operationId))
             {
                 File.Delete(recoveryPath);

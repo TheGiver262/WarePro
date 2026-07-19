@@ -702,6 +702,7 @@ internal sealed class DatabaseUpgradeException : Exception
 
 internal static class MaintenanceCommandTimeouts
 {
+    // tách timeout theo loại việc để catalog báo lỗi sớm nhưng backup/restore vẫn đủ thời gian trên database lớn.
     private const int DefaultCatalogSeconds = 60;
     private const int DefaultMigrationSeconds = 300;
     private const int DefaultBackupSeconds = 600;
@@ -738,6 +739,7 @@ internal static class DatabaseUpgradeRunner
         CancellationToken cancellationToken)
     {
         ValidateRelease(appVersion, expectedSchema);
+        // đọc secret để tạo hash; finally luôn thử xóa file nguồn, lỗi xóa không che lỗi chính.
         string? bootstrapHash = null;
         if (!string.IsNullOrWhiteSpace(bootstrapSecretFile))
         {
@@ -755,6 +757,7 @@ internal static class DatabaseUpgradeRunner
             }
         }
 
+        // Prepared đúng release thì chạy lại thành công; mọi Preparing còn dở và Prepared của release khác phải rollback.
         var existingCutover = await ResolveExistingCutoverAsync(connectionString, cancellationToken);
         if (existingCutover is { Status: "Prepared" }
             && existingCutover.PreparedByVersion == appVersion.ToString(3)
@@ -766,6 +769,7 @@ internal static class DatabaseUpgradeRunner
         string? backupPath = null;
         var installerCreatedDatabase = false;
         var accessRestricted = false;
+        // backupPath và hai cờ chọn nhánh recovery theo thứ tự: restore backup, xóa database mới tạo, rồi mở lại quyền truy cập.
         try
         {
             var opened = await OpenConnectionWithCreationAsync(connectionString, cancellationToken);
@@ -794,6 +798,7 @@ internal static class DatabaseUpgradeRunner
             if (!installerCreatedDatabase)
                 backupPath = await CreateAndVerifyBackupAsync(connection, cancellationToken);
 
+            // ghi Preparing trước khi đổi RCSI và chạy DDL migration nghiệp vụ.
             await SaveCutoverStateAsync(
                 connection, backupPath, appVersion, expectedSchema, "Preparing",
                 installerCreatedDatabase, cancellationToken);
@@ -876,6 +881,7 @@ internal static class DatabaseUpgradeRunner
                 throw new DatabaseUpgradeException(SetupExitCode.ActiveClients, "Active clients are still connected.");
             await ValidateAsync(connection, expectedSchema, cancellationToken);
 
+            // finalize chỉ nhận đúng journal Prepared của release này; schema đúng nhưng journal khác vẫn bị từ chối.
             var ready = Convert.ToInt32(await ExecuteScalarAsync(
                 connection,
                 """
@@ -977,6 +983,8 @@ internal static class DatabaseUpgradeRunner
         SqlConnection connection,
         CancellationToken cancellationToken)
     {
+        // identity chính thức hoặc journal của database installer vừa tạo được nhận ngay; database cũ phải khớp dấu hiệu riêng.
+        // mọi database chỉ giống một phần được xếp Unrelated để tránh chạy DDL nhầm dữ liệu của hệ thống khác.
         var value = Convert.ToInt32(await ExecuteScalarAsync(connection, """
             DECLARE @UserTableCount int =
             (
@@ -1051,6 +1059,8 @@ internal static class DatabaseUpgradeRunner
 
     private static async Task AcquireMaintenanceLockAsync(SqlConnection connection, CancellationToken cancellationToken)
     {
+        // applock theo database chặn hai bộ cài cùng bảo trì một catalog.
+        // LockTimeout = 0 trả lỗi ngay để Inno Setup không treo chờ một phiên cài khác.
         await using var command = new SqlCommand("""
             DECLARE @result INT;
             EXEC @result = sys.sp_getapplock
@@ -1097,6 +1107,7 @@ internal static class DatabaseUpgradeRunner
             if (string.IsNullOrWhiteSpace(directory))
                 throw new InvalidOperationException("SQL Server backup directory is unavailable.");
 
+            // timestamp giúp tra cứu; guid ngăn hai lần prepare cùng mili giây ghi đè cùng file.
             path = Path.Combine(directory, $"WarePro-{connection.Database}-{DateTime.UtcNow:yyyyMMddHHmmssfff}-{Guid.NewGuid():N}.bak");
             var database = connection.Database.Replace("]", "]]", StringComparison.Ordinal);
             await ExecuteAsync(connection, $"BACKUP DATABASE [{database}] TO DISK = @path WITH CHECKSUM, INIT;", cancellationToken, MaintenanceCommandTimeouts.BackupSeconds, ("@path", path));
@@ -1109,6 +1120,7 @@ internal static class DatabaseUpgradeRunner
         }
     }
 
+    // journal là nguồn phục hồi qua lần chạy mới; cùng release ở trạng thái Preparing/Prepared mới giữ lại backup và cờ database đã tạo.
     private static Task SaveCutoverStateAsync(
         SqlConnection connection,
         string? backupPath,
@@ -1246,6 +1258,8 @@ internal static class DatabaseUpgradeRunner
         bool installerCreatedDatabase,
         bool accessRestricted)
     {
+        // recovery bỏ cancellation của lệnh gốc để vẫn khôi phục sau khi người dùng hủy cài đặt.
+        // nếu recovery lỗi, giữ lỗi ban đầu; database có thể còn restricted hoặc single-user và cần phục hồi thủ công.
         try
         {
             if (!string.IsNullOrWhiteSpace(backupPath))

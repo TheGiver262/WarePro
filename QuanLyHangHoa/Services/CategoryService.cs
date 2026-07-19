@@ -43,6 +43,7 @@ namespace QuanLyHangHoa.Services
                 async (db, token) =>
                 {
                     AuthorizationService.RequireFreshActor(db, performedBy, PermissionAction.ManageMasterData);
+                    // kiểm tra trước để báo lỗi rõ; unique index vẫn là hàng rào cuối nếu hai máy cùng tạo một mã
                     if (await db.Categories.AnyAsync(item => item.CategoryCode == code, token))
                     {
                         throw new InvalidOperationException($"Category code '{code}' already exists.");
@@ -50,6 +51,7 @@ namespace QuanLyHangHoa.Services
 
                     var created = new Category { CategoryCode = code, DisplayName = name, IsActive = isActive };
                     db.Categories.Add(created);
+                    // flush lấy id do DB sinh trước khi tạo audit tham chiếu; executor vẫn commit cả hai cùng transaction
                     await db.SaveChangesAsync(token);
                     AddAudit(db, "CREATE", created.Id, null, Serialize(created), performedBy);
                     return created.Id;
@@ -69,6 +71,7 @@ namespace QuanLyHangHoa.Services
             CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(expectedRowVersion);
+            // copy token và scalar trước khi vào executor để mọi lần retry dùng cùng một yêu cầu
             var rowVersion = expectedRowVersion.ToArray();
             var code = updated.CategoryCode.Trim();
             var name = updated.DisplayName.Trim();

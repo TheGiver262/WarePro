@@ -175,6 +175,7 @@ namespace QuanLyHangHoa.ViewModels
         // tải claim và thống kê ở worker, sau đó thay collection một lần để giảm nhấp nháy UI
         public async Task LoadData()
         {
+            // chỉ lượt tải mới nhất được phép thay collection; đổi filter liên tiếp sẽ hủy truy vấn cũ.
             _loadCts?.Cancel();
             _loadCts?.Dispose();
             _loadCts = new CancellationTokenSource();
@@ -591,6 +592,7 @@ namespace QuanLyHangHoa.ViewModels
             ProblemDescription = string.Empty;
         }
 
+        // mỗi action có operation id riêng để executor nhận diện đúng một lần transition khi commit không chắc chắn.
         private async Task RunWarrantyActionAsync(
             Func<Guid, Task> action,
             string successMessage)
@@ -604,6 +606,7 @@ namespace QuanLyHangHoa.ViewModels
                 await LoadData();
                 IsDetailPanelOpen = false;
             }
+            // bỏ panel đang giữ snapshot cũ sau conflict; LoadData lấy lại rowversion mới trước thao tác tiếp theo.
             catch (DatabaseWriteConflictException)
             {
                 StatusMessage = "Phiếu bảo hành đã được thay đổi ở máy khác.";

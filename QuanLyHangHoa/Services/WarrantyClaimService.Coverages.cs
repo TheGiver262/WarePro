@@ -19,6 +19,7 @@ public partial class WarrantyClaimService
         Guid operationId,
         CancellationToken cancellationToken = default)
     {
+        // sao chép token trước callback retry; context mới vẫn so sánh đúng phiên bản người dùng đã đọc.
         EnsureValidCoverageDates(startDate, endDate);
         var rowVersion = expectedRowVersion.ToArray();
         var normalizedStatus = status.Trim();

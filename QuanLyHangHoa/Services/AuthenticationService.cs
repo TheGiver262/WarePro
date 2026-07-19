@@ -50,10 +50,12 @@ namespace QuanLyHangHoa.Services
             Guid operationId,
             CancellationToken cancellationToken = default)
         {
+            // chụp dữ liệu một lần để mọi lần retry và bước xác minh cùng nói về một lần đăng nhập
             var attemptedUsername = username;
             var attemptedPassword = password;
             var attemptedAt = DateTime.Now;
             var auditPayload = JsonSerializer.Serialize(new { attemptedUsername });
+            // callback ghi cập nhật biến này để bước xác minh biết cần tìm audit, lần thất bại hay lần đăng nhập thành công
             var writeKind = LoginWriteKind.None;
 
             return _writeExecutor.ExecuteAsync(
@@ -136,6 +138,7 @@ namespace QuanLyHangHoa.Services
                 cancellationToken: cancellationToken);
         }
 
+        // khi mất kết nối lúc commit, kiểm tra dấu vết tự nhiên thay vì ghi lại và tăng sai số lần đăng nhập hỏng
         private static Task<bool> VerifyLoginWriteAsync(
             AppDbContext db,
             string attemptedUsername,
@@ -182,6 +185,7 @@ namespace QuanLyHangHoa.Services
             }
 
             ArgumentNullException.ThrowIfNull(expectedRowVersion);
+            // giữ token gốc và hash mới cố định qua retry; mỗi lần thử phải đại diện cùng một yêu cầu đổi mật khẩu
             var rowVersion = expectedRowVersion.ToArray();
             var newHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
             var changedAt = DateTime.Now;

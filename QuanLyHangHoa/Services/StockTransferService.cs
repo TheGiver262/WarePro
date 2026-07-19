@@ -59,6 +59,7 @@ namespace QuanLyHangHoa.Services
             Guid operationId, CancellationToken cancellationToken = default)
         {
             var timestamp = DateTime.Now;
+            // snapshot tách dữ liệu UI khỏi lần retry; mỗi dbcontext mới sẽ dựng lại graph chuyển kho từ các giá trị này.
             var snapshot = new SaveDraftSnapshot(
                 stockTransfer.Id,
                 string.IsNullOrWhiteSpace(stockTransfer.DocumentCode) ? $"ST-{timestamp:yyyyMMddHHmmss}" : stockTransfer.DocumentCode,
@@ -98,6 +99,7 @@ namespace QuanLyHangHoa.Services
             CancellationToken cancellationToken)
         {
             AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockAdjustment);
+            // nạp lại serial bằng dbcontext hiện tại để không gắn entity đang được context cũ theo dõi vào lần retry.
             var freshLines = BuildStockTransfer(db, snapshot.Lines);
             StockTransfer? existing = null;
             if (snapshot.Id > 0)
@@ -112,6 +114,7 @@ namespace QuanLyHangHoa.Services
             {
                 new StockDocumentLifecycleService().EnsureCanEditDetails(ParseStatus(existing.Status));
                 var beforeJson = Serialize(existing);
+                // dùng rowversion đã đọc làm điều kiện cập nhật, tránh ghi đè draft vừa được client khác lưu.
                 db.Entry(existing).Property(item => item.RowVersion).OriginalValue = snapshot.RowVersion;
 
                 existing.FromWarehouseId = snapshot.FromWarehouseId;
@@ -139,6 +142,7 @@ namespace QuanLyHangHoa.Services
                 Lines = freshLines
             };
             db.StockTransfers.Add(freshStockTransfer);
+            // flush để có id chứng từ trước khi tạo bản audit tham chiếu đến chứng từ mới.
             await db.SaveChangesAsync(cancellationToken);
             AddAudit(db, "CREATE", freshStockTransfer.Id, null, Serialize(freshStockTransfer), userId);
             return freshStockTransfer.Id;

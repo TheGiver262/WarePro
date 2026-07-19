@@ -29,11 +29,13 @@ public sealed class StockReversalService
         string sourceType, int sourceId, int userId, Guid operationId,
         CancellationToken cancellationToken = default)
     {
+        // chuẩn hóa một lần để operation key, truy vấn ledger và unique marker dùng đúng cùng một loại nguồn.
         var normalizedSourceType = NormalizeSourceType(sourceType);
         return _writeExecutor.ExecuteAsync(
             new DatabaseWriteRequest("stock-reversal.reverse", operationId),
             (db, token) => StageReverseDocumentAsync(
                 db, normalizedSourceType, sourceId, userId, token),
+            // bộ ba loại adjustment, loại nguồn và id nguồn là marker bền vững để nhận ra lần đảo đã commit.
             (db, token) => db.StockAdjustments.AnyAsync(adjustment =>
                 adjustment.AdjustmentType == ReversalType &&
                 adjustment.ReferenceDocumentType == normalizedSourceType &&
@@ -111,6 +113,7 @@ public sealed class StockReversalService
             };
 
             db.StockAdjustments.Add(reversal);
+            // cần id adjustment trước khi sinh ledger ngược; flush này vẫn nằm trong transaction đảo phiếu.
             await db.SaveChangesAsync(cancellationToken);
 
             // mỗi entry nguồn sinh một entry ngược chiều, cùng quantity và vị trí để audit có thể đối chiếu 1-1.

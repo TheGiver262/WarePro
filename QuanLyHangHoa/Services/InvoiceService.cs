@@ -27,10 +27,13 @@ namespace QuanLyHangHoa.Services
             CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(invoice);
+            // input giữ snapshot scalar và dòng trước khi executor retry; mỗi attempt không dùng lại entity đã bị EF gán id hoặc tracking.
+            // expectedRowVersion giữ đúng phiên bản người dùng đã đọc để mọi attempt cùng kiểm tra một mốc, không vô tình ghi đè bản mới hơn.
             var input = CreateSalesInvoiceCandidate(invoice);
             var expectedRowVersion = invoice.RowVersion.ToArray();
             var isNew = invoice.Id == 0;
 
+            // transaction serializable gom kiểm tra quyền, đối soát phiếu xuất, lưu hóa đơn và bảo hành thành một lần ghi nguyên tử.
             var invoiceId = await _writeExecutor.ExecuteAsync(
                 new DatabaseWriteRequest(
                     "invoice.sales.save",
@@ -43,6 +46,7 @@ namespace QuanLyHangHoa.Services
                         actorId,
                         PermissionAction.CreateSalesInvoice);
 
+                    // tạo candidate mới trong từng attempt vì lần trước có thể đã được EF gán khóa rồi rollback hoặc commit chưa rõ kết quả.
                     var candidate = CreateSalesInvoiceCandidate(input);
                     if (isNew)
                     {
@@ -55,6 +59,7 @@ namespace QuanLyHangHoa.Services
                         candidate,
                         expectedRowVersion,
                         token);
+                    // candidate đã có id từ SQL khi tạo hoặc id hiện có khi sửa, nên coverage luôn tham chiếu đúng hóa đơn trong transaction.
                     ReconcileWarrantyCoverages(db, candidate, stockOut);
                     return savedId;
                 },
@@ -71,6 +76,7 @@ namespace QuanLyHangHoa.Services
                 cancellationToken: cancellationToken);
 
             invoice.Id = invoiceId;
+            // nạp rowversion đã commit về model của màn hình để lần sửa tiếp theo dùng đúng phiên bản mới nhất.
             await using (var refresh = _contextFactory())
             {
                 invoice.RowVersion = await refresh.SalesInvoices.AsNoTracking()
@@ -88,6 +94,7 @@ namespace QuanLyHangHoa.Services
             CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(invoice);
+            // snapshot tách dữ liệu đầu vào khỏi ChangeTracker; retry luôn dựng lại graph dòng hóa đơn từ cùng yêu cầu ban đầu.
             var input = CreatePurchaseInvoiceCandidate(invoice);
             var expectedRowVersion = invoice.RowVersion.ToArray();
             var isNew = invoice.Id == 0;
@@ -196,6 +203,7 @@ namespace QuanLyHangHoa.Services
             }).ToList()
         };
 
+        // sau lỗi commit không chắc chắn, chỉ coi là thành công khi trạng thái tự nhiên khớp và rowversion chứng minh bản sửa đã phát sinh.
         private static Task<bool> VerifySalesInvoiceAsync(
             AppDbContext db,
             int invoiceId,
@@ -216,6 +224,7 @@ namespace QuanLyHangHoa.Services
                 cancellationToken);
         }
 
+        // với bản tạo mới, actor xác nhận bản ghi do đúng người thực hiện tạo; với bản sửa, rowversion phải khác mốc client đã gửi.
         private static Task<bool> VerifyPurchaseInvoiceAsync(
             AppDbContext db,
             int invoiceId,

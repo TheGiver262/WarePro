@@ -61,6 +61,7 @@ public sealed class InventoryPostingService
             }
         }
 
+        // entity balance vẫn được EF track với rowversion gốc để phát hiện client khác vừa đổi tồn.
         // balance là số hiện tại; ledger phía dưới giữ lịch sử phát sinh dẫn tới số mới.
         var balance = _unitOfWork.GetOrCreateBalance(command.ProductId, warehouseId);
         _unitOfWork.SaveBalance(balance with
@@ -69,6 +70,7 @@ public sealed class InventoryPostingService
             AvailableQuantity = balance.AvailableQuantity + command.Quantity
         });
 
+        // ProductSerial là nguồn chuẩn vị trí từng thiết bị; balance chỉ giữ tổng lượng theo kho.
         foreach (var serialNumber in serialNumbers)
         {
             _unitOfWork.SaveSerial(new ProductSerialSnapshot(
@@ -142,6 +144,7 @@ public sealed class InventoryPostingService
             throw new InventoryDomainException("Insufficient available stock.");
         }
 
+        // kiểm hết serial trước khi stage số tồn để một serial sai không tạo trạng thái dở dang trong unit of work.
         foreach (var serialNumber in serialNumbers)
         {
             var serial = _unitOfWork.GetSerial(serialNumber);
@@ -161,6 +164,7 @@ public sealed class InventoryPostingService
             }
         }
 
+        // dùng đúng snapshot vừa kiểm available để phép kiểm và phép trừ dựa trên cùng một phiên bản dữ liệu.
         _unitOfWork.SaveBalance(balance with
         {
             OnHandQuantity = balance.OnHandQuantity - command.Quantity,
@@ -232,6 +236,7 @@ public sealed class InventoryPostingService
             throw new InventoryDomainException("Insufficient available stock in source warehouse.");
         }
 
+        // stage kho nguồn trước nhưng chỉ commit sau khi kho đích, serial và hai ledger đều hoàn tất.
         _unitOfWork.SaveBalance(fromBalance with
         {
             OnHandQuantity = fromBalance.OnHandQuantity - command.Quantity,
@@ -298,6 +303,7 @@ public sealed class InventoryPostingService
             _clock.Now,
             command.PostedByUserId));
 
+        // Posted và rowversion được lưu cùng commit; lần gọi sau đọc Posted, còn race song song bị concurrency conflict rollback.
         _unitOfWork.MarkDocumentPosted(command.DocumentId, "StockTransfer");
         _unitOfWork.Commit();
     }

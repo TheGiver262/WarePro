@@ -32,6 +32,7 @@ public partial class InvoiceService
             .SingleOrDefault(document => document.Id == invoice.StockOutId.Value)
             ?? throw new InvalidOperationException("Linked stock-out document does not exist.");
 
+        // lưu hóa đơn không post tồn kho; phiếu xuất phải hoàn tất trước rồi mới được dùng làm nguồn chuẩn.
         if (!string.Equals(stockOut.Status, DocumentStatus.Posted, StringComparison.Ordinal)
             || !string.Equals(stockOut.PurposeCode, StockOutKind.Sale.ToString(), StringComparison.Ordinal))
         {
@@ -43,6 +44,7 @@ public partial class InvoiceService
             throw new InvalidOperationException("The invoice customer must match the linked stock-out customer.");
         }
 
+        // kiểm tra trong transaction serializable để hai client không cùng gắn một phiếu xuất cho hai hóa đơn.
         if (db.SalesInvoices.Any(existing => existing.StockOutId == stockOut.Id && existing.Id != invoice.Id))
         {
             throw new InvalidOperationException("The linked stock-out document is already used by another invoice.");
@@ -57,6 +59,7 @@ public partial class InvoiceService
         }
 
         invoice.Lines = DeriveSalesLines(db, invoice.Lines, stockOut.Lines);
+        // tổng tiền và trạng thái thanh toán được tính lại từ dòng chuẩn trước khi cùng transaction lưu xuống database.
         CalculateSalesInvoice(invoice);
         return stockOut;
     }
@@ -172,7 +175,7 @@ public partial class InvoiceService
         return result;
     }
 
-    // Remove sau khi khớp ngăn một dòng hóa đơn được dùng cho hai dòng xuất giống nhau
+    // xóa khỏi unmatched sau khi khớp để một dòng hóa đơn không được dùng cho hai dòng xuất giống nhau
     private static SalesInvoiceLine TakeMatchingLine(
         List<SalesInvoiceLine> lines,
         int sourceLineId,
@@ -260,6 +263,7 @@ public partial class InvoiceService
         if (invoice.Id == 0)
         {
             db.SalesInvoices.Add(invoice);
+            // flush trong transaction để SQL gán id hóa đơn trước khi tạo coverage tham chiếu đến hóa đơn này.
             await db.SaveChangesAsync(cancellationToken);
             return invoice.Id;
         }
@@ -269,6 +273,7 @@ public partial class InvoiceService
             .SingleOrDefaultAsync(item => item.Id == invoice.Id, cancellationToken)
             ?? throw new InvalidOperationException("Sales invoice does not exist.");
 
+        // đặt OriginalValue từ client để câu update mang điều kiện rowversion; sai mốc sẽ thành DbUpdateConcurrencyException.
         db.Entry(existing).Property(item => item.RowVersion).OriginalValue = expectedRowVersion;
         db.SalesInvoiceLines.RemoveRange(existing.Lines);
         existing.InvoiceCode = invoice.InvoiceCode;
@@ -286,6 +291,7 @@ public partial class InvoiceService
 
         foreach (var line in invoice.Lines)
         {
+            // dòng đã kiểm tra được tạo mới hoàn toàn; reset id tránh EF hiểu nhầm là sửa dòng thuộc graph cũ.
             line.Id = 0;
             line.SalesInvoiceId = existing.Id;
             db.SalesInvoiceLines.Add(line);
@@ -304,6 +310,7 @@ public partial class InvoiceService
         if (invoice.Id == 0)
         {
             db.PurchaseInvoices.Add(invoice);
+            // flush lấy khóa do SQL sinh ra; executor vẫn chỉ commit sau khi toàn bộ mutation và SaveChanges cuối cùng thành công.
             await db.SaveChangesAsync(cancellationToken);
             return invoice.Id;
         }
@@ -313,6 +320,7 @@ public partial class InvoiceService
             .SingleOrDefaultAsync(item => item.Id == invoice.Id, cancellationToken)
             ?? throw new InvalidOperationException("Purchase invoice does not exist.");
 
+        // dùng cùng rowversion client đã đọc; xung đột dừng lưu thay vì retry rồi ghi đè thay đổi của máy khác.
         db.Entry(existing).Property(item => item.RowVersion).OriginalValue = expectedRowVersion;
         db.PurchaseInvoiceLines.RemoveRange(existing.Lines);
         existing.InvoiceCode = invoice.InvoiceCode;

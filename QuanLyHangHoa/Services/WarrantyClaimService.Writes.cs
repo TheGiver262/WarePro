@@ -113,6 +113,7 @@ public partial class WarrantyClaimService
         Guid operationId,
         CancellationToken cancellationToken = default)
     {
+        // chuẩn hóa input trước executor để mọi attempt dùng cùng mã claim, serial và mô tả.
         var normalizedCode = claimCode.Trim();
         var normalizedSerial = serialNumber.Trim();
         var normalizedProblem = problemDescription.Trim();
@@ -152,6 +153,7 @@ public partial class WarrantyClaimService
                             $"Mã phiếu bảo hành {normalizedCode} đã tồn tại.");
                     }
 
+                    // kiểm tra coverage còn hiệu lực trong transaction ghi, không tin kết quả lookup đã đọc trước đó ở UI.
                     var today = DateTime.Today;
                     var coverage = await db.WarrantyCoverages.SingleOrDefaultAsync(item =>
                         item.ProductSerialId == serial.Id
@@ -177,6 +179,7 @@ public partial class WarrantyClaimService
                         Status = "Open",
                         ProcessedBy = userId
                     };
+                    // flush trong transaction để claim nhận id; executor chỉ commit sau khi toàn bộ callback thành công.
                     db.WarrantyClaims.Add(claim);
                     await db.SaveChangesAsync(token);
                     return claim.Id;
@@ -495,6 +498,7 @@ public partial class WarrantyClaimService
         CancellationToken cancellationToken = default)
     {
         var rowVersion = expectedRowVersion.ToArray();
+        // operation id đi vào mã chứng từ để verifier nhận ra đúng lần đổi serial khi phản hồi commit bị mất.
         var normalizedSerial = replacementSerial.Trim();
         var stockOutCode = $"WRO-{claimId}-{operationId.ToString("N")[..12]}";
 
@@ -624,6 +628,7 @@ public partial class WarrantyClaimService
                 token),
             cancellationToken);
 
+    // helper gom transition để permission, rowversion và uncertain-commit verification luôn đi cùng một transaction.
     private Task ExecuteClaimTransitionAsync(
         string operationName,
         int claimId,

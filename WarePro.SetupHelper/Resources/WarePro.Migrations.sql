@@ -1,5 +1,6 @@
 -- baseline
 -- Baseline SQL Server schema for the product and warranty management system.
+-- baseline tạo schema mới; các khối version cuối file áp dụng thay đổi tăng dần và phải chạy lặp an toàn.
 -- This schema follows the current design baseline:
 -- 1. Future-ready Warehouse table, while phase 1 uses one hidden default warehouse.
 -- 2. Opening stock import is represented by StockIn with PurposeCode = 'OpeningBalance'.
@@ -659,6 +660,7 @@ GO
 
 GO
 -- SchemaMetadataSql
+-- metadata là mốc để setup helper chọn đúng các migration còn thiếu cho từng database.
 
         IF OBJECT_ID(N'[dbo].[__WareProSchemaVersion]', N'U') IS NULL
         BEGIN
@@ -754,6 +756,7 @@ GO
         
 GO
 -- SchemaVersion5Sql
+-- chuẩn hóa dữ liệu cũ trước khi thêm constraint để bản nâng cấp không kẹt ở giá trị legacy.
 
         IF OBJECT_ID(N'[dbo].[SalesInvoice]', N'U') IS NOT NULL
         BEGIN
@@ -795,6 +798,7 @@ GO
         
 GO
 -- SchemaVersion6Sql
+-- danh sách cố định giới hạn dynamic SQL vào đúng các bảng nghiệp vụ cần chống ghi đè.
 
         DECLARE @MutableTables TABLE ([TableName] SYSNAME NOT NULL PRIMARY KEY);
         INSERT INTO @MutableTables ([TableName])
@@ -823,6 +827,7 @@ GO
             DELETE FROM @MutableTables WHERE [TableName] = @TableName;
         END;
 
+        -- heartbeat phiên client giúp quá trình nâng cấp biết máy nào vẫn đang dùng database.
         IF OBJECT_ID(N'[dbo].[__WareProClientSession]', N'U') IS NULL
         BEGIN
             CREATE TABLE [dbo].[__WareProClientSession]

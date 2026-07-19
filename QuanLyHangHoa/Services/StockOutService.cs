@@ -169,6 +169,7 @@ namespace QuanLyHangHoa.Services
             CancellationToken cancellationToken = default)
         {
             var timestamp = DateTime.Now;
+            // đóng băng cả header, line và serial trước khi vào executor để retry luôn dùng cùng một yêu cầu ban đầu.
             var snapshot = new SaveDraftSnapshot(
                 stockOut.Id,
                 string.IsNullOrWhiteSpace(stockOut.DocumentCode) ? $"SO-{timestamp:yyyyMMddHHmmss}" : stockOut.DocumentCode,
@@ -228,6 +229,7 @@ namespace QuanLyHangHoa.Services
             {
                 new StockDocumentLifecycleService().EnsureCanEditDetails(ParseStatus(existing.Status));
                 var beforeJson = Serialize(existing);
+                // rowversion từ màn hình là mốc so sánh; save sẽ thất bại nếu client khác đã cập nhật phiếu trước.
                 db.Entry(existing).Property(item => item.RowVersion).OriginalValue = snapshot.RowVersion;
 
                 existing.WarehouseId = snapshot.WarehouseId;
@@ -253,11 +255,13 @@ namespace QuanLyHangHoa.Services
                 Notes = snapshot.Notes,
                 CreatedBy = userId,
                 CreatedAt = snapshot.Timestamp,
+                // giữ khóa nguồn kiểm kê trên phiếu sinh tự động để unique index và truy vết chặn tạo điều chỉnh lặp.
                 StockCountSessionId = snapshot.StockCountSessionId,
                 StockCountLineId = snapshot.StockCountLineId,
                 Lines = freshLines
             };
             db.StockOuts.Add(freshStockOut);
+            // cần lấy id phiếu và line trước khi ghi audit hoặc dùng line làm mốc lịch sử serial.
             await db.SaveChangesAsync(cancellationToken);
             AddAudit(db, "CREATE", freshStockOut.Id, null, Serialize(freshStockOut), userId);
             return freshStockOut.Id;

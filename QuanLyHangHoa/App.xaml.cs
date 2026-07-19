@@ -83,6 +83,7 @@ namespace QuanLyHangHoa
 
             _startupCoordinator = StartupCoordinator.CreateDefault();
             var coordinator = _startupCoordinator;
+            // chờ coordinator kiểm tra database sẵn sàng và đăng ký lease client trước khi mở UI.
             var result = await coordinator.RunAsync(CancellationToken.None);
             // chỉ hỏi thay credential khi SQL Server xác nhận tài khoản bị từ chối; các lỗi khác giữ nguyên nguyên nhân.
             if (!result.Success && result.ErrorCode == "SQL-CREDENTIAL-REJECTED")

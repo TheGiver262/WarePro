@@ -25,6 +25,7 @@ public sealed record DatabaseWriteLogEntry(
 
 public sealed class DatabaseWriteDiagnostics : IObserver<DiagnosticListener>, IObserver<KeyValuePair<string, object?>>, IDisposable
 {
+    // state theo async flow, nên retry song song không lẫn operation id, attempt hay entity key.
     private readonly AsyncLocal<OperationState?> _current = new();
     private readonly Action<DatabaseWriteLogEntry> _write;
     private readonly IDisposable _allListenersSubscription;
@@ -32,6 +33,7 @@ public sealed class DatabaseWriteDiagnostics : IObserver<DiagnosticListener>, IO
     private readonly object _subscriptionLock = new();
     private int _disposed;
 
+    // singleton sống suốt app để không đăng ký lặp DiagnosticListener; chỉ dispose khi host thật sự dừng.
     public static DatabaseWriteDiagnostics Shared { get; } = new();
 
     public DatabaseWriteDiagnostics(Action<DatabaseWriteLogEntry>? write = null)
@@ -43,6 +45,7 @@ public sealed class DatabaseWriteDiagnostics : IObserver<DiagnosticListener>, IO
     internal IDisposable Begin(DatabaseWriteRequest request, string? entityKey)
     {
         var previous = _current.Value;
+        // entity key có thể đi vào log; redaction phải xảy ra trước khi state được bất kỳ callback nào dùng.
         _current.Value = new OperationState(request, SensitiveDataRedactor.Redact(entityKey));
         return new Scope(() => _current.Value = previous);
     }
@@ -68,11 +71,13 @@ public sealed class DatabaseWriteDiagnostics : IObserver<DiagnosticListener>, IO
             return;
         }
 
+        // chỉ nghe retry của EF Core để log không bị nhiễu bởi diagnostic event không thuộc operation ghi.
         var subscription = listener.Subscribe(
             this,
             (eventName, _, _) => eventName == CoreEventId.ExecutionStrategyRetrying.Name);
         lock (_subscriptionLock)
         {
+            // Dispose có thể chạy đồng thời lúc listener mới xuất hiện; không giữ subscription sau khi đã đóng.
             if (Volatile.Read(ref _disposed) != 0)
             {
                 subscription.Dispose();
@@ -107,6 +112,7 @@ public sealed class DatabaseWriteDiagnostics : IObserver<DiagnosticListener>, IO
             return;
         }
 
+        // hủy cả nguồn lẫn các listener đã bám vào để singleton không giữ callback của runtime quá vòng đời host.
         _allListenersSubscription.Dispose();
         lock (_subscriptionLock)
         {

@@ -59,6 +59,7 @@ public sealed class ConnectionStringFactory
         return ResolveSettings(_settingsLoader?.Invoke() ?? WareProSettings.CreateDefault());
     }
 
+    // override triển khai luôn thắng cấu hình máy truyền vào, kể cả khi caller đã nạp settings.
     public string Resolve(WareProSettings? settings)
     {
         var environmentValue = ReadEnvironmentOverride();

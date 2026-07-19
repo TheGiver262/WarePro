@@ -4,6 +4,7 @@ namespace WarePro.Database;
 
 public static class DatabaseSchemaScripts
 {
+    // migration bundle được tách section một lần; các lần build sau dùng lại cache.
     private static readonly Lazy<IReadOnlyDictionary<string, string>> Sections = new(ReadSections);
 
     private const string LegacyShapeRepairSql = """
@@ -423,6 +424,7 @@ public static class DatabaseSchemaScripts
         """;
 
     public static IReadOnlyList<string> BaselineBatches => SplitBatches(Sections.Value["baseline"])
+        // helper tự tạo database qua master, nên baseline không được đổi catalog hoặc tạo lại database đích.
         .Where(batch => !batch.Contains("CREATE DATABASE", StringComparison.OrdinalIgnoreCase)
             && !batch.Contains("USE [ProductManagementDb]", StringComparison.OrdinalIgnoreCase))
         .ToArray();
@@ -431,6 +433,7 @@ public static class DatabaseSchemaScripts
     {
         ValidateRelease(expectedSchema, appVersion);
         var escapedVersion = appVersion.Replace("'", "''", StringComparison.Ordinal);
+        // dynamic SQL giúp mỗi version biên dịch sau khi version trước tạo xong object, nhưng vẫn nằm trong cùng transaction.
         var version1 = AsDynamicSql(SchemaVersion1);
         var version2 = AsDynamicSql(SchemaVersion2);
         var version3 = AsDynamicSql(SchemaVersion3);
@@ -470,6 +473,7 @@ public static class DatabaseSchemaScripts
     {
         ValidateRelease(expectedSchema, minimumClientVersion);
         var escapedVersion = minimumClientVersion.Replace("'", "''", StringComparison.Ordinal);
+        // finalize gắn write gate lên danh sách bảng mutable; client phải khai báo schema không thấp hơn schema yêu cầu, maintenance được bỏ qua gate.
         return $$"""
             IF NOT EXISTS
             (

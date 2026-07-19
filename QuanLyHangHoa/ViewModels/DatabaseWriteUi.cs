@@ -35,6 +35,7 @@ public static class DatabaseWriteUi
         ArgumentNullException.ThrowIfNull(reload);
         ArgumentNullException.ThrowIfNull(showError);
 
+        // chặn double-click khi lần ghi trước chưa trả về; service vẫn là lớp bảo vệ cuối cùng.
         if (isWriting())
         {
             return false;
@@ -43,6 +44,7 @@ public static class DatabaseWriteUi
         setIsWriting(true);
         setWriteStatus(string.Empty);
 
+        // task nền chỉ hiện trạng thái chậm; token liên kết giúp hủy cùng thao tác ghi hoặc lúc finally dọn dẹp.
         using var statusCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var statusTask = ShowRetryStatusAsync(
             setWriteStatus,
@@ -58,6 +60,7 @@ public static class DatabaseWriteUi
         {
             return false;
         }
+        // conflict và hết retry đều tải lại trước khi báo, tránh để form tiếp tục giữ rowversion cũ.
         catch (DatabaseWriteConflictException)
         {
             reload();
@@ -82,6 +85,7 @@ public static class DatabaseWriteUi
         }
         finally
         {
+            // luôn dừng task trạng thái rồi mới mở khóa nút, tránh status cũ ghi đè lần thao tác sau.
             statusCancellation.Cancel();
             try
             {

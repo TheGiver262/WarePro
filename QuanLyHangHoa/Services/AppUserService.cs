@@ -36,6 +36,7 @@ namespace QuanLyHangHoa.Services
             CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(user);
+            // tách scalar khỏi model đầu vào vì callback có thể chạy lại với context mới
             var requestedId = user.Id;
             var username = user.Username.Trim();
             var fullName = user.FullName.Trim();
@@ -82,6 +83,7 @@ namespace QuanLyHangHoa.Services
                     }
 
                     db.AppUsers.Add(created);
+                    // cần flush để lấy id do DB sinh; audit vẫn được executor commit cùng transaction với user
                     await db.SaveChangesAsync(token);
                     AddAudit(
                         db,
@@ -122,6 +124,7 @@ namespace QuanLyHangHoa.Services
                     : null;
             var changedAt = passwordHash is null ? (DateTime?)null : DateTime.Now;
 
+            // Serializable giữ kiểm tra "quản trị viên cuối cùng" và thay đổi quyền trong cùng một lát cắt dữ liệu
             return _writeExecutor.ExecuteAsync(
                 new DatabaseWriteRequest(
                     "app-user.update",
@@ -201,6 +204,7 @@ namespace QuanLyHangHoa.Services
         {
             ArgumentNullException.ThrowIfNull(expectedRowVersion);
             var rowVersion = expectedRowVersion.ToArray();
+            // giá trị này nối callback ghi với callback xác minh khi kết quả commit không rõ; null nghĩa là chưa có user để đổi
             bool? resultingStatus = null;
 
             return _writeExecutor.ExecuteAsync(
@@ -284,6 +288,7 @@ namespace QuanLyHangHoa.Services
                         return;
                     }
 
+                    // ép EF so khớp token client đã đọc; bản ghi đổi ở máy khác sẽ phát sinh lỗi concurrency thay vì bị ghi đè
                     db.Entry(user).Property(item => item.RowVersion).OriginalValue = rowVersion;
                     if (IsActiveAdministrator(user))
                     {
