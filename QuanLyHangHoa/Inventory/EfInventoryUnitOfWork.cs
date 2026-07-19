@@ -22,6 +22,7 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
 
     internal EfInventoryUnitOfWork(AppDbContext context, bool commitChanges)
     {
+        // commitChanges = false khi service ngoÃ i Ä‘ang giá»¯ transaction; adapter chá»‰ stage entity Ä‘á»ƒ caller flush má»™t láº§n.
         _context = context;
         _commitChanges = commitChanges;
     }
@@ -49,6 +50,7 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
         return new ProductSnapshot(product.Id, product.IsSerialTracked);
     }
 
+    // entity được track để EF giữ rowversion gốc; snapshot trả ra chỉ mang số dùng cho nghiệp vụ.
     public StockBalanceSnapshot? FindBalance(int productId, int warehouseId)
     {
         var balance = _context.StockBalances
@@ -76,6 +78,7 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
     }
 
     // snapshot chứa kết quả nghiệp vụ; entity chỉ được cập nhật tại adapter này.
+    // cập nhật lại chính entity đã đọc để token concurrency so với đúng phiên bản tạo ra snapshot.
     public void SaveBalance(StockBalanceSnapshot snapshot)
     {
         var balance = FindTrackedOrPersistedBalance(snapshot.ProductId, snapshot.WarehouseId);
@@ -162,6 +165,7 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
         });
     }
 
+    // audit được stage cùng transaction; chỉ ghi nhận posted khi ledger, balance và serial đều lưu thành công.
     public void AddAudit(AuditLogEntry entry)
     {
         _context.AuditLogs.Add(new AuditLog
@@ -206,6 +210,7 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
             return;
         }
 
+        // không retry bằng snapshot cũ; rowversion conflict phải được đẩy ra để caller tải lại dữ liệu mới.
         _context.SaveChanges();
     }
 

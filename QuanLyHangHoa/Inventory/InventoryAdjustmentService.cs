@@ -71,6 +71,7 @@ public sealed class InventoryAdjustmentService
                 throw new InventoryDomainException("Non-serial products cannot be adjusted with serial numbers.");
             }
 
+            // nhiều dòng cùng sản phẩm lấy entity đã stage, nên dòng sau tính tiếp trên số mới của dòng trước.
             var balance = _unitOfWork.GetOrCreateBalance(line.ProductId, warehouseId);
             if (line.Direction == StockLedgerDirection.Out && balance.AvailableQuantity < line.Quantity)
             {
@@ -110,6 +111,7 @@ public sealed class InventoryAdjustmentService
             }
 
             // delta dương cho nhập bù, âm cho xuất giảm; ledger vẫn lưu quantity dương kèm Direction.
+            // adjustment chỉ đổi on-hand và available; reserved thuộc luồng giữ chỗ nên được giữ nguyên.
             var signedQuantity = line.Direction == StockLedgerDirection.In ? line.Quantity : -line.Quantity;
             _unitOfWork.SaveBalance(balance with
             {
@@ -157,6 +159,7 @@ public sealed class InventoryAdjustmentService
             command.PostedByUserId));
 
         _unitOfWork.MarkDocumentPosted(command.DocumentId, "StockAdjustment");
+        // một commit là hàng rào nguyên tử; lỗi ở dòng cuối không để các dòng trước được ghi riêng.
         _unitOfWork.Commit();
     }
 

@@ -16,6 +16,7 @@ public sealed class StockDocumentLifecycleService
         return StockDocumentStatus.PendingApproval;
     }
 
+    // overload này chỉ dành cho caller đã kiểm quyền ở ngoài; luồng nhận user input phải truyền isAuthorized.
     public StockDocumentStatus Approve(StockDocumentStatus current)
     {
         return Approve(current, isAuthorized: true);
@@ -37,6 +38,7 @@ public sealed class StockDocumentLifecycleService
         return StockDocumentStatus.Approved;
     }
 
+    // chỉ cho phép Approved; caller phải đọc entity trong transaction và dựa vào rowversion để chặn race ghi sổ song song.
     public void EnsureCanPost(StockDocumentStatus current)
     {
         if (current != StockDocumentStatus.Approved)
