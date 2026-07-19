@@ -83,6 +83,7 @@ namespace QuanLyHangHoa.Services
             Guid operationId, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(expectedRowVersion);
+            // sao chép rowVersion và chuẩn hóa note trước retry để callback không phụ thuộc dữ liệu bên gọi còn giữ.
             var rowVersion = expectedRowVersion.ToArray();
             var normalizedNote = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
 
@@ -94,6 +95,7 @@ namespace QuanLyHangHoa.Services
                     var serial = await db.ProductSerials.SingleOrDefaultAsync(
                         item => item.Id == serialId,
                         token) ?? throw new InvalidOperationException("Không tìm thấy serial.");
+                    // đặt version người dùng đã đọc làm giá trị gốc; EF sẽ báo xung đột nếu client khác đã sửa serial trước đó.
                     db.Entry(serial).Property(item => item.RowVersion).OriginalValue = rowVersion;
                     var beforeJson = System.Text.Json.JsonSerializer.Serialize(new { serial.Note });
                     serial.Note = normalizedNote;

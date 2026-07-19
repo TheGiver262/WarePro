@@ -239,6 +239,7 @@ namespace QuanLyHangHoa.Services.DataImport
         {
             ArgumentNullException.ThrowIfNull(rawRows);
             ArgumentNullException.ThrowIfNull(mappings);
+            // batch là snapshot scalar đã chuẩn hóa; callback retry không đọc lại rawRows hoặc mappings có thể bị bên gọi sửa.
             var batch = PrepareImportBatch(
                 rawRows,
                 type,
@@ -259,6 +260,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     {
                         RequireImportPermission(db, userId, batch.Type);
                         token.ThrowIfCancellationRequested();
+                        // mỗi attempt dựng result và entity mới; không mang tracked state từ transaction đã rollback sang lần retry.
                         var result = new DynamicImportResult();
                         var rowIdx = 1;
 
@@ -650,6 +652,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     : item.Row.InvoiceCode!);
             foreach (var group in indexedGroups)
             {
+                // mỗi chứng từ có marker riêng từ dữ liệu nguồn chuẩn hóa để phát hiện replay cùng mã nhưng khác nội dung.
                 var marker = CreatePayloadMarker(
                     operationId,
                     type,
@@ -682,6 +685,7 @@ namespace QuanLyHangHoa.Services.DataImport
             AuthorizationService.RequireFreshActor(db, userId, action);
         }
 
+        // xác minh theo trạng thái nghiệp vụ đã ghi; nhóm chứng từ còn đối chiếu marker và số dòng, nhóm tự sinh dựng mã từ operation id.
         private static async Task<bool> VerifyImportAppliedAsync(
             AppDbContext db,
             PreparedImportBatch batch,
@@ -1560,6 +1564,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     };
                     db.StockOuts.Add(stockOut);
 
+                    // giữ dữ liệu đã kiểm tra cùng entity mới để posting dùng đúng sản phẩm, số lượng và serial gắn đúng line id sau flush.
                     var persistedLines = new List<(PreparedStockOutImportLine Prepared, StockOutLine Line)>();
                     foreach (var prepared in preparedLines)
                     {
@@ -1746,6 +1751,7 @@ namespace QuanLyHangHoa.Services.DataImport
                         CreatedAt = DateTime.Now
                     };
 
+                    // flush phần đầu trước để lấy invoice.Id; các dòng chi tiết chỉ giữ khóa ngoại số, không dùng navigation.
                     db.PurchaseInvoices.Add(invoice);
                     await db.SaveChangesAsync(cancellationToken);
 
@@ -1865,6 +1871,7 @@ namespace QuanLyHangHoa.Services.DataImport
                         CreatedAt = DateTime.Now
                     };
 
+                    // flush phần đầu trước để lấy invoice.Id; các dòng chi tiết chỉ giữ khóa ngoại số, không dùng navigation.
                     db.SalesInvoices.Add(invoice);
                     await db.SaveChangesAsync(cancellationToken);
 

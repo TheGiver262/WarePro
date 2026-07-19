@@ -47,6 +47,7 @@ namespace QuanLyHangHoa.Services.DataImport
                 return $"Lỗi: Không tìm thấy file Excel tại {_excelPath}";
             }
 
+            // chụp workbook thành dữ liệu thuần trước retry; mỗi attempt phải đọc cùng một đầu vào dù file gốc bị thay đổi.
             var workbookBytes = await File.ReadAllBytesAsync(_excelPath, cancellationToken);
             var preparedWorkbook = PrepareWorkbook(workbookBytes, cancellationToken);
 
@@ -58,6 +59,7 @@ namespace QuanLyHangHoa.Services.DataImport
                 async (db, token) =>
                 {
                     _context = db;
+                    // executor tạo DbContext mới khi retry, nên map id sinh tự động cũng phải dựng lại theo đúng attempt đó.
                     ResetMaps();
                     try
                     {
@@ -447,6 +449,7 @@ namespace QuanLyHangHoa.Services.DataImport
         {
             using var stream = new MemoryStream(workbookBytes, writable: false);
             using var workbook = new XLWorkbook(stream);
+            // sheets chỉ nhận scalar; không mang workbook/cell của ClosedXML vào callback có thể chạy nhiều lần.
             var sheets = new Dictionary<string, PreparedSheet>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var worksheet in workbook.Worksheets)

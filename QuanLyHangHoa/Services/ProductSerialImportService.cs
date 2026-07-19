@@ -55,6 +55,7 @@ public sealed class ProductSerialImportService : IProductSerialImportService
             return (0, $"Lỗi: Không tìm thấy file Excel tại {filePath}");
         }
 
+        // parse file một lần thành scalar; retry chỉ dựng lại entity từ snapshot này, không mở lại workbook.
         List<PreparedSerialRow> rows;
         int parsedSkipCount;
         try
@@ -67,6 +68,7 @@ public sealed class ProductSerialImportService : IProductSerialImportService
         }
 
         cancellationToken.ThrowIfCancellationRequested();
+        // marker khóa documentCode với đúng nội dung import, ngăn cùng operation id bị dùng lại cho file khác.
         var payloadMarker = CreatePayloadMarker(rows, parsedSkipCount);
         var documentCode = $"IMPORT-SR-{operationId:N}";
         var createdAt = DateTime.UtcNow;
@@ -101,6 +103,7 @@ public sealed class ProductSerialImportService : IProductSerialImportService
                         return (existingCount, BuildMessage(existingCount, parsedSkipCount));
                     }
 
+                    // danh mục và kho được đọc trong callback để mỗi retry dùng trạng thái database mới nhất.
                     var products = (await db.Products
                             .AsNoTracking()
                             .Where(product => product.IsActive)
@@ -147,6 +150,7 @@ public sealed class ProductSerialImportService : IProductSerialImportService
                         .Select(row => row.SerialNumber)
                         .Distinct(StringComparer.OrdinalIgnoreCase)
                         .ToArray();
+                    // set bắt đầu bằng serial đã có trong database; Add bên dưới đồng thời loại trùng giữa các dòng của file.
                     var usedSerials = requestedSerials.Length == 0
                         ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                         : new HashSet<string>(
@@ -209,6 +213,7 @@ public sealed class ProductSerialImportService : IProductSerialImportService
                         stockIn.Lines.Add(line);
                     }
 
+                    // lưu tập tự nhiên product-serial đã dựng để verifier đối chiếu nếu kết quả commit không rõ ràng.
                     expectedCommittedRows = stockIn.Lines
                         .SelectMany(line => line.ProductSerials.Select(serial =>
                             (line.ProductId, serial.SerialNumber)))
@@ -235,6 +240,7 @@ public sealed class ProductSerialImportService : IProductSerialImportService
 
                     return (successCount, BuildMessage(successCount, skipCount));
                 },
+                // chỉ coi là đã thành công khi marker và toàn bộ cặp product-serial đều tồn tại đúng trong phiếu.
                 (db, token) => VerifyCommittedBatchAsync(
                     db,
                     documentCode,
