@@ -46,6 +46,7 @@ public sealed class StartupCoordinator : IAsyncDisposable
             var connectionString = _runtime.ResolveConnectionString(settings);
             await _runtime.ProbeSqlAsync(connectionString, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
+            // startup kiểm tra trạng thái tương thích, không tự migrate để một client mở app không đổi database dùng chung.
             await _runtime.InitializeDatabaseAsync(connectionString, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             return StartupResult.Succeeded(GetLogPathSafely());
@@ -203,6 +204,7 @@ public sealed class DefaultStartupRuntime : IStartupRuntime, IAsyncDisposable
         if (result.Status == DatabaseReadinessStatus.Unavailable)
             throw new StartupFailureException("DB-UNAVAILABLE", "Không đọc được trạng thái database.", result.Code);
 
+        // runtime sở hữu lease này đến DisposeAsync; nhờ vậy session không biến mất khi coordinator còn phục vụ app.
         _sessionLease = await ClientSessionLease.RegisterAsync(
             connectionString,
             GetAppVersion().ToString(3),
@@ -248,6 +250,7 @@ public sealed class DefaultStartupRuntime : IStartupRuntime, IAsyncDisposable
     {
         if (_sessionLease is not null)
         {
+            // giải phóng lease lúc app tắt để client khác không phải chờ heartbeat hết hạn.
             await _sessionLease.DisposeAsync().ConfigureAwait(false);
             _sessionLease = null;
         }

@@ -47,6 +47,7 @@ public partial class AppDbContext : DbContext
             return;
         }
 
+        // SQLite không tự sinh rowversion như SQL Server; đổi token trước SaveChanges để contract optimistic concurrency giống production.
         foreach (var entry in ChangeTracker.Entries()
                      .Where(item => item.State is EntityState.Added or EntityState.Modified))
         {
@@ -64,6 +65,7 @@ public partial class AppDbContext : DbContext
     {
         if (!optionsBuilder.IsConfigured)
         {
+            // chỉ là fallback cho context tự tạo; DI/factory đã cấu hình phải giữ connection và option của caller.
             AppDbContextOptionsFactory.Configure(optionsBuilder, GetConnectionString());
         }
     }
@@ -1063,6 +1065,7 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_WarrantyCoverage_SalesInvoice");
         });
 
+        // session là lease sống của client, không phải lịch sử đăng nhập; LastSeenUtc phục vụ phát hiện client còn hoạt động.
         modelBuilder.Entity<WareProClientSession>(entity =>
         {
             entity.HasKey(e => e.SessionId).HasName("PK___WareProClientSession");
@@ -1074,6 +1077,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.LastSeenUtc).HasPrecision(0);
         });
 
+        // mọi aggregate có RowVersion phải mang token gốc khi update; executor đổi concurrency exception thành conflict, không retry ghi đè.
         modelBuilder.Entity<AppUser>().Property(e => e.RowVersion).IsRowVersion();
         modelBuilder.Entity<AuditArchiveManifest>().Property(e => e.RowVersion).IsRowVersion();
         modelBuilder.Entity<Brand>().Property(e => e.RowVersion).IsRowVersion();

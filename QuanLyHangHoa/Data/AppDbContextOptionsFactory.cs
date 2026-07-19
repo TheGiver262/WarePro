@@ -37,6 +37,7 @@ public static class AppDbContextOptionsFactory
 
         return builder.UseSqlServer(
             normalized.ConnectionString,
+            // maxRetryCount: 2 nghĩa là strategy này chạy tối đa ba attempt; executor tạo context/state mới cho từng attempt.
             sql => sql.EnableRetryOnFailure(
                 maxRetryCount: 2,
                 maxRetryDelay: TimeSpan.FromSeconds(2),

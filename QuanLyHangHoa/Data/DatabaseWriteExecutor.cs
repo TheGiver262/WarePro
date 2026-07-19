@@ -10,6 +10,7 @@ namespace QuanLyHangHoa.Data;
 
 public sealed class DatabaseWriteExecutor
 {
+    // gom một lần ghi thành operation có id ổn định để log, retry và lỗi trả về cùng một dấu vết.
     private readonly Func<AppDbContext> _contextFactory;
     private readonly DatabaseWriteDiagnostics _diagnostics;
     private readonly Func<AppDbContext, IExecutionStrategy>? _strategyFactory;
@@ -59,9 +60,11 @@ public sealed class DatabaseWriteExecutor
         cancellationToken.ThrowIfCancellationRequested();
 
         using var diagnosticsScope = _diagnostics.Begin(request, entityKey);
+        // context này chỉ tạo execution strategy; mỗi attempt bên dưới phải có context và ChangeTracker mới.
         await using var strategyContext = _contextFactory();
         var strategy = _strategyFactory?.Invoke(strategyContext) ??
             strategyContext.Database.CreateExecutionStrategy();
+        // với policy SQL mặc định, hai lần retry nghĩa là mutation chạy tối đa ba lần.
         var attempt = 0;
 
         try
@@ -72,6 +75,8 @@ public sealed class DatabaseWriteExecutor
                 {
                     attempt++;
                     _diagnostics.SetAttempt(attempt);
+                    // mutation phải nạp lại state, kiểm tra quyền/validation và tính lại số liệu trong từng attempt.
+                    // không tái dùng entity cũ vì retry có thể bắt đầu sau khi dữ liệu đã đổi.
                     return await ExecuteAttemptAsync(
                         state,
                         mutation,
@@ -81,6 +86,7 @@ public sealed class DatabaseWriteExecutor
                 verifySucceeded: null,
                 cancellationToken);
         }
+        // rowversion conflict là xung đột nghiệp vụ, không retry mù rồi ghi đè thay đổi client khác.
         catch (DatabaseWriteConflictException)
         {
             throw;
@@ -108,6 +114,7 @@ public sealed class DatabaseWriteExecutor
         Func<AppDbContext, CancellationToken, Task<bool>>? verifySucceeded,
         CancellationToken cancellationToken)
     {
+        // context mới tách ChangeTracker của attempt trước; transaction bao toàn bộ mutation và SaveChanges.
         await using var context = _contextFactory();
         await using var transaction = await context.Database.BeginTransactionAsync(
             request.IsolationLevel,
@@ -134,6 +141,7 @@ public sealed class DatabaseWriteExecutor
         }
         catch (Exception) when (verifySucceeded is not null)
         {
+            // lỗi lúc commit có thể là phản hồi bị mất sau khi SQL đã commit; kiểm tra bằng context mới trước khi báo lỗi.
             await using var verificationContext = _contextFactory();
             if (await verifySucceeded(verificationContext, cancellationToken))
             {
@@ -153,6 +161,7 @@ public sealed class DatabaseWriteExecutor
         if (!context.Database.IsSqlServer())
             return;
 
+        // session context và applock cùng transaction để server biết schema/client trước khi cho phép ghi.
         var connection = (SqlConnection)context.Database.GetDbConnection();
         var sqlTransaction = (SqlTransaction)transaction.GetDbTransaction();
         await using var command = new SqlCommand("""

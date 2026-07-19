@@ -15,6 +15,7 @@ internal interface IClientSessionTransport : IAsyncDisposable
 
 public sealed class ClientSessionLease : IAsyncDisposable
 {
+    // lease giữ cùng session id qua reconnect để heartbeat và release luôn nói về một client.
     private readonly Func<IClientSessionTransport> _transportFactory;
     private readonly string _appVersion;
     private readonly TimeSpan _heartbeatInterval;
@@ -76,6 +77,7 @@ public sealed class ClientSessionLease : IAsyncDisposable
         var sessionId = Guid.NewGuid();
         try
         {
+            // chỉ trả lease sau khi server đã nhận registration; caller sau đó sở hữu việc Dispose.
             await transport.AcquireAndRegisterAsync(sessionId, appVersion, cancellationToken);
             return new ClientSessionLease(
                 transportFactory, transport, sessionId, appVersion, heartbeatInterval,
