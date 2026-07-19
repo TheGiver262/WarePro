@@ -834,7 +834,7 @@ internal static class DatabaseUpgradeRunner
                         INSERT INTO dbo.AppUser
                             (Username, PasswordHash, FullName, RoleCode, IsActive, MustChangePassword)
                         VALUES
-                            (N'admin', @passwordHash, N'Quản trị viên', N'Admin', 1, 1);
+                            (N'admin', @passwordHash, N'Quản trị viên', N'Quản trị viên', 1, 1);
                         """,
                         cancellationToken,
                         transaction,

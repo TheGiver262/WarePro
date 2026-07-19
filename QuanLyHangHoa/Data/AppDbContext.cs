@@ -5,6 +5,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using QuanLyHangHoa.Configuration;
 using QuanLyHangHoa.Models;
 
@@ -22,6 +24,11 @@ public partial class AppDbContext : DbContext
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)
     {
+    }
+
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        configurationBuilder.Conventions.Add(_ => new NoSqlOutputClauseConvention());
     }
 
     public static string GetConnectionString() => ConnectionStringFactory.CreateDefault().Resolve();
@@ -1124,6 +1131,28 @@ public partial class AppDbContext : DbContext
         }
 
         OnModelCreatingPartial(modelBuilder);
+    }
+
+    private sealed class NoSqlOutputClauseConvention : IModelFinalizingConvention
+    {
+        public void ProcessModelFinalizing(
+            IConventionModelBuilder modelBuilder,
+            IConventionContext<IConventionModelBuilder> context)
+        {
+            foreach (var entityType in modelBuilder.Metadata.GetEntityTypes())
+            {
+                var table = StoreObjectIdentifier.Create(entityType, StoreObjectType.Table);
+                if (table is not null)
+                {
+                    entityType.UseSqlOutputClause(false, false);
+                }
+
+                foreach (var fragment in entityType.GetMappingFragments(StoreObjectType.Table))
+                {
+                    entityType.UseSqlOutputClause(false, fragment.StoreObject, false);
+                }
+            }
+        }
     }
 
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
