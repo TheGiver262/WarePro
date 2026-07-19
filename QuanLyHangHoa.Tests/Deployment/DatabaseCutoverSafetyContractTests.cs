@@ -60,6 +60,21 @@ public sealed class DatabaseCutoverSafetyContractTests
     }
 
     [Fact]
+    public void Upgrade_runs_metadata_before_referencing_legacy_metadata_columns()
+    {
+        var source = Read("WarePro.Core", "DatabaseSchemaScripts.cs");
+        var start = source.IndexOf("public static string BuildUpgradeSql", StringComparison.Ordinal);
+        var method = source[start..source.IndexOf("public static string BuildFinalizeSql", start, StringComparison.Ordinal)];
+
+        Assert.Contains("var metadata = AsDynamicSql(SchemaMetadata)", method, StringComparison.Ordinal);
+        Assert.Contains("var versionStamp = AsDynamicSql", method, StringComparison.Ordinal);
+        Assert.True(method.IndexOf("{{metadata}}", StringComparison.Ordinal) <
+                    method.IndexOf("DECLARE @CurrentVersion", StringComparison.Ordinal));
+        Assert.True(method.IndexOf("{{versionStamp}}", StringComparison.Ordinal) >
+                    method.IndexOf("ShapeValidationPredicate", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Runner_validates_schema_shape_and_blocks_legacy_sessions_during_cutover()
     {
         var source = Read("WarePro.SetupHelper", "SetupCommands.cs");

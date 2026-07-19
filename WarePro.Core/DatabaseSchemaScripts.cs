@@ -433,6 +433,14 @@ public static class DatabaseSchemaScripts
     {
         ValidateRelease(expectedSchema, appVersion);
         var escapedVersion = appVersion.Replace("'", "''", StringComparison.Ordinal);
+        var metadata = AsDynamicSql(SchemaMetadata);
+        var versionStamp = AsDynamicSql($$"""
+            UPDATE [dbo].[__WareProSchemaVersion]
+            SET [Version] = {{expectedSchema}},
+                [AppliedByAppVersion] = N'{{escapedVersion}}',
+                [UpdatedAt] = SYSUTCDATETIME()
+            WHERE [Id] = 1;
+            """);
         // dynamic SQL giúp mỗi version biên dịch sau khi version trước tạo xong object, nhưng vẫn nằm trong cùng transaction.
         var version1 = AsDynamicSql(SchemaVersion1);
         var version2 = AsDynamicSql(SchemaVersion2);
@@ -442,7 +450,7 @@ public static class DatabaseSchemaScripts
         var version6 = AsDynamicSql(SchemaVersion6);
         var archiveReplay = AsDynamicSql(SchemaArchiveReplay);
         return $$"""
-            {{SchemaMetadata}}
+            {{metadata}}
 
             DECLARE @CurrentVersion INT = ISNULL(
                 (SELECT TOP (1) [Version] FROM [dbo].[__WareProSchemaVersion] WHERE [Id] = 1), 0);
@@ -461,11 +469,7 @@ public static class DatabaseSchemaScripts
             IF NOT ({{ShapeValidationPredicate}})
                 THROW 51028, 'WarePro schema shape validation failed.', 1;
 
-            UPDATE [dbo].[__WareProSchemaVersion]
-            SET [Version] = {{expectedSchema}},
-                [AppliedByAppVersion] = N'{{escapedVersion}}',
-                [UpdatedAt] = SYSUTCDATETIME()
-            WHERE [Id] = 1;
+            {{versionStamp}}
             """;
     }
 
