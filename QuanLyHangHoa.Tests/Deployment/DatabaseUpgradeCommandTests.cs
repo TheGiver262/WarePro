@@ -110,8 +110,10 @@ public sealed class DatabaseUpgradeCommandTests
     {
         var sql = DatabaseSchemaScripts.BuildUpgradeSql(7, "1.1.0");
 
-        for (var version = 1; version <= 7; version++)
+        for (var version = 3; version <= 7; version++)
             Assert.Contains($"IF @CurrentVersion < {version}", sql, StringComparison.Ordinal);
+        Assert.DoesNotContain("IF @CurrentVersion < 1", sql, StringComparison.Ordinal);
+        Assert.DoesNotContain("IF @CurrentVersion < 2", sql, StringComparison.Ordinal);
 
         var archive = sql.IndexOf("UX_AuditArchiveManifest_OperationId", StringComparison.Ordinal);
         var stamp = sql.LastIndexOf("SET [Version] = 7", StringComparison.Ordinal);

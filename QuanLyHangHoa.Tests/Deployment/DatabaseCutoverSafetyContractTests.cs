@@ -258,10 +258,10 @@ public sealed class DatabaseCutoverSafetyContractTests
         {
             Assert.Contains($"ALTER TABLE dbo.{table} ADD StockCountLineId INT NULL", sql, StringComparison.Ordinal);
             Assert.Contains($"ALTER TABLE dbo.{table} ADD StockCountSessionId INT NULL", sql, StringComparison.Ordinal);
-            Assert.Contains($"EXEC sys.sp_executesql N'ALTER TABLE dbo.{table} WITH CHECK ADD CONSTRAINT FK_{table}_StockCountLine", sql, StringComparison.Ordinal);
-            Assert.Contains($"EXEC sys.sp_executesql N'ALTER TABLE dbo.{table} WITH CHECK ADD CONSTRAINT FK_{table}_StockCountSession", sql, StringComparison.Ordinal);
-            Assert.Contains($"EXEC sys.sp_executesql N'CREATE INDEX IX_{table}_StockCountSessionId", sql, StringComparison.Ordinal);
-            Assert.Contains($"EXEC sys.sp_executesql N'CREATE UNIQUE INDEX UX_{table}_StockCountLineId", sql, StringComparison.Ordinal);
+            Assert.Contains($"EXEC sys.sp_executesql N''ALTER TABLE dbo.{table} WITH CHECK ADD CONSTRAINT FK_{table}_StockCountLine", sql, StringComparison.Ordinal);
+            Assert.Contains($"EXEC sys.sp_executesql N''ALTER TABLE dbo.{table} WITH CHECK ADD CONSTRAINT FK_{table}_StockCountSession", sql, StringComparison.Ordinal);
+            Assert.Contains($"EXEC sys.sp_executesql N''CREATE INDEX IX_{table}_StockCountSessionId", sql, StringComparison.Ordinal);
+            Assert.Contains($"EXEC sys.sp_executesql N''CREATE UNIQUE INDEX UX_{table}_StockCountLineId", sql, StringComparison.Ordinal);
         }
 
         Assert.Contains("(N'StockAdjustmentLine', N'DraftSerials', N'nvarchar', 8000, 0, 0, 1)", shape, StringComparison.Ordinal);

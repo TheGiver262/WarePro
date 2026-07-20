@@ -10,10 +10,10 @@ END;
 
 IF OBJECT_ID(N'dbo.CK_PurchaseInvoice_Status', N'C') IS NULL
 BEGIN
-    ALTER TABLE dbo.PurchaseInvoice WITH CHECK
-        ADD CONSTRAINT CK_PurchaseInvoice_Status
-            CHECK ([Status] IN (N'Active', N'Voided'));
-    ALTER TABLE dbo.PurchaseInvoice CHECK CONSTRAINT CK_PurchaseInvoice_Status;
+    EXEC sys.sp_executesql N'
+        ALTER TABLE dbo.PurchaseInvoice WITH CHECK
+            ADD CONSTRAINT CK_PurchaseInvoice_Status CHECK ([Status] IN (N''Active'', N''Voided''));
+        ALTER TABLE dbo.PurchaseInvoice CHECK CONSTRAINT CK_PurchaseInvoice_Status;';
 END;
 
 IF NOT EXISTS
@@ -23,8 +23,8 @@ IF NOT EXISTS
       AND name = N'IX_PurchaseInvoice_Status_InvoiceDate'
 )
 BEGIN
-    CREATE INDEX IX_PurchaseInvoice_Status_InvoiceDate
-        ON dbo.PurchaseInvoice([Status], InvoiceDate);
+    EXEC sys.sp_executesql N'CREATE INDEX IX_PurchaseInvoice_Status_InvoiceDate
+        ON dbo.PurchaseInvoice([Status], InvoiceDate);';
 END;
 
 IF COL_LENGTH(N'dbo.SalesInvoice', N'Status') IS NULL
@@ -36,10 +36,10 @@ END;
 
 IF OBJECT_ID(N'dbo.CK_SalesInvoice_Status', N'C') IS NULL
 BEGIN
-    ALTER TABLE dbo.SalesInvoice WITH CHECK
-        ADD CONSTRAINT CK_SalesInvoice_Status
-            CHECK ([Status] IN (N'Active', N'Voided'));
-    ALTER TABLE dbo.SalesInvoice CHECK CONSTRAINT CK_SalesInvoice_Status;
+    EXEC sys.sp_executesql N'
+        ALTER TABLE dbo.SalesInvoice WITH CHECK
+            ADD CONSTRAINT CK_SalesInvoice_Status CHECK ([Status] IN (N''Active'', N''Voided''));
+        ALTER TABLE dbo.SalesInvoice CHECK CONSTRAINT CK_SalesInvoice_Status;';
 END;
 
 IF NOT EXISTS
@@ -49,8 +49,8 @@ IF NOT EXISTS
       AND name = N'IX_SalesInvoice_Status_InvoiceDate'
 )
 BEGIN
-    CREATE INDEX IX_SalesInvoice_Status_InvoiceDate
-        ON dbo.SalesInvoice([Status], InvoiceDate);
+    EXEC sys.sp_executesql N'CREATE INDEX IX_SalesInvoice_Status_InvoiceDate
+        ON dbo.SalesInvoice([Status], InvoiceDate);';
 END;
 
 IF EXISTS
@@ -92,9 +92,9 @@ IF NOT EXISTS
       AND name = N'UX_WarrantyClaim_OpenProductSerialId'
 )
 BEGIN
-    CREATE UNIQUE INDEX UX_WarrantyClaim_OpenProductSerialId
-        ON dbo.WarrantyClaim(OpenProductSerialId)
-        WHERE OpenProductSerialId IS NOT NULL;
+    EXEC sys.sp_executesql N'CREATE UNIQUE INDEX UX_WarrantyClaim_OpenProductSerialId
+        ON dbo.WarrantyClaim(ProductSerialId)
+        WHERE [Status] <> N''Closed'' AND [Status] <> N''Rejected'';';
 END;
 
 IF OBJECT_ID(N'dbo.__WareProSchemaVersion', N'U') IS NOT NULL

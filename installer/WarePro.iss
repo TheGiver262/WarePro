@@ -2,7 +2,7 @@
   #define MyAppVersion "1.1.0"
 #endif
 #ifndef MySchemaRelease
-  #define MySchemaRelease 6
+  #define MySchemaRelease 7
 #endif
 #ifndef PublishDir
   #define PublishDir "..\artifacts\publish\win-x64"

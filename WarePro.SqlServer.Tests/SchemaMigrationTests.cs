@@ -150,6 +150,41 @@ await database.ApplyUpgradeAsync();
     }
     [SqlServerFact]
     [Trait("Category", "RealDatabase")]
+    public async Task Warranty_index_rejects_second_open_claim_but_allows_closed_history()
+    {
+        await using var database = await SqlServerTestDatabase.CreateMigratedAsync();
+        await using var connection = await database.OpenConnectionAsync(clientSchema: 7);
+        await using var command = connection.CreateCommand();
+
+        command.CommandText = """
+            ALTER TABLE dbo.WarrantyClaim NOCHECK CONSTRAINT ALL;
+            INSERT dbo.WarrantyClaim
+                (ClaimCode, WarrantyCoverageId, ProductSerialId, ReceivedDate, [Status], ProcessedBy)
+            VALUES
+                (N'OPEN-1', 1, 777, SYSUTCDATETIME(), N'Active', 1);
+            """;
+        Assert.Equal(1, await command.ExecuteNonQueryAsync());
+
+        command.CommandText = """
+            INSERT dbo.WarrantyClaim
+                (ClaimCode, WarrantyCoverageId, ProductSerialId, ReceivedDate, [Status], ProcessedBy)
+            VALUES
+                (N'OPEN-2', 1, 777, SYSUTCDATETIME(), N'Processing', 1);
+            """;
+        var duplicate = await Assert.ThrowsAsync<SqlException>(() => command.ExecuteNonQueryAsync());
+        Assert.Contains(duplicate.Number, new[] { 2601, 2627 });
+
+        command.CommandText = """
+            INSERT dbo.WarrantyClaim
+                (ClaimCode, WarrantyCoverageId, ProductSerialId, ReceivedDate, [Status], ProcessedBy)
+            VALUES
+                (N'CLOSED-1', 1, 777, SYSUTCDATETIME(), N'Closed', 1);
+            """;
+        Assert.Equal(1, await command.ExecuteNonQueryAsync());
+    }
+
+    [SqlServerFact]
+    [Trait("Category", "RealDatabase")]
     public async Task Rowversion_rejects_a_stale_update()
     {
         await using var database = await SqlServerTestDatabase.CreateMigratedAsync();

@@ -314,6 +314,10 @@ public static class DatabaseSchemaScripts
             ON partnerMap.LegacyPartnerId = invoice.CustomerId;
 
         -- model C# dùng giá trị bắt buộc; dữ liệu null cũ được chuẩn hóa trước khi siết column.
+        IF EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.SalesInvoice') AND name = N'IX_SalesInvoice_PaymentStatus_InvoiceDate')
+            DROP INDEX IX_SalesInvoice_PaymentStatus_InvoiceDate ON dbo.SalesInvoice;
+        IF EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.PurchaseInvoice') AND name = N'IX_PurchaseInvoice_PaymentStatus_InvoiceDate')
+            DROP INDEX IX_PurchaseInvoice_PaymentStatus_InvoiceDate ON dbo.PurchaseInvoice;
         UPDATE dbo.SalesInvoice SET PaidAmount = 0 WHERE PaidAmount IS NULL;
         UPDATE dbo.SalesInvoice
         SET PaymentStatus = CASE
@@ -700,7 +704,7 @@ public static class DatabaseSchemaScripts
                 (N'SalesInvoice', N'IX_SalesInvoice_PaymentStatus_InvoiceDate', 0, 2, N'InvoiceDate', 2),
                 (N'SalesInvoice', N'IX_SalesInvoice_Status_InvoiceDate', 0, 1, N'Status', 2),
                 (N'SalesInvoice', N'IX_SalesInvoice_Status_InvoiceDate', 0, 2, N'InvoiceDate', 2),
-                (N'WarrantyClaim', N'UX_WarrantyClaim_OpenProductSerialId', 1, 1, N'OpenProductSerialId', 1),
+                (N'WarrantyClaim', N'UX_WarrantyClaim_OpenProductSerialId', 1, 1, N'ProductSerialId', 1),
                 (N'StockLedger', N'IX_StockLedger_Warehouse_Product_PostedAt', 0, 1, N'WarehouseId', 3),
                 (N'StockLedger', N'IX_StockLedger_Warehouse_Product_PostedAt', 0, 2, N'ProductId', 3),
                 (N'StockLedger', N'IX_StockLedger_Warehouse_Product_PostedAt', 0, 3, N'PostedAt', 3),
@@ -747,6 +751,7 @@ public static class DatabaseSchemaScripts
             """);
         // dynamic SQL giúp mỗi version biên dịch sau khi version trước tạo xong object, nhưng vẫn nằm trong cùng transaction.
         var version1 = AsDynamicSql(SchemaVersion1);
+        var legacyShapeRepair = AsDynamicSql(LegacyShapeRepairSql);
         var version2 = AsDynamicSql(SchemaVersion2);
         var version3 = AsDynamicSql(SchemaVersion3);
         var version4 = AsDynamicSql(SchemaVersion4);
@@ -754,16 +759,20 @@ public static class DatabaseSchemaScripts
         var version6 = AsDynamicSql(SchemaVersion6);
         var version7 = AsDynamicSql(SchemaVersion7);
         var archiveReplay = AsDynamicSql(SchemaArchiveReplay);
+        var shapeValidation = AsDynamicSql($$"""
+            IF NOT ({{ShapeValidationPredicate}})
+                THROW 51028, 'WarePro schema shape validation failed.', 1;
+            """);
         return $$"""
             {{metadata}}
 
             DECLARE @CurrentVersion INT = ISNULL(
                 (SELECT TOP (1) [Version] FROM [dbo].[__WareProSchemaVersion] WHERE [Id] = 1), 0);
 
-            {{LegacyShapeRepairSql}}
+            {{version1}}
+            {{legacyShapeRepair}}
 
-            IF @CurrentVersion < 1 BEGIN {{version1}} END;
-            IF @CurrentVersion < 2 BEGIN {{version2}} END;
+            {{version2}}
             IF @CurrentVersion < 3 BEGIN {{version3}} END;
             IF @CurrentVersion < 4 BEGIN {{version4}} END;
             IF @CurrentVersion < 5 BEGIN {{version5}} END;
@@ -772,8 +781,7 @@ public static class DatabaseSchemaScripts
 
             {{archiveReplay}}
 
-            IF NOT ({{ShapeValidationPredicate}})
-                THROW 51028, 'WarePro schema shape validation failed.', 1;
+            {{shapeValidation}}
 
             {{versionStamp}}
             """;

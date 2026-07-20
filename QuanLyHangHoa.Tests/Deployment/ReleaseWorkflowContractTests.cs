@@ -33,6 +33,7 @@ public class ReleaseWorkflowContractTests
     public void Release_policy_matches_the_database_compatibility_contract()
     {
         using var document = JsonDocument.Parse(Read("installer", "release-policy.json"));
+        var setupHelper = Read("WarePro.SetupHelper", "SetupCommands.cs");
         var policy = document.RootElement;
 
         Assert.Equal("1.1.0", policy.GetProperty("minimumClientVersion").GetString());
@@ -42,6 +43,7 @@ public class ReleaseWorkflowContractTests
         Assert.Equal(
             DatabaseCompatibilityService.MaximumSupportedSchemaVersion,
             policy.GetProperty("maximumSchemaVersion").GetInt32());
+        Assert.Contains("private const int SupportedSchema = 7;", setupHelper, StringComparison.Ordinal);
     }
 
     [Fact]

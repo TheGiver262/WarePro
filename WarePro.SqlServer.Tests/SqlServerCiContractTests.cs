@@ -12,8 +12,11 @@ public sealed class SqlServerCiContractTests
     public void Shared_migration_commands_are_ordered_and_go_free()
     {
         var upgrade = DatabaseSchemaScripts.BuildUpgradeSql(7, "1.1.0");
-        for (var version = 1; version <= 7; version++)
+        for (var version = 3; version <= 7; version++)
             Assert.Contains($"IF @CurrentVersion < {version} BEGIN EXEC sys.sp_executesql N'", upgrade, StringComparison.Ordinal);
+        Assert.DoesNotContain("IF @CurrentVersion < 1", upgrade, StringComparison.Ordinal);
+        Assert.DoesNotContain("IF @CurrentVersion < 2", upgrade, StringComparison.Ordinal);
+        Assert.True(upgrade.IndexOf("COL_LENGTH(''SalesInvoice'', ''PaidAmount'')", StringComparison.Ordinal) < upgrade.IndexOf("UPDATE dbo.SalesInvoice SET PaidAmount", StringComparison.Ordinal));
 
         Assert.All(DatabaseSchemaScripts.BaselineBatches, AssertHasNoGoBatch);
         AssertHasNoGoBatch(upgrade);
@@ -60,6 +63,8 @@ public sealed class SqlServerCiContractTests
         Assert.Equal(Normalize(canonical), Normalize(DatabaseSchemaScripts.SchemaVersion7));
         Assert.Contains("OpenProductSerialId", canonical, StringComparison.Ordinal);
         Assert.Contains("UX_WarrantyClaim_OpenProductSerialId", canonical, StringComparison.Ordinal);
+        Assert.Contains("ON dbo.WarrantyClaim(ProductSerialId)", canonical, StringComparison.Ordinal);
+        Assert.Contains("WHERE [Status] <> N''Closed'' AND [Status] <> N''Rejected''", canonical, StringComparison.Ordinal);
     }
     private static void AssertHasNoGoBatch(string sql) =>
         Assert.DoesNotMatch(new Regex(@"(?im)^\s*GO\s*(?:--.*)?$"), sql);
