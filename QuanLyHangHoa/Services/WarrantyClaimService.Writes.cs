@@ -153,6 +153,16 @@ public partial class WarrantyClaimService
                             $"Mã phiếu bảo hành {normalizedCode} đã tồn tại.");
                     }
 
+                    var hasOpenClaim = await db.WarrantyClaims.AsNoTracking().AnyAsync(item =>
+                        item.ProductSerialId == serial.Id
+                        && item.Status != "Closed"
+                        && item.Status != "Rejected",
+                        token);
+                    if (hasOpenClaim)
+                    {
+                        throw OpenClaimExists(normalizedSerial);
+                    }
+
                     // kiểm tra coverage còn hiệu lực trong transaction ghi, không tin kết quả lookup đã đọc trước đó ở UI.
                     var today = DateTime.Today;
                     var coverage = await db.WarrantyCoverages.SingleOrDefaultAsync(item =>
@@ -192,12 +202,41 @@ public partial class WarrantyClaimService
                 entityKey: normalizedCode,
                 cancellationToken: cancellationToken);
         }
+        catch (DbUpdateException ex) when (IsOpenClaimUniqueViolation(ex))
+        {
+            throw OpenClaimExists(normalizedSerial, ex);
+        }
         catch (DbUpdateException ex)
         {
             throw new InvalidOperationException(
                 "Không thể tạo phiếu bảo hành. Vui lòng kiểm tra mã phiếu và dữ liệu bảo hành đã tồn tại.",
                 ex);
         }
+    }
+
+    private static InvalidOperationException OpenClaimExists(
+        string serialNumber,
+        Exception? innerException = null)
+    {
+        var message = $"Serial {serialNumber} đang có phiếu bảo hành chưa kết thúc.";
+        return innerException is null
+            ? new InvalidOperationException(message)
+            : new InvalidOperationException(message, innerException);
+    }
+
+    private static bool IsOpenClaimUniqueViolation(Exception exception)
+    {
+        for (Exception? current = exception; current is not null; current = current.InnerException)
+        {
+            if (current.Message.Contains("UX_WarrantyClaim_OpenProductSerialId", StringComparison.OrdinalIgnoreCase)
+                || current.Message.Contains("WarrantyClaim.OpenProductSerialId", StringComparison.OrdinalIgnoreCase)
+                || current.Message.Contains("WarrantyClaim.ProductSerialId", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public Task CompleteRepairAsync(
