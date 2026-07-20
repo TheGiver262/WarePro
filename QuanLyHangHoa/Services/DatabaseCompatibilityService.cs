@@ -52,7 +52,7 @@ public sealed class DatabaseCompatibilityService
 
     public DatabaseCompatibilityResult Evaluate(int databaseSchemaVersion)
     {
-        // schema cũ hơn mức hỗ trợ sẽ được initializer nâng lên phiên bản hiện tại.
+        // schema cũ hơn mức hỗ trợ yêu cầu installer nâng database trước khi client tiếp tục.
         if (databaseSchemaVersion < MinimumSupportedSchemaVersion)
         {
             return new DatabaseCompatibilityResult(
