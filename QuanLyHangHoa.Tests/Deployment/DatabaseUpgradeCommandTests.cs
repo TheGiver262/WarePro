@@ -19,7 +19,7 @@ public sealed class DatabaseUpgradeCommandTests
     [Fact]
     public void Old_client_is_rejected_before_mutation()
     {
-        var result = ClientCompatibilityPolicy.Evaluate(new Version("1.0.0"), 6);
+        var result = ClientCompatibilityPolicy.Evaluate(new Version("1.0.0"), 7);
 
         Assert.Equal(ClientCompatibilityStatus.Rejected, result.Status);
         Assert.Equal("1.1.0", result.MinimumClientVersion.ToString());
@@ -32,11 +32,11 @@ public sealed class DatabaseUpgradeCommandTests
 
         var result = await commands.ExecuteAsync([
             "upgrade-database", "--config", @"C:\ProgramData\WarePro\Config\warepro.settings.json",
-            "--app-version", "1.1.0", "--expected-schema", "6"]);
+            "--app-version", "1.1.0", "--expected-schema", "7"]);
 
         Assert.Equal(SetupExitCode.Success, result.ExitCode);
         Assert.Equal("1.1.0", probe.AppVersion?.ToString());
-        Assert.Equal(6, probe.ExpectedSchema);
+        Assert.Equal(7, probe.ExpectedSchema);
     }
 
     private sealed class UpgradeProbe : ISetupProbe
@@ -68,7 +68,7 @@ public sealed class DatabaseUpgradeCommandTests
         {
             "-- baseline", "-- SchemaMetadataSql", "-- SchemaVersion1Sql", "-- SchemaVersion2Sql",
             "-- SchemaVersion3Sql", "-- SchemaVersion4Sql", "-- SchemaVersion5Sql",
-            "-- SchemaVersion6Sql", "-- SchemaArchiveReplaySql"
+            "-- SchemaVersion6Sql", "-- SchemaVersion7Sql", "-- SchemaArchiveReplaySql"
         };
         var previous = -1;
         foreach (var marker in markers)
@@ -108,13 +108,13 @@ public sealed class DatabaseUpgradeCommandTests
     [Fact]
     public void Upgrade_sql_contains_every_version_and_stamps_metadata_last()
     {
-        var sql = DatabaseSchemaScripts.BuildUpgradeSql(6, "1.1.0");
+        var sql = DatabaseSchemaScripts.BuildUpgradeSql(7, "1.1.0");
 
-        for (var version = 1; version <= 6; version++)
+        for (var version = 1; version <= 7; version++)
             Assert.Contains($"IF @CurrentVersion < {version}", sql, StringComparison.Ordinal);
 
         var archive = sql.IndexOf("UX_AuditArchiveManifest_OperationId", StringComparison.Ordinal);
-        var stamp = sql.LastIndexOf("SET [Version] = 6", StringComparison.Ordinal);
+        var stamp = sql.LastIndexOf("SET [Version] = 7", StringComparison.Ordinal);
         Assert.True(archive >= 0 && stamp > archive);
     }
 
@@ -132,7 +132,7 @@ public sealed class DatabaseUpgradeCommandTests
     [Fact]
     public void Upgrade_sql_never_sends_client_go_delimiters_to_sql_server()
     {
-        var sql = DatabaseSchemaScripts.BuildUpgradeSql(6, "1.1.0");
+        var sql = DatabaseSchemaScripts.BuildUpgradeSql(7, "1.1.0");
         Assert.DoesNotMatch(new Regex(@"(?im)^\s*GO\s*(?:--.*)?$"), sql);
         Assert.All(DatabaseSchemaScripts.BaselineBatches,
             batch => Assert.DoesNotMatch(new Regex(@"(?im)^\s*GO\s*(?:--.*)?$"), batch));
@@ -141,7 +141,7 @@ public sealed class DatabaseUpgradeCommandTests
     [Fact]
     public void Legacy_transfer_types_defaults_and_nullability_are_repaired_before_validation()
     {
-        var sql = DatabaseSchemaScripts.BuildUpgradeSql(6, "1.1.0");
+        var sql = DatabaseSchemaScripts.BuildUpgradeSql(7, "1.1.0");
         var validation = sql.IndexOf("WarePro schema shape validation failed", StringComparison.Ordinal);
         foreach (var repair in new[]
                  {

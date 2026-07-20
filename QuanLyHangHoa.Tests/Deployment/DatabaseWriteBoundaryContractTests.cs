@@ -45,7 +45,7 @@ public sealed class DatabaseWriteBoundaryContractTests
     public void Concurrency_document_covers_exact_files_and_operational_contract()
     {
         var document = File.ReadAllText(Path.Combine(Root, "docs", "DATABASE_CONCURRENCY.md"));
-        foreach (var required in ExpectedCalls.Keys.Select(key => key.File).Distinct().Concat(new[] { "retry", "conflict", "operation ID", "maintenance", "backup", "DB-WRITE-CONFLICT", "DB-WRITE-RETRY-EXHAUSTED", "rowversion", "deadlock", "commit acknowledgement", "RCSI", "schema 6", "Plan 2", "approval" })) Assert.Contains(required, document, StringComparison.OrdinalIgnoreCase);
+        foreach (var required in ExpectedCalls.Keys.Select(key => key.File).Distinct().Concat(new[] { "retry", "conflict", "operation ID", "maintenance", "backup", "DB-WRITE-CONFLICT", "DB-WRITE-RETRY-EXHAUSTED", "rowversion", "deadlock", "commit acknowledgement", "RCSI", "schema 7", "Plan 2", "approval" })) Assert.Contains(required, document, StringComparison.OrdinalIgnoreCase);
     }
 
     internal static IReadOnlyList<InvocationExpressionSyntax> FindDirectWriteCalls(string source) => CSharpSyntaxTree.ParseText(source).GetRoot().DescendantNodes().OfType<InvocationExpressionSyntax>().Where(invocation => invocation.Expression switch { MemberAccessExpressionSyntax member => member.Expression is not BaseExpressionSyntax && WriteApis.Contains(member.Name.Identifier.ValueText), MemberBindingExpressionSyntax binding => WriteApis.Contains(binding.Name.Identifier.ValueText), _ => false }).ToArray();

@@ -51,12 +51,12 @@ public sealed class DatabaseCutoverSafetyContractTests
     [Fact]
     public void Preparation_does_not_raise_minimum_client_until_finalize()
     {
-        var prepareSql = DatabaseSchemaScripts.BuildUpgradeSql(6, "1.1.0");
-        var finalizeSql = DatabaseSchemaScripts.BuildFinalizeSql(6, "1.1.0");
+        var prepareSql = DatabaseSchemaScripts.BuildUpgradeSql(7, "1.1.0");
+        var finalizeSql = DatabaseSchemaScripts.BuildFinalizeSql(7, "1.1.0");
 
         Assert.DoesNotContain("MinimumClientVersion] = N'1.1.0'", prepareSql, StringComparison.Ordinal);
         Assert.Contains("MinimumClientVersion = N'1.1.0'", finalizeSql, StringComparison.Ordinal);
-        Assert.Contains("Version = 6", finalizeSql, StringComparison.Ordinal);
+        Assert.Contains("Version = 7", finalizeSql, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -90,14 +90,14 @@ public sealed class DatabaseCutoverSafetyContractTests
     }
 
     [Fact]
-    public void Sql_write_gate_rejects_legacy_or_unregistered_clients_and_accepts_schema_six()
+    public void Sql_write_gate_rejects_legacy_or_unregistered_clients_and_accepts_schema_seven()
     {
-        var sql = DatabaseSchemaScripts.BuildFinalizeSql(6, "1.1.0");
+        var sql = DatabaseSchemaScripts.BuildFinalizeSql(7, "1.1.0");
         var executor = Read("QuanLyHangHoa", "Data", "DatabaseWriteExecutor.cs");
 
         Assert.Contains("WareProClientSchema", sql, StringComparison.Ordinal);
         Assert.Contains("THROW", sql, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("< 6", sql, StringComparison.Ordinal);
+        Assert.Contains("< 7", sql, StringComparison.Ordinal);
         Assert.Contains("sp_set_session_context", executor, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("WareProClientSchema", executor, StringComparison.Ordinal);
         Assert.Contains("DatabaseCompatibilityService.CurrentSchemaVersion", executor, StringComparison.Ordinal);
@@ -180,7 +180,7 @@ public sealed class DatabaseCutoverSafetyContractTests
     [Fact]
     public void Legacy_transfer_schema_is_repaired_before_exact_shape_validation()
     {
-        var sql = DatabaseSchemaScripts.BuildUpgradeSql(6, "1.1.0");
+        var sql = DatabaseSchemaScripts.BuildUpgradeSql(7, "1.1.0");
         var runner = Read("WarePro.SetupHelper", "SetupCommands.cs");
 
         Assert.Contains("ALTER TABLE dbo.StockTransfer WITH CHECK ADD CONSTRAINT FK_StockTransfer_FromWarehouse", sql, StringComparison.Ordinal);
@@ -193,7 +193,7 @@ public sealed class DatabaseCutoverSafetyContractTests
     [Fact]
     public void Legacy_transfer_created_at_default_is_rebuilt_around_column_conversion()
     {
-        var sql = DatabaseSchemaScripts.BuildUpgradeSql(6, "1.1.0");
+        var sql = DatabaseSchemaScripts.BuildUpgradeSql(7, "1.1.0");
         var findDefault = sql.IndexOf("@StockTransferCreatedAtDefault", StringComparison.Ordinal);
         var dropDefault = findDefault < 0 ? -1 : sql.IndexOf("DROP CONSTRAINT", findDefault, StringComparison.Ordinal);
         var alterColumn = sql.IndexOf("ALTER TABLE dbo.StockTransfer ALTER COLUMN CreatedAt", StringComparison.Ordinal);
@@ -207,7 +207,7 @@ public sealed class DatabaseCutoverSafetyContractTests
     [Fact]
     public void Legacy_product_reseed_repairs_history_before_rechecking_constraints()
     {
-        var sql = DatabaseSchemaScripts.BuildUpgradeSql(6, "1.1.0");
+        var sql = DatabaseSchemaScripts.BuildUpgradeSql(7, "1.1.0");
         var buildMap = sql.IndexOf("DECLARE @LegacyProductMap TABLE", StringComparison.Ordinal);
         var rejectMissingMap = sql.IndexOf("Legacy product references cannot be mapped", StringComparison.Ordinal);
         var remapLedger = sql.IndexOf("UPDATE ledger SET ProductId = productMap.CurrentProductId", StringComparison.Ordinal);
@@ -225,7 +225,7 @@ public sealed class DatabaseCutoverSafetyContractTests
     [Fact]
     public void Legacy_partner_reseed_is_remapped_by_audited_business_code()
     {
-        var sql = DatabaseSchemaScripts.BuildUpgradeSql(6, "1.1.0");
+        var sql = DatabaseSchemaScripts.BuildUpgradeSql(7, "1.1.0");
 
         Assert.Contains("$.SupplierCode", sql, StringComparison.Ordinal);
         Assert.Contains("UPDATE invoice SET SupplierId = partnerMap.CurrentPartnerId", sql, StringComparison.Ordinal);
@@ -237,7 +237,7 @@ public sealed class DatabaseCutoverSafetyContractTests
     [Fact]
     public void Legacy_columns_are_normalized_to_the_application_contract()
     {
-        var sql = DatabaseSchemaScripts.BuildUpgradeSql(6, "1.1.0");
+        var sql = DatabaseSchemaScripts.BuildUpgradeSql(7, "1.1.0");
         var shape = DatabaseSchemaScripts.ShapeValidationPredicate;
 
         Assert.Contains("ALTER TABLE dbo.StockTransfer ALTER COLUMN UpdatedAt DATETIME2(0) NULL", sql, StringComparison.Ordinal);
@@ -250,7 +250,7 @@ public sealed class DatabaseCutoverSafetyContractTests
     [Fact]
     public void Legacy_stock_count_links_match_the_ef_model()
     {
-        var sql = DatabaseSchemaScripts.BuildUpgradeSql(6, "1.1.0");
+        var sql = DatabaseSchemaScripts.BuildUpgradeSql(7, "1.1.0");
         var shape = DatabaseSchemaScripts.ShapeValidationPredicate;
 
         Assert.Contains("ALTER TABLE dbo.StockAdjustmentLine ADD DraftSerials NVARCHAR(4000) NULL", sql, StringComparison.Ordinal);
@@ -298,7 +298,7 @@ public sealed class DatabaseCutoverSafetyContractTests
         var source = Read("WarePro.SetupHelper", "SetupCommands.cs");
         var finalize = source[source.IndexOf("public static async Task FinalizeAsync", StringComparison.Ordinal)..
             source.IndexOf("public static async Task RollbackAsync", StringComparison.Ordinal)];
-        var sql = DatabaseSchemaScripts.BuildFinalizeSql(6, "1.1.0");
+        var sql = DatabaseSchemaScripts.BuildFinalizeSql(7, "1.1.0");
         Assert.True(finalize.IndexOf("AcquireMaintenanceLockAsync", StringComparison.Ordinal) <
                     finalize.IndexOf("CountActiveSessionsAsync", StringComparison.Ordinal));
         Assert.Contains("BeginTransactionAsync", finalize, StringComparison.Ordinal);
