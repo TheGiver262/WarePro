@@ -51,6 +51,7 @@ namespace QuanLyHangHoa.Services
                     if (isNew)
                     {
                         candidate.CreatedBy = actorId;
+                        candidate.Status = InvoiceStatus.Active;
                     }
 
                     var stockOut = PrepareSalesInvoice(db, candidate);
@@ -115,6 +116,7 @@ namespace QuanLyHangHoa.Services
                     if (isNew)
                     {
                         candidate.CreatedBy = actorId;
+                        candidate.Status = InvoiceStatus.Active;
                     }
 
                     PreparePurchaseInvoice(db, candidate);
@@ -163,6 +165,7 @@ namespace QuanLyHangHoa.Services
             CreatedBy = source.CreatedBy,
             CreatedAt = source.CreatedAt,
             Notes = source.Notes?.Trim(),
+            Status = source.Status,
             RowVersion = source.RowVersion.ToArray(),
             Lines = source.Lines.Select(line => new SalesInvoiceLine
             {
@@ -191,6 +194,7 @@ namespace QuanLyHangHoa.Services
             CreatedBy = source.CreatedBy,
             CreatedAt = source.CreatedAt,
             Notes = source.Notes?.Trim(),
+            Status = source.Status,
             RowVersion = source.RowVersion.ToArray(),
             Lines = source.Lines.Select(line => new PurchaseInvoiceLine
             {

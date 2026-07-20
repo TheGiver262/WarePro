@@ -273,6 +273,7 @@ public partial class InvoiceService
             .SingleOrDefaultAsync(item => item.Id == invoice.Id, cancellationToken)
             ?? throw new InvalidOperationException("Sales invoice does not exist.");
 
+        EnsureActive(existing.Status, "Sales invoice");
         // đặt OriginalValue từ client để câu update mang điều kiện rowversion; sai mốc sẽ thành DbUpdateConcurrencyException.
         db.Entry(existing).Property(item => item.RowVersion).OriginalValue = expectedRowVersion;
         db.SalesInvoiceLines.RemoveRange(existing.Lines);
@@ -320,6 +321,7 @@ public partial class InvoiceService
             .SingleOrDefaultAsync(item => item.Id == invoice.Id, cancellationToken)
             ?? throw new InvalidOperationException("Purchase invoice does not exist.");
 
+        EnsureActive(existing.Status, "Purchase invoice");
         // dùng cùng rowversion client đã đọc; xung đột dừng lưu thay vì retry rồi ghi đè thay đổi của máy khác.
         db.Entry(existing).Property(item => item.RowVersion).OriginalValue = expectedRowVersion;
         db.PurchaseInvoiceLines.RemoveRange(existing.Lines);
