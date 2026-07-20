@@ -364,19 +364,27 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(
                 e => new { e.PaymentStatus, e.InvoiceDate },
                 "IX_PurchaseInvoice_PaymentStatus_InvoiceDate");
+            entity.HasIndex(
+                e => new { e.Status, e.InvoiceDate },
+                "IX_PurchaseInvoice_Status_InvoiceDate");
 
             entity.Property(e => e.GrandTotal).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.CreatedAt).HasPrecision(0);
             entity.Property(e => e.Notes).IsRequired(false);
             entity.Property(e => e.PaidAmount).HasColumnType("decimal(18, 2)").HasDefaultValue(0m);
             entity.Property(e => e.PaymentStatus).HasMaxLength(50).HasDefaultValue(PaymentStatus.Unpaid);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue(InvoiceStatus.Active);
             entity.Property(e => e.DueDate).HasPrecision(0);
             entity.Property(e => e.InvoiceCode).HasMaxLength(50);
             entity.Property(e => e.InvoiceDate).HasPrecision(0);
             entity.Property(e => e.SubTotal).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.TaxAmount).HasColumnType("decimal(18, 2)");
 
-            entity.ToTable("PurchaseInvoice", t => t.HasCheckConstraint("CK_PurchaseInvoice_PaymentStatus", PaymentStatus.CheckConstraint));
+            entity.ToTable("PurchaseInvoice", table =>
+            {
+                table.HasCheckConstraint("CK_PurchaseInvoice_PaymentStatus", PaymentStatus.CheckConstraint);
+                table.HasCheckConstraint("CK_PurchaseInvoice_Status", InvoiceStatus.CheckConstraint);
+            });
 
             entity.HasOne(d => d.StockIn).WithMany(p => p.PurchaseInvoices)
                 .HasForeignKey(d => d.StockInId)
@@ -437,19 +445,27 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(
                 e => new { e.PaymentStatus, e.InvoiceDate },
                 "IX_SalesInvoice_PaymentStatus_InvoiceDate");
+            entity.HasIndex(
+                e => new { e.Status, e.InvoiceDate },
+                "IX_SalesInvoice_Status_InvoiceDate");
 
             entity.Property(e => e.GrandTotal).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.CreatedAt).HasPrecision(0);
             entity.Property(e => e.Notes).IsRequired(false);
             entity.Property(e => e.PaidAmount).HasColumnType("decimal(18, 2)").HasDefaultValue(0m);
             entity.Property(e => e.PaymentStatus).HasMaxLength(50).HasDefaultValue(PaymentStatus.Unpaid);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue(InvoiceStatus.Active);
             entity.Property(e => e.DueDate).HasPrecision(0);
             entity.Property(e => e.InvoiceCode).HasMaxLength(50);
             entity.Property(e => e.InvoiceDate).HasPrecision(0);
             entity.Property(e => e.SubTotal).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.TaxAmount).HasColumnType("decimal(18, 2)");
 
-            entity.ToTable("SalesInvoice", t => t.HasCheckConstraint("CK_SalesInvoice_PaymentStatus", PaymentStatus.CheckConstraint));
+            entity.ToTable("SalesInvoice", table =>
+            {
+                table.HasCheckConstraint("CK_SalesInvoice_PaymentStatus", PaymentStatus.CheckConstraint);
+                table.HasCheckConstraint("CK_SalesInvoice_Status", InvoiceStatus.CheckConstraint);
+            });
 
             entity.HasOne(d => d.Customer).WithMany(p => p.SalesInvoices)
                 .HasForeignKey(d => d.CustomerId)
@@ -996,6 +1012,19 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.ProductSerialId, "IX_WarrantyClaim_ProductSerialId");
             entity.HasIndex(e => e.Status, "IX_WarrantyClaim_Status");
+
+            if (isSqlite)
+            {
+                entity.HasIndex(e => e.ProductSerialId, "UX_WarrantyClaim_OpenProductSerialId")
+                    .IsUnique()
+                    .HasFilter("Status <> 'Closed' AND Status <> 'Rejected'");
+            }
+            else
+            {
+                entity.Property<int?>("OpenProductSerialId")
+                    .HasComputedColumnSql("CASE WHEN [Status] IN ('Closed', 'Rejected') THEN NULL ELSE [ProductSerialId] END", stored: true);
+                entity.HasIndex(new[] { "OpenProductSerialId" }, "UX_WarrantyClaim_OpenProductSerialId").IsUnique();
+            }
 
             entity.Property(e => e.ClaimCode).HasMaxLength(50);
             entity.Property(e => e.ClosedDate).HasPrecision(0);

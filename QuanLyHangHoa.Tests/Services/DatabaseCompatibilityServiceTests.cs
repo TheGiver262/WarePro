@@ -6,9 +6,9 @@ public class DatabaseCompatibilityServiceTests
 {
     [Theory]
     [InlineData(0, DatabaseCompatibilityStatus.UpgradeRequired)]
-    [InlineData(5, DatabaseCompatibilityStatus.UpgradeRequired)]
-    [InlineData(6, DatabaseCompatibilityStatus.Compatible)]
-    [InlineData(7, DatabaseCompatibilityStatus.ClientUpdateRequired)]
+    [InlineData(6, DatabaseCompatibilityStatus.UpgradeRequired)]
+    [InlineData(7, DatabaseCompatibilityStatus.Compatible)]
+    [InlineData(8, DatabaseCompatibilityStatus.ClientUpdateRequired)]
     public void Evaluate_returns_the_expected_schema_status(
         int databaseSchemaVersion,
         DatabaseCompatibilityStatus expected)

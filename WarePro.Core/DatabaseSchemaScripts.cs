@@ -426,6 +426,7 @@ public static class DatabaseSchemaScripts
     public static string SchemaVersion4 => SingleBatch("SchemaVersion4Sql");
     public static string SchemaVersion5 => SingleBatch("SchemaVersion5Sql");
     public static string SchemaVersion6 => ReadEmbeddedText("WarePro.Core.Resources.v6-common-write-safety.sql");
+    public static string SchemaVersion7 => ReadEmbeddedText("WarePro.Core.Resources.v7-invoice-void-open-claim.sql");
     public static string SchemaArchiveReplay => SingleBatch("SchemaArchiveReplaySql");
 
     public static string ShapeValidationPredicate => """
@@ -593,11 +594,14 @@ public static class DatabaseSchemaScripts
                 (N'PurchaseInvoice', N'GrandTotal', N'decimal', 9, 18, 2, 0),
                 (N'PurchaseInvoice', N'PaidAmount', N'decimal', 9, 18, 2, 0),
                 (N'PurchaseInvoice', N'PaymentStatus', N'nvarchar', 100, 0, 0, 0),
+                (N'PurchaseInvoice', N'Status', N'nvarchar', 40, 0, 0, 0),
                 (N'SalesInvoice', N'InvoiceCode', N'nvarchar', 100, 0, 0, 0),
                 (N'SalesInvoice', N'CustomerId', N'int', 4, 10, 0, 0),
                 (N'SalesInvoice', N'GrandTotal', N'decimal', 9, 18, 2, 0),
                 (N'SalesInvoice', N'PaidAmount', N'decimal', 9, 18, 2, 0),
-                (N'SalesInvoice', N'PaymentStatus', N'nvarchar', 100, 0, 0, 0)
+                (N'SalesInvoice', N'PaymentStatus', N'nvarchar', 100, 0, 0, 0),
+                (N'SalesInvoice', N'Status', N'nvarchar', 40, 0, 0, 0),
+                (N'WarrantyClaim', N'OpenProductSerialId', N'int', 4, 10, 0, 1)
             ) AS expected(TableName, ColumnName, TypeName, MaxLength, Precision, Scale, IsNullable)
             EXCEPT
             SELECT OBJECT_NAME(columns.object_id), columns.name, TYPE_NAME(columns.system_type_id),
@@ -673,7 +677,9 @@ public static class DatabaseSchemaScripts
                 (N'CK_ProductUnit_ConversionFactor_Positive'),
                 (N'CK_StockBalance_OnHand_NonNegative'),
                 (N'CK_PurchaseInvoice_PaymentStatus'),
-                (N'CK_SalesInvoice_PaymentStatus')
+                (N'CK_SalesInvoice_PaymentStatus'),
+                (N'CK_PurchaseInvoice_Status'),
+                (N'CK_SalesInvoice_Status')
             ) AS expected(ConstraintName)
             EXCEPT
             SELECT name FROM sys.check_constraints WHERE is_disabled = 0 AND is_not_trusted = 0
@@ -688,8 +694,13 @@ public static class DatabaseSchemaScripts
                 (N'StockBalance', N'UX_StockBalance_Warehouse_Product', 1, 2, N'ProductId', 2),
                 (N'PurchaseInvoice', N'IX_PurchaseInvoice_PaymentStatus_InvoiceDate', 0, 1, N'PaymentStatus', 2),
                 (N'PurchaseInvoice', N'IX_PurchaseInvoice_PaymentStatus_InvoiceDate', 0, 2, N'InvoiceDate', 2),
+                (N'PurchaseInvoice', N'IX_PurchaseInvoice_Status_InvoiceDate', 0, 1, N'Status', 2),
+                (N'PurchaseInvoice', N'IX_PurchaseInvoice_Status_InvoiceDate', 0, 2, N'InvoiceDate', 2),
                 (N'SalesInvoice', N'IX_SalesInvoice_PaymentStatus_InvoiceDate', 0, 1, N'PaymentStatus', 2),
                 (N'SalesInvoice', N'IX_SalesInvoice_PaymentStatus_InvoiceDate', 0, 2, N'InvoiceDate', 2),
+                (N'SalesInvoice', N'IX_SalesInvoice_Status_InvoiceDate', 0, 1, N'Status', 2),
+                (N'SalesInvoice', N'IX_SalesInvoice_Status_InvoiceDate', 0, 2, N'InvoiceDate', 2),
+                (N'WarrantyClaim', N'UX_WarrantyClaim_OpenProductSerialId', 1, 1, N'OpenProductSerialId', 1),
                 (N'StockLedger', N'IX_StockLedger_Warehouse_Product_PostedAt', 0, 1, N'WarehouseId', 3),
                 (N'StockLedger', N'IX_StockLedger_Warehouse_Product_PostedAt', 0, 2, N'ProductId', 3),
                 (N'StockLedger', N'IX_StockLedger_Warehouse_Product_PostedAt', 0, 3, N'PostedAt', 3),
@@ -741,6 +752,7 @@ public static class DatabaseSchemaScripts
         var version4 = AsDynamicSql(SchemaVersion4);
         var version5 = AsDynamicSql(SchemaVersion5);
         var version6 = AsDynamicSql(SchemaVersion6);
+        var version7 = AsDynamicSql(SchemaVersion7);
         var archiveReplay = AsDynamicSql(SchemaArchiveReplay);
         return $$"""
             {{metadata}}
@@ -756,6 +768,7 @@ public static class DatabaseSchemaScripts
             IF @CurrentVersion < 4 BEGIN {{version4}} END;
             IF @CurrentVersion < 5 BEGIN {{version5}} END;
             IF @CurrentVersion < 6 BEGIN {{version6}} END;
+            IF @CurrentVersion < 7 BEGIN {{version7}} END;
 
             {{archiveReplay}}
 
@@ -828,7 +841,7 @@ public static class DatabaseSchemaScripts
 
     private static void ValidateRelease(int expectedSchema, string version)
     {
-        if (expectedSchema != 6)
+        if (expectedSchema != 7)
             throw new ArgumentOutOfRangeException(nameof(expectedSchema));
         if (!Version.TryParse(version, out _))
             throw new ArgumentException("Version is invalid.", nameof(version));

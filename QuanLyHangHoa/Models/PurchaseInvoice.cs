@@ -29,6 +29,8 @@ public partial class PurchaseInvoice
     public DateTime CreatedAt { get; set; }
     public string? Notes { get; set; }
 
+    public string Status { get; set; } = InvoiceStatus.Active;
+
     public virtual AppUser Creator { get; set; } = null!;
 
     public virtual ICollection<PurchaseInvoiceLine> Lines { get; set; } = new List<PurchaseInvoiceLine>();

@@ -358,9 +358,11 @@ CREATE TABLE dbo.PurchaseInvoice
     TaxAmount     DECIMAL(18,2) NOT NULL CONSTRAINT DF_PurchaseInvoice_TaxAmount DEFAULT (0),
     GrandTotal    DECIMAL(18,2) NOT NULL,
     Notes         NVARCHAR(MAX) NULL,
+    Status        NVARCHAR(20) NOT NULL CONSTRAINT DF_PurchaseInvoice_Status DEFAULT (N'Active'),
     CreatedAt     DATETIME2(0) NOT NULL CONSTRAINT DF_PurchaseInvoice_CreatedAt DEFAULT (SYSUTCDATETIME()),
     CONSTRAINT FK_PurchaseInvoice_Supplier FOREIGN KEY (SupplierId) REFERENCES dbo.Supplier(Id),
     CONSTRAINT FK_PurchaseInvoice_StockIn FOREIGN KEY (StockInId) REFERENCES dbo.StockIn(Id),
+    CONSTRAINT CK_PurchaseInvoice_Status CHECK (Status IN (N'Active', N'Voided')),
     CONSTRAINT CK_PurchaseInvoice_SubTotal_NonNegative CHECK (SubTotal >= 0),
     CONSTRAINT CK_PurchaseInvoice_TaxAmount_NonNegative CHECK (TaxAmount >= 0),
     CONSTRAINT CK_PurchaseInvoice_GrandTotal_NonNegative CHECK (GrandTotal >= 0)
@@ -368,6 +370,7 @@ CREATE TABLE dbo.PurchaseInvoice
 GO
 
 CREATE UNIQUE INDEX UX_PurchaseInvoice_InvoiceCode ON dbo.PurchaseInvoice(InvoiceCode);
+CREATE INDEX IX_PurchaseInvoice_Status_InvoiceDate ON dbo.PurchaseInvoice(Status, InvoiceDate);
 GO
 
 CREATE TABLE dbo.PurchaseInvoiceLine
@@ -407,9 +410,11 @@ CREATE TABLE dbo.SalesInvoice
     TaxAmount     DECIMAL(18,2) NOT NULL CONSTRAINT DF_SalesInvoice_TaxAmount DEFAULT (0),
     GrandTotal    DECIMAL(18,2) NOT NULL,
     Notes         NVARCHAR(MAX) NULL,
+    Status        NVARCHAR(20) NOT NULL CONSTRAINT DF_SalesInvoice_Status DEFAULT (N'Active'),
     CreatedAt     DATETIME2(0) NOT NULL CONSTRAINT DF_SalesInvoice_CreatedAt DEFAULT (SYSUTCDATETIME()),
     CONSTRAINT FK_SalesInvoice_Customer FOREIGN KEY (CustomerId) REFERENCES dbo.Customer(Id),
     CONSTRAINT FK_SalesInvoice_StockOut FOREIGN KEY (StockOutId) REFERENCES dbo.StockOut(Id),
+    CONSTRAINT CK_SalesInvoice_Status CHECK (Status IN (N'Active', N'Voided')),
     CONSTRAINT CK_SalesInvoice_SubTotal_NonNegative CHECK (SubTotal >= 0),
     CONSTRAINT CK_SalesInvoice_TaxAmount_NonNegative CHECK (TaxAmount >= 0),
     CONSTRAINT CK_SalesInvoice_GrandTotal_NonNegative CHECK (GrandTotal >= 0)
@@ -417,6 +422,7 @@ CREATE TABLE dbo.SalesInvoice
 GO
 
 CREATE UNIQUE INDEX UX_SalesInvoice_InvoiceCode ON dbo.SalesInvoice(InvoiceCode);
+CREATE INDEX IX_SalesInvoice_Status_InvoiceDate ON dbo.SalesInvoice(Status, InvoiceDate);
 GO
 
 CREATE TABLE dbo.SalesInvoiceLine
@@ -529,6 +535,11 @@ CREATE TABLE dbo.WarrantyClaim
     ProcessingNote        NVARCHAR(1000) NULL,
     ResolutionType        NVARCHAR(50) NULL,
     Status                NVARCHAR(50) NOT NULL,
+    OpenProductSerialId   AS
+        (CASE
+            WHEN Status IN (N'Closed', N'Rejected') THEN NULL
+            ELSE ProductSerialId
+         END) PERSISTED,
     ApprovedBy            INT NULL,
     ProcessedBy           INT NOT NULL,
     ClosedDate            DATETIME2(0) NULL,
@@ -542,9 +553,9 @@ CREATE TABLE dbo.WarrantyClaim
 GO
 
 CREATE UNIQUE INDEX UX_WarrantyClaim_ClaimCode ON dbo.WarrantyClaim(ClaimCode);
-CREATE UNIQUE INDEX UX_WarrantyClaim_OpenClaim_PerSerial
-ON dbo.WarrantyClaim(ProductSerialId)
-WHERE Status <> N'Closed';
+CREATE UNIQUE INDEX UX_WarrantyClaim_OpenProductSerialId
+ON dbo.WarrantyClaim(OpenProductSerialId)
+WHERE OpenProductSerialId IS NOT NULL;
 GO
 
 CREATE TABLE dbo.AuditLog

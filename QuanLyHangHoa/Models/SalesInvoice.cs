@@ -29,6 +29,8 @@ public partial class SalesInvoice
     public DateTime CreatedAt { get; set; }
     public string? Notes { get; set; }
 
+    public string Status { get; set; } = InvoiceStatus.Active;
+
     public virtual AppUser Creator { get; set; } = null!;
 
     public virtual Customer Customer { get; set; } = null!;
