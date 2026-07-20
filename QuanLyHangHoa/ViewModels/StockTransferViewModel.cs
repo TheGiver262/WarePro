@@ -109,6 +109,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private ObservableCollection<StockTransferLineEditor> _lines = new();
 
         [ObservableProperty] private int _stockTransferId;
+        private byte[] _editingRowVersion = [];
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(CanEdit))]
         [NotifyPropertyChangedFor(nameof(CanProcessLifecycle))]
@@ -246,6 +247,33 @@ namespace QuanLyHangHoa.ViewModels
             IsListViewVisible = false;
             IsDetailViewVisible = true;
         }
+        [RelayCommand(CanExecute = nameof(CanDeleteDocument))]
+        private async Task DeleteDocument(StockTransfer document, CancellationToken cancellationToken)
+        {
+            if (document == null) return;
+            if (!CanUserEdit)
+            {
+                MessageBox.Show("Bạn không có quyền xóa phiếu này.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            if (!StockDocumentUiLifecycle.IsDraft(document.Status))
+            {
+                MessageBox.Show("Chỉ có thể xóa phiếu chuyển kho ở trạng thái nháp.", "Thông báo");
+                return;
+            }
+            var confirm = MessageBox.Show($"Xóa vĩnh viễn phiếu chuyển kho nháp {document.DocumentCode}?", "Xác nhận xóa", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (confirm != MessageBoxResult.Yes) return;
+            var operationId = Guid.NewGuid();
+            if (!await ExecuteWriteAsync(
+                async _ => await _stockTransferService.DeleteAsync(document.Id, document.RowVersion, _currentUser.Id, operationId, cancellationToken),
+                cancellationToken)) return;
+            LoadData();
+            MessageBox.Show("Đã xóa phiếu chuyển kho nháp.", "Thông báo");
+        }
+        private bool CanDeleteDocument(StockTransfer? document) =>
+            document != null && CanUserEdit && StockDocumentUiLifecycle.IsDraft(document.Status);
+
+
 
         [RelayCommand]
         private void BackToList()
@@ -259,6 +287,7 @@ namespace QuanLyHangHoa.ViewModels
         private void LoadFromModel(StockTransfer st)
         {
             StockTransferId = st.Id;
+            _editingRowVersion = st.RowVersion.ToArray();
             DocumentCode = st.DocumentCode;
             SelectedFromWarehouse = AvailableWarehouses.FirstOrDefault(w => w.Id == st.FromWarehouseId);
             SelectedToWarehouse = AvailableWarehouses.FirstOrDefault(w => w.Id == st.ToWarehouseId);
@@ -277,10 +306,10 @@ namespace QuanLyHangHoa.ViewModels
                     Quantity = line.Quantity,
                     SelectedUnit = line.Unit
                 };
-                
-                foreach (var sn in line.ProductSerials)
+
+                foreach (var serial in line.ProductSerials)
                 {
-                    editor.SerialNumbers.Add(sn.SerialNumber);
+                    editor.SerialNumbers.Add(serial.SerialNumber);
                 }
                 
                 Lines.Add(editor);
@@ -387,6 +416,7 @@ namespace QuanLyHangHoa.ViewModels
                     async _ => await _stockTransferService.SaveDraftAsync(st, stLines, _currentUser.Id, operationId, cancellationToken),
                     cancellationToken)) return;
                 StockTransferId = st.Id;
+                _editingRowVersion = st.RowVersion.ToArray();
                 Status = st.Status;
                 
                 MessageBox.Show("Đã lưu phiếu nháp thành công.", "Thông báo");
@@ -428,6 +458,7 @@ namespace QuanLyHangHoa.ViewModels
                         async _ => await _stockTransferService.SaveDraftAsync(st, stLines, _currentUser.Id, operationId, cancellationToken),
                         cancellationToken)) return;
                     StockTransferId = st.Id;
+                    _editingRowVersion = st.RowVersion.ToArray();
                 }
                 catch (Exception)
                 {
@@ -459,7 +490,10 @@ namespace QuanLyHangHoa.ViewModels
                 if (StockDocumentUiLifecycle.IsDraft(Status))
                 {
                     if (!await ExecuteWriteAsync(
-                        async _ => await _stockTransferService.SubmitForApprovalAsync(StockTransferId, _currentUser.Id, operationId, cancellationToken),
+                        async _ =>
+                        {
+                            _editingRowVersion = await _stockTransferService.SubmitForApprovalAsync(StockTransferId, _editingRowVersion, _currentUser.Id, operationId, cancellationToken);
+                        },
                         cancellationToken)) return;
                     Status = DocumentStatus.PendingApproval;
                     if (!IsAdminOrManager)
@@ -472,12 +506,18 @@ namespace QuanLyHangHoa.ViewModels
                 if (StockDocumentUiLifecycle.IsPendingApproval(Status))
                 {
                     if (!await ExecuteWriteAsync(
-                        async _ => await _stockTransferService.ApproveAsync(StockTransferId, _currentUser.Id, operationId, cancellationToken),
+                        async _ =>
+                        {
+                            _editingRowVersion = await _stockTransferService.ApproveAsync(StockTransferId, _editingRowVersion, _currentUser.Id, operationId, cancellationToken);
+                        },
                         cancellationToken)) return;
                     Status = DocumentStatus.Approved;
                 }
                 if (!await ExecuteWriteAsync(
-                    async _ => await _stockTransferService.PostAsync(StockTransferId, _currentUser.Id, operationId, cancellationToken),
+                    async _ =>
+                    {
+                        _editingRowVersion = await _stockTransferService.PostAsync(StockTransferId, _editingRowVersion, _currentUser.Id, operationId, cancellationToken);
+                    },
                     cancellationToken)) return;
                 IsPosted = true;
                 Status = DocumentStatus.Posted;
@@ -589,7 +629,8 @@ namespace QuanLyHangHoa.ViewModels
                 Notes = Notes,
                 Status = "Draft",
                 CreatedBy = _currentUser.Id,
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.Now,
+                RowVersion = _editingRowVersion.ToArray()
             };
         }
 
@@ -621,6 +662,7 @@ namespace QuanLyHangHoa.ViewModels
         private void ResetForm()
         {
             StockTransferId = 0;
+            _editingRowVersion = [];
             Status = "Draft";
             IsPosted = false;
             OnPropertyChanged(nameof(CanEdit));

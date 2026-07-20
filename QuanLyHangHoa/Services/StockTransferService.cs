@@ -87,6 +87,7 @@ namespace QuanLyHangHoa.Services
                 cancellationToken: cancellationToken);
             stockTransfer.Id = savedId;
             stockTransfer.DocumentCode = snapshot.DocumentCode;
+            stockTransfer.RowVersion = await LoadRowVersionAsync(savedId, cancellationToken);
         }
 
         internal virtual void SaveDraft(StockTransfer stockTransfer, List<StockTransferLine> lines, int userId) =>
@@ -108,6 +109,11 @@ namespace QuanLyHangHoa.Services
                     .Include(item => item.Lines)
                     .ThenInclude(line => line.ProductSerials)
                     .FirstOrDefault(item => item.Id == snapshot.Id);
+            }
+
+            if (snapshot.Id > 0 && existing is null)
+            {
+                throw new InventoryDomainException("Không tìm thấy chứng từ hoặc chứng từ đã bị xóa.");
             }
 
             if (existing is not null)
@@ -191,15 +197,40 @@ namespace QuanLyHangHoa.Services
                     item => item.Id == stockTransferId && item.Status == DocumentStatus.PendingApproval, token),
                 cancellationToken: cancellationToken);
 
+        public async Task<byte[]> SubmitForApprovalAsync(
+            int stockTransferId, byte[] expectedRowVersion, int userId, Guid operationId,
+            CancellationToken cancellationToken = default)
+        {
+            var rowVersion = SnapshotRowVersion(expectedRowVersion);
+            await _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("stock-transfer.submit", operationId),
+                (db, token) => StageSubmitForApprovalAsync(db, stockTransferId, rowVersion, userId),
+                (db, token) => db.StockTransfers.AnyAsync(
+                    item => item.Id == stockTransferId && item.Status == DocumentStatus.PendingApproval, token),
+                cancellationToken: cancellationToken);
+            return await LoadRowVersionAsync(stockTransferId, cancellationToken);
+        }
+
         internal virtual void SubmitForApproval(int stockTransferId, int userId) =>
             SubmitForApprovalAsync(stockTransferId, userId, Guid.NewGuid()).GetAwaiter().GetResult();
 
-        private Task StageSubmitForApprovalAsync(AppDbContext db, int stockTransferId, int userId)
+        private Task StageSubmitForApprovalAsync(AppDbContext db, int stockTransferId, int userId) =>
+            StageSubmitForApprovalAsync(db, stockTransferId, null, userId);
+
+        private Task StageSubmitForApprovalAsync(
+            AppDbContext db,
+            int stockTransferId,
+            byte[]? expectedRowVersion,
+            int userId)
         {
             AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockAdjustment);
             var transfer = db.StockTransfers.SingleOrDefault(item => item.Id == stockTransferId)
                 ?? throw new InventoryDomainException("Không tìm thấy phiếu chuyển kho.");
             var beforeJson = Serialize(transfer);
+            if (expectedRowVersion is not null)
+            {
+                db.Entry(transfer).Property(item => item.RowVersion).OriginalValue = expectedRowVersion;
+            }
             var lifecycle = new StockDocumentLifecycleService();
             transfer.Status = lifecycle.SubmitForApproval(ParseStatus(transfer.Status)).ToString();
             transfer.UpdatedBy = userId;
@@ -218,16 +249,41 @@ namespace QuanLyHangHoa.Services
                     item => item.Id == stockTransferId && item.Status == DocumentStatus.Approved, token),
                 cancellationToken: cancellationToken);
 
+        public async Task<byte[]> ApproveAsync(
+            int stockTransferId, byte[] expectedRowVersion, int userId, Guid operationId,
+            CancellationToken cancellationToken = default)
+        {
+            var rowVersion = SnapshotRowVersion(expectedRowVersion);
+            await _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("stock-transfer.approve", operationId),
+                (db, token) => StageApproveAsync(db, stockTransferId, rowVersion, userId),
+                (db, token) => db.StockTransfers.AnyAsync(
+                    item => item.Id == stockTransferId && item.Status == DocumentStatus.Approved, token),
+                cancellationToken: cancellationToken);
+            return await LoadRowVersionAsync(stockTransferId, cancellationToken);
+        }
+
         internal virtual void Approve(int stockTransferId, int userId) =>
             ApproveAsync(stockTransferId, userId, Guid.NewGuid()).GetAwaiter().GetResult();
 
-        private Task StageApproveAsync(AppDbContext db, int stockTransferId, int userId)
+        private Task StageApproveAsync(AppDbContext db, int stockTransferId, int userId) =>
+            StageApproveAsync(db, stockTransferId, null, userId);
+
+        private Task StageApproveAsync(
+            AppDbContext db,
+            int stockTransferId,
+            byte[]? expectedRowVersion,
+            int userId)
         {
             var actor = AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockAdjustment);
             var transfer = db.StockTransfers.SingleOrDefault(item => item.Id == stockTransferId)
                 ?? throw new InventoryDomainException("Không tìm thấy phiếu chuyển kho.");
             var lifecycle = new StockDocumentLifecycleService();
             var beforeJson = Serialize(transfer);
+            if (expectedRowVersion is not null)
+            {
+                db.Entry(transfer).Property(item => item.RowVersion).OriginalValue = expectedRowVersion;
+            }
             transfer.Status = lifecycle.Approve(
                 ParseStatus(transfer.Status),
                 AuthorizationService.CanPerform(actor, PermissionAction.ApproveStock)).ToString();
@@ -249,10 +305,31 @@ namespace QuanLyHangHoa.Services
                     item => item.Id == stockTransferId && item.Status == DocumentStatus.Posted, token),
                 cancellationToken: cancellationToken);
 
+        public async Task<byte[]> PostAsync(
+            int stockTransferId, byte[] expectedRowVersion, int userId, Guid operationId,
+            CancellationToken cancellationToken = default)
+        {
+            var rowVersion = SnapshotRowVersion(expectedRowVersion);
+            await _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("stock-transfer.post", operationId),
+                (db, token) => StagePostAsync(db, stockTransferId, rowVersion, userId),
+                (db, token) => db.StockTransfers.AnyAsync(
+                    item => item.Id == stockTransferId && item.Status == DocumentStatus.Posted, token),
+                cancellationToken: cancellationToken);
+            return await LoadRowVersionAsync(stockTransferId, cancellationToken);
+        }
+
         internal virtual void Post(int stockTransferId, int userId) =>
             PostAsync(stockTransferId, userId, Guid.NewGuid()).GetAwaiter().GetResult();
 
-        private Task StagePostAsync(AppDbContext db, int stockTransferId, int userId)
+        private Task StagePostAsync(AppDbContext db, int stockTransferId, int userId) =>
+            StagePostAsync(db, stockTransferId, null, userId);
+
+        private Task StagePostAsync(
+            AppDbContext db,
+            int stockTransferId,
+            byte[]? expectedRowVersion,
+            int userId)
         {
             var actor = AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockAdjustment);
 
@@ -261,6 +338,10 @@ namespace QuanLyHangHoa.Services
                     .ThenInclude(line => line.ProductSerials)
                 .FirstOrDefault(transfer => transfer.Id == stockTransferId)
                 ?? throw new InventoryDomainException("Không tìm thấy phiếu chuyển kho.");
+            if (expectedRowVersion is not null)
+            {
+                db.Entry(stockTransfer).Property(item => item.RowVersion).OriginalValue = expectedRowVersion;
+            }
             var lifecycle = new StockDocumentLifecycleService();
             lifecycle.EnsureCanPost(ParseStatus(stockTransfer.Status));
             if (!AuthorizationService.CanPerform(actor, PermissionAction.ApproveStock))
@@ -373,6 +454,26 @@ namespace QuanLyHangHoa.Services
             public DateTime Now => DateTime.Now;
         }
 
+        private async Task<byte[]> LoadRowVersionAsync(int id, CancellationToken cancellationToken)
+        {
+            await using var db = _contextFactory();
+            return (await db.StockTransfers.AsNoTracking()
+                .Where(item => item.Id == id)
+                .Select(item => item.RowVersion)
+                .SingleOrDefaultAsync(cancellationToken))?.ToArray()
+                ?? throw new InventoryDomainException("Không tìm thấy phiếu chuyển kho.");
+        }
+
+        private static byte[] SnapshotRowVersion(byte[] expectedRowVersion)
+        {
+            ArgumentNullException.ThrowIfNull(expectedRowVersion);
+            if (expectedRowVersion.Length == 0)
+            {
+                throw new ArgumentException("RowVersion is required.", nameof(expectedRowVersion));
+            }
+            return expectedRowVersion.ToArray();
+        }
+
         public Task DeleteAsync(
             int id,
             byte[] expectedRowVersion,
@@ -397,10 +498,10 @@ namespace QuanLyHangHoa.Services
         {
             AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockAdjustment);
             var stockTransfer = db.StockTransfers.Include(item => item.Lines).FirstOrDefault(item => item.Id == id)
-                ?? throw new Exception("KhÃ´ng tÃ¬m tháº¥y phiáº¿u chuyá»ƒn kho.");
-            if (stockTransfer.Status == DocumentStatus.Posted)
+                ?? throw new InventoryDomainException("Không tìm thấy phiếu chuyển kho.");
+            if (stockTransfer.Status != DocumentStatus.Draft)
             {
-                throw new Exception("KhÃ´ng thá»ƒ xÃ³a phiáº¿u Ä‘Ã£ ghi sá»•.");
+                throw new InventoryDomainException("Chỉ có thể xóa phiếu chuyển kho ở trạng thái nháp.");
             }
 
             db.Entry(stockTransfer).Property(item => item.RowVersion).OriginalValue = expectedRowVersion;

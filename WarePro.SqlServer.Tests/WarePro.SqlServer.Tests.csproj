@@ -25,6 +25,9 @@
     <EmbeddedResource Include="..\Database\Schema\v6-common-write-safety.sql"
                       Link="Resources\v6-common-write-safety.sql"
                       LogicalName="WarePro.Core.Resources.v6-common-write-safety.sql" />
+    <EmbeddedResource Include="..\Database\Schema\v7-invoice-void-open-claim.sql"
+                      Link="Resources\v7-invoice-void-open-claim.sql"
+                      LogicalName="WarePro.Core.Resources.v7-invoice-void-open-claim.sql" />
   </ItemGroup>
 
   <ItemGroup>

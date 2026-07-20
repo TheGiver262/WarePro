@@ -262,7 +262,29 @@
                                         </DataGridTemplateColumn.Header>
                                     </DataGridTemplateColumn>
 
-                                    <DataGridTemplateColumn Header="THAO TÁC" Width="130">
+                                    <DataGridTemplateColumn Header="HIỆU LỰC" Width="100">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Text" Value="Hiệu lực"/>
+                                                            <Setter Property="Foreground" Value="{StaticResource SuccessTextBrush}"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Status}" Value="Voided">
+                                                                    <Setter Property="Text" Value="Đã hủy"/>
+                                                                    <Setter Property="Foreground" Value="{StaticResource AppErrorBrush}"/>
+                                                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <DataGridTemplateColumn Header="THAO TÁC" Width="170">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
                                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -278,6 +300,10 @@
                                                             Command="{Binding DataContext.PrintInvoiceCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
                                                             CommandParameter="{Binding}"
                                                             Margin="4,0,0,0" ToolTip="In hóa đơn"/>
+                                                    <Button Style="{StaticResource ProMaxIconButtonStyle}" Content="{materialDesign:PackIcon Kind=Cancel}"
+                                                            Command="{Binding DataContext.VoidInvoiceCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+                                                            CommandParameter="{Binding}"
+                                                            Margin="4,0,0,0" ToolTip="Hủy hóa đơn"/>
                                                 </StackPanel>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>

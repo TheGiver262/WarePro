@@ -403,7 +403,7 @@ namespace QuanLyHangHoa.ViewModels
             SelectedTabIndex = 1; // Switch to form tab
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanChangeInvoice))]
         private void EditInvoice(SalesInvoice? invoice)
         {
             if (invoice == null) return;
@@ -412,6 +412,55 @@ namespace QuanLyHangHoa.ViewModels
             IsViewMode = false;
             IsEditMode = true;
             SelectedTabIndex = 1; // Switch to form tab
+        }
+
+        private static bool CanChangeInvoice(SalesInvoice? invoice) =>
+            invoice?.Status == InvoiceStatus.Active;
+
+        [RelayCommand(CanExecute = nameof(CanChangeInvoice))]
+        private async Task VoidInvoiceAsync(SalesInvoice? invoice)
+        {
+            if (invoice == null) return;
+
+            var dialog = new Views.InvoiceVoidReasonDialog(invoice.InvoiceCode)
+            {
+                Owner = Application.Current?.MainWindow
+            };
+            if (dialog.ShowDialog() != true) return;
+
+            try
+            {
+                await _invoiceService.VoidSalesInvoiceAsync(
+                    invoice.Id,
+                    invoice.RowVersion.ToArray(),
+                    dialog.Reason,
+                    _currentUser.Id,
+                    Guid.NewGuid());
+                MessageBox.Show(
+                    "Đã hủy hóa đơn. Bản ghi và các dòng hóa đơn vẫn được giữ lại.",
+                    "Hủy hóa đơn",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                LoadData();
+            }
+            catch (DatabaseWriteConflictException)
+            {
+                MessageBox.Show(
+                    "Hóa đơn đã được thay đổi ở máy khác. Dữ liệu mới nhất sẽ được tải lại.",
+                    "Dữ liệu đã thay đổi",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                LoadData();
+            }
+            catch (InvalidOperationException ex)
+            {
+                MessageBox.Show(ex.Message, "Không thể hủy hóa đơn", MessageBoxButton.OK, MessageBoxImage.Warning);
+                LoadData();
+            }
+            catch (Exception)
+            {
+                MessageBox.Show(DatabaseWriteUi.TechnicalErrorMessage, "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         // tạo state chỉnh sửa tách khỏi row danh sách để Cancel không làm đổi dữ liệu đang hiển thị

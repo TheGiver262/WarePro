@@ -197,7 +197,7 @@ public class WarrantyClaimServiceTests
     }
 
     [Fact]
-    public void CreateClaim_allows_multiple_open_claims_for_same_serial()
+    public void CreateClaim_rejects_second_open_claim_for_same_serial()
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
@@ -243,14 +243,41 @@ public class WarrantyClaimServiceTests
 
         var service = new WarrantyClaimService(() => CreateContext(connection));
 
-        // Should allow creating another claim instead of throwing exception
-        var claimId2 = service.CreateClaim("WC-0002", "WARRANTY-002", "Battery issue", userId: 1);
+        var error = Assert.Throws<InvalidOperationException>(() =>
+            service.CreateClaim("WC-0002", "WARRANTY-002", "Battery issue", userId: 1));
 
+        Assert.Contains("đang có phiếu bảo hành chưa kết thúc", error.Message);
         using var assertContext = CreateContext(connection);
-        var claims = assertContext.WarrantyClaims.ToList();
-        Assert.Equal(2, claims.Count);
-        Assert.Contains(claims, c => c.ClaimCode == "WC-OPEN");
-        Assert.Contains(claims, c => c.ClaimCode == "WC-0002");
+        Assert.Single(assertContext.WarrantyClaims);
+        Assert.DoesNotContain(assertContext.WarrantyClaims, claim => claim.ClaimCode == "WC-0002");
+    }
+
+    [Theory]
+    [InlineData("Closed")]
+    [InlineData("Rejected")]
+    public void CreateClaim_allows_new_claim_after_previous_terminal_status(string terminalStatus)
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        using (var seedContext = CreateContext(connection))
+        {
+            DatabaseHelper.SeedBasicData(seedContext);
+            var oldClaimId = SeedOpenClaim(seedContext, "WARRANTY-TERMINAL", $"WC-{terminalStatus}");
+            var oldClaim = seedContext.WarrantyClaims.Single(item => item.Id == oldClaimId);
+            oldClaim.Status = terminalStatus;
+            seedContext.SaveChanges();
+        }
+
+        var service = new WarrantyClaimService(() => CreateContext(connection));
+        var newClaimId = service.CreateClaim(
+            $"WC-NEW-{terminalStatus}",
+            "WARRANTY-TERMINAL",
+            "New issue",
+            userId: 1);
+
+        using var assertion = CreateContext(connection);
+        Assert.Equal(2, assertion.WarrantyClaims.Count());
+        Assert.Equal("Open", assertion.WarrantyClaims.Single(item => item.Id == newClaimId).Status);
     }
 
     [Fact]
@@ -313,7 +340,7 @@ public class WarrantyClaimServiceTests
     }
 
     [Fact]
-    public void DeleteClaim_restores_serial_status_only_when_no_other_open_claims()
+    public void DeleteClaim_restores_serial_status_when_only_open_claim_is_removed()
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
@@ -332,8 +359,7 @@ public class WarrantyClaimServiceTests
             seedContext.WarrantyCoverages.Add(coverage);
 
             var claim1 = new WarrantyClaim { ClaimCode = "WC-1", WarrantyCoverageId = coverage.Id, ProductSerialId = serial.Id, ReceivedDate = DateTime.Now, Status = "Open" };
-            var claim2 = new WarrantyClaim { ClaimCode = "WC-2", WarrantyCoverageId = coverage.Id, ProductSerialId = serial.Id, ReceivedDate = DateTime.Now, Status = "Open" };
-            seedContext.WarrantyClaims.AddRange(claim1, claim2);
+            seedContext.WarrantyClaims.Add(claim1);
             seedContext.SaveChanges();
             claimId1 = claim1.Id;
         }
@@ -345,17 +371,6 @@ public class WarrantyClaimServiceTests
         using (var assertContext = CreateContext(connection))
         {
             var serial = assertContext.ProductSerials.Find(serialId);
-            Assert.NotNull(serial);
-            Assert.Equal("InWarrantyProcess", serial.CurrentStatus);
-
-            var claim2 = assertContext.WarrantyClaims.First();
-            var service2 = new WarrantyClaimService(() => CreateContext(connection));
-            service2.DeleteClaim(claim2.Id);
-        }
-
-        using (var assertContext2 = CreateContext(connection))
-        {
-            var serial = assertContext2.ProductSerials.Find(serialId);
             Assert.NotNull(serial);
             Assert.Equal("Sold", serial.CurrentStatus);
         }

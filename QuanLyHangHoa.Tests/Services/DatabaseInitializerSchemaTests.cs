@@ -1,4 +1,5 @@
 using WarePro.Database;
+using QuanLyHangHoa.Models;
 
 namespace QuanLyHangHoa.Tests.Services;
 
@@ -16,12 +17,31 @@ public class DatabaseInitializerSchemaTests
     }
 
     [Fact]
-    public void Schema_6_adds_rowversion_sessions_and_finalize_requires_client_1_1_0()
+    public void Schema_6_adds_rowversion_sessions_and_current_finalize_requires_client_1_1_0()
     {
         Assert.Contains("RowVersion", DatabaseSchemaScripts.SchemaVersion6, StringComparison.Ordinal);
         Assert.Contains("__WareProClientSession", DatabaseSchemaScripts.SchemaVersion6, StringComparison.Ordinal);
         Assert.Contains("MinimumClientVersion = N'1.1.0'",
-            DatabaseSchemaScripts.BuildFinalizeSql(6, "1.1.0"), StringComparison.Ordinal);
+            DatabaseSchemaScripts.BuildFinalizeSql(7, "1.1.0"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Schema_7_adds_invoice_void_status_and_open_claim_guard()
+    {
+        var sql = DatabaseSchemaScripts.SchemaVersion7;
+
+        Assert.Contains("SalesInvoice", sql, StringComparison.Ordinal);
+        Assert.Contains("PurchaseInvoice", sql, StringComparison.Ordinal);
+        Assert.Contains("OpenProductSerialId", sql, StringComparison.Ordinal);
+        Assert.Contains("UX_WarrantyClaim_OpenProductSerialId", sql, StringComparison.Ordinal);
+        Assert.Contains("IF @CurrentVersion < 7", DatabaseSchemaScripts.BuildUpgradeSql(7, "1.1.0"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Invoice_models_default_to_active()
+    {
+        Assert.Equal(InvoiceStatus.Active, new SalesInvoice().Status);
+        Assert.Equal(InvoiceStatus.Active, new PurchaseInvoice().Status);
     }
 
     [Fact]
