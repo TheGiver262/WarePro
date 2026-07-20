@@ -249,6 +249,33 @@ namespace QuanLyHangHoa.ViewModels
             }
             LoadForEditing(item.Id, true);
         }
+        [RelayCommand(CanExecute = nameof(CanDeleteDocument))]
+        private async Task DeleteDocument(StockAdjustment document, CancellationToken cancellationToken)
+        {
+            if (document == null) return;
+            if (!CanUserEdit)
+            {
+                MessageBox.Show("Bạn không có quyền xóa phiếu này.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            if (!StockDocumentUiLifecycle.IsDraft(document.Status))
+            {
+                MessageBox.Show("Chỉ có thể xóa phiếu điều chỉnh ở trạng thái nháp.", "Thông báo");
+                return;
+            }
+            var confirm = MessageBox.Show($"Xóa vĩnh viễn phiếu điều chỉnh nháp {document.DocumentCode}?", "Xác nhận xóa", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (confirm != MessageBoxResult.Yes) return;
+            var operationId = Guid.NewGuid();
+            if (!await ExecuteWriteAsync(
+                async _ => await _adjustmentService.DeleteAsync(document.Id, document.RowVersion, _currentUser.Id, operationId, cancellationToken),
+                cancellationToken)) return;
+            LoadData();
+            MessageBox.Show("Đã xóa phiếu điều chỉnh nháp.", "Thông báo");
+        }
+        private bool CanDeleteDocument(StockAdjustment? document) =>
+            document != null && CanUserEdit && StockDocumentUiLifecycle.IsDraft(document.Status);
+
+
 
         // tải snapshot đầy đủ theo id rồi khóa editor nếu chỉ xem hoặc chứng từ không còn Draft
         private void LoadForEditing(int id, bool editMode)

@@ -74,4 +74,23 @@ public sealed class StockDocumentConcurrencyContractTests
 
     private static string Read(string folder, string fileName) =>
         File.ReadAllText(Path.Combine(RepoRoot, "QuanLyHangHoa", folder, fileName));
+    [Theory]
+    [InlineData("StockIn", "_stockInService")]
+    [InlineData("StockOut", "_stockOutService")]
+    [InlineData("StockTransfer", "_stockTransferService")]
+    [InlineData("StockAdjustment", "_adjustmentService")]
+    public void Draft_delete_commands_pass_rowversion_and_are_bound_in_views(
+        string documentName,
+        string serviceField)
+    {
+        var viewModel = Read("ViewModels", $"{documentName}ViewModel.cs");
+        var view = Read("Views", $"{documentName}View.xaml");
+
+        Assert.Contains("private async Task DeleteDocument(", viewModel, StringComparison.Ordinal);
+        Assert.Contains("StockDocumentUiLifecycle.IsDraft(document.Status)", viewModel, StringComparison.Ordinal);
+        Assert.Contains($"await {serviceField}.DeleteAsync(document.Id, document.RowVersion,", viewModel, StringComparison.Ordinal);
+        Assert.Contains("DeleteDocumentCommand", view, StringComparison.Ordinal);
+        Assert.Contains("CommandParameter=\"{Binding}\"", view, StringComparison.Ordinal);
+    }
+
 }

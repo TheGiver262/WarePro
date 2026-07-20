@@ -147,7 +147,13 @@ public class MutationAuthorizationContractTests
             "ViewModels",
             fileName));
 
-        Assert.Contains(expectedCall, source);
+        var rowVersionAwareCall = expectedCall.Replace(
+            ", _currentUser.Id",
+            ", _editingRowVersion, _currentUser.Id",
+            StringComparison.Ordinal);
+        Assert.True(
+            source.Contains(expectedCall, StringComparison.Ordinal) || source.Contains(rowVersionAwareCall, StringComparison.Ordinal),
+            $"Expected an actor-scoped call matching '{expectedCall}' (with RowVersion when required).");
     }
 
     private static string ReadService(string fileName) => File.ReadAllText(Path.Combine(

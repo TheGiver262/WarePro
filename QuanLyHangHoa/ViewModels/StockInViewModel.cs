@@ -438,6 +438,33 @@ namespace QuanLyHangHoa.ViewModels
             IsListViewVisible = false;
             IsDetailViewVisible = true;
         }
+        [RelayCommand(CanExecute = nameof(CanDeleteDocument))]
+        private async Task DeleteDocument(StockIn document, CancellationToken cancellationToken)
+        {
+            if (document == null) return;
+            if (!CanUserEdit)
+            {
+                MessageBox.Show("Bạn không có quyền xóa phiếu này.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            if (!StockDocumentUiLifecycle.IsDraft(document.Status))
+            {
+                MessageBox.Show("Chỉ có thể xóa phiếu nhập kho ở trạng thái nháp.", "Thông báo");
+                return;
+            }
+            var confirm = MessageBox.Show($"Xóa vĩnh viễn phiếu nhập kho nháp {document.DocumentCode}?", "Xác nhận xóa", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (confirm != MessageBoxResult.Yes) return;
+            var operationId = Guid.NewGuid();
+            if (!await ExecuteWriteAsync(
+                async _ => await _stockInService.DeleteAsync(document.Id, document.RowVersion, _currentUser.Id, operationId, cancellationToken),
+                cancellationToken)) return;
+            LoadData();
+            MessageBox.Show("Đã xóa phiếu nhập kho nháp.", "Thông báo");
+        }
+        private bool CanDeleteDocument(StockIn? document) =>
+            document != null && CanUserEdit && StockDocumentUiLifecycle.IsDraft(document.Status);
+
+
 
         [RelayCommand]
         private void BackToList()
