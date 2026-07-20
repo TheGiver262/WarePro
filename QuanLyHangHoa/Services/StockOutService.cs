@@ -200,6 +200,7 @@ namespace QuanLyHangHoa.Services
                 cancellationToken: cancellationToken);
             stockOut.Id = savedId;
             stockOut.DocumentCode = snapshot.DocumentCode;
+            stockOut.RowVersion = await LoadRowVersionAsync(savedId, cancellationToken);
         }
 
         internal void SaveDraft(StockOut stockOut, List<StockOutLine> lines, int userId) =>
@@ -219,6 +220,11 @@ namespace QuanLyHangHoa.Services
                 existing = db.StockOuts
                     .Include(item => item.Lines)
                     .FirstOrDefault(item => item.Id == snapshot.Id);
+            }
+
+            if (snapshot.Id > 0 && existing is null)
+            {
+                throw new InventoryDomainException("Không tìm thấy chứng từ hoặc chứng từ đã bị xóa.");
             }
 
             var productIds = snapshot.Lines.Select(line => line.ProductId).Distinct().ToList();
@@ -315,15 +321,40 @@ namespace QuanLyHangHoa.Services
                     item => item.Id == stockOutId && item.Status == DocumentStatus.PendingApproval, token),
                 cancellationToken: cancellationToken);
 
+        public async Task<byte[]> SubmitForApprovalAsync(
+            int stockOutId, byte[] expectedRowVersion, int userId, Guid operationId,
+            CancellationToken cancellationToken = default)
+        {
+            var rowVersion = SnapshotRowVersion(expectedRowVersion);
+            await _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("stock-out.submit", operationId),
+                (db, token) => StageSubmitForApprovalAsync(db, stockOutId, rowVersion, userId),
+                (db, token) => db.StockOuts.AnyAsync(
+                    item => item.Id == stockOutId && item.Status == DocumentStatus.PendingApproval, token),
+                cancellationToken: cancellationToken);
+            return await LoadRowVersionAsync(stockOutId, cancellationToken);
+        }
+
         internal virtual void SubmitForApproval(int stockOutId, int userId) =>
             SubmitForApprovalAsync(stockOutId, userId, Guid.NewGuid()).GetAwaiter().GetResult();
 
-        private Task StageSubmitForApprovalAsync(AppDbContext db, int stockOutId, int userId)
+        private Task StageSubmitForApprovalAsync(AppDbContext db, int stockOutId, int userId) =>
+            StageSubmitForApprovalAsync(db, stockOutId, null, userId);
+
+        private Task StageSubmitForApprovalAsync(
+            AppDbContext db,
+            int stockOutId,
+            byte[]? expectedRowVersion,
+            int userId)
         {
             AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockOut);
             var stockOut = db.StockOuts.SingleOrDefault(item => item.Id == stockOutId)
                 ?? throw new InventoryDomainException("Không tìm thấy phiếu xuất kho.");
             var beforeJson = Serialize(stockOut);
+            if (expectedRowVersion is not null)
+            {
+                db.Entry(stockOut).Property(item => item.RowVersion).OriginalValue = expectedRowVersion;
+            }
             var lifecycle = new StockDocumentLifecycleService();
             stockOut.Status = lifecycle.SubmitForApproval(ParseStatus(stockOut.Status)).ToString();
             stockOut.UpdatedBy = userId;
@@ -342,15 +373,40 @@ namespace QuanLyHangHoa.Services
                     item => item.Id == stockOutId && item.Status == DocumentStatus.Approved, token),
                 cancellationToken: cancellationToken);
 
+        public async Task<byte[]> ApproveAsync(
+            int stockOutId, byte[] expectedRowVersion, int userId, Guid operationId,
+            CancellationToken cancellationToken = default)
+        {
+            var rowVersion = SnapshotRowVersion(expectedRowVersion);
+            await _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("stock-out.approve", operationId),
+                (db, token) => StageApproveAsync(db, stockOutId, rowVersion, userId),
+                (db, token) => db.StockOuts.AnyAsync(
+                    item => item.Id == stockOutId && item.Status == DocumentStatus.Approved, token),
+                cancellationToken: cancellationToken);
+            return await LoadRowVersionAsync(stockOutId, cancellationToken);
+        }
+
         internal virtual void Approve(int stockOutId, int userId) =>
             ApproveAsync(stockOutId, userId, Guid.NewGuid()).GetAwaiter().GetResult();
 
-        private Task StageApproveAsync(AppDbContext db, int stockOutId, int userId)
+        private Task StageApproveAsync(AppDbContext db, int stockOutId, int userId) =>
+            StageApproveAsync(db, stockOutId, null, userId);
+
+        private Task StageApproveAsync(
+            AppDbContext db,
+            int stockOutId,
+            byte[]? expectedRowVersion,
+            int userId)
         {
             var actor = AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockOut);
             var stockOut = db.StockOuts.SingleOrDefault(item => item.Id == stockOutId)
                 ?? throw new InventoryDomainException("Không tìm thấy phiếu xuất kho.");
             var beforeJson = Serialize(stockOut);
+            if (expectedRowVersion is not null)
+            {
+                db.Entry(stockOut).Property(item => item.RowVersion).OriginalValue = expectedRowVersion;
+            }
             var lifecycle = new StockDocumentLifecycleService();
             stockOut.Status = lifecycle.Approve(
                 ParseStatus(stockOut.Status),
@@ -373,10 +429,31 @@ namespace QuanLyHangHoa.Services
                     item => item.Id == stockOutId && item.Status == DocumentStatus.Posted, token),
                 cancellationToken: cancellationToken);
 
+        public async Task<byte[]> PostAsync(
+            int stockOutId, byte[] expectedRowVersion, int userId, Guid operationId,
+            CancellationToken cancellationToken = default)
+        {
+            var rowVersion = SnapshotRowVersion(expectedRowVersion);
+            await _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("stock-out.post", operationId),
+                (db, token) => StagePostAsync(db, stockOutId, rowVersion, userId),
+                (db, token) => db.StockOuts.AnyAsync(
+                    item => item.Id == stockOutId && item.Status == DocumentStatus.Posted, token),
+                cancellationToken: cancellationToken);
+            return await LoadRowVersionAsync(stockOutId, cancellationToken);
+        }
+
         internal void Post(int stockOutId, int userId) =>
             PostAsync(stockOutId, userId, Guid.NewGuid()).GetAwaiter().GetResult();
 
-        private Task StagePostAsync(AppDbContext db, int stockOutId, int userId)
+        private Task StagePostAsync(AppDbContext db, int stockOutId, int userId) =>
+            StagePostAsync(db, stockOutId, null, userId);
+
+        private Task StagePostAsync(
+            AppDbContext db,
+            int stockOutId,
+            byte[]? expectedRowVersion,
+            int userId)
         {
             var actor = AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockOut);
 
@@ -384,6 +461,10 @@ namespace QuanLyHangHoa.Services
                 .Include(item => item.Lines)
                 .FirstOrDefault(item => item.Id == stockOutId)
                 ?? throw new InventoryDomainException("Không tìm thấy phiếu xuất kho.");
+            if (expectedRowVersion is not null)
+            {
+                db.Entry(stockOut).Property(item => item.RowVersion).OriginalValue = expectedRowVersion;
+            }
             var lifecycle = new StockDocumentLifecycleService();
             lifecycle.EnsureCanPost(ParseStatus(stockOut.Status));
             if (!AuthorizationService.CanPerform(actor, PermissionAction.ApproveStock))
@@ -583,6 +664,26 @@ namespace QuanLyHangHoa.Services
             public DateTime Now => DateTime.Now;
         }
 
+        private async Task<byte[]> LoadRowVersionAsync(int id, CancellationToken cancellationToken)
+        {
+            await using var db = _contextFactory();
+            return (await db.StockOuts.AsNoTracking()
+                .Where(item => item.Id == id)
+                .Select(item => item.RowVersion)
+                .SingleOrDefaultAsync(cancellationToken))?.ToArray()
+                ?? throw new InventoryDomainException("Không tìm thấy phiếu xuất kho.");
+        }
+
+        private static byte[] SnapshotRowVersion(byte[] expectedRowVersion)
+        {
+            ArgumentNullException.ThrowIfNull(expectedRowVersion);
+            if (expectedRowVersion.Length == 0)
+            {
+                throw new ArgumentException("RowVersion is required.", nameof(expectedRowVersion));
+            }
+            return expectedRowVersion.ToArray();
+        }
+
         public Task DeleteAsync(
             int id,
             byte[] expectedRowVersion,
@@ -607,10 +708,10 @@ namespace QuanLyHangHoa.Services
         {
             AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockOut);
             var stockOut = db.StockOuts.Include(item => item.Lines).FirstOrDefault(item => item.Id == id)
-                ?? throw new Exception("KhÃ´ng tÃ¬m tháº¥y phiáº¿u xuáº¥t kho.");
-            if (stockOut.Status == DocumentStatus.Posted || stockOut.Status == "Ä‘Ã£ ghi sá»•")
+                ?? throw new InventoryDomainException("Không tìm thấy phiếu xuất kho.");
+            if (stockOut.Status != DocumentStatus.Draft)
             {
-                throw new Exception("KhÃ´ng thá»ƒ xÃ³a phiáº¿u Ä‘Ã£ ghi sá»•.");
+                throw new InventoryDomainException("Chỉ có thể xóa phiếu xuất kho ở trạng thái nháp.");
             }
 
             db.Entry(stockOut).Property(item => item.RowVersion).OriginalValue = expectedRowVersion;

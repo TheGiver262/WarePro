@@ -115,6 +115,7 @@ namespace QuanLyHangHoa.ViewModels
 
         // Detail Data
         [ObservableProperty] private int _editingId;
+        private byte[] _editingRowVersion = [];
         [ObservableProperty] private string _documentCode = string.Empty;
         [ObservableProperty] private int _warehouseId;
         [ObservableProperty] private string _adjustmentType = "Manual";
@@ -211,6 +212,7 @@ namespace QuanLyHangHoa.ViewModels
         private void CreateNew()
         {
             EditingId = 0;
+            _editingRowVersion = [];
             DocumentCode = $"ADJ-{DateTime.Now:yyyyMMddHHmmss}";
             WarehouseId = AvailableWarehouses.FirstOrDefault(w => w.IsDefault)?.Id ?? AvailableWarehouses.FirstOrDefault()?.Id ?? 1;
             AdjustmentType = "Manual";
@@ -255,6 +257,7 @@ namespace QuanLyHangHoa.ViewModels
             if (adj == null) return;
 
             EditingId = adj.Id;
+            _editingRowVersion = adj.RowVersion.ToArray();
             DocumentCode = adj.DocumentCode;
             WarehouseId = adj.WarehouseId;
             AdjustmentType = adj.AdjustmentType;
@@ -373,7 +376,8 @@ namespace QuanLyHangHoa.ViewModels
                     AdjustmentType = AdjustmentType,
                     ReasonCode = ReasonCode,
                     Notes = Notes,
-                    Status = Status
+                    Status = Status,
+                    RowVersion = _editingRowVersion.ToArray()
                 };
 
                 var lineModels = Lines.Select(l => new StockAdjustmentLine
@@ -389,6 +393,7 @@ namespace QuanLyHangHoa.ViewModels
                 if (!await ExecuteWriteAsync(
                     async _ => await _adjustmentService.SaveDraftAsync(adj, lineModels, _currentUser.Id, operationId, cancellationToken),
                     cancellationToken)) return;
+                _editingRowVersion = adj.RowVersion.ToArray();
                 MessageBox.Show("Đã lưu bản nháp.", "Thông báo");
                 EditingId = adj.Id;
                 Status = adj.Status;
@@ -439,7 +444,8 @@ namespace QuanLyHangHoa.ViewModels
                         AdjustmentType = AdjustmentType,
                         ReasonCode = ReasonCode,
                         Notes = Notes,
-                        Status = Status
+                        Status = Status,
+                        RowVersion = _editingRowVersion.ToArray()
                     };
                     var lineModels = Lines.Select(line => new StockAdjustmentLine
                     {
@@ -454,9 +460,13 @@ namespace QuanLyHangHoa.ViewModels
                         async _ => await _adjustmentService.SaveDraftAsync(adjustment, lineModels, _currentUser.Id, operationId, cancellationToken),
                         cancellationToken)) return;
                     EditingId = adjustment.Id;
+                    _editingRowVersion = adjustment.RowVersion.ToArray();
                     Status = adjustment.Status;
                     if (!await ExecuteWriteAsync(
-                        async _ => await _adjustmentService.SubmitForApprovalAsync(EditingId, _currentUser.Id, operationId, cancellationToken),
+                        async _ =>
+                        {
+                            _editingRowVersion = await _adjustmentService.SubmitForApprovalAsync(EditingId, _editingRowVersion, _currentUser.Id, operationId, cancellationToken);
+                        },
                         cancellationToken)) return;
                     Status = DocumentStatus.PendingApproval;
                     if (!IsAdminOrManager)
@@ -469,12 +479,18 @@ namespace QuanLyHangHoa.ViewModels
                 if (StockDocumentUiLifecycle.IsPendingApproval(Status))
                 {
                     if (!await ExecuteWriteAsync(
-                        async _ => await _adjustmentService.ApproveAsync(EditingId, _currentUser.Id, operationId, cancellationToken),
+                        async _ =>
+                        {
+                            _editingRowVersion = await _adjustmentService.ApproveAsync(EditingId, _editingRowVersion, _currentUser.Id, operationId, cancellationToken);
+                        },
                         cancellationToken)) return;
                     Status = DocumentStatus.Approved;
                 }
                 if (!await ExecuteWriteAsync(
-                    async _ => await _adjustmentService.PostAsync(EditingId, _currentUser.Id, operationId, cancellationToken),
+                    async _ =>
+                    {
+                        _editingRowVersion = await _adjustmentService.PostAsync(EditingId, _editingRowVersion, _currentUser.Id, operationId, cancellationToken);
+                    },
                     cancellationToken)) return;
                 Status = DocumentStatus.Posted;
                 MessageBox.Show("Đã ghi sổ thành công.", "Thông báo");

@@ -115,6 +115,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private ObservableCollection<StockInLineEditor> _lines = new();
 
         [ObservableProperty] private int _stockInId;
+        private byte[] _editingRowVersion = [];
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(CanEdit))]
         [NotifyPropertyChangedFor(nameof(CanApprove))]
@@ -467,6 +468,7 @@ namespace QuanLyHangHoa.ViewModels
         private void LoadFromModel(StockIn si)
         {
             StockInId = si.Id;
+            _editingRowVersion = si.RowVersion.ToArray();
             DocumentCode = si.DocumentCode;
             SelectedWarehouse = AvailableWarehouses.FirstOrDefault(w => w.Id == si.WarehouseId);
             SelectedSupplier = AvailableSuppliers.FirstOrDefault(s => s.Id == si.SupplierId);
@@ -486,10 +488,14 @@ namespace QuanLyHangHoa.ViewModels
                     Price = line.UnitPrice,
                 };
                 editor.SelectedUnit = editor.AvailableUnits.FirstOrDefault(u => u.Id == line.UnitId) ?? line.Unit;
-                
-                foreach (var sn in line.ProductSerials)
+
+                var serialNumbers = StockDocumentUiLifecycle.IsDraft(si.Status)
+                    && !string.IsNullOrWhiteSpace(line.DraftSerials)
+                    ? line.DraftSerials.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    : line.ProductSerials.Select(serial => serial.SerialNumber);
+                foreach (var serialNumber in serialNumbers)
                 {
-                    editor.SerialNumbers.Add(sn.SerialNumber);
+                    editor.SerialNumbers.Add(serialNumber);
                 }
                 
                 Lines.Add(editor);
@@ -565,6 +571,7 @@ namespace QuanLyHangHoa.ViewModels
                     async _ => await _stockInService.SaveDraftAsync(si, siLines, _currentUser.Id, operationId, cancellationToken),
                     cancellationToken)) return;
                 StockInId = si.Id;
+                _editingRowVersion = si.RowVersion.ToArray();
                 Status = si.Status;
                 
                 MessageBox.Show("Đã lưu phiếu nháp thành công.", "Thông báo");
@@ -606,6 +613,7 @@ namespace QuanLyHangHoa.ViewModels
                         async _ => await _stockInService.SaveDraftAsync(si, siLines, _currentUser.Id, operationId, cancellationToken),
                         cancellationToken)) return;
                     StockInId = si.Id;
+                    _editingRowVersion = si.RowVersion.ToArray();
                 }
                 catch (Exception)
                 {
@@ -637,7 +645,10 @@ namespace QuanLyHangHoa.ViewModels
                 if (StockDocumentUiLifecycle.IsDraft(Status))
                 {
                     if (!await ExecuteWriteAsync(
-                        async _ => await _stockInService.SubmitForApprovalAsync(StockInId, _currentUser.Id, operationId, cancellationToken),
+                        async _ =>
+                        {
+                            _editingRowVersion = await _stockInService.SubmitForApprovalAsync(StockInId, _editingRowVersion, _currentUser.Id, operationId, cancellationToken);
+                        },
                         cancellationToken)) return;
                     Status = DocumentStatus.PendingApproval;
                     if (!IsAdminOrManager)
@@ -650,12 +661,18 @@ namespace QuanLyHangHoa.ViewModels
                 if (StockDocumentUiLifecycle.IsPendingApproval(Status))
                 {
                     if (!await ExecuteWriteAsync(
-                        async _ => await _stockInService.ApproveAsync(StockInId, _currentUser.Id, operationId, cancellationToken),
+                        async _ =>
+                        {
+                            _editingRowVersion = await _stockInService.ApproveAsync(StockInId, _editingRowVersion, _currentUser.Id, operationId, cancellationToken);
+                        },
                         cancellationToken)) return;
                     Status = DocumentStatus.Approved;
                 }
                 if (!await ExecuteWriteAsync(
-                    async _ => await _stockInService.PostAsync(StockInId, _currentUser.Id, operationId, cancellationToken),
+                    async _ =>
+                    {
+                        _editingRowVersion = await _stockInService.PostAsync(StockInId, _editingRowVersion, _currentUser.Id, operationId, cancellationToken);
+                    },
                     cancellationToken)) return;
                 IsPosted = true;
                 Status = DocumentStatus.Posted;
@@ -701,19 +718,28 @@ namespace QuanLyHangHoa.ViewModels
                 if (StockDocumentUiLifecycle.IsDraft(document.Status))
                 {
                     if (!await ExecuteWriteAsync(
-                        async _ => await _stockInService.SubmitForApprovalAsync(document.Id, _currentUser.Id, operationId, cancellationToken),
+                        async _ =>
+                        {
+                            document.RowVersion = await _stockInService.SubmitForApprovalAsync(document.Id, document.RowVersion, _currentUser.Id, operationId, cancellationToken);
+                        },
                         cancellationToken)) return;
                     document.Status = DocumentStatus.PendingApproval;
                 }
                 if (StockDocumentUiLifecycle.IsPendingApproval(document.Status))
                 {
                     if (!await ExecuteWriteAsync(
-                        async _ => await _stockInService.ApproveAsync(document.Id, _currentUser.Id, operationId, cancellationToken),
+                        async _ =>
+                        {
+                            document.RowVersion = await _stockInService.ApproveAsync(document.Id, document.RowVersion, _currentUser.Id, operationId, cancellationToken);
+                        },
                         cancellationToken)) return;
                     document.Status = DocumentStatus.Approved;
                 }
                 if (!await ExecuteWriteAsync(
-                    async _ => await _stockInService.PostAsync(document.Id, _currentUser.Id, operationId, cancellationToken),
+                    async _ =>
+                    {
+                        document.RowVersion = await _stockInService.PostAsync(document.Id, document.RowVersion, _currentUser.Id, operationId, cancellationToken);
+                    },
                     cancellationToken)) return;
                 document.Status = DocumentStatus.Posted;
                 MessageBox.Show("Duyệt và ghi sổ phiếu nhập kho thành công.", "Thông báo");
@@ -772,7 +798,8 @@ namespace QuanLyHangHoa.ViewModels
                 Status = DocumentStatus.Draft,
                 CreatedBy = _currentUser.Id,
                 CreatedAt = DateTime.Now,
-                PurposeCode = "Purchase"
+                PurposeCode = "Purchase",
+                RowVersion = _editingRowVersion.ToArray()
             };
         }
 
@@ -806,6 +833,7 @@ namespace QuanLyHangHoa.ViewModels
         private void ResetForm()
         {
             StockInId = 0;
+            _editingRowVersion = [];
             Status = DocumentStatus.Draft;
             IsPosted = false;
             IsViewMode = false;

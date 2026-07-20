@@ -92,6 +92,7 @@ namespace QuanLyHangHoa.Services
                 cancellationToken: cancellationToken);
             adjustment.Id = savedId;
             adjustment.DocumentCode = snapshot.DocumentCode;
+            adjustment.RowVersion = await LoadRowVersionAsync(savedId, cancellationToken);
         }
 
         internal virtual void SaveDraft(StockAdjustment adjustment, List<StockAdjustmentLine> lines, int userId) =>
@@ -111,6 +112,11 @@ namespace QuanLyHangHoa.Services
                 existing = db.StockAdjustments
                     .Include(item => item.Lines)
                     .FirstOrDefault(item => item.Id == snapshot.Id);
+            }
+
+            if (snapshot.Id > 0 && existing is null)
+            {
+                throw new InventoryDomainException("Không tìm thấy chứng từ hoặc chứng từ đã bị xóa.");
             }
 
             var freshLines = snapshot.Lines.Select(line => line.ToEntity()).ToList();
@@ -194,14 +200,39 @@ namespace QuanLyHangHoa.Services
                     item => item.Id == adjustmentId && item.Status == DocumentStatus.PendingApproval, token),
                 cancellationToken: cancellationToken);
 
+        public async Task<byte[]> SubmitForApprovalAsync(
+            int adjustmentId, byte[] expectedRowVersion, int userId, Guid operationId,
+            CancellationToken cancellationToken = default)
+        {
+            var rowVersion = SnapshotRowVersion(expectedRowVersion);
+            await _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("stock-adjustment.submit", operationId),
+                (db, token) => StageSubmitForApprovalAsync(db, adjustmentId, rowVersion, userId),
+                (db, token) => db.StockAdjustments.AnyAsync(
+                    item => item.Id == adjustmentId && item.Status == DocumentStatus.PendingApproval, token),
+                cancellationToken: cancellationToken);
+            return await LoadRowVersionAsync(adjustmentId, cancellationToken);
+        }
+
         internal virtual void SubmitForApproval(int adjustmentId, int userId) =>
             SubmitForApprovalAsync(adjustmentId, userId, Guid.NewGuid()).GetAwaiter().GetResult();
 
-        private Task StageSubmitForApprovalAsync(AppDbContext db, int adjustmentId, int userId)
+        private Task StageSubmitForApprovalAsync(AppDbContext db, int adjustmentId, int userId) =>
+            StageSubmitForApprovalAsync(db, adjustmentId, null, userId);
+
+        private Task StageSubmitForApprovalAsync(
+            AppDbContext db,
+            int adjustmentId,
+            byte[]? expectedRowVersion,
+            int userId)
         {
             AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockAdjustment);
             var adjustment = db.StockAdjustments.SingleOrDefault(item => item.Id == adjustmentId)
                 ?? throw new InventoryDomainException("Không tìm thấy phiếu điều chỉnh.");
+            if (expectedRowVersion is not null)
+            {
+                db.Entry(adjustment).Property(item => item.RowVersion).OriginalValue = expectedRowVersion;
+            }
             var lifecycle = new StockDocumentLifecycleService();
             adjustment.Status = lifecycle.SubmitForApproval(ParseStatus(adjustment.Status)).ToString();
             return Task.CompletedTask;
@@ -217,14 +248,39 @@ namespace QuanLyHangHoa.Services
                     item => item.Id == adjustmentId && item.Status == DocumentStatus.Approved, token),
                 cancellationToken: cancellationToken);
 
+        public async Task<byte[]> ApproveAsync(
+            int adjustmentId, byte[] expectedRowVersion, int userId, Guid operationId,
+            CancellationToken cancellationToken = default)
+        {
+            var rowVersion = SnapshotRowVersion(expectedRowVersion);
+            await _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("stock-adjustment.approve", operationId),
+                (db, token) => StageApproveAsync(db, adjustmentId, rowVersion, userId),
+                (db, token) => db.StockAdjustments.AnyAsync(
+                    item => item.Id == adjustmentId && item.Status == DocumentStatus.Approved, token),
+                cancellationToken: cancellationToken);
+            return await LoadRowVersionAsync(adjustmentId, cancellationToken);
+        }
+
         internal virtual void Approve(int adjustmentId, int userId) =>
             ApproveAsync(adjustmentId, userId, Guid.NewGuid()).GetAwaiter().GetResult();
 
-        private Task StageApproveAsync(AppDbContext db, int adjustmentId, int userId)
+        private Task StageApproveAsync(AppDbContext db, int adjustmentId, int userId) =>
+            StageApproveAsync(db, adjustmentId, null, userId);
+
+        private Task StageApproveAsync(
+            AppDbContext db,
+            int adjustmentId,
+            byte[]? expectedRowVersion,
+            int userId)
         {
             var actor = AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockAdjustment);
             var adjustment = db.StockAdjustments.SingleOrDefault(item => item.Id == adjustmentId)
                 ?? throw new InventoryDomainException("Không tìm thấy phiếu điều chỉnh.");
+            if (expectedRowVersion is not null)
+            {
+                db.Entry(adjustment).Property(item => item.RowVersion).OriginalValue = expectedRowVersion;
+            }
             var lifecycle = new StockDocumentLifecycleService();
             adjustment.Status = lifecycle.Approve(
                 ParseStatus(adjustment.Status),
@@ -244,10 +300,31 @@ namespace QuanLyHangHoa.Services
                     item => item.Id == adjustmentId && item.Status == DocumentStatus.Posted, token),
                 cancellationToken: cancellationToken);
 
+        public async Task<byte[]> PostAsync(
+            int adjustmentId, byte[] expectedRowVersion, int userId, Guid operationId,
+            CancellationToken cancellationToken = default)
+        {
+            var rowVersion = SnapshotRowVersion(expectedRowVersion);
+            await _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("stock-adjustment.post", operationId),
+                (db, token) => StagePostAsync(db, adjustmentId, rowVersion, userId),
+                (db, token) => db.StockAdjustments.AnyAsync(
+                    item => item.Id == adjustmentId && item.Status == DocumentStatus.Posted, token),
+                cancellationToken: cancellationToken);
+            return await LoadRowVersionAsync(adjustmentId, cancellationToken);
+        }
+
         internal void Post(int adjustmentId, int userId) =>
             PostAsync(adjustmentId, userId, Guid.NewGuid()).GetAwaiter().GetResult();
 
-        private Task StagePostAsync(AppDbContext db, int adjustmentId, int userId)
+        private Task StagePostAsync(AppDbContext db, int adjustmentId, int userId) =>
+            StagePostAsync(db, adjustmentId, null, userId);
+
+        private Task StagePostAsync(
+            AppDbContext db,
+            int adjustmentId,
+            byte[]? expectedRowVersion,
+            int userId)
         {
             var actor = AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockAdjustment);
 
@@ -255,6 +332,10 @@ namespace QuanLyHangHoa.Services
                 .Include(item => item.Lines)
                 .FirstOrDefault(item => item.Id == adjustmentId)
                 ?? throw new InventoryDomainException("Không tìm thấy phiếu điều chỉnh.");
+            if (expectedRowVersion is not null)
+            {
+                db.Entry(adjustment).Property(item => item.RowVersion).OriginalValue = expectedRowVersion;
+            }
             var lifecycle = new StockDocumentLifecycleService();
             lifecycle.EnsureCanPost(ParseStatus(adjustment.Status));
             if (!AuthorizationService.CanPerform(actor, PermissionAction.ApproveStock))
@@ -329,6 +410,62 @@ namespace QuanLyHangHoa.Services
             return Enum.TryParse<StockLedgerDirection>(direction, out var parsed)
                 ? parsed
                 : throw new InventoryDomainException($"Unsupported stock adjustment direction {direction}.");
+        }
+
+        private async Task<byte[]> LoadRowVersionAsync(int id, CancellationToken cancellationToken)
+        {
+            await using var db = _contextFactory();
+            return (await db.StockAdjustments.AsNoTracking()
+                .Where(item => item.Id == id)
+                .Select(item => item.RowVersion)
+                .SingleOrDefaultAsync(cancellationToken))?.ToArray()
+                ?? throw new InventoryDomainException("Không tìm thấy phiếu điều chỉnh.");
+        }
+
+        private static byte[] SnapshotRowVersion(byte[] expectedRowVersion)
+        {
+            ArgumentNullException.ThrowIfNull(expectedRowVersion);
+            if (expectedRowVersion.Length == 0)
+            {
+                throw new ArgumentException("RowVersion is required.", nameof(expectedRowVersion));
+            }
+            return expectedRowVersion.ToArray();
+        }
+
+        public Task DeleteAsync(
+            int id,
+            byte[] expectedRowVersion,
+            int userId,
+            Guid operationId,
+            CancellationToken cancellationToken = default)
+        {
+            var rowVersion = SnapshotRowVersion(expectedRowVersion);
+            return _writeExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("stock-adjustment.delete", operationId),
+                (db, token) => StageDeleteAsync(db, id, rowVersion, userId),
+                cancellationToken: cancellationToken);
+        }
+
+        private Task StageDeleteAsync(
+            AppDbContext db,
+            int id,
+            byte[] expectedRowVersion,
+            int userId)
+        {
+            AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockAdjustment);
+            var adjustment = db.StockAdjustments
+                .Include(item => item.Lines)
+                .SingleOrDefault(item => item.Id == id)
+                ?? throw new InventoryDomainException("Không tìm thấy phiếu điều chỉnh.");
+            if (adjustment.Status != DocumentStatus.Draft)
+            {
+                throw new InventoryDomainException("Chỉ có thể xóa phiếu điều chỉnh ở trạng thái nháp.");
+            }
+
+            db.Entry(adjustment).Property(item => item.RowVersion).OriginalValue = expectedRowVersion;
+            db.StockAdjustmentLines.RemoveRange(adjustment.Lines);
+            db.StockAdjustments.Remove(adjustment);
+            return Task.CompletedTask;
         }
 
         private sealed class FixedWarehouseProvider : IDefaultWarehouseProvider
