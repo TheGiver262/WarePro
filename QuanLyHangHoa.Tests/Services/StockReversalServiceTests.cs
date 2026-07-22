@@ -13,7 +13,7 @@ namespace QuanLyHangHoa.Tests.Services;
 public class StockReversalServiceTests
 {
     [Fact]
-    public void ReverseDocument_creates_compensating_ledger_entries()
+    public async Task ReverseDocument_accepts_document_code_and_persists_reason()
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
@@ -64,12 +64,19 @@ public class StockReversalServiceTests
 
         var service = new StockReversalService(() => DatabaseHelper.CreateContext(connection));
 
-        service.ReverseDocument("StockIn", originalDocumentId, 1);
+        await service.ReverseDocumentAsync(
+            "StockIn",
+            "PIN-LEGACY-REVERSAL",
+            "Nhập nhầm chứng từ",
+            1,
+            Guid.NewGuid());
 
         using var assertContext = DatabaseHelper.CreateContext(connection);
         var adjustment = assertContext.StockAdjustments.Single();
         Assert.Equal("Reversal", adjustment.AdjustmentType);
         Assert.Equal(originalDocumentId, adjustment.ReferenceDocumentId);
+        Assert.Equal("USER-REVERSAL", adjustment.ReasonCode);
+        Assert.Equal("Nhập nhầm chứng từ", adjustment.Notes);
 
         var ledgerEntries = assertContext.StockLedgers.ToList();
         Assert.Equal(2, ledgerEntries.Count);

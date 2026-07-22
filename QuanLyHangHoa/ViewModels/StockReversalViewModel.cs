@@ -14,7 +14,7 @@ namespace QuanLyHangHoa.ViewModels
     public partial class StockReversalViewModel : ObservableObject
     {
         private readonly AppUser _currentUser;
-        private readonly Func<string, int, int, Guid, CancellationToken, Task<int>> _reverseDocument;
+        private readonly Func<string, string, string, int, Guid, CancellationToken, Task<int>> _reverseDocument;
         private readonly Action<string, string> _showMessage;
 
         [ObservableProperty] private string _documentType = "StockIn";
@@ -52,7 +52,7 @@ namespace QuanLyHangHoa.ViewModels
 
         public StockReversalViewModel(
             AppUser currentUser,
-            Func<string, int, int, Guid, CancellationToken, Task<int>> reverseDocument,
+            Func<string, string, string, int, Guid, CancellationToken, Task<int>> reverseDocument,
             Action<string, string> showMessage)
         {
             ArgumentNullException.ThrowIfNull(currentUser);
@@ -66,9 +66,9 @@ namespace QuanLyHangHoa.ViewModels
         private async Task ReverseDocument(CancellationToken cancellationToken)
         {
             var operationId = Guid.NewGuid();
-            if (!int.TryParse(DocumentIdText, out var documentId))
+            if (string.IsNullOrWhiteSpace(DocumentIdText))
             {
-                StatusMessage = "DocumentId không hợp lệ.";
+                StatusMessage = "Vui lòng nhập mã hoặc ID chứng từ.";
                 _showMessage(StatusMessage, "Cảnh báo");
                 return;
             }
@@ -86,7 +86,7 @@ namespace QuanLyHangHoa.ViewModels
                 if (!await ExecuteWriteAsync(
                     async _ =>
                     {
-                        adjustmentId = await _reverseDocument(DocumentType, documentId, _currentUser.Id, operationId, cancellationToken);
+                        adjustmentId = await _reverseDocument(DocumentType, DocumentIdText, Reason, _currentUser.Id, operationId, cancellationToken);
                     },
                     cancellationToken)) return;
                 if (adjustmentId <= 0)

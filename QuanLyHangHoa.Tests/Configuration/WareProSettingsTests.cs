@@ -38,6 +38,7 @@ public class WareProSettingsTests
         Assert.Equal("ProductManagementDb", restored.Database.Database);
         Assert.Equal(DatabaseAuthentication.Windows, restored.Database.Authentication);
         Assert.True(restored.Database.TrustServerCertificate);
+        Assert.False(restored.Database.Encrypt);
         Assert.Equal("TheGiver262/WarePro-Releases", restored.Updates.Repository);
         Assert.Equal("stable", restored.Updates.Channel);
         Assert.Equal(24, restored.Updates.CheckIntervalHours);
@@ -47,6 +48,7 @@ public class WareProSettingsTests
         Assert.False(root.TryGetProperty("Password", out _));
         Assert.DoesNotContain("password", json, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("secret", json, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("\"Encrypt\": false", json, StringComparison.Ordinal);
     }
     [Fact]
     public void Paths_create_only_the_explicit_writable_directories()

@@ -80,6 +80,9 @@ public sealed class ConnectionStringFactory
             DataSource = settings.Database.Server,
             InitialCatalog = settings.Database.Database,
             TrustServerCertificate = settings.Database.TrustServerCertificate,
+            Encrypt = settings.Database.Encrypt
+                ? SqlConnectionEncryptOption.Mandatory
+                : SqlConnectionEncryptOption.Optional,
             ApplicationName = "WarePro"
         };
 

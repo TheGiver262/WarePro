@@ -7,6 +7,7 @@ using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
 using Xunit;
 using Xunit.Abstractions;
+using QuanLyHangHoa.Tests.Infrastructure;
 
 namespace QuanLyHangHoa.Tests
 {
@@ -20,7 +21,7 @@ namespace QuanLyHangHoa.Tests
             _output = output;
         }
 
-        [Fact]
+        [MutatingRealDatabaseFact]
         public void SeedInvoicesAndStockDocuments()
         {
             _output.WriteLine("Bắt đầu seeding dữ liệu kiểm thử...");

@@ -38,11 +38,24 @@ public class ConnectionStringFactoryTests
         Assert.Equal("Ware Pro Data", parsed.InitialCatalog);
         Assert.True(parsed.IntegratedSecurity);
         Assert.True(parsed.TrustServerCertificate);
+        Assert.Equal(SqlConnectionEncryptOption.Optional, parsed.Encrypt);
         Assert.Equal("WarePro", parsed.ApplicationName);
         Assert.Equal(string.Empty, parsed.UserID);
         Assert.Equal(string.Empty, parsed.Password);
     }
 
+    [Fact]
+    public void Explicit_encryption_setting_is_preserved()
+    {
+        var settings = WareProSettings.CreateDefault();
+        settings.Database.Encrypt = true;
+
+        var result = new ConnectionStringFactory(new FakeSqlCredentialStore(), () => null).Resolve(settings);
+
+        Assert.Equal(
+            SqlConnectionEncryptOption.Mandatory,
+            new SqlConnectionStringBuilder(result).Encrypt);
+    }
     [Fact]
     public void Sql_authentication_uses_the_builder_for_special_characters()
     {

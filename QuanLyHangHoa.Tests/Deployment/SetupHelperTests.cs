@@ -67,6 +67,7 @@ public class SetupHelperTests
             "--server", @".\SQLEXPRESS",
             "--database", "ProductManagementDb",
             "--auth", "Windows",
+            "--encrypt", "false",
             "--config", path
         ]);
 
@@ -74,6 +75,7 @@ public class SetupHelperTests
         Assert.Equal(Path.GetFullPath(path), writer.Path);
         Assert.Equal(@".\SQLEXPRESS", writer.Settings?.Database.Server);
         Assert.Equal(DatabaseAuthentication.Windows, writer.Settings?.Database.Authentication);
+        Assert.False(writer.Settings?.Database.Encrypt);
     }
 
     [Fact]

@@ -6,6 +6,7 @@ using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Inventory;
 using QuanLyHangHoa.Services;
+using QuanLyHangHoa.Tests.Infrastructure;
 using Xunit;
 
 namespace QuanLyHangHoa.Tests.Services
@@ -13,7 +14,7 @@ namespace QuanLyHangHoa.Tests.Services
     [Trait("Category", "RealDatabase")]
     public class Test_WarrantyDatabaseConstraints
     {
-        [Fact]
+        [MutatingRealDatabaseFact]
         public void AddTenWarrantyRecords_To_RealDatabase()
         {
             var options = new DbContextOptionsBuilder<AppDbContext>()

@@ -25,6 +25,11 @@ public class RealDatabaseIsolationContractTests
         foreach (var file in realDatabaseSources)
         {
             Assert.DoesNotContain(forbiddenConnection, file.Source, StringComparison.Ordinal);
+            if (file.Source.Contains("SaveChanges(", StringComparison.Ordinal) ||
+                file.Source.Contains("SaveChangesAsync(", StringComparison.Ordinal))
+            {
+                Assert.Contains("[MutatingRealDatabaseFact]", file.Source, StringComparison.Ordinal);
+            }
             if (file.Source.Contains("UseSqlServer(", StringComparison.Ordinal))
             {
                 Assert.Contains("AppDbContext.GetConnectionString()", file.Source, StringComparison.Ordinal);

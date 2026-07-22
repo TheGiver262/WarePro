@@ -15,7 +15,7 @@ public class StockReversalViewModelTests
         string? shownMessage = null;
         var viewModel = new StockReversalViewModel(
             new AppUser { Id = 7, Username = "admin" },
-            (_, _, _, _, _) => Task.FromException<int>(
+            (_, _, _, _, _, _) => Task.FromException<int>(
                 new DatabaseWriteConflictException(Guid.NewGuid(), new Exception("provider detail"))),
             (message, _) => shownMessage = message)
         {
@@ -30,31 +30,34 @@ public class StockReversalViewModelTests
         Assert.Equal(DatabaseWriteUi.ConflictMessage, shownMessage);
     }
     [Fact]
-    public async Task ReverseDocumentPassesIdReasonAndCurrentUserToService()
+    public async Task ReverseDocumentPassesCodeReasonAndCurrentUserToService()
     {
         string? docTypeUsed = null;
-        int? docIdUsed = null;
+        string? documentReferenceUsed = null;
+        string? reasonUsed = null;
         int? userIdUsed = null;
 
         var viewModel = new StockReversalViewModel(
             new AppUser { Id = 7, Username = "admin" },
-            (docType, id, userId, _, _) =>
+            (docType, documentReference, reason, userId, _, _) =>
             {
                 docTypeUsed = docType;
-                docIdUsed = id;
+                documentReferenceUsed = documentReference;
+                reasonUsed = reason;
                 userIdUsed = userId;
                 return Task.FromResult(999);
             },
             (_, _) => { });
         
         viewModel.DocumentType = "StockOut";
-        viewModel.DocumentIdText = "123";
-        viewModel.Reason = "Mistake";
+        viewModel.DocumentIdText = "PXK-2026-001";
+        viewModel.Reason = "Xuất nhầm chứng từ";
 
         await viewModel.ReverseDocumentCommand.ExecuteAsync(null);
 
         Assert.Equal("StockOut", docTypeUsed);
-        Assert.Equal(123, docIdUsed);
+        Assert.Equal("PXK-2026-001", documentReferenceUsed);
+        Assert.Equal("Xuất nhầm chứng từ", reasonUsed);
         Assert.Equal(7, userIdUsed);
         Assert.Equal("Đã đảo chứng từ kho, adjustment #999.", viewModel.StatusMessage);
     }

@@ -214,7 +214,7 @@ public sealed class SetupCommands
     {
         if (!TryParseOptions(
                 arguments,
-                ["--server", "--database", "--auth", "--config", "--log"],
+                ["--server", "--database", "--auth", "--encrypt", "--config", "--log"],
                 out var options,
                 out var error)
             || !Required(options, "--server", out var server)
@@ -232,6 +232,11 @@ public sealed class SetupCommands
         {
             return Invalid("--auth must be Windows or SqlPassword.");
         }
+        var encryptText = options.GetValueOrDefault("--encrypt") ?? "false";
+        if (!bool.TryParse(encryptText, out var encrypt))
+        {
+            return Invalid("--encrypt must be true or false.");
+        }
 
         try
         {
@@ -242,6 +247,7 @@ public sealed class SetupCommands
             settings.Database.Server = server;
             settings.Database.Database = database;
             settings.Database.Authentication = authentication;
+            settings.Database.Encrypt = encrypt;
             _writer.Save(path, settings);
             return Result(SetupExitCode.Success, "Configuration was written.", path);
         }
@@ -437,6 +443,7 @@ public sealed class SqlSetupProbe : ISetupProbe
                 InitialCatalog = "master",
                 IntegratedSecurity = true,
                 TrustServerCertificate = true,
+                Encrypt = SqlConnectionEncryptOption.Optional,
                 ConnectTimeout = 3
             };
             await using var connection = new SqlConnection(builder.ConnectionString);

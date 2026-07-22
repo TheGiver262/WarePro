@@ -29,6 +29,8 @@ public class InstallerContractTests
         Assert.Contains("AppOnlyMode", script, StringComparison.Ordinal);
         Assert.Contains("detect-sql", script, StringComparison.Ordinal);
         Assert.Contains("write-config", script, StringComparison.Ordinal);
+        Assert.Contains("WAREPROENCRYPT", script, StringComparison.Ordinal);
+        Assert.Contains("ParameterOrDefault('WAREPROENCRYPT', 'false')", script, StringComparison.Ordinal);
         Assert.Contains("test-connection", script, StringComparison.Ordinal);
         Assert.Contains("--mode full", script, StringComparison.Ordinal);
         Assert.Contains("--mode app-only", script, StringComparison.Ordinal);

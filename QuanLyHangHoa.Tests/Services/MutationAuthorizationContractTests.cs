@@ -133,7 +133,7 @@ public class MutationAuthorizationContractTests
         { "StockCountViewModel.cs", "await _stockCountService.UpdateDraftAsync(SelectedSession.Id, SelectedSessionLines, _currentUser.Id, operationId, cancellationToken)" },
         { "StockCountViewModel.cs", "await _stockCountService.CommitSessionAsync(currentId, SelectedSessionLines, _currentUser.Id, operationId, cancellationToken)" },
         { "StockCountViewModel.cs", "await _stockCountService.ProcessResultsAsync(session.Id, _currentUser.Id, operationId, cancellationToken)" },
-        { "StockReversalViewModel.cs", "await _reverseDocument(DocumentType, documentId, _currentUser.Id, operationId, cancellationToken)" },
+        { "StockReversalViewModel.cs", "await _reverseDocument(DocumentType, DocumentIdText, Reason, _currentUser.Id, operationId, cancellationToken)" },
         { "ProductSerialViewModel.cs", "_importService.ImportFromExcelAsync(excelPath, _currentUser.Id, Guid.NewGuid())" }
     };
 

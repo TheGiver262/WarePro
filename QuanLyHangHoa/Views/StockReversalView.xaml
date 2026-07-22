@@ -56,7 +56,7 @@
                     <StackPanel Grid.Column="0" Margin="0,0,16,0">
                         <TextBlock Text="MÃ CHỨNG TỪ CẦN ĐẢO" Style="{StaticResource TypographyCaption}" Margin="0,0,0,6" Foreground="{StaticResource AppPrimaryBrush}"/>
                         <TextBox Height="42" Style="{StaticResource AppTextBoxStyle}"
-                                 materialDesign:HintAssist.Hint="DocumentId (VD: PIN-2024-001)"
+                                 materialDesign:HintAssist.Hint="Mã hoặc ID chứng từ (VD: PIN-2024-001)"
                                  Text="{Binding DocumentIdText, UpdateSourceTrigger=PropertyChanged}"
                                  Background="{StaticResource SurfaceMutedBrush}">
                             <TextBox.InputBindings>

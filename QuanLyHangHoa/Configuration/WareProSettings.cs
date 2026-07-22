@@ -18,6 +18,7 @@ public sealed class WareProDatabaseSettings
     public string Database { get; set; } = "ProductManagementDb";
     public DatabaseAuthentication Authentication { get; set; } = DatabaseAuthentication.Windows;
     public bool TrustServerCertificate { get; set; } = true;
+    public bool Encrypt { get; set; } = false;
 }
 
 /// <summary>

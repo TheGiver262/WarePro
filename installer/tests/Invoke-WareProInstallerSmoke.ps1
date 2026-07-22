@@ -126,6 +126,10 @@ function Assert-InstalledState {
         throw "Sai kieu dang nhap database. Can $Authentication, nhan $($settings.database.authentication)."
     }
 
+    if ($settings.database.encrypt -ne $false) {
+        throw "Local SQL Express phai co database.encrypt=false."
+    }
+
     if ($settingsText -match '(?i)(Password|Pwd)\s*[:=]') {
         throw 'warepro.settings.json chua truong mat khau; credential phai nam trong Windows Credential Manager.'
     }

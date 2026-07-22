@@ -27,21 +27,29 @@ public sealed class StockReversalService
 
     public Task<int> ReverseDocumentAsync(
         string sourceType, int sourceId, int userId, Guid operationId,
+        CancellationToken cancellationToken = default) =>
+        ReverseDocumentAsync(
+            sourceType,
+            sourceId.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            "SYSTEM-REVERSAL",
+            userId,
+            operationId,
+            cancellationToken);
+
+    public Task<int> ReverseDocumentAsync(
+        string sourceType, string sourceReference, string reason, int userId, Guid operationId,
         CancellationToken cancellationToken = default)
     {
-        // chuẩn hóa một lần để operation key, truy vấn ledger và unique marker dùng đúng cùng một loại nguồn.
         var normalizedSourceType = NormalizeSourceType(sourceType);
+        var normalizedSourceReference = NormalizeSourceReference(sourceReference);
+        var normalizedReason = NormalizeReason(reason);
         return _writeExecutor.ExecuteAsync(
             new DatabaseWriteRequest("stock-reversal.reverse", operationId),
             (db, token) => StageReverseDocumentAsync(
-                db, normalizedSourceType, sourceId, userId, token),
-            // bộ ba loại adjustment, loại nguồn và id nguồn là marker bền vững để nhận ra lần đảo đã commit.
-            (db, token) => db.StockAdjustments.AnyAsync(adjustment =>
-                adjustment.AdjustmentType == ReversalType &&
-                adjustment.ReferenceDocumentType == normalizedSourceType &&
-                adjustment.ReferenceDocumentId == sourceId,
-                token),
-            entityKey: $"{normalizedSourceType}:{sourceId}",
+                db, normalizedSourceType, normalizedSourceReference, normalizedReason, userId, token),
+            (db, token) => HasCommittedReversalAsync(
+                db, normalizedSourceType, normalizedSourceReference, token),
+            entityKey: $"{normalizedSourceType}:{normalizedSourceReference}",
             cancellationToken: cancellationToken);
     }
 
@@ -51,21 +59,19 @@ public sealed class StockReversalService
     private static async Task<int> StageReverseDocumentAsync(
         AppDbContext db,
         string normalizedSourceType,
-        int sourceId,
+        string normalizedSourceReference,
+        string reason,
         int userId,
         CancellationToken cancellationToken)
     {
-        if (sourceId <= 0)
-        {
-            throw new InventoryDomainException("Mã chứng từ kho không hợp lệ.");
-        }
-
         if (userId <= 0)
         {
             throw new InventoryDomainException("Người thực hiện đảo chứng từ không hợp lệ.");
         }
 
         AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockAdjustment);
+        var sourceId = await ResolveSourceIdAsync(
+            db, normalizedSourceType, normalizedSourceReference, cancellationToken);
 
         // kiểm tra trước kết hợp unique filtered index trong database để chặn reversal lặp do cạnh tranh.
             if (db.StockAdjustments.Any(adjustment =>
@@ -102,14 +108,14 @@ public sealed class StockReversalService
                 DocumentCode = $"REV-{normalizedSourceType}-{sourceId}",
                 WarehouseId = warehouseId,
                 AdjustmentType = ReversalType,
-                ReasonCode = "SYSTEM-REVERSAL",
+                ReasonCode = reason == "SYSTEM-REVERSAL" ? "SYSTEM-REVERSAL" : "USER-REVERSAL",
                 Status = "Posted",
                 CreatedBy = userId,
                 PostedBy = userId,
                 PostedAt = now,
                 ReferenceDocumentType = normalizedSourceType,
                 ReferenceDocumentId = sourceId,
-                Notes = $"Reversal of {normalizedSourceType} #{sourceId}"
+                Notes = reason
             };
 
             db.StockAdjustments.Add(reversal);
@@ -166,6 +172,57 @@ public sealed class StockReversalService
         throw new InventoryDomainException("Chỉ hỗ trợ đảo phiếu nhập kho hoặc phiếu xuất kho.");
     }
 
+    private static string NormalizeSourceReference(string sourceReference)
+    {
+        var normalized = sourceReference?.Trim();
+        if (string.IsNullOrWhiteSpace(normalized))
+            throw new InventoryDomainException("Mã chứng từ kho không hợp lệ.");
+        return normalized;
+    }
+
+    private static string NormalizeReason(string reason)
+    {
+        var normalized = reason?.Trim();
+        if (string.IsNullOrWhiteSpace(normalized))
+            throw new InventoryDomainException("Vui lòng nhập lý do đảo chứng từ.");
+        if (normalized.Length > 500)
+            throw new InventoryDomainException("Lý do đảo chứng từ không được vượt quá 500 ký tự.");
+        return normalized;
+    }
+
+    private static async Task<int> ResolveSourceIdAsync(
+        AppDbContext db,
+        string sourceType,
+        string sourceReference,
+        CancellationToken cancellationToken)
+    {
+        if (int.TryParse(sourceReference, out var sourceId) && sourceId > 0)
+            return sourceId;
+
+        sourceId = sourceType == "StockIn"
+            ? await db.StockIns.Where(item => item.DocumentCode == sourceReference)
+                .Select(item => item.Id).SingleOrDefaultAsync(cancellationToken)
+            : await db.StockOuts.Where(item => item.DocumentCode == sourceReference)
+                .Select(item => item.Id).SingleOrDefaultAsync(cancellationToken);
+
+        if (sourceId <= 0)
+            throw new InventoryDomainException("Không tìm thấy chứng từ kho cần đảo.");
+        return sourceId;
+    }
+
+    private static async Task<bool> HasCommittedReversalAsync(
+        AppDbContext db,
+        string sourceType,
+        string sourceReference,
+        CancellationToken cancellationToken)
+    {
+        var sourceId = await ResolveSourceIdAsync(db, sourceType, sourceReference, cancellationToken);
+        return await db.StockAdjustments.AnyAsync(adjustment =>
+            adjustment.AdjustmentType == ReversalType &&
+            adjustment.ReferenceDocumentType == sourceType &&
+            adjustment.ReferenceDocumentId == sourceId,
+            cancellationToken);
+    }
     private static int GetSingleWarehouse(IReadOnlyCollection<StockLedger> entries)
     {
         var warehouseIds = entries.Select(entry => entry.WarehouseId).Distinct().ToArray();

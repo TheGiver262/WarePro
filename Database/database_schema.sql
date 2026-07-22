@@ -535,11 +535,6 @@ CREATE TABLE dbo.WarrantyClaim
     ProcessingNote        NVARCHAR(1000) NULL,
     ResolutionType        NVARCHAR(50) NULL,
     Status                NVARCHAR(50) NOT NULL,
-    OpenProductSerialId   AS
-        (CASE
-            WHEN Status IN (N'Closed', N'Rejected') THEN NULL
-            ELSE ProductSerialId
-         END) PERSISTED,
     ApprovedBy            INT NULL,
     ProcessedBy           INT NOT NULL,
     ClosedDate            DATETIME2(0) NULL,
@@ -554,8 +549,8 @@ GO
 
 CREATE UNIQUE INDEX UX_WarrantyClaim_ClaimCode ON dbo.WarrantyClaim(ClaimCode);
 CREATE UNIQUE INDEX UX_WarrantyClaim_OpenProductSerialId
-ON dbo.WarrantyClaim(OpenProductSerialId)
-WHERE OpenProductSerialId IS NOT NULL;
+ON dbo.WarrantyClaim(ProductSerialId)
+WHERE [Status] <> N'Closed' AND [Status] <> N'Rejected';
 GO
 
 CREATE TABLE dbo.AuditLog

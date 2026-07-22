@@ -282,6 +282,7 @@ begin
     'write-config --server ' + AddQuotes(SelectedServer) +
     ' --database ' + AddQuotes(SelectedDatabase) +
     ' --auth ' + SelectedAuthentication +
+    (' --encrypt ' + ParameterOrDefault('WAREPROENCRYPT', 'false')) +
     ' --config ' + AddQuotes(Path);
   Result := RunSetupHelper(Arguments, ExitCode) and (ExitCode = 0);
 end;

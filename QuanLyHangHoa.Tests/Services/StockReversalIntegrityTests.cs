@@ -246,7 +246,7 @@ public sealed class StockReversalIntegrityTests
         string? shownTitle = null;
         var viewModel = new StockReversalViewModel(
             new AppUser { Id = 7, Username = "admin" },
-            (_, _, _, _, _) => Task.FromResult(0),
+            (_, _, _, _, _, _) => Task.FromResult(0),
             (message, title) =>
             {
                 shownMessage = message;

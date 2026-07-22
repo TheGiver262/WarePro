@@ -1013,18 +1013,11 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => e.ProductSerialId, "IX_WarrantyClaim_ProductSerialId");
             entity.HasIndex(e => e.Status, "IX_WarrantyClaim_Status");
 
-            if (isSqlite)
-            {
-                entity.HasIndex(e => e.ProductSerialId, "UX_WarrantyClaim_OpenProductSerialId")
-                    .IsUnique()
-                    .HasFilter("Status <> 'Closed' AND Status <> 'Rejected'");
-            }
-            else
-            {
-                entity.Property<int?>("OpenProductSerialId")
-                    .HasComputedColumnSql("CASE WHEN [Status] IN ('Closed', 'Rejected') THEN NULL ELSE [ProductSerialId] END", stored: true);
-                entity.HasIndex(new[] { "OpenProductSerialId" }, "UX_WarrantyClaim_OpenProductSerialId").IsUnique();
-            }
+            entity.HasIndex(e => e.ProductSerialId, "UX_WarrantyClaim_OpenProductSerialId")
+                .IsUnique()
+                .HasFilter(isSqlite
+                    ? "Status <> 'Closed' AND Status <> 'Rejected'"
+                    : "[Status] <> N'Closed' AND [Status] <> N'Rejected'");
 
             entity.Property(e => e.ClaimCode).HasMaxLength(50);
             entity.Property(e => e.ClosedDate).HasPrecision(0);

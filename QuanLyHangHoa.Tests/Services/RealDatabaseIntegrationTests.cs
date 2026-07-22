@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
+using QuanLyHangHoa.Tests.Infrastructure;
 using Xunit;
 
 namespace QuanLyHangHoa.Tests.Services
@@ -12,7 +13,7 @@ namespace QuanLyHangHoa.Tests.Services
     [Trait("Category", "RealDatabase")]
     public class RealDatabaseIntegrationTests
     {
-        [Fact]
+        [MutatingRealDatabaseFact]
         public void Test_RealDatabase_UnitConversion()
         {
             var options = new DbContextOptionsBuilder<AppDbContext>()
