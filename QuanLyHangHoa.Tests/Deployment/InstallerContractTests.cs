@@ -204,7 +204,7 @@ public class InstallerContractTests
         Assert.Single(System.Text.RegularExpressions.Regex.Matches(script, @"#define\s+MyAppVersion\b"));
         Assert.Single(System.Text.RegularExpressions.Regex.Matches(script, @"#define\s+MySchemaRelease\b"));
         Assert.DoesNotContain("--app-version 1.1.0", script, StringComparison.Ordinal);
-        Assert.Matches(@"#define\s+MySchemaRelease\s+7\b", script);
+        Assert.Matches(@"#define\s+MySchemaRelease\s+8\b", script);
         Assert.DoesNotContain("--expected-schema 6", script, StringComparison.Ordinal);
         Assert.Contains("--app-version {#MyAppVersion} --expected-schema {#MySchemaRelease}", script, StringComparison.Ordinal);
     }

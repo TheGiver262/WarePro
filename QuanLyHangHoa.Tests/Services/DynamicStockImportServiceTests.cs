@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services.DataImport;
@@ -12,6 +13,87 @@ namespace QuanLyHangHoa.Tests.Services;
 
 public sealed class DynamicStockImportServiceTests
 {
+    [Fact]
+    public void Product_serial_import_posts_inventory_and_uses_its_real_stock_in_line()
+    {
+        using var connection = OpenDatabase();
+        using (var db = DatabaseHelper.CreateContext(connection))
+        {
+            db.Products.Add(CreateProduct(1699, "IMPORT-DYNAMIC-SERIAL", serialTracked: true));
+            db.SaveChanges();
+        }
+
+        var service = new DynamicImportService(() => DatabaseHelper.CreateContext(connection));
+        var result = service.ExecuteImport(
+            new List<Dictionary<string, string>>
+            {
+                new(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["SerialNumber"] = "DYNAMIC-SERIAL-001",
+                    ["ProductCode"] = "IMPORT-DYNAMIC-SERIAL",
+                    ["WarehouseName"] = string.Empty,
+                    ["Note"] = "opening serial"
+                }
+            },
+            ImportFileType.ProductSerial,
+            IdentityMappings("SerialNumber", "ProductCode", "WarehouseName", "Note"),
+            userId: 1,
+            autoCreateReferences: false);
+
+        Assert.Equal(1, result.SuccessCount);
+        Assert.Empty(result.Errors);
+        using var assertion = DatabaseHelper.CreateContext(connection);
+        var serial = assertion.ProductSerials
+            .Include(item => item.LastStockInLine)
+            .ThenInclude(line => line.StockIn)
+            .Single(item => item.SerialNumber == "DYNAMIC-SERIAL-001");
+        Assert.Equal(1699, serial.LastStockInLine.ProductId);
+        Assert.Equal("OpeningBalance", serial.LastStockInLine.StockIn.PurposeCode);
+        var balance = assertion.StockBalances.Single(item =>
+            item.ProductId == 1699 && item.WarehouseId == serial.CurrentWarehouseId);
+        Assert.Equal(1m, balance.OnHandQuantity);
+        var ledger = assertion.StockLedgers.Single(item =>
+            item.ProductId == 1699 && item.WarehouseId == serial.CurrentWarehouseId);
+        Assert.Equal(1m, ledger.Quantity);
+    }
+
+    [Fact]
+    public async Task Product_serial_import_replay_does_not_double_inventory()
+    {
+        using var connection = OpenDatabase();
+        using (var db = DatabaseHelper.CreateContext(connection))
+        {
+            db.Products.Add(CreateProduct(1698, "IMPORT-DYNAMIC-REPLAY", serialTracked: true));
+            db.SaveChanges();
+        }
+
+        var rows = new List<Dictionary<string, string>>
+        {
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                ["SerialNumber"] = "DYNAMIC-REPLAY-001",
+                ["ProductCode"] = "IMPORT-DYNAMIC-REPLAY",
+                ["WarehouseName"] = string.Empty,
+                ["Note"] = string.Empty
+            }
+        };
+        var mappings = IdentityMappings("SerialNumber", "ProductCode", "WarehouseName", "Note");
+        var operationId = Guid.NewGuid();
+        var service = new DynamicImportService(() => DatabaseHelper.CreateContext(connection));
+
+        var first = await service.ExecuteImportAsync(
+            rows, ImportFileType.ProductSerial, mappings, 1, false, operationId);
+        var replay = await service.ExecuteImportAsync(
+            rows, ImportFileType.ProductSerial, mappings, 1, false, operationId);
+
+        Assert.Equal(1, first.SuccessCount);
+        Assert.Equal(1, replay.SuccessCount);
+        using var assertion = DatabaseHelper.CreateContext(connection);
+        Assert.Single(assertion.ProductSerials.Where(item => item.ProductId == 1698));
+        Assert.Single(assertion.StockLedgers.Where(item => item.ProductId == 1698));
+        Assert.Equal(1m, assertion.StockBalances.Single(item => item.ProductId == 1698).OnHandQuantity);
+    }
+
     [Fact]
     public void Stock_in_second_line_validation_failure_rolls_back_entire_document()
     {

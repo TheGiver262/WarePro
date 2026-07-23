@@ -101,6 +101,7 @@ public sealed class StockReversalService
             ValidateLedgerDirections(entries, normalizedSourceType);
             ApplyInverseBalances(db, entries, normalizedSourceType);
             RestoreSerials(db, normalizedSourceType, sourceId, warehouseId);
+            EnsureNoActiveBusinessLinks(db, normalizedSourceType, sourceId);
 
             var now = DateTime.UtcNow;
             var reversal = new StockAdjustment
@@ -281,6 +282,43 @@ public sealed class StockReversalService
             throw new InventoryDomainException("Kho trên chứng từ và sổ kho không nhất quán.");
         }
     }
+
+    private static void EnsureNoActiveBusinessLinks(
+        AppDbContext db,
+        string sourceType,
+        int sourceId)
+    {
+        if (sourceType == "StockIn")
+        {
+            if (db.PurchaseInvoices.Any(invoice =>
+                    invoice.StockInId == sourceId &&
+                    invoice.Status == InvoiceStatus.Active))
+            {
+                throw new InventoryDomainException(
+                    "Cannot reverse stock-in while its purchase invoice is active.");
+            }
+
+            return;
+        }
+
+        if (db.SalesInvoices.Any(invoice =>
+                invoice.StockOutId == sourceId &&
+                invoice.Status == InvoiceStatus.Active))
+        {
+            throw new InventoryDomainException(
+                "Cannot reverse stock-out while its sales invoice is active.");
+        }
+
+        if (db.WarrantyCoverages.Any(coverage =>
+                coverage.CoverageStatus == "Active" &&
+                coverage.SalesInvoice != null &&
+                coverage.SalesInvoice.StockOutId == sourceId))
+        {
+            throw new InventoryDomainException(
+                "Cannot reverse stock-out while linked warranty coverage is active.");
+        }
+    }
+
 
     private static void ValidateLedgerDirections(IEnumerable<StockLedger> entries, string sourceType)
     {

@@ -220,6 +220,129 @@ public sealed class StockReversalIntegrityTests
         Assert.Contains("đã được đảo", repeated.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Theory]
+    [InlineData("StockIn")]
+    [InlineData("StockOut")]
+    public void Reversal_blocks_source_linked_to_active_invoice(string sourceType)
+    {
+        using var connection = OpenDatabase();
+        int sourceId;
+        using (var db = DatabaseHelper.CreateContext(connection))
+        {
+            var product = AddProduct(db, sourceType == "StockIn" ? 703 : 704, $"REV-{sourceType}-INVOICE", false);
+            if (sourceType == "StockIn")
+            {
+                var source = new StockIn
+                {
+                    DocumentCode = "REV-ACTIVE-PI", WarehouseId = 1, PurposeCode = "Purchase",
+                    Status = "Posted", CreatedBy = 1, PostedBy = 1,
+                    CreatedAt = DateTime.UtcNow, PostedAt = DateTime.UtcNow,
+                    Lines = [new StockInLine { Product = product, UnitId = 1, Quantity = 1, BaseQuantity = 1, UnitPrice = 10 }]
+                };
+                db.StockIns.Add(source);
+                db.SaveChanges();
+                sourceId = source.Id;
+                db.PurchaseInvoices.Add(new PurchaseInvoice
+                {
+                    InvoiceCode = "PI-REV-ACTIVE", SupplierId = 1, StockInId = sourceId,
+                    InvoiceDate = DateTime.Today, GrandTotal = 10, PaymentStatus = PaymentStatus.Unpaid,
+                    Status = InvoiceStatus.Active, CreatedBy = 1, CreatedAt = DateTime.UtcNow
+                });
+                db.StockBalances.Add(new StockBalance { ProductId = product.Id, WarehouseId = 1, OnHandQuantity = 1, AvailableQuantity = 1 });
+                db.StockLedgers.Add(new StockLedger { SourceDocumentType = sourceType, SourceDocumentId = sourceId, ProductId = product.Id, WarehouseId = 1, MovementType = "In", Quantity = 1, PostedBy = 1, PostedAt = DateTime.UtcNow });
+            }
+            else
+            {
+                var source = new StockOut
+                {
+                    DocumentCode = "REV-ACTIVE-SI", CustomerId = 1, WarehouseId = 1, PurposeCode = "Sale",
+                    Status = "Posted", CreatedBy = 1, PostedBy = 1,
+                    CreatedAt = DateTime.UtcNow, PostedAt = DateTime.UtcNow,
+                    Lines = [new StockOutLine { Product = product, UnitId = 1, Quantity = 1, BaseQuantity = 1, UnitPrice = 10 }]
+                };
+                db.StockOuts.Add(source);
+                db.SaveChanges();
+                sourceId = source.Id;
+                db.SalesInvoices.Add(new SalesInvoice
+                {
+                    InvoiceCode = "SI-REV-ACTIVE", CustomerId = 1, StockOutId = sourceId,
+                    InvoiceDate = DateTime.Today, GrandTotal = 10, PaymentStatus = PaymentStatus.Unpaid,
+                    Status = InvoiceStatus.Active, CreatedBy = 1, CreatedAt = DateTime.UtcNow
+                });
+                db.StockBalances.Add(new StockBalance { ProductId = product.Id, WarehouseId = 1 });
+                db.StockLedgers.Add(new StockLedger { SourceDocumentType = sourceType, SourceDocumentId = sourceId, ProductId = product.Id, WarehouseId = 1, MovementType = "Out", Quantity = 1, PostedBy = 1, PostedAt = DateTime.UtcNow });
+            }
+            db.SaveChanges();
+        }
+
+        var service = new StockReversalService(() => DatabaseHelper.CreateContext(connection));
+        var error = Assert.Throws<InventoryDomainException>(() =>
+            service.ReverseDocument(sourceType, sourceId, 1));
+
+        Assert.Contains("invoice", error.Message, StringComparison.OrdinalIgnoreCase);
+        using var assertion = DatabaseHelper.CreateContext(connection);
+        Assert.Empty(assertion.StockAdjustments);
+        Assert.Equal("Posted", sourceType == "StockIn"
+            ? assertion.StockIns.Single(item => item.Id == sourceId).Status
+            : assertion.StockOuts.Single(item => item.Id == sourceId).Status);
+    }
+
+    [Fact]
+    public void Reversal_blocks_stock_out_with_active_warranty_coverage()
+    {
+        using var connection = OpenDatabase();
+        int sourceId;
+        using (var db = DatabaseHelper.CreateContext(connection))
+        {
+            var product = AddProduct(db, 705, "REV-COVERAGE", true);
+            var stockIn = new StockIn
+            {
+                DocumentCode = "REV-COVERAGE-IN", WarehouseId = 1, PurposeCode = "Purchase",
+                Status = "Posted", CreatedBy = 1, PostedBy = 1, CreatedAt = DateTime.UtcNow, PostedAt = DateTime.UtcNow
+            };
+            var stockInLine = new StockInLine { StockIn = stockIn, Product = product, UnitId = 1, Quantity = 1, BaseQuantity = 1, UnitPrice = 10 };
+            var stockOut = new StockOut
+            {
+                DocumentCode = "REV-COVERAGE-OUT", CustomerId = 1, WarehouseId = 1, PurposeCode = "Sale",
+                Status = "Posted", CreatedBy = 1, PostedBy = 1, CreatedAt = DateTime.UtcNow, PostedAt = DateTime.UtcNow
+            };
+            var stockOutLine = new StockOutLine { StockOut = stockOut, Product = product, UnitId = 1, Quantity = 1, BaseQuantity = 1, UnitPrice = 20 };
+            db.AddRange(stockInLine, stockOutLine);
+            db.SaveChanges();
+            sourceId = stockOut.Id;
+            var serial = CreateSerial(product.Id, stockInLine.Id, "REV-COVERAGE-001", "Sold", null);
+            serial.LastStockOutLineId = stockOutLine.Id;
+            db.ProductSerials.Add(serial);
+            db.SaveChanges();
+            var invoice = new SalesInvoice
+            {
+                InvoiceCode = "SI-REV-VOIDED", CustomerId = 1, StockOutId = sourceId,
+                InvoiceDate = DateTime.Today, GrandTotal = 20, PaymentStatus = PaymentStatus.Unpaid,
+                Status = InvoiceStatus.Voided, CreatedBy = 1, CreatedAt = DateTime.UtcNow
+            };
+            db.SalesInvoices.Add(invoice);
+            db.SaveChanges();
+            db.WarrantyCoverages.Add(new WarrantyCoverage
+            {
+                ProductSerialId = serial.Id, CustomerId = 1, SalesInvoiceId = invoice.Id,
+                WarrantyStartDate = DateTime.Today, WarrantyEndDate = DateTime.Today.AddYears(1),
+                CoverageStatus = "Active"
+            });
+            db.StockBalances.Add(new StockBalance { ProductId = product.Id, WarehouseId = 1 });
+            db.StockLedgers.Add(new StockLedger { SourceDocumentType = "StockOut", SourceDocumentId = sourceId, ProductId = product.Id, WarehouseId = 1, MovementType = "Out", Quantity = 1, PostedBy = 1, PostedAt = DateTime.UtcNow });
+            db.SaveChanges();
+        }
+
+        var service = new StockReversalService(() => DatabaseHelper.CreateContext(connection));
+        var error = Assert.Throws<InventoryDomainException>(() =>
+            service.ReverseDocument("StockOut", sourceId, 1));
+
+        Assert.Contains("warranty", error.Message, StringComparison.OrdinalIgnoreCase);
+        using var assertion = DatabaseHelper.CreateContext(connection);
+        Assert.Empty(assertion.StockAdjustments);
+        Assert.Equal("Sold", assertion.ProductSerials.Single(item => item.SerialNumber == "REV-COVERAGE-001").CurrentStatus);
+    }
+
     [Fact]
     public void Reversal_source_key_is_unique_in_model()
     {

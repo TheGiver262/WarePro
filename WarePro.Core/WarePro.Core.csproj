@@ -23,5 +23,6 @@
     <EmbeddedResource Include="..\WarePro.SetupHelper\Resources\WarePro.Migrations.sql" Link="Resources\WarePro.Migrations.sql" LogicalName="WarePro.Core.Resources.WarePro.Migrations.sql" />
     <EmbeddedResource Include="..\Database\Schema\v6-common-write-safety.sql" Link="Resources\v6-common-write-safety.sql" LogicalName="WarePro.Core.Resources.v6-common-write-safety.sql" />
     <EmbeddedResource Include="..\Database\Schema\v7-invoice-void-open-claim.sql" Link="Resources\v7-invoice-void-open-claim.sql" LogicalName="WarePro.Core.Resources.v7-invoice-void-open-claim.sql" />
+    <EmbeddedResource Include="..\Database\Schema\v8-unique-invoice-stock-links.sql" Link="Resources\v8-unique-invoice-stock-links.sql" LogicalName="WarePro.Core.Resources.v8-unique-invoice-stock-links.sql" />
   </ItemGroup>
 </Project>

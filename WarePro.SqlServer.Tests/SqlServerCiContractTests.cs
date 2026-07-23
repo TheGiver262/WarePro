@@ -11,8 +11,8 @@ public sealed class SqlServerCiContractTests
     [Fact]
     public void Shared_migration_commands_are_ordered_and_go_free()
     {
-        var upgrade = DatabaseSchemaScripts.BuildUpgradeSql(7, "1.1.0");
-        for (var version = 3; version <= 7; version++)
+        var upgrade = DatabaseSchemaScripts.BuildUpgradeSql(8, "1.1.0");
+        for (var version = 3; version <= 8; version++)
             Assert.Contains($"IF @CurrentVersion < {version} BEGIN EXEC sys.sp_executesql N'", upgrade, StringComparison.Ordinal);
         Assert.DoesNotContain("IF @CurrentVersion < 1", upgrade, StringComparison.Ordinal);
         Assert.DoesNotContain("IF @CurrentVersion < 2", upgrade, StringComparison.Ordinal);
@@ -20,7 +20,7 @@ public sealed class SqlServerCiContractTests
 
         Assert.All(DatabaseSchemaScripts.BaselineBatches, AssertHasNoGoBatch);
         AssertHasNoGoBatch(upgrade);
-        AssertHasNoGoBatch(DatabaseSchemaScripts.BuildFinalizeSql(7, "1.1.0"));
+        AssertHasNoGoBatch(DatabaseSchemaScripts.BuildFinalizeSql(8, "1.1.0"));
         Assert.Matches(new Regex(@"(?i)\[RowCount\]\s+INT\s+NOT\s+NULL"), string.Join('\n', DatabaseSchemaScripts.BaselineBatches));
         Assert.Matches(new Regex(@"(?i)\[RowCount\]\s+INT\s+NOT\s+NULL"), upgrade);
     }

@@ -19,6 +19,7 @@ public sealed class DatabaseWriteBoundaryContractTests
         [new("QuanLyHangHoa/Services/DataImport/DynamicImportService.cs", "ImportProductsAsync", "SaveChangesAsync")] = 3, [new("QuanLyHangHoa/Services/DataImport/DynamicImportService.cs", "ImportPurchaseInvoicesAsync", "SaveChangesAsync")] = 2, [new("QuanLyHangHoa/Services/DataImport/DynamicImportService.cs", "ImportSalesInvoicesAsync", "SaveChangesAsync")] = 2, [new("QuanLyHangHoa/Services/DataImport/DynamicImportService.cs", "ImportStockInDocumentsAsync", "SaveChangesAsync")] = 2, [new("QuanLyHangHoa/Services/DataImport/DynamicImportService.cs", "ImportStockOutDocumentsAsync", "SaveChangesAsync")] = 2,
         [new("QuanLyHangHoa/Services/InvoiceService.Integrity.cs", "UpsertPurchaseInvoiceAsync", "SaveChangesAsync")] = 1, [new("QuanLyHangHoa/Services/InvoiceService.Integrity.cs", "UpsertSalesInvoiceAsync", "SaveChangesAsync")] = 1,
         [new("QuanLyHangHoa/Services/OpeningBalanceImportService.cs", "ImportRowsAsync", "SaveChangesAsync")] = 1, [new("QuanLyHangHoa/Services/ProductService.cs", "AddProductAsync", "SaveChangesAsync")] = 1, [new("QuanLyHangHoa/Services/StockAdjustmentService.cs", "StageSaveDraftAsync", "SaveChangesAsync")] = 1,
+        [new("QuanLyHangHoa/Services/ProductSerialImportService.cs", "ImportFromExcelAsync", "SaveChangesAsync")] = 1,
         [new("QuanLyHangHoa/Services/StockCountService.cs", "CreateAsync", "SaveChangesAsync")] = 1, [new("QuanLyHangHoa/Services/StockCountService.cs", "PostStockInCorrectionAsync", "SaveChangesAsync")] = 1, [new("QuanLyHangHoa/Services/StockCountService.cs", "PostStockOutCorrectionAsync", "SaveChangesAsync")] = 1, [new("QuanLyHangHoa/Services/StockCountService.cs", "StageProcessResultsAsync", "SaveChangesAsync")] = 1,
         [new("QuanLyHangHoa/Services/StockInService.cs", "StageSaveDraftAsync", "SaveChangesAsync")] = 1, [new("QuanLyHangHoa/Services/StockOutService.cs", "StageSaveDraftAsync", "SaveChangesAsync")] = 1, [new("QuanLyHangHoa/Services/StockReversalService.cs", "StageReverseDocumentAsync", "SaveChangesAsync")] = 1, [new("QuanLyHangHoa/Services/StockTransferService.cs", "StageSaveDraftAsync", "SaveChangesAsync")] = 1,
         [new("QuanLyHangHoa/Services/SupplierService.cs", "AddAsync", "SaveChangesAsync")] = 1, [new("QuanLyHangHoa/Services/UnitService.cs", "AddAsync", "SaveChangesAsync")] = 1,
@@ -33,8 +34,8 @@ public sealed class DatabaseWriteBoundaryContractTests
     {
         var sources = EnumerateProductionSourceFiles().Select(file => new SourceFile(Relative(file), File.ReadAllText(file))).ToArray();
         var calls = sources.SelectMany(source => FindDirectWriteCalls(source.Text).Select(call => new SourceCall(source.Path, ContainingMethod(call), Api(call), call))).ToArray();
-        Assert.Equal(54, calls.Length);
-        Assert.Equal(53, calls.Count(call => call.File != UnitOfWorkFile));
+        Assert.Equal(55, calls.Length);
+        Assert.Equal(54, calls.Count(call => call.File != UnitOfWorkFile));
         var actual = calls.GroupBy(call => new CallKey(call.File, call.Method, call.Api)).ToDictionary(group => group.Key, group => group.Count());
         Assert.Equal(ExpectedCalls.OrderBy(item => item.Key.ToString()), actual.OrderBy(item => item.Key.ToString()));
         foreach (var call in calls.Where(call => IsServiceFile(call.File) && call.File != UnitOfWorkFile && !RawDmlApis.Contains(call.Api)))
@@ -45,7 +46,7 @@ public sealed class DatabaseWriteBoundaryContractTests
     public void Concurrency_document_covers_exact_files_and_operational_contract()
     {
         var document = File.ReadAllText(Path.Combine(Root, "docs", "DATABASE_CONCURRENCY.md"));
-        foreach (var required in ExpectedCalls.Keys.Select(key => key.File).Distinct().Concat(new[] { "retry", "conflict", "operation ID", "maintenance", "backup", "DB-WRITE-CONFLICT", "DB-WRITE-RETRY-EXHAUSTED", "rowversion", "deadlock", "commit acknowledgement", "RCSI", "schema 7", "Plan 2", "approval" })) Assert.Contains(required, document, StringComparison.OrdinalIgnoreCase);
+        foreach (var required in ExpectedCalls.Keys.Select(key => key.File).Distinct().Concat(new[] { "retry", "conflict", "operation ID", "maintenance", "backup", "DB-WRITE-CONFLICT", "DB-WRITE-RETRY-EXHAUSTED", "rowversion", "deadlock", "commit acknowledgement", "RCSI", "schema 8", "Plan 2", "approval" })) Assert.Contains(required, document, StringComparison.OrdinalIgnoreCase);
     }
 
     internal static IReadOnlyList<InvocationExpressionSyntax> FindDirectWriteCalls(string source) => CSharpSyntaxTree.ParseText(source).GetRoot().DescendantNodes().OfType<InvocationExpressionSyntax>().Where(invocation => invocation.Expression switch { MemberAccessExpressionSyntax member => member.Expression is not BaseExpressionSyntax && WriteApis.Contains(member.Name.Identifier.ValueText), MemberBindingExpressionSyntax binding => WriteApis.Contains(binding.Name.Identifier.ValueText), _ => false }).ToArray();

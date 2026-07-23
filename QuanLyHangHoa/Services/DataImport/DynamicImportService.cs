@@ -108,6 +108,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     new() { Key = "DiscountAmount", DisplayName = "Tiền giảm giá", IsRequired = false, DataType = "decimal" },
                     new() { Key = "TaxAmount", DisplayName = "Tiền thuế VAT", IsRequired = false, DataType = "decimal" },
                     new() { Key = "PaymentStatus", DisplayName = "Trạng thái thanh toán (Paid/PartiallyPaid/Unpaid/Overdue)", IsRequired = false },
+                    new() { Key = "PaidAmount", DisplayName = "Số tiền đã thanh toán", IsRequired = false, DataType = "decimal" },
                     new() { Key = "Notes", DisplayName = "Ghi chú hóa đơn", IsRequired = false },
                     new() { Key = "ProductCode", DisplayName = "Mã sản phẩm", IsRequired = true },
                     new() { Key = "Quantity", DisplayName = "Số lượng", IsRequired = true, DataType = "decimal" },
@@ -123,6 +124,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     new() { Key = "DiscountAmount", DisplayName = "Tiền giảm giá", IsRequired = false, DataType = "decimal" },
                     new() { Key = "TaxAmount", DisplayName = "Tiền thuế VAT", IsRequired = false, DataType = "decimal" },
                     new() { Key = "PaymentStatus", DisplayName = "Trạng thái thanh toán (Paid/PartiallyPaid/Unpaid/Overdue)", IsRequired = false },
+                    new() { Key = "PaidAmount", DisplayName = "Số tiền đã thanh toán", IsRequired = false, DataType = "decimal" },
                     new() { Key = "Notes", DisplayName = "Ghi chú hóa đơn", IsRequired = false },
                     new() { Key = "ProductCode", DisplayName = "Mã sản phẩm", IsRequired = true },
                     new() { Key = "Quantity", DisplayName = "Số lượng", IsRequired = true, DataType = "decimal" },
@@ -274,8 +276,9 @@ namespace QuanLyHangHoa.Services.DataImport
                                     batch.Rows, db, result, batch.AutoCreateReferences, rowIdx, token);
                                 break;
                             case ImportFileType.ProductSerial:
-                                ImportProductSerials(
-                                    batch.Rows, db, result, batch.AutoCreateReferences, ref rowIdx);
+                                rowIdx = await ImportProductSerialsAsync(
+                                    batch.Rows, db, result, userId, batch.AutoCreateReferences,
+                                    operationId, rowIdx, token);
                                 break;
                             case ImportFileType.StockIn:
                                 rowIdx = await ImportStockInDocumentsAsync(
@@ -544,6 +547,7 @@ namespace QuanLyHangHoa.Services.DataImport
         {
             var totalAmount = GetMappedDecimal(row, mappings, "TotalAmount", required: true);
             var discountAmount = GetMappedDecimalNull(row, mappings, "DiscountAmount") ?? 0;
+            var paidAmountInput = GetMappedDecimalNull(row, mappings, "PaidAmount");
             var taxAmount = GetMappedDecimalNull(row, mappings, "TaxAmount") ?? 0;
             var quantity = GetMappedDecimal(row, mappings, "Quantity", required: true);
             var unitPrice = GetMappedDecimal(row, mappings, "UnitPrice", required: true);
@@ -555,6 +559,10 @@ namespace QuanLyHangHoa.Services.DataImport
                     "Invoice amounts must be non-negative, quantity positive, and tax rate between 0 and 1.");
             }
 
+            var paymentStatus = PaymentStatus.Normalize(
+                GetMappedString(row, mappings, "PaymentStatus", required: false) ??
+                PaymentStatus.Unpaid);
+            var paidAmount = ResolveImportedPaidAmount(totalAmount, paymentStatus, paidAmountInput);
             return new PreparedImportRow
             {
                 InvoiceCode = GetMappedString(row, mappings, "InvoiceCode", required: true),
@@ -568,14 +576,38 @@ namespace QuanLyHangHoa.Services.DataImport
                 TotalAmount = totalAmount,
                 DiscountAmount = discountAmount,
                 TaxAmount = taxAmount,
-                PaymentStatus = PaymentStatus.Normalize(
-                    GetMappedString(row, mappings, "PaymentStatus", required: false) ?? PaymentStatus.Paid),
+                PaidAmount = paidAmount,
+                PaymentStatus = paymentStatus,
                 Notes = GetMappedString(row, mappings, "Notes", required: false),
                 ProductCode = GetMappedString(row, mappings, "ProductCode", required: true),
                 Quantity = quantity,
                 UnitPrice = unitPrice,
                 TaxRate = taxRate
             };
+        }
+
+        private static decimal ResolveImportedPaidAmount(
+            decimal totalAmount,
+            string paymentStatus,
+            decimal? paidAmountInput)
+        {
+            var paidAmount = paidAmountInput ??
+                (paymentStatus == PaymentStatus.Paid ? totalAmount : 0m);
+            if (paidAmount < 0 || paidAmount > totalAmount)
+                throw new ArgumentException("Paid amount must be between zero and invoice total.");
+
+            var isConsistent = paymentStatus switch
+            {
+                PaymentStatus.Paid => totalAmount > 0 && paidAmount == totalAmount,
+                PaymentStatus.PartiallyPaid => paidAmount > 0 && paidAmount < totalAmount,
+                PaymentStatus.Unpaid => paidAmount == 0,
+                PaymentStatus.Overdue => paidAmount < totalAmount,
+                _ => false
+            };
+            if (!isConsistent)
+                throw new ArgumentException("Paid amount does not match payment status.");
+
+            return paidAmount;
         }
 
         private static void ValidatePreparedGroups(
@@ -621,6 +653,7 @@ namespace QuanLyHangHoa.Services.DataImport
                         row.TotalAmount == first.TotalAmount &&
                         row.DiscountAmount == first.DiscountAmount &&
                         row.TaxAmount == first.TaxAmount &&
+                        row.PaidAmount == first.PaidAmount &&
                         row.PaymentStatus == first.PaymentStatus &&
                         row.Notes == first.Notes);
                     if (!consistent)
@@ -640,16 +673,21 @@ namespace QuanLyHangHoa.Services.DataImport
             Guid operationId)
         {
             if (type is not (ImportFileType.StockIn or ImportFileType.StockOut or
-                ImportFileType.PurchaseInvoice or ImportFileType.SalesInvoice))
+                ImportFileType.PurchaseInvoice or ImportFileType.SalesInvoice or
+                ImportFileType.ProductSerial))
             {
                 return;
             }
 
             var indexedGroups = rows
                 .Select((row, index) => new { Row = row, Index = index })
-                .GroupBy(item => type is ImportFileType.StockIn or ImportFileType.StockOut
-                    ? GetStockGroupKey(item.Row)
-                    : item.Row.InvoiceCode!);
+                .GroupBy(item => type switch
+                {
+                    ImportFileType.ProductSerial =>
+                        item.Row.WarehouseName?.Trim().ToUpperInvariant() ?? string.Empty,
+                    ImportFileType.StockIn or ImportFileType.StockOut => GetStockGroupKey(item.Row),
+                    _ => item.Row.InvoiceCode!
+                });
             foreach (var group in indexedGroups)
             {
                 // mỗi chứng từ có marker riêng từ dữ liệu nguồn chuẩn hóa để phát hiện replay cùng mã nhưng khác nội dung.
@@ -658,7 +696,9 @@ namespace QuanLyHangHoa.Services.DataImport
                     type,
                     group.Select(item => sourceRows[item.Index]),
                     mappings);
-                var persistedNotes = AttachPayloadMarker(group.First().Row.Notes, marker);
+                var persistedNotes = AttachPayloadMarker(
+                    type == ImportFileType.ProductSerial ? group.First().Row.Note : group.First().Row.Notes,
+                    marker);
                 foreach (var item in group)
                 {
                     rows[item.Index] = item.Row with
@@ -676,7 +716,8 @@ namespace QuanLyHangHoa.Services.DataImport
         {
             var action = type switch
             {
-                ImportFileType.StockIn => PermissionAction.PostStockIn,
+                ImportFileType.StockIn or ImportFileType.ProductSerial =>
+                    PermissionAction.PostStockIn,
                 ImportFileType.StockOut => PermissionAction.PostStockOut,
                 ImportFileType.PurchaseInvoice => PermissionAction.CreatePurchaseInvoice,
                 ImportFileType.SalesInvoice => PermissionAction.CreateSalesInvoice,
@@ -719,10 +760,26 @@ namespace QuanLyHangHoa.Services.DataImport
                     }
                     return true;
                 case ImportFileType.ProductSerial:
+                    var serialDocumentPrefix = $"SI-{operationId:N}-";
                     foreach (var row in batch.Rows)
                     {
-                        if (!await db.ProductSerials.AnyAsync(
-                                serial => serial.SerialNumber == row.SerialNumber,
+                        var postedSerial = await db.ProductSerials
+                            .Where(serial =>
+                                serial.SerialNumber == row.SerialNumber &&
+                                serial.LastStockInLine.StockIn.DocumentCode.StartsWith(serialDocumentPrefix))
+                            .Select(serial => new
+                            {
+                                serial.ProductId,
+                                serial.CurrentWarehouseId,
+                                StockInId = serial.LastStockInLine.StockInId
+                            })
+                            .SingleOrDefaultAsync(cancellationToken);
+                        if (postedSerial is null ||
+                            !await db.StockLedgers.AnyAsync(ledger =>
+                                ledger.SourceDocumentType == "StockIn" &&
+                                ledger.SourceDocumentId == postedSerial.StockInId &&
+                                ledger.ProductId == postedSerial.ProductId &&
+                                ledger.WarehouseId == postedSerial.CurrentWarehouseId,
                                 cancellationToken))
                         {
                             return false;
@@ -892,6 +949,7 @@ namespace QuanLyHangHoa.Services.DataImport
             public decimal TotalAmount { get; init; }
             public decimal DiscountAmount { get; init; }
             public decimal TaxAmount { get; init; }
+            public decimal PaidAmount { get; init; }
             public string? PaymentStatus { get; init; }
             public decimal UnitPrice { get; init; }
             public decimal TaxRate { get; init; }
@@ -1073,75 +1131,53 @@ namespace QuanLyHangHoa.Services.DataImport
             return rowIdx;
         }
 
-        // serial có thể cập nhật lại sản phẩm, kho và trạng thái; kho trống dùng kho mặc định đang hoạt động
-        private void ImportProductSerials(
+        // import serial là nhập tồn đầu kỳ: chỉ tạo serial mới qua chứng từ và posting service, không sửa vòng đời serial cũ
+        private async Task<int> ImportProductSerialsAsync(
             IReadOnlyList<PreparedImportRow> rows,
             AppDbContext db,
             DynamicImportResult result,
+            int userId,
             bool autoCreateReferences,
-            ref int rowIdx)
+            Guid operationId,
+            int rowIdx,
+            CancellationToken cancellationToken)
         {
-            var warehouse = db.Warehouses.FirstOrDefault(w => w.IsDefault && w.IsActive) 
-                            ?? db.Warehouses.FirstOrDefault(w => w.IsActive)
-                            ?? db.Warehouses.First();
+            var importedAt = DateTime.UtcNow;
+            var warehouseKeys = rows
+                .Select(row => row.WarehouseName?.Trim().ToUpperInvariant() ?? string.Empty)
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(key => key, StringComparer.Ordinal)
+                .ToArray();
+            var documentCodes = warehouseKeys
+                .Select((key, index) => new { key, code = $"SI-{operationId:N}-{index + 1}" })
+                .ToDictionary(item => item.key, item => item.code, StringComparer.Ordinal);
 
+            var stockRows = rows.Select(row => row with
+            {
+                DocumentCode = documentCodes[
+                    row.WarehouseName?.Trim().ToUpperInvariant() ?? string.Empty],
+                ImportDate = importedAt,
+                Quantity = 1m,
+                Serials = new[] { row.SerialNumber! },
+                Notes = row.Note
+            }).ToArray();
+
+            var nextRow = await ImportStockInDocumentsAsync(
+                stockRows, db, result, userId, autoCreateReferences,
+                operationId, rowIdx, cancellationToken, openingBalance: true);
+
+            var documentPrefix = $"SI-{operationId:N}-";
             foreach (var row in rows)
             {
-                rowIdx++;
-                try
-                {
-                    string serialNumber = row.SerialNumber!;
-                    string productCode = row.ProductCode!;
-                    string? warehouseName = row.WarehouseName;
-                    string? note = row.Note;
-
-                    var product = db.Products.FirstOrDefault(p => p.ProductCode == productCode);
-                    if (product == null)
-                    {
-                        throw new ArgumentException($"Không tìm thấy sản phẩm có mã '{productCode}'.");
-                    }
-
-                    int whId = warehouse.Id;
-                    if (!string.IsNullOrEmpty(warehouseName))
-                    {
-                        var wh = db.Warehouses.FirstOrDefault(w => w.DisplayName == warehouseName);
-                        if (wh != null)
-                        {
-                            whId = wh.Id;
-                        }
-                        else if (!autoCreateReferences)
-                        {
-                            throw new ArgumentException($"Không tìm thấy kho '{warehouseName}'.");
-                        }
-                    }
-
-                    var existing = db.ProductSerials.FirstOrDefault(s => s.SerialNumber == serialNumber);
-                    if (existing != null)
-                    {
-                        existing.ProductId = product.Id;
-                        existing.CurrentWarehouseId = whId;
-                        existing.Note = note;
-                        existing.CurrentStatus = "InStock";
-                    }
-                    else
-                    {
-                        db.ProductSerials.Add(new ProductSerial
-                        {
-                            SerialNumber = serialNumber,
-                            ProductId = product.Id,
-                            CurrentWarehouseId = whId,
-                            Note = note,
-                            CurrentStatus = "InStock",
-                            LastStockInLineId = 1 // Placeholder for legacy schema compatibility if nulls not allowed
-                        });
-                    }
-                    result.SuccessCount++;
-                }
-                catch (ArgumentException ex)
-                {
-                    result.Errors.Add(new RowError { RowNumber = rowIdx, ErrorMessage = ex.Message });
-                }
+                var serial = await db.ProductSerials.SingleOrDefaultAsync(item =>
+                    item.SerialNumber == row.SerialNumber &&
+                    item.LastStockInLine.StockIn.DocumentCode.StartsWith(documentPrefix),
+                    cancellationToken);
+                if (serial is not null)
+                    serial.Note = row.Note;
             }
+
+            return nextRow;
         }
 
         // bản ghi tạm giữ dữ liệu đã kiểm tra; chỉ sau khi cả chứng từ hợp lệ mới bắt đầu ghi xuống database
@@ -1165,7 +1201,8 @@ namespace QuanLyHangHoa.Services.DataImport
             bool autoCreateReferences,
             Guid operationId,
             int rowIdx,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            bool openingBalance = false)
         {
             // mọi dòng cùng mã được xem là một chứng từ; mã trống được gom vào một phiếu tự sinh
             var grouped = GroupStockRows(rows);
@@ -1297,7 +1334,7 @@ namespace QuanLyHangHoa.Services.DataImport
                         ImportDate = importDate,
                         WarehouseId = warehouse.Id,
                         Supplier = supplier,
-                        PurposeCode = "Purchase",
+                        PurposeCode = openingBalance ? "OpeningBalance" : "Purchase",
                         Notes = persistedNotes,
                         Status = StockDocumentStatus.Approved.ToString(),
                         CreatedBy = userId,
@@ -1340,7 +1377,7 @@ namespace QuanLyHangHoa.Services.DataImport
                         postingService.PostStockIn(new PostStockInCommand(
                             stockIn.Id,
                             stockIn.WarehouseId,
-                            StockInKind.Purchase,
+                            openingBalance ? StockInKind.OpeningBalance : StockInKind.Purchase,
                             StockDocumentStatus.Approved,
                             item.Prepared.Product.Id,
                             item.Prepared.BaseQuantity,
@@ -1689,6 +1726,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     decimal discount = firstRow.DiscountAmount;
                     decimal taxAmount = firstRow.TaxAmount;
                     string status = firstRow.PaymentStatus!;
+                    decimal paidAmount = firstRow.PaidAmount;
 
 
                     var preparedLines = new List<(Product Product, decimal Quantity, decimal UnitPrice, decimal TaxRate)>();
@@ -1722,6 +1760,8 @@ namespace QuanLyHangHoa.Services.DataImport
                         result.SuccessCount += groupRows.Count;
                         continue;
                     }
+                    var calculatedSubTotal = ValidateImportedInvoiceTotals(
+                        preparedLines, totalAmount, discount, taxAmount);
                     var supplier = db.Suppliers.FirstOrDefault(s => s.DisplayName == supplierName);
                     if (supplier == null)
                     {
@@ -1742,11 +1782,12 @@ namespace QuanLyHangHoa.Services.DataImport
                         InvoiceCode = group.Key,
                         InvoiceDate = invoiceDate,
                         SupplierId = supplier.Id,
-                        SubTotal = totalAmount - taxAmount + discount,
+                        SubTotal = calculatedSubTotal,
                         TaxAmount = taxAmount,
                         GrandTotal = totalAmount,
                         PaymentStatus = status,
                         Notes = firstRow.PersistedNotes,
+                        PaidAmount = paidAmount,
                         CreatedBy = userId,
                         CreatedAt = DateTime.Now
                     };
@@ -1810,6 +1851,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     decimal taxAmount = firstRow.TaxAmount;
                     string status = firstRow.PaymentStatus!;
 
+                    decimal paidAmount = firstRow.PaidAmount;
 
                     var preparedLines = new List<(Product Product, decimal Quantity, decimal UnitPrice, decimal TaxRate)>();
                     foreach (var itemRow in groupRows)
@@ -1843,6 +1885,8 @@ namespace QuanLyHangHoa.Services.DataImport
                         continue;
                     }
                     var customer = db.Customers.FirstOrDefault(c => c.DisplayName == customerName);
+                    var calculatedSubTotal = ValidateImportedInvoiceTotals(
+                        preparedLines, totalAmount, discount, taxAmount);
                     if (customer == null)
                     {
                         if (autoCreateReferences)
@@ -1862,12 +1906,13 @@ namespace QuanLyHangHoa.Services.DataImport
                         InvoiceCode = group.Key,
                         InvoiceDate = invoiceDate,
                         CustomerId = customer.Id,
-                        SubTotal = totalAmount - taxAmount + discount,
+                        SubTotal = calculatedSubTotal,
                         TaxAmount = taxAmount,
                         GrandTotal = totalAmount,
                         PaymentStatus = status,
                         Notes = firstRow.PersistedNotes,
                         CreatedBy = userId,
+                        PaidAmount = paidAmount,
                         CreatedAt = DateTime.Now
                     };
 
@@ -1901,6 +1946,25 @@ namespace QuanLyHangHoa.Services.DataImport
             }
 
             return rowIdx;
+        }
+
+        private static decimal ValidateImportedInvoiceTotals(
+            IReadOnlyCollection<(Product Product, decimal Quantity, decimal UnitPrice, decimal TaxRate)> lines,
+            decimal declaredTotal,
+            decimal discount,
+            decimal declaredTax)
+        {
+            if (discount != 0)
+                throw new ArgumentException("Invoice discounts are not supported by the current invoice model.");
+
+            var calculatedSubTotal = lines.Sum(line => line.Quantity * line.UnitPrice);
+            var calculatedTax = lines.Sum(line => line.Quantity * line.UnitPrice * line.TaxRate);
+            if (calculatedTax != declaredTax)
+                throw new ArgumentException("Invoice tax total does not match its detail lines.");
+            if (calculatedSubTotal + calculatedTax != declaredTotal)
+                throw new ArgumentException("Invoice total does not match its detail lines.");
+
+            return calculatedSubTotal;
         }
 
         #endregion

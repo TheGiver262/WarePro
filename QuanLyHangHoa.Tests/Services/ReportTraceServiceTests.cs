@@ -83,6 +83,52 @@ public class ReportTraceServiceTests
         Assert.Equal(new DateTime(2027, 1, 10), item.WarrantyEndDate);
     }
 
+    [Fact]
+    public void WarrantyCoverage_relationship_allows_history_per_serial()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        using var context = DatabaseHelper.CreateContext(connection);
+
+        var foreignKey = context.Model.FindEntityType(typeof(WarrantyCoverage))!
+            .GetForeignKeys()
+            .Single(key => key.PrincipalEntityType.ClrType == typeof(ProductSerial));
+
+        Assert.False(foreignKey.IsUnique);
+    }
+
+    [Fact]
+    public void SearchSerialTrace_prefers_active_coverage_over_newer_history()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        using (var seedContext = DatabaseHelper.CreateContext(connection))
+        {
+            SeedTraceData(seedContext);
+            seedContext.WarrantyCoverages.Add(new WarrantyCoverage
+            {
+                Id = 51,
+                ProductSerialId = 30,
+                CustomerId = 1,
+                SalesInvoiceId = 40,
+                WarrantyStartDate = new DateTime(2028, 1, 10),
+                WarrantyEndDate = new DateTime(2029, 1, 10),
+                CoverageStatus = "Voided"
+            });
+            seedContext.SaveChanges();
+        }
+
+        var service = new ReportTraceService(() => DatabaseHelper.CreateContext(connection));
+
+        var item = Assert.Single(service.SearchSerialTrace(new SerialTraceFilter
+        {
+            SearchText = "SN-001"
+        }));
+
+        Assert.Equal(new DateTime(2026, 1, 10), item.WarrantyStartDate);
+        Assert.Equal(new DateTime(2027, 1, 10), item.WarrantyEndDate);
+    }
+
     private static void SeedTraceData(AppDbContext context)
     {
         DatabaseHelper.SeedBasicData(context);

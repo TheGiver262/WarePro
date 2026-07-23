@@ -106,6 +106,35 @@ public class ProductUnitServiceTests
     }
 
     [Fact]
+    public void Product_can_have_multiple_conversion_units()
+    {
+        using var connection = CreateDatabase();
+        using var context = CreateContext(connection);
+        DatabaseHelper.SeedBasicData(context);
+        context.Units.AddRange(
+            new Unit { Id = 101, UnitCode = "BOX", DisplayName = "Box", IsActive = true },
+            new Unit { Id = 102, UnitCode = "PALLET", DisplayName = "Pallet", IsActive = true });
+        context.Products.Add(new Product
+        {
+            Id = 1200,
+            ProductCode = "P1200",
+            DisplayName = "Multi-unit product",
+            CategoryId = 1,
+            BrandId = 1,
+            DefaultUnitId = 1,
+            DefaultPrice = 10m,
+            IsActive = true
+        });
+        context.ProductUnits.AddRange(
+            new ProductUnit { ProductId = 1200, UnitId = 101, ConversionFactor = 12m },
+            new ProductUnit { ProductId = 1200, UnitId = 102, ConversionFactor = 120m });
+
+        context.SaveChanges();
+
+        Assert.Equal(2, context.ProductUnits.Count(unit => unit.ProductId == 1200));
+    }
+
+    [Fact]
     public void GetByProductId_hydrates_product_and_unit()
     {
         using var connection = CreateDatabase();

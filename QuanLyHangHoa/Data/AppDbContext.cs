@@ -342,8 +342,8 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.ConversionFactor).HasColumnType("decimal(18, 6)");
 
-            entity.HasOne(d => d.Product).WithOne(p => p.ProductUnit)
-                .HasForeignKey<ProductUnit>(d => d.ProductId)
+            entity.HasOne(d => d.Product).WithMany(p => p.ProductUnits)
+                .HasForeignKey(d => d.ProductId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_ProductUnit_Product");
 
@@ -367,6 +367,9 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(
                 e => new { e.Status, e.InvoiceDate },
                 "IX_PurchaseInvoice_Status_InvoiceDate");
+            entity.HasIndex(e => e.StockInId, "UX_PurchaseInvoice_StockInId")
+                .IsUnique()
+                .HasFilter(isSqlite ? "StockInId IS NOT NULL" : "[StockInId] IS NOT NULL");
 
             entity.Property(e => e.GrandTotal).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.CreatedAt).HasPrecision(0);
@@ -448,6 +451,9 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(
                 e => new { e.Status, e.InvoiceDate },
                 "IX_SalesInvoice_Status_InvoiceDate");
+            entity.HasIndex(e => e.StockOutId, "UX_SalesInvoice_StockOutId")
+                .IsUnique()
+                .HasFilter(isSqlite ? "StockOutId IS NOT NULL" : "[StockOutId] IS NOT NULL");
 
             entity.Property(e => e.GrandTotal).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.CreatedAt).HasPrecision(0);
@@ -1057,7 +1063,8 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_WarrantyClaim_ReplacementStockOut");
 
             entity.HasOne(d => d.WarrantyCoverage).WithMany(p => p.WarrantyClaims)
-                .HasForeignKey(d => d.WarrantyCoverageId)
+                .HasForeignKey(d => new { d.WarrantyCoverageId, d.ProductSerialId })
+                .HasPrincipalKey(d => new { d.Id, d.ProductSerialId })
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_WarrantyClaim_Coverage");
         });
@@ -1065,6 +1072,8 @@ public partial class AppDbContext : DbContext
         modelBuilder.Entity<WarrantyCoverage>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__Warranty__3214EC07B813D31B");
+            entity.HasAlternateKey(e => new { e.Id, e.ProductSerialId })
+                .HasName("AK_WarrantyCoverage_Id_ProductSerialId");
 
             entity.ToTable("WarrantyCoverage");
 
@@ -1084,8 +1093,8 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_WarrantyCoverage_Customer");
 
-            entity.HasOne(d => d.ProductSerial).WithOne(p => p.WarrantyCoverage)
-                .HasForeignKey<WarrantyCoverage>(d => d.ProductSerialId)
+            entity.HasOne(d => d.ProductSerial).WithMany(p => p.WarrantyCoverages)
+                .HasForeignKey(d => d.ProductSerialId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_WarrantyCoverage_ProductSerial");
 

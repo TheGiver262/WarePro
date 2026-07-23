@@ -86,7 +86,7 @@ public sealed class ProductSerialImportService : IProductSerialImportService
                     AuthorizationService.RequireFreshActor(
                         db,
                         actorId,
-                        PermissionAction.ManageMasterData);
+                        PermissionAction.PostStockIn);
 
                     var existingBatch = await db.StockIns
                         .AsNoTracking()
@@ -163,7 +163,7 @@ public sealed class ProductSerialImportService : IProductSerialImportService
                     var stockIn = new StockIn
                     {
                         DocumentCode = documentCode,
-                        Status = "Posted",
+                        Status = StockDocumentStatus.Approved.ToString(),
                         PurposeCode = "OpeningBalance",
                         Notes = payloadMarker,
                         Warehouse = warehouse,
@@ -175,6 +175,7 @@ public sealed class ProductSerialImportService : IProductSerialImportService
                     };
 
                     var successCount = 0;
+                    var persistedLines = new List<(StockInLine Line, string[] SerialNumbers)>();
                     foreach (var group in mappedRows
                                  .GroupBy(row => row.Product.Id)
                                  .OrderBy(group => group.Key))
@@ -198,30 +199,44 @@ public sealed class ProductSerialImportService : IProductSerialImportService
                             UnitId = product.DefaultUnitId
                         };
 
-                        foreach (var serialNumber in serialNumbers)
-                        {
-                            line.ProductSerials.Add(new ProductSerial
-                            {
-                                SerialNumber = serialNumber,
-                                ProductId = product.Id,
-                                CurrentStatus = "InStock",
-                                CurrentWarehouse = warehouse
-                            });
-                            successCount++;
-                        }
-
                         stockIn.Lines.Add(line);
+                        persistedLines.Add((line, serialNumbers));
+                        successCount += serialNumbers.Length;
                     }
 
                     // lưu tập tự nhiên product-serial đã dựng để verifier đối chiếu nếu kết quả commit không rõ ràng.
-                    expectedCommittedRows = stockIn.Lines
-                        .SelectMany(line => line.ProductSerials.Select(serial =>
-                            (line.ProductId, serial.SerialNumber)))
+                    expectedCommittedRows = persistedLines
+                        .SelectMany(item => item.SerialNumbers.Select(serialNumber =>
+                            (item.Line.ProductId, serialNumber)))
                         .ToArray();
 
                     if (successCount > 0)
                     {
                         db.StockIns.Add(stockIn);
+                        await db.SaveChangesAsync(token);
+
+                        var postingService = new InventoryPostingService(
+                            new EfInventoryUnitOfWork(db),
+                            new FixedWarehouseProvider(warehouse.Id),
+                            new FixedClock(createdAt));
+                        foreach (var item in persistedLines)
+                        {
+                            postingService.PostStockIn(new PostStockInCommand(
+                                stockIn.Id,
+                                warehouse.Id,
+                                StockInKind.OpeningBalance,
+                                StockDocumentStatus.Approved,
+                                item.Line.ProductId,
+                                item.SerialNumbers.Length,
+                                item.SerialNumbers,
+                                actorId));
+
+                            var serials = await db.ProductSerials
+                                .Where(serial => item.SerialNumbers.Contains(serial.SerialNumber))
+                                .ToListAsync(token);
+                            foreach (var serial in serials)
+                                serial.LastStockInLineId = item.Line.Id;
+                        }
                         db.AuditLogs.Add(new AuditLog
                         {
                             EntityName = "ProductSerialImport",
@@ -424,4 +439,26 @@ public sealed class ProductSerialImportService : IProductSerialImportService
     }
 
     private sealed record PreparedSerialRow(string SerialNumber, string ProductCode);
+
+    private sealed class FixedWarehouseProvider : IDefaultWarehouseProvider
+    {
+        private readonly int _warehouseId;
+
+        public FixedWarehouseProvider(int warehouseId)
+        {
+            _warehouseId = warehouseId;
+        }
+
+        public int GetDefaultWarehouseId() => _warehouseId;
+    }
+
+    private sealed class FixedClock : IClock
+    {
+        public FixedClock(DateTime now)
+        {
+            Now = now;
+        }
+
+        public DateTime Now { get; }
+    }
 }

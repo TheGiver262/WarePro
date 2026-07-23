@@ -118,6 +118,35 @@ public class CachedViewRefreshTests
     }
 
     [Fact]
+    public async Task Report_excludes_voided_invoices_from_revenue_and_cost()
+    {
+        var databasePath = Path.Combine(
+            Path.GetTempPath(),
+            $"report-voided-{Guid.NewGuid():N}.db");
+        try
+        {
+            SeedInvoiceStatusDatabase(databasePath);
+            var viewModel = new ReportViewModel(() => CreateFileContext(databasePath));
+            await WaitUntilAsync(() => viewModel.Categories.Count > 0);
+            viewModel.FromDate = DateTime.Today.AddDays(-1);
+            viewModel.ToDate = DateTime.Today.AddDays(1);
+
+            await viewModel.Refresh();
+
+            Assert.Equal(100m, viewModel.TotalRevenue);
+            Assert.Equal(40m, viewModel.TotalCost);
+            Assert.Equal(60m, viewModel.TotalProfit);
+            var daily = Assert.Single(viewModel.DailyReports);
+            Assert.Equal(100m, daily.Revenue);
+            Assert.Equal(40m, daily.Cost);
+        }
+        finally
+        {
+            await DeleteFileWhenUnlockedAsync(databasePath);
+        }
+    }
+
+    [Fact]
     public async Task Report_load_failure_preserves_visible_rows_and_exposes_retry_error()
     {
         var viewModel = new ReportViewModel(
@@ -212,6 +241,64 @@ public class CachedViewRefreshTests
         await WaitUntilAsync(() => !string.IsNullOrWhiteSpace(viewModel.LoadErrorMessage));
         Assert.Same(existing, viewModel.Stats);
         Assert.Contains("dashboard database unavailable", viewModel.LoadErrorMessage);
+    }
+
+    [Fact]
+    public void Dashboard_invoice_aggregates_require_active_status_filters()
+    {
+        var root = new DirectoryInfo(AppContext.BaseDirectory);
+        while (root != null &&
+               !File.Exists(Path.Combine(root.FullName, "QuanLyHangHoa", "QuanLyHangHoa.csproj")))
+        {
+            root = root.Parent;
+        }
+        Assert.NotNull(root);
+        var source = File.ReadAllText(Path.Combine(
+            root!.FullName,
+            "QuanLyHangHoa",
+            "Services",
+            "DashboardService.cs"));
+
+        Assert.Equal(6, source.Split("InvoiceStatus.Active").Length - 1);
+        foreach (var viewModelFile in new[]
+                 {
+                     "SalesInvoiceViewModel.cs",
+                     "PurchaseInvoiceViewModel.cs"
+                 })
+        {
+            var viewModelSource = File.ReadAllText(Path.Combine(
+                root.FullName,
+                "QuanLyHangHoa",
+                "ViewModels",
+                viewModelFile));
+            Assert.Contains(
+                "query = query.Where(invoice => invoice.Status == InvoiceStatus.Active);",
+                viewModelSource);
+        }
+    }
+
+    [Fact]
+    public void Dashboard_warranty_count_matches_open_claim_invariant()
+    {
+        var root = new DirectoryInfo(AppContext.BaseDirectory);
+        while (root != null &&
+               !File.Exists(Path.Combine(root.FullName, "QuanLyHangHoa", "QuanLyHangHoa.csproj")))
+        {
+            root = root.Parent;
+        }
+        Assert.NotNull(root);
+        var source = File.ReadAllText(Path.Combine(
+            root!.FullName,
+            "QuanLyHangHoa",
+            "Services",
+            "DashboardService.cs"));
+
+        Assert.Contains(
+            "w.Status != \"Closed\" && w.Status != \"Rejected\"",
+            source);
+        Assert.DoesNotContain(
+            "w.Status == \"Active\" || w.Status == \"Processing\"",
+            source);
     }
 
     [Fact]
@@ -329,6 +416,64 @@ public class CachedViewRefreshTests
             DefaultPrice = 10m,
             IsActive = true
         });
+        db.SaveChanges();
+    }
+
+    private static void SeedInvoiceStatusDatabase(string databasePath)
+    {
+        using var db = CreateFileContext(databasePath);
+        DatabaseHelper.SeedBasicData(db);
+        var now = DateTime.Now;
+        db.SalesInvoices.AddRange(
+            new SalesInvoice
+            {
+                InvoiceCode = "SALE-ACTIVE",
+                CustomerId = 1,
+                InvoiceDate = now,
+                SubTotal = 100m,
+                GrandTotal = 100m,
+                PaymentStatus = PaymentStatus.Unpaid,
+                Status = InvoiceStatus.Active,
+                CreatedBy = 1,
+                CreatedAt = now
+            },
+            new SalesInvoice
+            {
+                InvoiceCode = "SALE-VOIDED",
+                CustomerId = 1,
+                InvoiceDate = now,
+                SubTotal = 900m,
+                GrandTotal = 900m,
+                PaymentStatus = PaymentStatus.Unpaid,
+                Status = InvoiceStatus.Voided,
+                CreatedBy = 1,
+                CreatedAt = now
+            });
+        db.PurchaseInvoices.AddRange(
+            new PurchaseInvoice
+            {
+                InvoiceCode = "PURCHASE-ACTIVE",
+                SupplierId = 1,
+                InvoiceDate = now,
+                SubTotal = 40m,
+                GrandTotal = 40m,
+                PaymentStatus = PaymentStatus.Unpaid,
+                Status = InvoiceStatus.Active,
+                CreatedBy = 1,
+                CreatedAt = now
+            },
+            new PurchaseInvoice
+            {
+                InvoiceCode = "PURCHASE-VOIDED",
+                SupplierId = 1,
+                InvoiceDate = now,
+                SubTotal = 400m,
+                GrandTotal = 400m,
+                PaymentStatus = PaymentStatus.Unpaid,
+                Status = InvoiceStatus.Voided,
+                CreatedBy = 1,
+                CreatedAt = now
+            });
         db.SaveChanges();
     }
 

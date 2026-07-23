@@ -43,14 +43,29 @@ public partial class InvoiceService
                 invoice.Status = InvoiceStatus.Voided;
                 invoice.Notes = AppendVoidNote(invoice.Notes, normalizedReason, actorId, voidedAt);
                 db.Entry(invoice).Property(item => item.Notes).IsModified = true;
+
+                var activeCoverages = await db.WarrantyCoverages
+                    .Where(item => item.SalesInvoiceId == invoiceId && item.CoverageStatus == "Active")
+                    .ToListAsync(token);
+                foreach (var coverage in activeCoverages)
+                {
+                    coverage.CoverageStatus = "Voided";
+                }
             },
-            (db, token) => db.SalesInvoices.AsNoTracking().AnyAsync(item =>
-                item.Id == invoiceId
-                && item.Status == InvoiceStatus.Voided
-                && item.Notes != null
-                && item.Notes.Contains(normalizedReason)
-                && item.RowVersion != rowVersion,
-                token),
+            async (db, token) =>
+            {
+                var invoiceWasVoided = await db.SalesInvoices.AsNoTracking().AnyAsync(item =>
+                    item.Id == invoiceId
+                    && item.Status == InvoiceStatus.Voided
+                    && item.Notes != null
+                    && item.Notes.Contains(normalizedReason)
+                    && item.RowVersion != rowVersion,
+                    token);
+                return invoiceWasVoided
+                    && !await db.WarrantyCoverages.AsNoTracking().AnyAsync(item =>
+                        item.SalesInvoiceId == invoiceId && item.CoverageStatus == "Active",
+                        token);
+            },
             entityKey: invoiceId.ToString(),
             cancellationToken: cancellationToken);
     }

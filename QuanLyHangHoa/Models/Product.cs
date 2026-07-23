@@ -51,7 +51,7 @@ public partial class Product
 
     public virtual ICollection<ProductSerial> ProductSerials { get; set; } = new List<ProductSerial>();
 
-    public virtual ProductUnit? ProductUnit { get; set; }
+    public virtual ICollection<ProductUnit> ProductUnits { get; set; } = new List<ProductUnit>();
 
     public virtual ICollection<PurchaseInvoiceLine> PurchaseInvoiceLines { get; set; } = new List<PurchaseInvoiceLine>();
 

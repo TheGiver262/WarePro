@@ -431,6 +431,7 @@ public static class DatabaseSchemaScripts
     public static string SchemaVersion5 => SingleBatch("SchemaVersion5Sql");
     public static string SchemaVersion6 => ReadEmbeddedText("WarePro.Core.Resources.v6-common-write-safety.sql");
     public static string SchemaVersion7 => ReadEmbeddedText("WarePro.Core.Resources.v7-invoice-void-open-claim.sql");
+    public static string SchemaVersion8 => ReadEmbeddedText("WarePro.Core.Resources.v8-unique-invoice-stock-links.sql");
     public static string SchemaArchiveReplay => SingleBatch("SchemaArchiveReplaySql");
 
     public static string ShapeValidationPredicate => """
@@ -647,6 +648,8 @@ public static class DatabaseSchemaScripts
                 (N'StockOutLine', N'StockOutId', N'StockOut', N'Id'),
                 (N'PurchaseInvoice', N'SupplierId', N'Supplier', N'Id'),
                 (N'SalesInvoice', N'CustomerId', N'Customer', N'Id'),
+                (N'WarrantyClaim', N'WarrantyCoverageId', N'WarrantyCoverage', N'Id'),
+                (N'WarrantyClaim', N'ProductSerialId', N'WarrantyCoverage', N'ProductSerialId'),
                 (N'StockIn', N'StockCountLineId', N'StockCountLine', N'Id'),
                 (N'StockIn', N'StockCountSessionId', N'StockCountSession', N'Id'),
                 (N'StockOut', N'StockCountLineId', N'StockCountLine', N'Id'),
@@ -668,7 +671,8 @@ public static class DatabaseSchemaScripts
                 (N'FK_Product_Category'), (N'FK_Product_Brand'), (N'FK_Product_DefaultUnit'),
                 (N'FK_StockInLine_StockIn'), (N'FK_StockOutLine_StockOut'),
                 (N'FK_StockIn_StockCountLine'), (N'FK_StockIn_StockCountSession'),
-                (N'FK_StockOut_StockCountLine'), (N'FK_StockOut_StockCountSession')
+                (N'FK_StockOut_StockCountLine'), (N'FK_StockOut_StockCountSession'),
+                (N'FK_WarrantyClaim_Coverage')
             ) AS expected(ConstraintName)
             EXCEPT
             SELECT name FROM sys.foreign_keys WHERE is_disabled = 0 AND is_not_trusted = 0
@@ -703,8 +707,12 @@ public static class DatabaseSchemaScripts
                 (N'SalesInvoice', N'IX_SalesInvoice_PaymentStatus_InvoiceDate', 0, 1, N'PaymentStatus', 2),
                 (N'SalesInvoice', N'IX_SalesInvoice_PaymentStatus_InvoiceDate', 0, 2, N'InvoiceDate', 2),
                 (N'SalesInvoice', N'IX_SalesInvoice_Status_InvoiceDate', 0, 1, N'Status', 2),
+                (N'PurchaseInvoice', N'UX_PurchaseInvoice_StockInId', 1, 1, N'StockInId', 1),
+                (N'SalesInvoice', N'UX_SalesInvoice_StockOutId', 1, 1, N'StockOutId', 1),
                 (N'SalesInvoice', N'IX_SalesInvoice_Status_InvoiceDate', 0, 2, N'InvoiceDate', 2),
                 (N'WarrantyClaim', N'UX_WarrantyClaim_OpenProductSerialId', 1, 1, N'ProductSerialId', 1),
+                (N'WarrantyCoverage', N'AK_WarrantyCoverage_Id_ProductSerialId', 1, 1, N'Id', 2),
+                (N'WarrantyCoverage', N'AK_WarrantyCoverage_Id_ProductSerialId', 1, 2, N'ProductSerialId', 2),
                 (N'StockLedger', N'IX_StockLedger_Warehouse_Product_PostedAt', 0, 1, N'WarehouseId', 3),
                 (N'StockLedger', N'IX_StockLedger_Warehouse_Product_PostedAt', 0, 2, N'ProductId', 3),
                 (N'StockLedger', N'IX_StockLedger_Warehouse_Product_PostedAt', 0, 3, N'PostedAt', 3),
@@ -728,6 +736,20 @@ public static class DatabaseSchemaScripts
             WHERE indexes.object_id = OBJECT_ID(N'dbo.__WareProClientSession')
               AND indexes.name = N'IX___WareProClientSession_LastSeenUtc'
               AND indexes.is_disabled = 0
+        )
+        AND NOT EXISTS
+        (
+            SELECT expected.TableName, expected.IndexName
+            FROM (VALUES
+                (N'PurchaseInvoice', N'UX_PurchaseInvoice_StockInId'),
+                (N'SalesInvoice', N'UX_SalesInvoice_StockOutId')
+            ) AS expected(TableName, IndexName)
+            EXCEPT
+            SELECT OBJECT_NAME(indexes.object_id), indexes.name
+            FROM sys.indexes AS indexes
+            WHERE indexes.is_disabled = 0
+              AND indexes.is_unique = 1
+              AND indexes.has_filter = 1
         )
         """;
 
@@ -758,6 +780,7 @@ public static class DatabaseSchemaScripts
         var version5 = AsDynamicSql(SchemaVersion5);
         var version6 = AsDynamicSql(SchemaVersion6);
         var version7 = AsDynamicSql(SchemaVersion7);
+        var version8 = AsDynamicSql(SchemaVersion8);
         var archiveReplay = AsDynamicSql(SchemaArchiveReplay);
         var shapeValidation = AsDynamicSql($$"""
             IF NOT ({{ShapeValidationPredicate}})
@@ -778,6 +801,7 @@ public static class DatabaseSchemaScripts
             IF @CurrentVersion < 5 BEGIN {{version5}} END;
             IF @CurrentVersion < 6 BEGIN {{version6}} END;
             IF @CurrentVersion < 7 BEGIN {{version7}} END;
+            IF @CurrentVersion < 8 BEGIN {{version8}} END;
 
             {{archiveReplay}}
 
@@ -849,7 +873,7 @@ public static class DatabaseSchemaScripts
 
     private static void ValidateRelease(int expectedSchema, string version)
     {
-        if (expectedSchema != 7)
+        if (expectedSchema != 8)
             throw new ArgumentOutOfRangeException(nameof(expectedSchema));
         if (!Version.TryParse(version, out _))
             throw new ArgumentException("Version is invalid.", nameof(version));

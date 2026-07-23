@@ -299,9 +299,9 @@ public sealed class ReportTraceService
             
             .Include(s => s.LastStockOutLine).ThenInclude(l => l!.StockOut).ThenInclude(so => so!.SalesInvoices)
             
-            .Include(s => s.WarrantyCoverage).ThenInclude(w => w!.Customer)
+            .Include(s => s.WarrantyCoverages).ThenInclude(w => w.Customer)
             
-            .Include(s => s.WarrantyCoverage).ThenInclude(w => w!.SalesInvoice)
+            .Include(s => s.WarrantyCoverages).ThenInclude(w => w.SalesInvoice)
             
             .AsQueryable();
             
@@ -325,7 +325,7 @@ public sealed class ReportTraceService
                 
                 (s.LastStockOutLine != null && s.LastStockOutLine.StockOut != null && s.LastStockOutLine.StockOut.DocumentCode.ToLower().Contains(keyword)) ||
                 
-                (s.WarrantyCoverage != null && s.WarrantyCoverage.SalesInvoice != null && s.WarrantyCoverage.SalesInvoice.InvoiceCode.ToLower().Contains(keyword)));
+                s.WarrantyCoverages.Any(w => w.SalesInvoice != null && w.SalesInvoice.InvoiceCode.ToLower().Contains(keyword)));
                 
         }
         
@@ -355,7 +355,7 @@ public sealed class ReportTraceService
                 
                 (s.LastStockOutLine != null && s.LastStockOutLine.StockOut != null && s.LastStockOutLine.StockOut.DocumentCode.ToLower().Contains(docKeyword)) ||
                 
-                (s.WarrantyCoverage != null && s.WarrantyCoverage.SalesInvoice != null && s.WarrantyCoverage.SalesInvoice.InvoiceCode.ToLower().Contains(docKeyword)));
+                s.WarrantyCoverages.Any(w => w.SalesInvoice != null && w.SalesInvoice.InvoiceCode.ToLower().Contains(docKeyword)));
                 
         }
         
@@ -373,7 +373,7 @@ public sealed class ReportTraceService
                 
                 (s.LastStockOutLine != null && s.LastStockOutLine.StockOut != null && s.LastStockOutLine.StockOut.Customer != null && s.LastStockOutLine.StockOut.Customer.DisplayName.ToLower().Contains(partnerKeyword)) ||
                 
-                (s.WarrantyCoverage != null && s.WarrantyCoverage.Customer != null && s.WarrantyCoverage.Customer.DisplayName.ToLower().Contains(partnerKeyword)));
+                s.WarrantyCoverages.Any(w => w.Customer != null && w.Customer.DisplayName.ToLower().Contains(partnerKeyword)));
                 
         }
         
@@ -446,7 +446,12 @@ public sealed class ReportTraceService
         
         var stockOut = serial.LastStockOutLine?.StockOut;
         
-        var invoice = serial.WarrantyCoverage?.SalesInvoice ?? stockOut?.SalesInvoices.OrderBy(i => i.InvoiceDate).FirstOrDefault();
+        var warranty = serial.WarrantyCoverages
+            .OrderByDescending(coverage => coverage.CoverageStatus == "Active")
+            .ThenByDescending(coverage => coverage.WarrantyStartDate)
+            .ThenByDescending(coverage => coverage.Id)
+            .FirstOrDefault();
+        var invoice = warranty?.SalesInvoice ?? stockOut?.SalesInvoices.OrderBy(i => i.InvoiceDate).FirstOrDefault();
         
 
 
@@ -478,7 +483,7 @@ public sealed class ReportTraceService
             
             ExportWarehouseName = stockOut?.Warehouse?.DisplayName ?? "-",
             
-            CustomerName = stockOut?.Customer?.DisplayName ?? serial.WarrantyCoverage?.Customer?.DisplayName ?? "-",
+            CustomerName = stockOut?.Customer?.DisplayName ?? warranty?.Customer?.DisplayName ?? "-",
             
             SellPrice = serial.LastStockOutLine?.UnitPrice,
             
@@ -486,13 +491,13 @@ public sealed class ReportTraceService
             
             SalesInvoiceDate = invoice?.InvoiceDate,
             
-            WarrantyStatus = GetWarrantyStatus(serial.LastStockOutLine != null, serial.WarrantyCoverage),
+            WarrantyStatus = GetWarrantyStatus(serial.LastStockOutLine != null, warranty),
             
-            WarrantyStartDate = serial.WarrantyCoverage?.WarrantyStartDate,
+            WarrantyStartDate = warranty?.WarrantyStartDate,
             
-            WarrantyEndDate = serial.WarrantyCoverage?.WarrantyEndDate,
+            WarrantyEndDate = warranty?.WarrantyEndDate,
             
-            WarrantyCustomerName = serial.WarrantyCoverage?.Customer?.DisplayName ?? stockOut?.Customer?.DisplayName ?? "-"
+            WarrantyCustomerName = warranty?.Customer?.DisplayName ?? stockOut?.Customer?.DisplayName ?? "-"
             
         };
         

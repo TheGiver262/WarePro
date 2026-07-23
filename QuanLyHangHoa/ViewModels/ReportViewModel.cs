@@ -215,12 +215,12 @@ namespace QuanLyHangHoa.ViewModels
                 var endDate = ToDate.Date.AddDays(1).AddTicks(-1);
 
                 var sales = await db.SalesInvoices
-                    .Where(s => s.InvoiceDate >= startDate && s.InvoiceDate <= endDate)
+                    .Where(s => s.Status == InvoiceStatus.Active && s.InvoiceDate >= startDate && s.InvoiceDate <= endDate)
                     .Select(s => new { s.InvoiceDate, s.GrandTotal })
                     .ToListAsync(cancellationToken);
 
                 var purchases = await db.PurchaseInvoices
-                    .Where(p => p.InvoiceDate >= startDate && p.InvoiceDate <= endDate)
+                    .Where(p => p.Status == InvoiceStatus.Active && p.InvoiceDate >= startDate && p.InvoiceDate <= endDate)
                     .Select(p => new { p.InvoiceDate, p.GrandTotal })
                     .ToListAsync(cancellationToken);
 

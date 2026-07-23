@@ -141,6 +141,30 @@ public class InvoiceIntegrityTests
     }
 
     [Fact]
+    public void Database_rejects_two_sales_invoices_for_same_stock_out()
+    {
+        using var connection = CreateInvoiceDatabase();
+        using var context = DatabaseHelper.CreateContext(connection);
+        context.SalesInvoices.AddRange(
+            NewLinkedSalesInvoice("SI-DB-UNIQUE-1", 200, 1, 1),
+            NewLinkedSalesInvoice("SI-DB-UNIQUE-2", 200, 1, 1));
+
+        Assert.Throws<DbUpdateException>(() => context.SaveChanges());
+    }
+
+    [Fact]
+    public void Database_rejects_two_purchase_invoices_for_same_stock_in()
+    {
+        using var connection = CreateInvoiceDatabase();
+        using var context = DatabaseHelper.CreateContext(connection);
+        context.PurchaseInvoices.AddRange(
+            NewLinkedPurchaseInvoice("PI-DB-UNIQUE-1", 100, 1, 1),
+            NewLinkedPurchaseInvoice("PI-DB-UNIQUE-2", 100, 1, 1));
+
+        Assert.Throws<DbUpdateException>(() => context.SaveChanges());
+    }
+
+    [Fact]
     public void SaveSalesInvoice_rolls_back_invoice_when_warranty_write_fails()
     {
         using var connection = CreateInvoiceDatabase();
@@ -265,6 +289,47 @@ public class InvoiceIntegrityTests
         Assert.Equal("Active", replacementCoverage.CoverageStatus);
         Assert.Equal(replacementStart, replacementCoverage.WarrantyStartDate);
         Assert.Equal(replacementEnd, replacementCoverage.WarrantyEndDate);
+    }
+
+    [Fact]
+    public async Task VoidSalesInvoiceAsync_voids_only_its_active_warranty_coverages()
+    {
+        using var connection = CreateInvoiceDatabase();
+        var service = new InvoiceService(() => DatabaseHelper.CreateContext(connection));
+        var invoice = NewLinkedSalesInvoice("SI-VOID-COVERAGE", 200, 1, 1);
+        service.SaveSalesInvoice(invoice, 1);
+
+        int historicalCoverageId;
+        int activeCoverageId;
+        using (var arrangeContext = DatabaseHelper.CreateContext(connection))
+        {
+            var historical = arrangeContext.WarrantyCoverages.Single();
+            historical.CoverageStatus = "Inactive";
+            historicalCoverageId = historical.Id;
+            var active = new WarrantyCoverage
+            {
+                ProductSerialId = 301,
+                CustomerId = 1,
+                SalesInvoiceId = invoice.Id,
+                WarrantyStartDate = new DateTime(2026, 1, 1),
+                WarrantyEndDate = new DateTime(2027, 1, 1),
+                CoverageStatus = "Active"
+            };
+            arrangeContext.WarrantyCoverages.Add(active);
+            arrangeContext.SaveChanges();
+            activeCoverageId = active.Id;
+        }
+
+        await service.VoidSalesInvoiceAsync(
+            invoice.Id,
+            invoice.RowVersion,
+            "Customer cancelled",
+            1,
+            Guid.NewGuid());
+
+        using var assertion = DatabaseHelper.CreateContext(connection);
+        Assert.Equal("Inactive", assertion.WarrantyCoverages.Single(item => item.Id == historicalCoverageId).CoverageStatus);
+        Assert.Equal("Voided", assertion.WarrantyCoverages.Single(item => item.Id == activeCoverageId).CoverageStatus);
     }
 
     [Fact]

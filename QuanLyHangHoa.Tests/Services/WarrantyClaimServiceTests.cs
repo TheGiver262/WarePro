@@ -92,6 +92,63 @@ public class WarrantyClaimServiceTests
     }
 
     [Fact]
+    public void Database_rejects_claim_whose_coverage_belongs_to_another_serial()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        using var context = CreateContext(connection);
+        DatabaseHelper.SeedBasicData(context);
+        context.Products.Add(new Product
+        {
+            Id = 1010,
+            ProductCode = "P1010",
+            DisplayName = "Coverage consistency product",
+            CategoryId = 1,
+            BrandId = 1,
+            DefaultUnitId = 1,
+            DefaultPrice = 10m,
+            IsSerialTracked = true
+        });
+        var coveredSerial = new ProductSerial
+        {
+            ProductId = 1010,
+            SerialNumber = "COVERED-SERIAL",
+            CurrentStatus = SerialStatus.Sold.ToString()
+        };
+        var otherSerial = new ProductSerial
+        {
+            ProductId = 1010,
+            SerialNumber = "OTHER-SERIAL",
+            CurrentStatus = SerialStatus.Sold.ToString()
+        };
+        context.ProductSerials.AddRange(coveredSerial, otherSerial);
+        context.SaveChanges();
+        var coverage = new WarrantyCoverage
+        {
+            ProductSerialId = coveredSerial.Id,
+            CustomerId = 1,
+            WarrantyStartDate = DateTime.Today,
+            WarrantyEndDate = DateTime.Today.AddYears(1),
+            CoverageStatus = "Active"
+        };
+        context.WarrantyCoverages.Add(coverage);
+        context.SaveChanges();
+        context.ChangeTracker.Clear();
+        context.Database.ExecuteSqlRaw("PRAGMA foreign_keys = ON;");
+        context.WarrantyClaims.Add(new WarrantyClaim
+        {
+            ClaimCode = "CLAIM-MISMATCH",
+            WarrantyCoverageId = coverage.Id,
+            ProductSerialId = otherSerial.Id,
+            ReceivedDate = DateTime.Today,
+            Status = "Open",
+            ProcessedBy = 1
+        });
+
+        Assert.Throws<DbUpdateException>(() => context.SaveChanges());
+    }
+
+    [Fact]
     public void CreateClaim_accepts_coverage_starting_later_today()
     {
         using var connection = new SqliteConnection("Data Source=:memory:");

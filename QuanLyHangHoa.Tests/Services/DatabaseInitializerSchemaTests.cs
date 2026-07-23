@@ -22,7 +22,7 @@ public class DatabaseInitializerSchemaTests
         Assert.Contains("RowVersion", DatabaseSchemaScripts.SchemaVersion6, StringComparison.Ordinal);
         Assert.Contains("__WareProClientSession", DatabaseSchemaScripts.SchemaVersion6, StringComparison.Ordinal);
         Assert.Contains("MinimumClientVersion = N'1.1.0'",
-            DatabaseSchemaScripts.BuildFinalizeSql(7, "1.1.0"), StringComparison.Ordinal);
+            DatabaseSchemaScripts.BuildFinalizeSql(8, "1.1.0"), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -34,7 +34,23 @@ public class DatabaseInitializerSchemaTests
         Assert.Contains("PurchaseInvoice", sql, StringComparison.Ordinal);
         Assert.Contains("OpenProductSerialId", sql, StringComparison.Ordinal);
         Assert.Contains("UX_WarrantyClaim_OpenProductSerialId", sql, StringComparison.Ordinal);
-        Assert.Contains("IF @CurrentVersion < 7", DatabaseSchemaScripts.BuildUpgradeSql(7, "1.1.0"), StringComparison.Ordinal);
+        Assert.Contains("IF @CurrentVersion < 7", DatabaseSchemaScripts.BuildUpgradeSql(8, "1.1.0"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Schema_8_adds_unique_invoice_stock_document_links()
+    {
+        var sql = DatabaseSchemaScripts.BuildUpgradeSql(8, "1.1.0");
+
+        Assert.Contains("IF @CurrentVersion < 8", sql, StringComparison.Ordinal);
+        Assert.Contains("UX_SalesInvoice_StockOutId", sql, StringComparison.Ordinal);
+        Assert.Contains("UX_PurchaseInvoice_StockInId", sql, StringComparison.Ordinal);
+        Assert.Contains("duplicate stock-out links", sql, StringComparison.Ordinal);
+        Assert.Contains("duplicate stock-in links", sql, StringComparison.Ordinal);
+        Assert.Contains("mismatched warranty coverage serials", sql, StringComparison.Ordinal);
+        Assert.Contains("AK_WarrantyCoverage_Id_ProductSerialId", sql, StringComparison.Ordinal);
+        Assert.Contains("FOREIGN KEY (WarrantyCoverageId, ProductSerialId)", sql, StringComparison.Ordinal);
+        Assert.Contains("has_filter = 1", DatabaseSchemaScripts.ShapeValidationPredicate, StringComparison.Ordinal);
     }
 
     [Fact]

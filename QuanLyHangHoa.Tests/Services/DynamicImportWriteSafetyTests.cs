@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using QuanLyHangHoa.Data;
+using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services.DataImport;
 using QuanLyHangHoa.Tests.Helpers;
 
@@ -339,6 +340,62 @@ public sealed class DynamicImportWriteSafetyTests
         }
     }
 
+    [Theory]
+    [InlineData(ImportFileType.PurchaseInvoice, "SupplierName", "General Supplier", "PI-DYN-PAYMENT")]
+    [InlineData(ImportFileType.SalesInvoice, "CustomerName", "General Customer", "SI-DYN-PAYMENT")]
+    public async Task Invoice_import_persists_consistent_partial_payment(
+        ImportFileType type, string partyKey, string partyName, string invoiceCode)
+    {
+        using var connection = OpenDatabase();
+        var rows = ValidInvoiceRows(partyKey, partyName, invoiceCode, quantity: "1");
+        rows[0]["PaymentStatus"] = PaymentStatus.PartiallyPaid;
+        rows[0]["PaidAmount"] = "20";
+        var service = new DynamicImportService(() => DatabaseHelper.CreateContext(connection));
+
+        var result = await service.ExecuteImportAsync(
+            rows, type, InvoiceMappings(partyKey), 1, false, Guid.NewGuid());
+
+        Assert.Equal(1, result.SuccessCount);
+        Assert.Empty(result.Errors);
+        using var db = DatabaseHelper.CreateContext(connection);
+        if (type == ImportFileType.PurchaseInvoice)
+        {
+            var invoice = db.PurchaseInvoices.Single(item => item.InvoiceCode == invoiceCode);
+            Assert.Equal(50m, invoice.GrandTotal);
+            Assert.Equal(20m, invoice.PaidAmount);
+            Assert.Equal(PaymentStatus.PartiallyPaid, invoice.PaymentStatus);
+        }
+        else
+        {
+            var invoice = db.SalesInvoices.Single(item => item.InvoiceCode == invoiceCode);
+            Assert.Equal(50m, invoice.GrandTotal);
+            Assert.Equal(20m, invoice.PaidAmount);
+            Assert.Equal(PaymentStatus.PartiallyPaid, invoice.PaymentStatus);
+        }
+    }
+
+    [Theory]
+    [InlineData(ImportFileType.PurchaseInvoice, "SupplierName", "General Supplier", "PI-DYN-BAD-TOTAL")]
+    [InlineData(ImportFileType.SalesInvoice, "CustomerName", "General Customer", "SI-DYN-BAD-TOTAL")]
+    public async Task Invoice_import_rejects_header_total_that_differs_from_lines(
+        ImportFileType type, string partyKey, string partyName, string invoiceCode)
+    {
+        using var connection = OpenDatabase();
+        var rows = ValidInvoiceRows(partyKey, partyName, invoiceCode, quantity: "1");
+        rows[0]["TotalAmount"] = "100";
+        var service = new DynamicImportService(() => DatabaseHelper.CreateContext(connection));
+
+        var result = await service.ExecuteImportAsync(
+            rows, type, InvoiceMappings(partyKey), 1, false, Guid.NewGuid());
+
+        Assert.Equal(0, result.SuccessCount);
+        Assert.Contains(result.Errors, error =>
+            error.ErrorMessage.Contains("total", StringComparison.OrdinalIgnoreCase));
+        using var db = DatabaseHelper.CreateContext(connection);
+        Assert.DoesNotContain(db.PurchaseInvoices, item => item.InvoiceCode == invoiceCode);
+        Assert.DoesNotContain(db.SalesInvoices, item => item.InvoiceCode == invoiceCode);
+    }
+
     [Fact]
     public async Task Dynamic_import_honors_pre_cancelled_token_without_writes()
     {
@@ -469,7 +526,7 @@ public sealed class DynamicImportWriteSafetyTests
             ["InvoiceCode"] = invoiceCode,
             ["InvoiceDate"] = "2026-07-18",
             [partyKey] = partyName,
-            ["TotalAmount"] = "100",
+            ["TotalAmount"] = "50",
             ["PaymentStatus"] = "Paid",
             ["Notes"] = "dynamic replay",
             ["ProductCode"] = productCode,
@@ -485,6 +542,7 @@ public sealed class DynamicImportWriteSafetyTests
             [partyKey] = partyKey,
             ["TotalAmount"] = "TotalAmount",
             ["PaymentStatus"] = "PaymentStatus",
+            ["PaidAmount"] = "PaidAmount",
             ["Notes"] = "Notes",
             ["ProductCode"] = "ProductCode",
             ["Quantity"] = "Quantity",

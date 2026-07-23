@@ -34,7 +34,7 @@ public class MutationAuthorizationContractTests
         { "StockCountService.cs", "private async Task StageProcessResultsAsync(", "PermissionAction.PostStockAdjustment" },
         { "StockCountService.Mutations.cs", "private Task StageSaveDraftLinesAsync(", "PermissionAction.PostStockAdjustment" },
         { "StockReversalService.cs", "private static async Task<int> StageReverseDocumentAsync(", "PermissionAction.PostStockAdjustment" },
-        { "ProductSerialImportService.cs", "public async Task<(int SuccessCount, string Message)> ImportFromExcelAsync(", "PermissionAction.ManageMasterData" }
+        { "ProductSerialImportService.cs", "public async Task<(int SuccessCount, string Message)> ImportFromExcelAsync(", "PermissionAction.PostStockIn" }
     };
 
     [Theory]

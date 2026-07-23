@@ -30,6 +30,12 @@ public sealed class ImportWriteSafetyTests
             Assert.Single(db.StockIns);
             Assert.Single(db.StockInLines);
             Assert.Single(db.ProductSerials);
+            var balance = Assert.Single(db.StockBalances);
+            Assert.Equal(1501, balance.ProductId);
+            Assert.Equal(1m, balance.OnHandQuantity);
+            var ledger = Assert.Single(db.StockLedgers);
+            Assert.Equal(1501, ledger.ProductId);
+            Assert.Equal(1m, ledger.Quantity);
         }
         finally
         {

@@ -258,6 +258,7 @@ namespace QuanLyHangHoa.ViewModels
                         paymentStatus ?? string.Empty,
                         FilterMinTotal,
                         FilterMaxTotal);
+                    query = query.Where(invoice => invoice.Status == InvoiceStatus.Active);
                     var today = DateTime.Today;
                     return query.GroupBy(invoice => 1)
                         .Select(group => new

@@ -102,7 +102,7 @@ namespace QuanLyHangHoa.Services
             // gom một lần ở database để lấy cả doanh thu/số hóa đơn tháng và năm
             var salesSummary = await context.SalesInvoices
                 .AsNoTracking()
-                .Where(s => s.InvoiceDate >= startOfYear)
+                .Where(s => s.Status == InvoiceStatus.Active && s.InvoiceDate >= startOfYear)
                 .GroupBy(_ => 1)
                 .Select(group => new
                 {
@@ -126,15 +126,15 @@ namespace QuanLyHangHoa.Services
             // mọi trạng thái khác Paid đều được xem là công nợ trên dashboard
             stats.UnpaidSalesInvoiceCount = await context.SalesInvoices
                 .AsNoTracking()
-                .CountAsync(s => s.PaymentStatus != PaymentStatus.Paid);
+                .CountAsync(s => s.Status == InvoiceStatus.Active && s.PaymentStatus != PaymentStatus.Paid);
             stats.UnpaidPurchaseInvoiceCount = await context.PurchaseInvoices
                 .AsNoTracking()
-                .CountAsync(p => p.PaymentStatus != PaymentStatus.Paid);
+                .CountAsync(p => p.Status == InvoiceStatus.Active && p.PaymentStatus != PaymentStatus.Paid);
 
             // chỉ đếm claim đang hoạt động hoặc đang xử lý
             stats.WarrantyActiveCount = await context.WarrantyClaims
                 .AsNoTracking()
-                .CountAsync(w => w.Status == "Active" || w.Status == "Processing");
+                .CountAsync(w => w.Status != "Closed" && w.Status != "Rejected");
 
             // gộp nhập và xuất trước khi sắp xếp để lấy đúng năm hoạt động mới nhất toàn hệ thống
             var combinedActivities = await context.StockIns
@@ -178,7 +178,7 @@ namespace QuanLyHangHoa.Services
 
             var sales = await context.SalesInvoices
                 .AsNoTracking()
-                .Where(s => s.InvoiceDate >= startDate)
+                .Where(s => s.Status == InvoiceStatus.Active && s.InvoiceDate >= startDate)
                 .GroupBy(s => new { s.InvoiceDate.Year, s.InvoiceDate.Month })
                 .Select(group => new
                 {
@@ -190,7 +190,7 @@ namespace QuanLyHangHoa.Services
 
             var purchases = await context.PurchaseInvoices
                 .AsNoTracking()
-                .Where(p => p.InvoiceDate >= startDate)
+                .Where(p => p.Status == InvoiceStatus.Active && p.InvoiceDate >= startDate)
                 .GroupBy(p => new { p.InvoiceDate.Year, p.InvoiceDate.Month })
                 .Select(group => new
                 {
@@ -248,6 +248,7 @@ namespace QuanLyHangHoa.Services
             using var context = _contextFactory();
             var grouped = await context.SalesInvoiceLines
                 .AsNoTracking()
+                .Where(line => line.SalesInvoice.Status == InvoiceStatus.Active)
                 .GroupBy(l => l.Product.DisplayName)
                 .Select(g => new TopSellingProductData
                 {

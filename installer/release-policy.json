@@ -1,5 +1,5 @@
 {
   "minimumClientVersion": "1.1.0",
-  "minimumSchemaVersion": 7,
-  "maximumSchemaVersion": 7
+  "minimumSchemaVersion": 8,
+  "maximumSchemaVersion": 8
 }

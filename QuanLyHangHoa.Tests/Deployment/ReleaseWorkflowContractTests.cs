@@ -43,7 +43,7 @@ public class ReleaseWorkflowContractTests
         Assert.Equal(
             DatabaseCompatibilityService.MaximumSupportedSchemaVersion,
             policy.GetProperty("maximumSchemaVersion").GetInt32());
-        Assert.Contains("private const int SupportedSchema = 7;", setupHelper, StringComparison.Ordinal);
+        Assert.Contains("private const int SupportedSchema = 8;", setupHelper, StringComparison.Ordinal);
     }
 
     [Fact]
