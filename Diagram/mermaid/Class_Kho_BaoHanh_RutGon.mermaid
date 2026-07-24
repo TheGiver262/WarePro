@@ -1,9 +1,0 @@
-flowchart LR
-    Product --> Serial[ProductSerial]
-    Product --> Balance[StockBalance]
-    Docs[Stock docs] --> Ledger[StockLedger]
-    Docs --> Serial
-    Invoice[Invoices] --> Docs
-    Serial --> Warranty[WarrantyCoverage/Claim]
-    Ledger --> Audit[AuditLog]
-    Warranty --> Audit

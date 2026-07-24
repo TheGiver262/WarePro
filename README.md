@@ -36,8 +36,6 @@ Services + Inventory domain
 SQL Server trung tâm
 ```
 
-![Kiến trúc WarePro](Diagram/plantuml-png/Architecture_MVVM_WPF_SQLServer.png)
-
 ## Công nghệ
 
 - C# và .NET 8;
@@ -70,7 +68,6 @@ SQL Server trung tâm
 ├── WarePro.SetupHelper/    # hỗ trợ cấu hình SQL khi cài đặt
 ├── Database/               # seed và công cụ dữ liệu
 ├── installer/              # cấu hình bộ cài Inno Setup
-├── Diagram/                # PlantUML, Mermaid, PNG và SVG
 ├── docs/                   # hướng dẫn người dùng và vận hành
 └── scripts/                # script build, kiểm tra và phát hành
 ```
@@ -101,28 +98,12 @@ SQL Server trung tâm
 - trạng thái tài khoản hoặc vai trò được đọc lại trước thao tác ghi quan trọng;
 - nhật ký lưu người thực hiện, thời điểm, đối tượng và hành động.
 
-## Diagram và luồng nghiệp vụ
+## Diagram và đồ án
 
-### Luồng màn hình
-
-![Luồng màn hình WarePro](Diagram/plantuml-png/ScreenFlow_GiaoDien_RutGon.png)
-
-### Mô hình dữ liệu
-
-![ERD kho và bảo hành](Diagram/plantuml-png/ERD_QuanLyHangHoaBaoHanh_ChiTiet.png)
-
-### Các luồng chính
-
-- [đăng nhập và xác thực](Diagram/plantuml-png/AuthFlow_ChiTiet.png);
-- [nhập kho và ghi sổ](Diagram/plantuml-png/Sequence_NhapKho_GhiSo.png);
-- [xuất kho và ghi sổ](Diagram/plantuml-png/Sequence_XuatKho_GhiSo.png);
-- [kiểm kê và điều chỉnh](Diagram/plantuml-png/Activity_KiemKe_DieuChinh.png);
-- [nhập tồn đầu kỳ từ Excel/CSV](Diagram/plantuml-png/Activity_ImportTonDauKy_ExcelCsv.png);
-- [bảo hành và đổi mới](Diagram/plantuml-png/Sequence_BaoHanh_DoiMoi.png);
-- [vòng đời chứng từ kho](Diagram/plantuml-png/State_VongDoi_ChungTuKho.png);
-- [vòng đời hồ sơ bảo hành](Diagram/plantuml-png/State_VongDoi_HoSoBaoHanh.png).
-
-Toàn bộ nguồn PlantUML, bản PNG và SVG nằm trong [thư mục Diagram](Diagram/README.md).
+Thư viện sơ đồ phục vụ đồ án đã được tách khỏi repository và lưu tại
+`C:\Thesis\04_Tai_nguyen\Diagram`.
+Tài liệu Word đang được biên tập ngoại tuyến trong
+`C:\Thesis\01_Ban_do_an`.
 
 ## Các view thực tế
 
@@ -152,7 +133,5 @@ Quyền được ánh xạ tập trung trong `AuthorizationService`. Việc ẩn
 | Nhân viên kho | nhập kho, xuất kho, điều chỉnh tồn và xem báo cáo |
 | Nhân viên bán hàng | lập hóa đơn bán và xem báo cáo |
 | Nhân viên bảo hành | tạo hồ sơ bảo hành và xem báo cáo |
-
-![Ma trận phân quyền](Diagram/plantuml-png/Permission_Matrix_RutGon.png)
 
 Máy client thông thường chỉ cần cài ứng dụng WarePro và cấu hình địa chỉ SQL Server. SQL Server chỉ cần cài trên máy chủ dữ liệu hoặc máy chạy độc lập.

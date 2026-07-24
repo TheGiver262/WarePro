@@ -1,8 +1,0 @@
-flowchart LR
-    WPF[WPF Desktop App] --> Services[Application Services]
-    Services --> DbContext[EF Core AppDbContext]
-    DbContext --> SQL[(SQL Server)]
-    Services --> Excel[ClosedXML Excel import/export]
-    Services --> CSV[CSV import]
-    WPF --> Print[Windows PrintDialog]
-    WPF --> Dialog[Open/Save File Dialog]
