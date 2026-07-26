@@ -12,6 +12,49 @@ namespace QuanLyHangHoa.Tests.Services;
 
 public class AuthenticationServiceTests
 {
+    [Theory]
+    [InlineData("' OR 1=1 --", "anything")]
+    [InlineData("tester", "' OR 1=1 --")]
+    [InlineData("tester'; DROP TABLE AppUser; --", "anything")]
+    public async Task Authenticate_rejects_sql_injection_payloads(
+        string attemptedUsername,
+        string attemptedPassword)
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword("correct-password");
+        using (var seedContext = CreateContext(connection))
+        {
+            seedContext.Database.EnsureCreated();
+            seedContext.AppUsers.Add(new AppUser
+            {
+                Id = 12,
+                FullName = "Injection Test User",
+                Username = "tester",
+                PasswordHash = passwordHash,
+                RoleCode = "Staff",
+                IsActive = true
+            });
+            seedContext.SaveChanges();
+        }
+
+        var service = new AuthenticationService(() => CreateContext(connection));
+
+        var result = await service.AuthenticateAsync(
+            attemptedUsername,
+            attemptedPassword,
+            Guid.NewGuid());
+
+        Assert.Equal(LoginStatus.InvalidCredentials, result.Status);
+        Assert.Null(result.User);
+
+        using var assertContext = CreateContext(connection);
+        var persistedUser = Assert.Single(assertContext.AppUsers);
+        Assert.Equal("tester", persistedUser.Username);
+        Assert.True(BCrypt.Net.BCrypt.Verify("correct-password", persistedUser.PasswordHash));
+    }
+
     [Fact]
     public async Task ChangePassword_updates_password_when_current_password_matches()
     {
