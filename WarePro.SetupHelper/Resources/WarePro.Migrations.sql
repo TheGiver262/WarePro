@@ -360,9 +360,11 @@ CREATE TABLE dbo.PurchaseInvoice
     TaxAmount     DECIMAL(18,2) NOT NULL CONSTRAINT DF_PurchaseInvoice_TaxAmount DEFAULT (0),
     GrandTotal    DECIMAL(18,2) NOT NULL,
     Notes         NVARCHAR(MAX) NULL,
+    CreatedBy     INT NOT NULL,
     CreatedAt     DATETIME2(0) NOT NULL CONSTRAINT DF_PurchaseInvoice_CreatedAt DEFAULT (SYSUTCDATETIME()),
     CONSTRAINT FK_PurchaseInvoice_Supplier FOREIGN KEY (SupplierId) REFERENCES dbo.Supplier(Id),
     CONSTRAINT FK_PurchaseInvoice_StockIn FOREIGN KEY (StockInId) REFERENCES dbo.StockIn(Id),
+    CONSTRAINT FK_PurchaseInvoice_CreatedBy FOREIGN KEY (CreatedBy) REFERENCES dbo.AppUser(Id),
     CONSTRAINT CK_PurchaseInvoice_SubTotal_NonNegative CHECK (SubTotal >= 0),
     CONSTRAINT CK_PurchaseInvoice_TaxAmount_NonNegative CHECK (TaxAmount >= 0),
     CONSTRAINT CK_PurchaseInvoice_GrandTotal_NonNegative CHECK (GrandTotal >= 0)
@@ -409,9 +411,11 @@ CREATE TABLE dbo.SalesInvoice
     TaxAmount     DECIMAL(18,2) NOT NULL CONSTRAINT DF_SalesInvoice_TaxAmount DEFAULT (0),
     GrandTotal    DECIMAL(18,2) NOT NULL,
     Notes         NVARCHAR(MAX) NULL,
+    CreatedBy     INT NOT NULL,
     CreatedAt     DATETIME2(0) NOT NULL CONSTRAINT DF_SalesInvoice_CreatedAt DEFAULT (SYSUTCDATETIME()),
     CONSTRAINT FK_SalesInvoice_Customer FOREIGN KEY (CustomerId) REFERENCES dbo.Customer(Id),
     CONSTRAINT FK_SalesInvoice_StockOut FOREIGN KEY (StockOutId) REFERENCES dbo.StockOut(Id),
+    CONSTRAINT FK_SalesInvoice_CreatedBy FOREIGN KEY (CreatedBy) REFERENCES dbo.AppUser(Id),
     CONSTRAINT CK_SalesInvoice_SubTotal_NonNegative CHECK (SubTotal >= 0),
     CONSTRAINT CK_SalesInvoice_TaxAmount_NonNegative CHECK (TaxAmount >= 0),
     CONSTRAINT CK_SalesInvoice_GrandTotal_NonNegative CHECK (GrandTotal >= 0)

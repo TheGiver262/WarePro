@@ -106,6 +106,23 @@ public sealed class DatabaseUpgradeCommandTests
     }
 
     [Fact]
+    public void Invoice_creator_contract_is_present_in_baseline_upgrade_and_shape_validation()
+    {
+        var baseline = string.Join(Environment.NewLine, DatabaseSchemaScripts.BaselineBatches);
+        var upgrade = DatabaseSchemaScripts.BuildUpgradeSql(8, "1.1.0");
+        var shape = DatabaseSchemaScripts.ShapeValidationPredicate;
+
+        Assert.Contains("FK_PurchaseInvoice_CreatedBy", baseline, StringComparison.Ordinal);
+        Assert.Contains("FK_SalesInvoice_CreatedBy", baseline, StringComparison.Ordinal);
+        Assert.Contains("COL_LENGTH(N''dbo.PurchaseInvoice'', N''CreatedBy'')", upgrade, StringComparison.Ordinal);
+        Assert.Contains("COL_LENGTH(N''dbo.SalesInvoice'', N''CreatedBy'')", upgrade, StringComparison.Ordinal);
+        Assert.Contains("(N'PurchaseInvoice', N'CreatedBy', N'int'", shape, StringComparison.Ordinal);
+        Assert.Contains("(N'SalesInvoice', N'CreatedBy', N'int'", shape, StringComparison.Ordinal);
+        Assert.Contains("(N'PurchaseInvoice', N'CreatedBy', N'AppUser', N'Id')", shape, StringComparison.Ordinal);
+        Assert.Contains("(N'SalesInvoice', N'CreatedBy', N'AppUser', N'Id')", shape, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Upgrade_sql_contains_every_version_and_stamps_metadata_last()
     {
         var sql = DatabaseSchemaScripts.BuildUpgradeSql(8, "1.1.0");

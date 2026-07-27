@@ -109,6 +109,36 @@ public static class DatabaseSchemaScripts
         IF COL_LENGTH(N'dbo.StockTransferLine', N'RowVersion') IS NULL
             ALTER TABLE dbo.StockTransferLine ADD RowVersion ROWVERSION NOT NULL;
 
+        IF COL_LENGTH(N'dbo.PurchaseInvoice', N'CreatedBy') IS NULL
+            ALTER TABLE dbo.PurchaseInvoice ADD CreatedBy INT NULL;
+        IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.PurchaseInvoice') AND name = N'CreatedBy' AND is_nullable = 1)
+        BEGIN
+            UPDATE invoice SET CreatedBy = stockIn.CreatedBy
+            FROM dbo.PurchaseInvoice AS invoice
+            INNER JOIN dbo.StockIn AS stockIn ON stockIn.Id = invoice.StockInId
+            WHERE invoice.CreatedBy IS NULL;
+            IF EXISTS (SELECT 1 FROM dbo.PurchaseInvoice WHERE CreatedBy IS NULL)
+                THROW 51031, 'Purchase invoice creators cannot be recovered from linked stock-in documents.', 1;
+            ALTER TABLE dbo.PurchaseInvoice ALTER COLUMN CreatedBy INT NOT NULL;
+        END;
+        IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE parent_object_id = OBJECT_ID(N'dbo.PurchaseInvoice') AND name = N'FK_PurchaseInvoice_CreatedBy')
+            ALTER TABLE dbo.PurchaseInvoice WITH CHECK ADD CONSTRAINT FK_PurchaseInvoice_CreatedBy FOREIGN KEY (CreatedBy) REFERENCES dbo.AppUser(Id);
+
+        IF COL_LENGTH(N'dbo.SalesInvoice', N'CreatedBy') IS NULL
+            ALTER TABLE dbo.SalesInvoice ADD CreatedBy INT NULL;
+        IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.SalesInvoice') AND name = N'CreatedBy' AND is_nullable = 1)
+        BEGIN
+            UPDATE invoice SET CreatedBy = stockOut.CreatedBy
+            FROM dbo.SalesInvoice AS invoice
+            INNER JOIN dbo.StockOut AS stockOut ON stockOut.Id = invoice.StockOutId
+            WHERE invoice.CreatedBy IS NULL;
+            IF EXISTS (SELECT 1 FROM dbo.SalesInvoice WHERE CreatedBy IS NULL)
+                THROW 51032, 'Sales invoice creators cannot be recovered from linked stock-out documents.', 1;
+            ALTER TABLE dbo.SalesInvoice ALTER COLUMN CreatedBy INT NOT NULL;
+        END;
+        IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE parent_object_id = OBJECT_ID(N'dbo.SalesInvoice') AND name = N'FK_SalesInvoice_CreatedBy')
+            ALTER TABLE dbo.SalesInvoice WITH CHECK ADD CONSTRAINT FK_SalesInvoice_CreatedBy FOREIGN KEY (CreatedBy) REFERENCES dbo.AppUser(Id);
+
         IF COL_LENGTH(N'dbo.StockAdjustmentLine', N'DraftSerials') IS NULL
             ALTER TABLE dbo.StockAdjustmentLine ADD DraftSerials NVARCHAR(4000) NULL;
         IF COL_LENGTH(N'dbo.StockIn', N'StockCountLineId') IS NULL
@@ -600,12 +630,14 @@ public static class DatabaseSchemaScripts
                 (N'PurchaseInvoice', N'PaidAmount', N'decimal', 9, 18, 2, 0),
                 (N'PurchaseInvoice', N'PaymentStatus', N'nvarchar', 100, 0, 0, 0),
                 (N'PurchaseInvoice', N'Status', N'nvarchar', 40, 0, 0, 0),
+                (N'PurchaseInvoice', N'CreatedBy', N'int', 4, 10, 0, 0),
                 (N'SalesInvoice', N'InvoiceCode', N'nvarchar', 100, 0, 0, 0),
                 (N'SalesInvoice', N'CustomerId', N'int', 4, 10, 0, 0),
                 (N'SalesInvoice', N'GrandTotal', N'decimal', 9, 18, 2, 0),
                 (N'SalesInvoice', N'PaidAmount', N'decimal', 9, 18, 2, 0),
                 (N'SalesInvoice', N'PaymentStatus', N'nvarchar', 100, 0, 0, 0),
                 (N'SalesInvoice', N'Status', N'nvarchar', 40, 0, 0, 0),
+                (N'SalesInvoice', N'CreatedBy', N'int', 4, 10, 0, 0),
                 (N'WarrantyClaim', N'OpenProductSerialId', N'int', 4, 10, 0, 1)
             ) AS expected(TableName, ColumnName, TypeName, MaxLength, Precision, Scale, IsNullable)
             EXCEPT
@@ -647,7 +679,9 @@ public static class DatabaseSchemaScripts
                 (N'StockInLine', N'StockInId', N'StockIn', N'Id'),
                 (N'StockOutLine', N'StockOutId', N'StockOut', N'Id'),
                 (N'PurchaseInvoice', N'SupplierId', N'Supplier', N'Id'),
+                (N'PurchaseInvoice', N'CreatedBy', N'AppUser', N'Id'),
                 (N'SalesInvoice', N'CustomerId', N'Customer', N'Id'),
+                (N'SalesInvoice', N'CreatedBy', N'AppUser', N'Id'),
                 (N'WarrantyClaim', N'WarrantyCoverageId', N'WarrantyCoverage', N'Id'),
                 (N'WarrantyClaim', N'ProductSerialId', N'WarrantyCoverage', N'ProductSerialId'),
                 (N'StockIn', N'StockCountLineId', N'StockCountLine', N'Id'),
