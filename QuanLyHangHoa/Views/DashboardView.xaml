@@ -136,7 +136,7 @@
                                                 <ColumnDefinition Width="190"/>
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
-                                            <lvc:PieChart Grid.Column="0" Series="{Binding InventoryPieSeries}" LegendPosition="Hidden"/>
+                                            <lvc:PieChart Grid.Column="0" Series="{Binding InventoryPieSeries}" LegendPosition="Hidden" TooltipPosition="Hidden"/>
                                             <Border Grid.Column="1" Margin="12,0,0,0" Padding="0,0,4,0">
                                                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                                     <ItemsControl ItemsSource="{Binding InventoryLegendItems}">
@@ -146,9 +146,11 @@
                                                                     <Grid.ColumnDefinitions>
                                                                         <ColumnDefinition Width="Auto"/>
                                                                         <ColumnDefinition Width="*"/>
+                                                                        <ColumnDefinition Width="Auto"/>
                                                                     </Grid.ColumnDefinitions>
                                                                     <Ellipse Width="12" Height="12" Fill="{Binding ColorBrush}" VerticalAlignment="Top" Margin="0,3,10,0"/>
                                                                     <TextBlock Grid.Column="1" Text="{Binding CategoryName}" FontSize="13" Foreground="{StaticResource TextPrimaryBrush}" TextWrapping="Wrap"/>
+                                                                    <TextBlock Grid.Column="2" Text="{Binding TotalValue, StringFormat={}{0:N0} &#x0111;}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="8,0,0,0" TextAlignment="Right"/>
                                                                 </Grid>
                                                             </DataTemplate>
                                                         </ItemsControl.ItemTemplate>

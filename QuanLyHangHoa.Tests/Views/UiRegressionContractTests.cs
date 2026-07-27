@@ -137,6 +137,20 @@ public class UiRegressionContractTests
         Assert.Equal("{StaticResource AppTertiaryBrush}", (string?)icon.Attribute("Foreground"));
     }
 
+    [Fact]
+    public void Dashboard_inventory_chart_uses_compact_non_overlay_details()
+    {
+        var document = LoadView("DashboardView.xaml");
+        var chart = document.Descendants().Single(element =>
+            element.Name.LocalName == "PieChart"
+            && (string?)element.Attribute("Series") == "{Binding InventoryPieSeries}");
+
+        Assert.Equal("Hidden", (string?)chart.Attribute("TooltipPosition"));
+        Assert.Contains(document.Descendants(), element =>
+            element.Name.LocalName == "TextBlock"
+            && ((string?)element.Attribute("Text"))?.Contains("TotalValue", StringComparison.Ordinal) == true);
+    }
+
     [Theory]
     [InlineData("AppUserView.xaml")]
     [InlineData("AuditLogView.xaml")]

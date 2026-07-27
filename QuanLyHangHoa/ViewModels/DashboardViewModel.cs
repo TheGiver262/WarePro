@@ -201,7 +201,9 @@ namespace QuanLyHangHoa.ViewModels
             // 3. Biểu đồ cơ cấu tồn kho theo danh mục (Pie/Doughnut Chart)
             if (Stats.InventoryStructureChart != null && Stats.InventoryStructureChart.Any())
             {
-                var inventoryItems = Stats.InventoryStructureChart.ToArray();
+                var inventoryItems = Stats.InventoryStructureChart
+                    .Where(item => item.TotalValue > 0)
+                    .ToArray();
                 InventoryPieSeries = inventoryItems.Select((x, index) =>
                 {
                     var color = InventoryPalette[index % InventoryPalette.Length];

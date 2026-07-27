@@ -384,6 +384,34 @@ public class CachedViewRefreshTests
     }
 
     [Fact]
+    public void Dashboard_inventory_chart_ignores_zero_value_categories()
+    {
+        var service = new DashboardService(
+            () => throw new InvalidOperationException("not used"));
+        var viewModel = new DashboardViewModel(
+            service,
+            (MainViewModel)RuntimeHelpers.GetUninitializedObject(typeof(MainViewModel)));
+        var updateCharts = typeof(DashboardViewModel).GetMethod(
+            "UpdateCharts",
+            BindingFlags.Instance | BindingFlags.NonPublic)!;
+        viewModel.Stats = new DashboardStats
+        {
+            InventoryStructureChart =
+            [
+                new InventoryStructureData { CategoryName = "Positive", TotalValue = 10m },
+                new InventoryStructureData { CategoryName = "Zero", TotalValue = 0m }
+            ]
+        };
+
+        updateCharts.Invoke(viewModel, null);
+
+        Assert.Single(viewModel.InventoryPieSeries);
+        var legend = Assert.Single(viewModel.InventoryLegendItems);
+        Assert.Equal("Positive", legend.CategoryName);
+        Assert.Equal(10m, legend.TotalValue);
+    }
+
+    [Fact]
     public async Task Coverage_load_failure_preserves_visible_rows_and_exposes_retry_error()
     {
         var viewModel = new WarrantyCoverageViewModel(
