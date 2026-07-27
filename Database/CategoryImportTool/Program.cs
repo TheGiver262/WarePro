@@ -11,7 +11,7 @@ namespace CategoryImportTool
     {
         static void Main(string[] args)
         {
-            string excelPath = @"C:\WarePro\Database\WarePro_Export_5-5-2026.xlsx";
+            string excelPath = args.Length > 0 ? args[0] : "WarePro_Export.xlsx";
             string connectionString = @"Server=.\SQLEXPRESS;Database=ProductManagementDb;Trusted_Connection=True;TrustServerCertificate=True;";
 
             Console.WriteLine("Starting Category Addition Process...");

@@ -9,7 +9,9 @@ namespace ExcelAnalyzer
     {
         static void Main(string[] args)
         {
-            string excelPath = @"C:\WarePro\Database\warepro_database_seed.xlsx";
+            string excelPath = args.Length > 0
+                ? args[0]
+                : Path.Combine(AppContext.BaseDirectory, "warepro_database_seed.xlsx");
             
             if (!File.Exists(excelPath))
             {

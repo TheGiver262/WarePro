@@ -48,8 +48,30 @@ SQL Server trung tâm
 - xUnit, Moq và SQLite in-memory cho kiểm thử;
 - Inno Setup cho bộ cài Windows.
 
-## Cấu trúc repository
+## Chạy từ source
 
+Clone repo phù hợp khi cần phát triển hoặc kiểm thử. Nếu chỉ cần sử dụng phần mềm, hãy tải bộ cài từ GitHub Releases.
+
+1. Cài Visual Studio 2022 với workload **.NET desktop development**, .NET 8 SDK và SQL Server Express hoặc LocalDB.
+2. Mở solution `QuanLyHangHoa/QuanLyHangHoa.sln`.
+3. Tạo cơ sở dữ liệu SQL Server rồi chạy script `Database/database_schema.sql`.
+4. Nếu SQL Server không dùng instance mặc định `\\.\\SQLEXPRESS`, đặt biến môi trường kết nối trước khi chạy:
+
+   ```powershell
+   $env:WAREPRO_CONNECTION_STRING="Server=.;Database=ProductManagementDb;Trusted_Connection=True;TrustServerCertificate=True"
+   ```
+
+5. Build và chạy ứng dụng:
+
+   ```powershell
+   dotnet build QuanLyHangHoa/QuanLyHangHoa.sln
+   dotnet run --project QuanLyHangHoa
+   ```
+
+Tài khoản mẫu để kiểm tra được khai báo trong `Database/database_schema.sql`.
+
+
+## Cấu trúc repository
 ```text
 .
 ├── QuanLyHangHoa/          # ứng dụng WPF chính
@@ -96,10 +118,7 @@ SQL Server trung tâm
 
 ## Diagram và đồ án
 
-Thư viện sơ đồ phục vụ đồ án đã được tách khỏi repository và lưu tại
-`C:\Thesis\04_Tai_nguyen\Diagram`.
-Tài liệu Word đang được biên tập ngoại tuyến trong
-`C:\Thesis\01_Ban_do_an`.
+Sơ đồ và bản thảo đồ án được quản lý ngoài repository phần mềm.
 
 ## Các view thực tế
 
