@@ -18,38 +18,78 @@
             <Grid Grid.Row="0" Margin="0,0,0,24">
                 <StackPanel Orientation="Horizontal">
                     <materialDesign:PackIcon Kind="ChartBubble" Width="32" Height="32" Foreground="{StaticResource AppTertiaryBrush}" VerticalAlignment="Center"/>
-                    <TextBlock Text="ĐƠN VỊ TÍNH SẢN PHẨM" Style="{StaticResource TypographyH1}" Margin="16,0,0,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="ĐƠN VỊ QUY ĐỔI" Style="{StaticResource TypographyH1}" Margin="16,0,0,0" VerticalAlignment="Center"/>
                 </StackPanel>
             </Grid>
 
-            <!-- Search Bar -->
+            <!-- Conversion editor and search -->
             <materialDesign:Card Grid.Row="1" Style="{StaticResource AppCard}" Margin="0,0,0,24" Padding="16">
                 <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-                    <StackPanel Orientation="Horizontal">
-                        <materialDesign:PackIcon Kind="Magnify" Width="20" Height="20" Foreground="{StaticResource AppSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                        <TextBox Width="300" Style="{StaticResource AppTextBoxStyle}" Height="40" materialDesign:HintAssist.Hint="Tìm kiếm theo tên sản phẩm..."
-                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"/>
-                    </StackPanel>
+                    <Grid Grid.Row="0" Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="180"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
 
-                    <StackPanel Grid.Column="1" Orientation="Horizontal">
-                        <Button Style="{StaticResource SecondaryButton}" Command="{Binding RefreshCommand}" Margin="0,0,8,0">
+                        <ComboBox Grid.Column="0" Height="40" Margin="0,0,12,0"
+                                  Style="{StaticResource AppComboBoxStyle}"
+                                  ItemsSource="{Binding Products}"
+                                  SelectedItem="{Binding SelectedProduct}"
+                                  DisplayMemberPath="DisplayName"
+                                  materialDesign:HintAssist.Hint="Chọn sản phẩm"/>
+                        <ComboBox Grid.Column="1" Height="40" Margin="0,0,12,0"
+                                  Style="{StaticResource AppComboBoxStyle}"
+                                  ItemsSource="{Binding AvailableUnits}"
+                                  SelectedValuePath="Id"
+                                  SelectedValue="{Binding SelectedUnitId}"
+                                  DisplayMemberPath="DisplayName"
+                                  materialDesign:HintAssist.Hint="Đơn vị quy đổi"/>
+                        <TextBox Grid.Column="2" Height="40" Margin="0,0,12,0"
+                                 Style="{StaticResource AppTextBoxStyle}"
+                                 Text="{Binding ConversionFactor, UpdateSourceTrigger=PropertyChanged}"
+                                 materialDesign:HintAssist.Hint="Tỷ lệ với đơn vị gốc"/>
+                        <Button Grid.Column="3" Style="{StaticResource PrimaryButton}" Command="{Binding SaveCommand}">
                             <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="Refresh" Width="20" Height="20"/>
-                                <TextBlock Text="LÀM MỚI" Margin="8,0,0,0"/>
+                                <materialDesign:PackIcon Kind="ContentSave" Width="20" Height="20"/>
+                                <TextBlock Text="LƯU QUY ĐỔI" Margin="8,0,0,0"/>
                             </StackPanel>
                         </Button>
-                        <Button Style="{StaticResource PrimaryButton}" Command="{Binding OpenAddUnitWindowCommand}">
-                            <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="Plus" Width="20" Height="20"/>
-                                <TextBlock Text="THÊM ĐƠN VỊ" Margin="8,0,0,0"/>
-                            </StackPanel>
-                        </Button>
-                    </StackPanel>
+                    </Grid>
+
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Magnify" Width="20" Height="20" Foreground="{StaticResource AppSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBox Width="300" Style="{StaticResource AppTextBoxStyle}" Height="40" materialDesign:HintAssist.Hint="Tìm theo sản phẩm hoặc đơn vị..."
+                                     Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <Button Style="{StaticResource SecondaryButton}" Command="{Binding RefreshCommand}" Margin="0,0,8,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Refresh" Width="20" Height="20"/>
+                                    <TextBlock Text="LÀM MỚI" Margin="8,0,0,0"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource SecondaryButton}" Command="{Binding OpenAddUnitWindowCommand}">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Plus" Width="20" Height="20"/>
+                                    <TextBlock Text="QUẢN LÝ ĐƠN VỊ" Margin="8,0,0,0"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
                 </Grid>
             </materialDesign:Card>
 

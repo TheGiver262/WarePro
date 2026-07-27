@@ -36,6 +36,25 @@ public class ProductUnitViewContractTests
     }
 
     [Fact]
+    public void Product_unit_view_exposes_the_conversion_editor_on_the_page()
+    {
+        var xaml = File.ReadAllText(Path.Combine(
+            RepoRoot,
+            "QuanLyHangHoa",
+            "Views",
+            "ProductUnitView.xaml"));
+
+        Assert.Contains("ItemsSource=\"{Binding Products}\"", xaml);
+        Assert.Contains("SelectedItem=\"{Binding SelectedProduct}\"", xaml);
+        Assert.Contains("ItemsSource=\"{Binding AvailableUnits}\"", xaml);
+        Assert.Contains("SelectedValue=\"{Binding SelectedUnitId}\"", xaml);
+        Assert.Contains("Text=\"{Binding ConversionFactor, UpdateSourceTrigger=PropertyChanged}\"", xaml);
+        Assert.Contains("Command=\"{Binding SaveCommand}\"", xaml);
+        Assert.Contains("QU\u1EA2N L\u00DD \u0110\u01A0N V\u1ECA", xaml);
+        Assert.DoesNotContain("TH\u00CAM \u0110\u01A0N V\u1ECA", xaml);
+    }
+
+    [Fact]
     public void Product_unit_commands_and_main_navigation_route_are_generated()
     {
         Assert.NotNull(typeof(ProductUnitViewModel).GetProperty("SearchText"));
