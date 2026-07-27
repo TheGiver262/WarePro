@@ -19,7 +19,7 @@ public sealed class DatabaseUpgradeCommandTests
     [Fact]
     public void Old_client_is_rejected_before_mutation()
     {
-        var result = ClientCompatibilityPolicy.Evaluate(new Version("1.0.0"), 8);
+        var result = ClientCompatibilityPolicy.Evaluate(new Version("1.0.0"), 9);
 
         Assert.Equal(ClientCompatibilityStatus.Rejected, result.Status);
         Assert.Equal("1.1.0", result.MinimumClientVersion.ToString());
@@ -32,11 +32,11 @@ public sealed class DatabaseUpgradeCommandTests
 
         var result = await commands.ExecuteAsync([
             "upgrade-database", "--config", @"C:\ProgramData\WarePro\Config\warepro.settings.json",
-            "--app-version", "1.1.0", "--expected-schema", "8"]);
+            "--app-version", "1.1.0", "--expected-schema", "9"]);
 
         Assert.Equal(SetupExitCode.Success, result.ExitCode);
         Assert.Equal("1.1.0", probe.AppVersion?.ToString());
-        Assert.Equal(8, probe.ExpectedSchema);
+        Assert.Equal(9, probe.ExpectedSchema);
     }
 
     private sealed class UpgradeProbe : ISetupProbe
@@ -109,7 +109,7 @@ public sealed class DatabaseUpgradeCommandTests
     public void Invoice_creator_contract_is_present_in_baseline_upgrade_and_shape_validation()
     {
         var baseline = string.Join(Environment.NewLine, DatabaseSchemaScripts.BaselineBatches);
-        var upgrade = DatabaseSchemaScripts.BuildUpgradeSql(8, "1.1.0");
+        var upgrade = DatabaseSchemaScripts.BuildUpgradeSql(9, "1.1.0");
         var shape = DatabaseSchemaScripts.ShapeValidationPredicate;
 
         Assert.Contains("FK_PurchaseInvoice_CreatedBy", baseline, StringComparison.Ordinal);
@@ -117,6 +117,8 @@ public sealed class DatabaseUpgradeCommandTests
         Assert.Contains("COL_LENGTH(N''dbo.PurchaseInvoice'', N''CreatedBy'')", upgrade, StringComparison.Ordinal);
         Assert.Contains("COL_LENGTH(N''dbo.SalesInvoice'', N''CreatedBy'')", upgrade, StringComparison.Ordinal);
         Assert.Contains("(N'PurchaseInvoice', N'CreatedBy', N'int'", shape, StringComparison.Ordinal);
+        Assert.Contains("WITH CHECK CHECK CONSTRAINT FK_PurchaseInvoice_CreatedBy", upgrade, StringComparison.Ordinal);
+        Assert.Contains("WITH CHECK CHECK CONSTRAINT FK_SalesInvoice_CreatedBy", upgrade, StringComparison.Ordinal);
         Assert.Contains("(N'SalesInvoice', N'CreatedBy', N'int'", shape, StringComparison.Ordinal);
         Assert.Contains("(N'PurchaseInvoice', N'CreatedBy', N'AppUser', N'Id')", shape, StringComparison.Ordinal);
         Assert.Contains("(N'SalesInvoice', N'CreatedBy', N'AppUser', N'Id')", shape, StringComparison.Ordinal);
@@ -125,15 +127,15 @@ public sealed class DatabaseUpgradeCommandTests
     [Fact]
     public void Upgrade_sql_contains_every_version_and_stamps_metadata_last()
     {
-        var sql = DatabaseSchemaScripts.BuildUpgradeSql(8, "1.1.0");
+        var sql = DatabaseSchemaScripts.BuildUpgradeSql(9, "1.1.0");
 
-        for (var version = 3; version <= 8; version++)
+        for (var version = 3; version <= 9; version++)
             Assert.Contains($"IF @CurrentVersion < {version}", sql, StringComparison.Ordinal);
         Assert.DoesNotContain("IF @CurrentVersion < 1", sql, StringComparison.Ordinal);
         Assert.DoesNotContain("IF @CurrentVersion < 2", sql, StringComparison.Ordinal);
 
         var archive = sql.IndexOf("UX_AuditArchiveManifest_OperationId", StringComparison.Ordinal);
-        var stamp = sql.LastIndexOf("SET [Version] = 8", StringComparison.Ordinal);
+        var stamp = sql.LastIndexOf("SET [Version] = 9", StringComparison.Ordinal);
         Assert.True(archive >= 0 && stamp > archive);
     }
 
@@ -151,7 +153,7 @@ public sealed class DatabaseUpgradeCommandTests
     [Fact]
     public void Upgrade_sql_never_sends_client_go_delimiters_to_sql_server()
     {
-        var sql = DatabaseSchemaScripts.BuildUpgradeSql(8, "1.1.0");
+        var sql = DatabaseSchemaScripts.BuildUpgradeSql(9, "1.1.0");
         Assert.DoesNotMatch(new Regex(@"(?im)^\s*GO\s*(?:--.*)?$"), sql);
         Assert.All(DatabaseSchemaScripts.BaselineBatches,
             batch => Assert.DoesNotMatch(new Regex(@"(?im)^\s*GO\s*(?:--.*)?$"), batch));
@@ -160,7 +162,7 @@ public sealed class DatabaseUpgradeCommandTests
     [Fact]
     public void Legacy_transfer_types_defaults_and_nullability_are_repaired_before_validation()
     {
-        var sql = DatabaseSchemaScripts.BuildUpgradeSql(8, "1.1.0");
+        var sql = DatabaseSchemaScripts.BuildUpgradeSql(9, "1.1.0");
         var validation = sql.IndexOf("WarePro schema shape validation failed", StringComparison.Ordinal);
         foreach (var repair in new[]
                  {

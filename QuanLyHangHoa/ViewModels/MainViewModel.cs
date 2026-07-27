@@ -418,7 +418,9 @@ namespace QuanLyHangHoa.ViewModels
         // mở cửa sổ login mới rồi đóng MainWindow; toàn bộ cache và user state của session cũ theo đó được giải phóng
         private void Logout()
         {
-            new LoginView().Show();
+            var login = new LoginView();
+            System.Windows.Application.Current.MainWindow = login;
+            login.Show();
             foreach (System.Windows.Window window in System.Windows.Application.Current.Windows)
             {
                 if (window is MainWindow) { window.Close(); break; }

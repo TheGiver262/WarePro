@@ -19,4 +19,17 @@ public class AuthenticationUiContractTests
         Assert.Contains("catch (DatabaseWriteConflictException)", method);
         Assert.Contains("thử đăng nhập lại", method, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void Login_command_handles_retry_exhaustion_without_leaking_exception()
+    {
+        var source = File.ReadAllText(Path.Combine(
+            RepoRoot, "QuanLyHangHoa", "ViewModels", "LoginViewModel.cs"));
+        var start = source.IndexOf("private async Task Login", StringComparison.Ordinal);
+        Assert.True(start >= 0, "Missing async Login command.");
+        var method = source[start..];
+
+        Assert.Contains("catch (DatabaseWriteRetryExhaustedException)", method);
+        Assert.Contains("DatabaseWriteUi.RetryExhaustedMessage", method);
+    }
 }

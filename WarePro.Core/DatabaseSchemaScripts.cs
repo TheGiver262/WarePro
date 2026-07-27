@@ -123,6 +123,7 @@ public static class DatabaseSchemaScripts
         END;
         IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE parent_object_id = OBJECT_ID(N'dbo.PurchaseInvoice') AND name = N'FK_PurchaseInvoice_CreatedBy')
             ALTER TABLE dbo.PurchaseInvoice WITH CHECK ADD CONSTRAINT FK_PurchaseInvoice_CreatedBy FOREIGN KEY (CreatedBy) REFERENCES dbo.AppUser(Id);
+        ALTER TABLE dbo.PurchaseInvoice WITH CHECK CHECK CONSTRAINT FK_PurchaseInvoice_CreatedBy;
 
         IF COL_LENGTH(N'dbo.SalesInvoice', N'CreatedBy') IS NULL
             ALTER TABLE dbo.SalesInvoice ADD CreatedBy INT NULL;
@@ -138,6 +139,7 @@ public static class DatabaseSchemaScripts
         END;
         IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE parent_object_id = OBJECT_ID(N'dbo.SalesInvoice') AND name = N'FK_SalesInvoice_CreatedBy')
             ALTER TABLE dbo.SalesInvoice WITH CHECK ADD CONSTRAINT FK_SalesInvoice_CreatedBy FOREIGN KEY (CreatedBy) REFERENCES dbo.AppUser(Id);
+        ALTER TABLE dbo.SalesInvoice WITH CHECK CHECK CONSTRAINT FK_SalesInvoice_CreatedBy;
 
         IF COL_LENGTH(N'dbo.StockAdjustmentLine', N'DraftSerials') IS NULL
             ALTER TABLE dbo.StockAdjustmentLine ADD DraftSerials NVARCHAR(4000) NULL;
@@ -462,6 +464,7 @@ public static class DatabaseSchemaScripts
     public static string SchemaVersion6 => ReadEmbeddedText("WarePro.Core.Resources.v6-common-write-safety.sql");
     public static string SchemaVersion7 => ReadEmbeddedText("WarePro.Core.Resources.v7-invoice-void-open-claim.sql");
     public static string SchemaVersion8 => ReadEmbeddedText("WarePro.Core.Resources.v8-unique-invoice-stock-links.sql");
+    public static string SchemaVersion9 => ReadEmbeddedText("WarePro.Core.Resources.v9-nullable-login-audit-performer.sql");
     public static string SchemaArchiveReplay => SingleBatch("SchemaArchiveReplaySql");
 
     public static string ShapeValidationPredicate => """
@@ -470,6 +473,7 @@ public static class DatabaseSchemaScripts
             SELECT expected.TableName, expected.ColumnName, expected.TypeName,
                    expected.MaxLength, expected.Precision, expected.Scale, expected.IsNullable
             FROM (VALUES
+                (N'AuditLog', N'PerformedBy', N'int', 4, 10, 0, 1),
                 (N'AuditArchiveManifest', N'Id', N'int', 4, 10, 0, 0),
                 (N'AuditArchiveManifest', N'OperationId', N'uniqueidentifier', 16, 0, 0, 0),
                 (N'AuditArchiveManifest', N'ActorId', N'int', 4, 10, 0, 0),
@@ -510,6 +514,7 @@ public static class DatabaseSchemaScripts
             FROM sys.columns AS columns
             WHERE columns.object_id IN
             (
+                OBJECT_ID(N'dbo.AuditLog'),
                 OBJECT_ID(N'dbo.AuditArchiveManifest'),
                 OBJECT_ID(N'dbo.StockTransfer'),
                 OBJECT_ID(N'dbo.StockTransferLine')
@@ -815,6 +820,7 @@ public static class DatabaseSchemaScripts
         var version6 = AsDynamicSql(SchemaVersion6);
         var version7 = AsDynamicSql(SchemaVersion7);
         var version8 = AsDynamicSql(SchemaVersion8);
+        var version9 = AsDynamicSql(SchemaVersion9);
         var archiveReplay = AsDynamicSql(SchemaArchiveReplay);
         var shapeValidation = AsDynamicSql($$"""
             IF NOT ({{ShapeValidationPredicate}})
@@ -837,6 +843,7 @@ public static class DatabaseSchemaScripts
             IF @CurrentVersion < 7 BEGIN {{version7}} END;
             IF @CurrentVersion < 8 BEGIN {{version8}} END;
 
+            IF @CurrentVersion < 9 BEGIN {{version9}} END;
             {{archiveReplay}}
 
             {{shapeValidation}}
@@ -907,7 +914,7 @@ public static class DatabaseSchemaScripts
 
     private static void ValidateRelease(int expectedSchema, string version)
     {
-        if (expectedSchema != 8)
+        if (expectedSchema != 9)
             throw new ArgumentOutOfRangeException(nameof(expectedSchema));
         if (!Version.TryParse(version, out _))
             throw new ArgumentException("Version is invalid.", nameof(version));

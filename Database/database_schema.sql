@@ -565,9 +565,9 @@ CREATE TABLE dbo.AuditLog
     ActionCode  NVARCHAR(50) NOT NULL,
     BeforeJson  NVARCHAR(MAX) NULL,
     AfterJson   NVARCHAR(MAX) NULL,
-    PerformedBy INT NOT NULL,
+    PerformedBy INT NULL,
     PerformedAt DATETIME2(0) NOT NULL CONSTRAINT DF_AuditLog_PerformedAt DEFAULT (SYSUTCDATETIME()),
-    CONSTRAINT FK_AuditLog_PerformedBy FOREIGN KEY (PerformedBy) REFERENCES dbo.AppUser(Id)
+    CONSTRAINT FK_AuditLog_PerformedBy FOREIGN KEY (PerformedBy) REFERENCES dbo.AppUser(Id) ON DELETE SET NULL
 );
 GO
 

@@ -10,7 +10,7 @@ public static class ClientCompatibilityPolicy
         // chỉ chấp nhận schema hiện hành và client từ 1.1.0 trở lên; thiếu một điều kiện thì từ chối.
         var minimum = new Version("1.1.0");
         return new ClientCompatibilityResult(
-            schemaVersion == 8 && clientVersion >= minimum
+            schemaVersion == 9 && clientVersion >= minimum
                 ? ClientCompatibilityStatus.Compatible
                 : ClientCompatibilityStatus.Rejected,
             minimum);

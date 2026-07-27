@@ -11,8 +11,8 @@ public sealed class SqlServerCiContractTests
     [Fact]
     public void Shared_migration_commands_are_ordered_and_go_free()
     {
-        var upgrade = DatabaseSchemaScripts.BuildUpgradeSql(8, "1.1.0");
-        for (var version = 3; version <= 8; version++)
+        var upgrade = DatabaseSchemaScripts.BuildUpgradeSql(9, "1.1.0");
+        for (var version = 3; version <= 9; version++)
             Assert.Contains($"IF @CurrentVersion < {version} BEGIN EXEC sys.sp_executesql N'", upgrade, StringComparison.Ordinal);
         Assert.DoesNotContain("IF @CurrentVersion < 1", upgrade, StringComparison.Ordinal);
         Assert.DoesNotContain("IF @CurrentVersion < 2", upgrade, StringComparison.Ordinal);
@@ -20,7 +20,7 @@ public sealed class SqlServerCiContractTests
 
         Assert.All(DatabaseSchemaScripts.BaselineBatches, AssertHasNoGoBatch);
         AssertHasNoGoBatch(upgrade);
-        AssertHasNoGoBatch(DatabaseSchemaScripts.BuildFinalizeSql(8, "1.1.0"));
+        AssertHasNoGoBatch(DatabaseSchemaScripts.BuildFinalizeSql(9, "1.1.0"));
         Assert.Matches(new Regex(@"(?i)\[RowCount\]\s+INT\s+NOT\s+NULL"), string.Join('\n', DatabaseSchemaScripts.BaselineBatches));
         Assert.Matches(new Regex(@"(?i)\[RowCount\]\s+INT\s+NOT\s+NULL"), upgrade);
     }
@@ -63,6 +63,18 @@ public sealed class SqlServerCiContractTests
         Assert.Contains("ON dbo.WarrantyClaim(ProductSerialId)", canonical, StringComparison.Ordinal);
         Assert.Contains("WHERE [Status] <> N''Closed'' AND [Status] <> N''Rejected''", canonical, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Schema_version_9_comes_from_checked_in_login_audit_script()
+    {
+        var canonical = File.ReadAllText(Path.Combine(
+            Root, "Database", "Schema", "v9-nullable-login-audit-performer.sql"));
+
+        Assert.Equal(Normalize(canonical), Normalize(DatabaseSchemaScripts.SchemaVersion9));
+        Assert.Contains("ALTER TABLE dbo.AuditLog ALTER COLUMN PerformedBy INT NULL", canonical, StringComparison.Ordinal);
+        Assert.Contains("ON DELETE SET NULL", canonical, StringComparison.Ordinal);
+    }
+
     private static void AssertHasNoGoBatch(string sql) =>
         Assert.DoesNotMatch(new Regex(@"(?im)^\s*GO\s*(?:--.*)?$"), sql);
 

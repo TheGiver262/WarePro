@@ -70,7 +70,11 @@ namespace QuanLyHangHoa.ViewModels
                 ErrorMessage = "Tài khoản vừa thay đổi trên máy khác. Vui lòng thử đăng nhập lại.";
                 return;
             }
-
+            catch (DatabaseWriteRetryExhaustedException)
+            {
+                ErrorMessage = DatabaseWriteUi.RetryExhaustedMessage;
+                return;
+            }
             switch (result.Status)
             {
                 case LoginStatus.Success:

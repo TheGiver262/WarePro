@@ -30,7 +30,7 @@ await database.ApplyUpgradeAsync();
         await database.ApplyFinalizeAsync();
 
         Assert.All(DatabaseSchemaScripts.BaselineBatches, AssertHasNoGoBatch);
-        AssertHasNoGoBatch(DatabaseSchemaScripts.BuildUpgradeSql(8, "1.1.0"));
+        AssertHasNoGoBatch(DatabaseSchemaScripts.BuildUpgradeSql(9, "1.1.0"));
 
         await using var connection = await database.OpenConnectionAsync();
         await using var command = connection.CreateCommand();
@@ -54,7 +54,7 @@ await database.ApplyUpgradeAsync();
         await using var reader = await command.ExecuteReaderAsync(CommandBehavior.SingleRow);
         Assert.True(await reader.ReadAsync());
         Assert.True(reader.GetBoolean(0));
-        Assert.Equal(8, reader.GetInt32(1));
+        Assert.Equal(9, reader.GetInt32(1));
         Assert.Equal("1.1.0", reader.GetString(2));
         Assert.Equal(1, reader.GetInt32(3));
         Assert.Equal(1, reader.GetInt32(4));
@@ -75,6 +75,58 @@ await database.ApplyUpgradeAsync();
         while (await rowVersionReader.ReadAsync())
             actual.Add(rowVersionReader.GetString(0));
         Assert.All(MutableTables, table => Assert.Contains(table, actual));
+    }
+
+    [SqlServerFact]
+    [Trait("Category", "RealDatabase")]
+    public async Task Login_failure_audit_allows_no_authenticated_performer()
+    {
+        await using var database = await SqlServerTestDatabase.CreateAsync();
+        await database.ApplyBaselineAsync();
+        await database.ApplyUpgradeAsync();
+
+        await using (var legacyConnection = await database.OpenConnectionAsync())
+        await using (var legacyCommand = legacyConnection.CreateCommand())
+        {
+            legacyCommand.CommandText = """
+                ALTER TABLE dbo.AuditLog DROP CONSTRAINT FK_AuditLog_PerformedBy;
+                ALTER TABLE dbo.AuditLog ALTER COLUMN PerformedBy INT NOT NULL;
+                ALTER TABLE dbo.AuditLog WITH CHECK ADD CONSTRAINT FK_AuditLog_PerformedBy
+                    FOREIGN KEY (PerformedBy) REFERENCES dbo.AppUser(Id);
+                UPDATE dbo.__WareProSchemaVersion SET Version = 8 WHERE Id = 1;
+                """;
+            await legacyCommand.ExecuteNonQueryAsync();
+        }
+
+        await database.ApplyUpgradeAsync();
+
+        await using var connection = await database.OpenConnectionAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT columns.is_nullable, foreignKeys.delete_referential_action_desc
+            FROM sys.columns AS columns
+            INNER JOIN sys.foreign_key_columns AS foreignKeyColumns
+                ON foreignKeyColumns.parent_object_id = columns.object_id
+               AND foreignKeyColumns.parent_column_id = columns.column_id
+            INNER JOIN sys.foreign_keys AS foreignKeys
+                ON foreignKeys.object_id = foreignKeyColumns.constraint_object_id
+            WHERE columns.object_id = OBJECT_ID(N'dbo.AuditLog')
+              AND columns.name = N'PerformedBy';
+            """;
+
+        await using var reader = await command.ExecuteReaderAsync(CommandBehavior.SingleRow);
+        Assert.True(await reader.ReadAsync());
+        Assert.True(reader.GetBoolean(0));
+        Assert.Equal("SET_NULL", reader.GetString(1));
+        await reader.DisposeAsync();
+
+        command.CommandText = """
+            INSERT dbo.AuditLog
+                (EntityName, EntityId, ActionCode, PerformedBy, PerformedAt, AfterJson)
+            VALUES
+                (N'Authentication', 0, N'LoginFailed', NULL, SYSUTCDATETIME(), N'{"attemptedUsername":"admin"}');
+            """;
+        Assert.Equal(1, await command.ExecuteNonQueryAsync());
     }
 
     [SqlServerFact]
@@ -104,7 +156,7 @@ await database.ApplyUpgradeAsync();
     [InlineData(3)]
     [InlineData(4)]
     [InlineData(5)]
-    public async Task Legacy_versions_and_transfer_shape_upgrade_to_schema_8(int currentVersion)
+    public async Task Legacy_versions_and_transfer_shape_upgrade_to_schema_9(int currentVersion)
     {
         await using var database = await SqlServerTestDatabase.CreateLegacyAsync(currentVersion);
         await AssertHistoricalVersionMarkerAsync(database, currentVersion);
@@ -116,7 +168,7 @@ await database.ApplyUpgradeAsync();
         await using var command = connection.CreateCommand();
         command.CommandText = $"""
             SELECT CASE WHEN
-                (SELECT Version FROM dbo.__WareProSchemaVersion WHERE Id = 1) = 8
+                (SELECT Version FROM dbo.__WareProSchemaVersion WHERE Id = 1) = 9
                 AND ({DatabaseSchemaScripts.ShapeValidationPredicate})
                 THEN 1 ELSE 0 END;
             """;
@@ -153,7 +205,7 @@ await database.ApplyUpgradeAsync();
     public async Task Warranty_index_rejects_second_open_claim_but_allows_closed_history()
     {
         await using var database = await SqlServerTestDatabase.CreateMigratedAsync();
-        await using var connection = await database.OpenConnectionAsync(clientSchema: 8);
+        await using var connection = await database.OpenConnectionAsync(clientSchema: 9);
         await using var command = connection.CreateCommand();
 
         command.CommandText = """
@@ -188,7 +240,7 @@ await database.ApplyUpgradeAsync();
     public async Task Invoice_stock_link_indexes_reject_duplicates_and_allow_multiple_nulls()
     {
         await using var database = await SqlServerTestDatabase.CreateMigratedAsync();
-        await using var connection = await database.OpenConnectionAsync(clientSchema: 8);
+        await using var connection = await database.OpenConnectionAsync(clientSchema: 9);
         await using var command = connection.CreateCommand();
 
         command.CommandText = """
@@ -237,7 +289,7 @@ await database.ApplyUpgradeAsync();
     public async Task Rowversion_rejects_a_stale_update()
     {
         await using var database = await SqlServerTestDatabase.CreateMigratedAsync();
-        await using var connection = await database.OpenConnectionAsync(clientSchema: 8);
+        await using var connection = await database.OpenConnectionAsync(clientSchema: 9);
 
         await using var insert = connection.CreateCommand();
         insert.CommandText = """
@@ -273,7 +325,7 @@ await database.ApplyUpgradeAsync();
             Assert.Equal(51006, error.Number);
         }
 
-        await using var currentClient = await database.OpenConnectionAsync(clientSchema: 8);
+        await using var currentClient = await database.OpenConnectionAsync(clientSchema: 9);
         await using var currentWrite = currentClient.CreateCommand();
         currentWrite.CommandText = "INSERT dbo.Category (CategoryCode, DisplayName, IsActive) VALUES (N'CURRENT', N'Current', 1);";
         Assert.Equal(1, await currentWrite.ExecuteNonQueryAsync());
