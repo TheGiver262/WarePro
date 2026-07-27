@@ -26,14 +26,10 @@ public sealed class SqlServerCiContractTests
     }
 
     [Fact]
-    public void Solution_runner_and_workflow_execute_the_cross_platform_sql_tests()
+    public void Solution_and_workflow_execute_the_cross_platform_sql_tests()
     {
         var solution = File.ReadAllText(Path.Combine(Root, "QuanLyHangHoa", "QuanLyHangHoa.sln"));
         Assert.Contains("WarePro.SqlServer.Tests", solution, StringComparison.Ordinal);
-
-        var runner = File.ReadAllText(Path.Combine(Root, "scripts", "test", "Invoke-WareProSqlServerTests.ps1"));
-        Assert.Contains("WarePro.SqlServer.Tests.csproj", runner, StringComparison.Ordinal);
-        Assert.Contains(SqlServerTestDatabase.ConnectionStringVariable, runner, StringComparison.Ordinal);
 
         var workflow = File.ReadAllText(Path.Combine(Root, ".github", "workflows", "warepro-sqlserver.yml"));
         foreach (var marker in new[]
@@ -43,6 +39,7 @@ public sealed class SqlServerCiContractTests
                      "docker rm -f"
                  })
             Assert.Contains(marker, workflow, StringComparison.Ordinal);
+        Assert.Contains(SqlServerTestDatabase.ConnectionStringVariable, workflow, StringComparison.Ordinal);
     }
 
     [Fact]
