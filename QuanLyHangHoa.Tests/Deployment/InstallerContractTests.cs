@@ -117,11 +117,11 @@ public class InstallerContractTests
         Assert.DoesNotContain("--password", script, StringComparison.OrdinalIgnoreCase);
     }
     [Fact]
-    public void Installer_packages_seed_helper_and_machine_log_path()
+    public void Installer_packages_setup_helper_without_seed_workbook()
     {
         var script = ReadInstaller();
 
-        Assert.Contains("Database\\warepro_database_seed.xlsx", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("Database\\warepro_database_seed.xlsx", script, StringComparison.Ordinal);
         Assert.Contains("WarePro.SetupHelper.exe", script, StringComparison.Ordinal);
         Assert.Contains("{commonappdata}\\WarePro\\InstallerLogs", script, StringComparison.Ordinal);
         Assert.Contains("desktopicon", script, StringComparison.Ordinal);

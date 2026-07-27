@@ -49,17 +49,14 @@ public class PublishContractTests
     }
 
     [Fact]
-    public void Project_publishes_the_seed_workbook_at_the_runtime_database_path()
+    public void Project_does_not_publish_the_seed_workbook()
     {
         var project = XDocument.Load(Path.Combine(RepoRoot, "QuanLyHangHoa", "QuanLyHangHoa.csproj"));
         var seed = project.Descendants().SingleOrDefault(element =>
             element.Name.LocalName == "Content"
             && (string?)element.Attribute("Include") == @"..\Database\warepro_database_seed.xlsx");
 
-        Assert.NotNull(seed);
-        Assert.Equal(@"Database\warepro_database_seed.xlsx", Property(seed, "Link"));
-        Assert.Equal("PreserveNewest", Property(seed, "CopyToOutputDirectory"));
-        Assert.Equal("PreserveNewest", Property(seed, "CopyToPublishDirectory"));
+        Assert.Null(seed);
     }
 
     private static string? Property(XContainer document, string name) =>

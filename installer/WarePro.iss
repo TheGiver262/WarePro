@@ -59,7 +59,6 @@ Name: "desktopicon"; Description: "tạo biểu tượng ngoài màn hình"; Gro
 
 [Files]
 Source: "{#PublishDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "{#PublishDir}\Database\warepro_database_seed.xlsx"; DestDir: "{app}\Database"; Flags: ignoreversion
 Source: "{#SetupHelperDir}\*"; DestDir: "{app}\Setup"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#SetupHelperDir}\*"; Flags: dontcopy recursesubdirs createallsubdirs
 
