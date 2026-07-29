@@ -108,49 +108,5 @@ namespace QuanLyHangHoa.Tests.Services
             }
         }
 
-        [Fact]
-        public void Test_RealDatabase_SearchSerials()
-        {
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlServer(AppDbContext.GetConnectionString())
-                .Options;
-
-            using (var db = new AppDbContext(options))
-            {
-                var results = new List<string>();
-                int totalInDb = db.ProductSerials.Count();
-                results.Add($"Total in DB: {totalInDb}");
-                
-                // Check Product foreign key
-                int validProductCount = db.ProductSerials.Count(s => db.Products.Any(p => p.Id == s.ProductId));
-                results.Add($"Serials with valid ProductId: {validProductCount}");
-
-                // Check LastStockInLine foreign key
-                int validStockInLineCount = db.ProductSerials.Count(s => db.StockInLines.Any(l => l.Id == s.LastStockInLineId));
-                results.Add($"Serials with valid LastStockInLineId: {validStockInLineCount}");
-
-                // Check both valid
-                int bothValid = db.ProductSerials.Count(s => db.Products.Any(p => p.Id == s.ProductId) && db.StockInLines.Any(l => l.Id == s.LastStockInLineId));
-                results.Add($"Serials with both ProductId and LastStockInLineId valid: {bothValid}");
-
-                // Run SearchSerialsPaged to see how many it returns with skip=0, take=1000
-                var service = new ProductSerialService(() => new AppDbContext(options));
-                var pagedResults = service.SearchSerialsPaged(string.Empty, string.Empty, string.Empty, "All", null, null, string.Empty, 0, 1000);
-                results.Add($"SearchSerialsPaged returned: {pagedResults.Count}");
-
-                var statusCounts = db.ProductSerials
-                    .GroupBy(s => s.CurrentStatus)
-                    .Select(g => new { Status = g.Key, Count = g.Count() })
-                    .ToList();
-                    
-                foreach (var sc in statusCounts)
-                {
-                    results.Add($"Status '{sc.Status}': {sc.Count}");
-                }
-                
-                System.IO.File.WriteAllText(System.IO.Path.Combine(AppContext.BaseDirectory, "SearchSerialsCount.txt"),
-                    string.Join("\n", results));
-            }
-        }
     }
 }
