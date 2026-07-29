@@ -107,6 +107,19 @@ public class StartupCoordinatorTests
     }
 
     [Fact]
+    public void App_exit_does_not_wait_forever_for_session_cleanup()
+    {
+        var source = File.ReadAllText(Path.Combine(
+            RepoRoot, "QuanLyHangHoa", "App.xaml.cs"));
+
+        Assert.Contains(
+            ".Wait(TimeSpan.FromSeconds(",
+            source,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(".GetAwaiter().GetResult()", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Default_runtime_seeds_before_registering_the_client_session()
     {
         var source = File.ReadAllText(Path.Combine(

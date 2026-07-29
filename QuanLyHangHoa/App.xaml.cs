@@ -137,7 +137,15 @@ namespace QuanLyHangHoa
         {
             try
             {
-                _startupCoordinator?.DisposeAsync().AsTask().GetAwaiter().GetResult();
+                var cleanup = _startupCoordinator?.DisposeAsync().AsTask();
+                if (cleanup is not null && !cleanup.Wait(TimeSpan.FromSeconds(5)))
+                {
+                    Trace.WriteLine("[SHUTDOWN] Session cleanup exceeded 5 seconds; continuing shutdown.");
+                }
+            }
+            catch (Exception ex)
+            {
+                CrashLogger.Write(ex, "Application shutdown cleanup");
             }
             finally
             {

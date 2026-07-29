@@ -177,6 +177,55 @@ public class InstallerContractTests
     }
 
     [Fact]
+    public void Installer_defines_lan_resume_state_before_writing_it()
+    {
+        var script = ReadInstaller();
+
+        var writer = script.IndexOf("procedure WritePendingFullInstall", StringComparison.Ordinal);
+        var definition = script.IndexOf(
+            "function ShouldEnableLan: Boolean;" + Environment.NewLine + "begin",
+            StringComparison.Ordinal);
+
+        Assert.True(writer >= 0);
+        Assert.True(definition >= 0);
+        Assert.True(definition < writer);
+        Assert.DoesNotContain(
+            "function ShouldEnableLan: Boolean; forward;",
+            script,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Installer_defines_lan_port_before_writing_resume_state()
+    {
+        var script = ReadInstaller();
+
+        var writer = script.IndexOf("procedure WritePendingFullInstall", StringComparison.Ordinal);
+        var definition = script.IndexOf(
+            "function SelectedLanPort: Integer;" + Environment.NewLine + "begin",
+            StringComparison.Ordinal);
+
+        Assert.True(writer >= 0);
+        Assert.True(definition >= 0);
+        Assert.True(definition < writer);
+        Assert.DoesNotContain(
+            "function SelectedLanPort: Integer; forward;",
+            script,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Installer_terminates_database_probe_before_promoting_config()
+    {
+        var script = ReadInstaller();
+
+        Assert.Matches(
+            new System.Text.RegularExpressions.Regex(
+                @"(?s)if ShouldProvisionDatabase then\s*begin.*?end;\s*if CompareText\(ConfigToTest, StagingConfig\)"),
+            script);
+    }
+
+    [Fact]
     public void Installer_packages_setup_helper_and_the_complete_app_publish_tree()
     {
         var script = ReadInstaller();

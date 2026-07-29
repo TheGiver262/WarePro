@@ -142,6 +142,16 @@ begin
   Result := IsServerRole or IsStandaloneRole;
 end;
 
+function ShouldEnableLan: Boolean;
+begin
+  Result := ShouldProvisionDatabase and EnableLanCheckBox.Checked;
+end;
+
+function SelectedLanPort: Integer;
+begin
+  Result := StrToIntDef(Trim(LanPage.Values[0]), 0);
+end;
+
 function IsFullMode: Boolean;
 begin
   Result := ShouldProvisionDatabase;
@@ -192,8 +202,6 @@ begin
 end;
 
 function ReadPendingLanEnabled: Boolean; forward;
-function SelectedLanPort: Integer; forward;
-function ShouldEnableLan: Boolean; forward;
 function RunSetupHelper(const Arguments: String; var ExitCode: Integer): Boolean; forward;
 procedure ConfigureLanEndpoint; forward;
 function PreviousInstallExists: Boolean;
@@ -385,16 +393,6 @@ begin
     (Value = 1);
 end;
 
-function SelectedLanPort: Integer;
-begin
-  Result := StrToIntDef(Trim(LanPage.Values[0]), 0);
-end;
-
-function ShouldEnableLan: Boolean;
-begin
-  Result := ShouldProvisionDatabase and EnableLanCheckBox.Checked;
-end;
-
 procedure ConfigureLanEndpoint;
 var
   ExitCode: Integer;
@@ -523,7 +521,7 @@ begin
       RaiseException(Format('không tìm thấy SQLEXPRESS đang chạy (mã %d).', [ExitCode]));
     if not TestConfiguration(ConfigToTest, '--mode full', ExitCode) then
       RaiseException(Format('SQL Server chưa sẵn sàng (mã %d).', [ExitCode]));
-  end
+  end;
   if CompareText(ConfigToTest, StagingConfig) = 0 then
     if not WriteConfiguration(FinalConfig, ExitCode) then
       RaiseException(Format('không lưu được cấu hình máy (mã %d).', [ExitCode]));
