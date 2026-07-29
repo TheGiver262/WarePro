@@ -214,7 +214,7 @@ public sealed class SetupCommands
     {
         if (!TryParseOptions(
                 arguments,
-                ["--server", "--database", "--auth", "--encrypt", "--config", "--log"],
+                ["--server", "--database", "--auth", "--encrypt", "--role", "--initial-data", "--config", "--log"],
                 out var options,
                 out var error)
             || !Required(options, "--server", out var server)
@@ -238,6 +238,26 @@ public sealed class SetupCommands
             return Invalid("--encrypt must be true or false.");
         }
 
+        var roleText = options.GetValueOrDefault("--role") ?? nameof(DeploymentRole.Unspecified);
+        if (!Enum.TryParse<DeploymentRole>(roleText, ignoreCase: true, out var role)
+            || !Enum.IsDefined(role))
+        {
+            return Invalid("--role must be Server, Client or Standalone.");
+        }
+
+        var initialDataText = options.GetValueOrDefault("--initial-data") ?? nameof(InitialDataProfile.None);
+        if (!Enum.TryParse<InitialDataProfile>(initialDataText, ignoreCase: true, out var initialData)
+            || !Enum.IsDefined(initialData))
+        {
+            return Invalid("--initial-data must be None or Demo.");
+        }
+
+        if (initialData == InitialDataProfile.Demo
+            && role is not (DeploymentRole.Server or DeploymentRole.Standalone))
+        {
+            return Invalid("Demo data is available only for Server or Standalone.");
+        }
+
         try
         {
             var path = Path.GetFullPath(
@@ -248,6 +268,8 @@ public sealed class SetupCommands
             settings.Database.Database = database;
             settings.Database.Authentication = authentication;
             settings.Database.Encrypt = encrypt;
+            settings.DeploymentRole = role;
+            settings.InitialDataProfile = initialData;
             _writer.Save(path, settings);
             return Result(SetupExitCode.Success, "Configuration was written.", path);
         }

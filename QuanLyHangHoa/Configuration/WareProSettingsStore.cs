@@ -161,7 +161,11 @@ public sealed class WareProSettingsStore
             || string.IsNullOrWhiteSpace(settings.Database.Database)
             || string.IsNullOrWhiteSpace(settings.Updates.Repository)
             || string.IsNullOrWhiteSpace(settings.Updates.Channel)
-            || settings.Updates.CheckIntervalHours <= 0)
+            || settings.Updates.CheckIntervalHours <= 0
+            || !Enum.IsDefined(settings.DeploymentRole)
+            || !Enum.IsDefined(settings.InitialDataProfile)
+            || (settings.InitialDataProfile == InitialDataProfile.Demo
+                && settings.DeploymentRole is not (DeploymentRole.Server or DeploymentRole.Standalone)))
         {
             throw new WareProConfigurationException(configurationPath);
         }

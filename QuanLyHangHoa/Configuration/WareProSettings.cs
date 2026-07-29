@@ -10,6 +10,26 @@ public enum DatabaseAuthentication
 }
 
 /// <summary>
+/// Installation role that owns central-database operations.
+/// </summary>
+public enum DeploymentRole
+{
+    Unspecified,
+    Server,
+    Client,
+    Standalone
+}
+
+/// <summary>
+/// Explicit initial data selection for a Server or Standalone installation.
+/// </summary>
+public enum InitialDataProfile
+{
+    None,
+    Demo
+}
+
+/// <summary>
 /// thông số kết nối dùng chung; mật khẩu SQL không được lưu trong file này.
 /// </summary>
 public sealed class WareProDatabaseSettings
@@ -44,6 +64,8 @@ public sealed class WareProSettings
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
     public WareProDatabaseSettings Database { get; set; } = new();
     public WareProUpdateSettings Updates { get; set; } = new();
+    public DeploymentRole DeploymentRole { get; set; } = DeploymentRole.Unspecified;
+    public InitialDataProfile InitialDataProfile { get; set; } = InitialDataProfile.None;
 
     public static WareProSettings CreateDefault() => new();
 }

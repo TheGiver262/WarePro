@@ -1,3 +1,4 @@
+using System.Text.Json;
 using QuanLyHangHoa.Configuration;
 using WarePro.SetupHelper;
 
@@ -76,6 +77,59 @@ public class SetupHelperTests
         Assert.Equal(@".\SQLEXPRESS", writer.Settings?.Database.Server);
         Assert.Equal(DatabaseAuthentication.Windows, writer.Settings?.Database.Authentication);
         Assert.False(writer.Settings?.Database.Encrypt);
+    }
+
+    [Fact]
+    public async Task Write_config_persists_client_role_without_storing_credentials()
+    {
+        var writer = new FakeWriter();
+        var commands = CreateCommands(writer: writer);
+
+        var result = await commands.ExecuteAsync(
+        [
+            "write-config",
+            "--server", "tcp:192.168.10.10,1433",
+            "--database", "ProductManagementDb",
+            "--auth", "SqlPassword",
+            "--role", "Client",
+            "--initial-data", "None"
+        ]);
+
+        var json = WareProSettingsStore.Serialize(writer.Settings!);
+        using var document = JsonDocument.Parse(json);
+        var database = document.RootElement.GetProperty("Database");
+
+        Assert.Equal(SetupExitCode.Success, result.ExitCode);
+        Assert.Equal(DeploymentRole.Client, writer.Settings!.DeploymentRole);
+        Assert.Equal(InitialDataProfile.None, writer.Settings.InitialDataProfile);
+        Assert.False(database.TryGetProperty("Password", out _));
+        Assert.False(database.TryGetProperty("Pwd", out _));
+        Assert.False(database.TryGetProperty("User ID", out _));
+        Assert.False(database.TryGetProperty("UserId", out _));
+        Assert.False(database.TryGetProperty("Credential", out _));
+        Assert.DoesNotContain("secret", json, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData("Client", "Demo")]
+    [InlineData("unknown-role", "None")]
+    public async Task Write_config_rejects_unsafe_or_unknown_deployment_values(
+        string role,
+        string initialData)
+    {
+        var commands = CreateCommands();
+
+        var result = await commands.ExecuteAsync(
+        [
+            "write-config",
+            "--server", "server",
+            "--database", "database",
+            "--auth", "Windows",
+            "--role", role,
+            "--initial-data", initialData
+        ]);
+
+        Assert.Equal(SetupExitCode.InvalidArguments, result.ExitCode);
     }
 
     [Fact]

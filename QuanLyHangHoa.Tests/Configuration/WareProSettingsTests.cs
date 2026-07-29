@@ -50,6 +50,61 @@ public class WareProSettingsTests
         Assert.DoesNotContain("secret", json, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("\"Encrypt\": false", json, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Legacy_settings_without_deployment_fields_are_safe_for_production()
+    {
+        const string legacyJson = """
+            {
+              "SchemaVersion": 1,
+              "Database": {
+                "Server": ".\\SQLEXPRESS",
+                "Database": "ProductManagementDb",
+                "Authentication": "Windows",
+                "TrustServerCertificate": true,
+                "Encrypt": false
+              },
+              "Updates": {
+                "Repository": "TheGiver262/WarePro-Releases",
+                "Channel": "stable",
+                "CheckIntervalHours": 24
+              }
+            }
+            """;
+
+        var settings = WareProSettingsStore.Deserialize(legacyJson);
+
+        Assert.Equal(DeploymentRole.Unspecified, settings.DeploymentRole);
+        Assert.Equal(InitialDataProfile.None, settings.InitialDataProfile);
+    }
+
+    [Theory]
+    [InlineData((DeploymentRole)99, InitialDataProfile.None)]
+    [InlineData(DeploymentRole.Client, InitialDataProfile.Demo)]
+    public void Save_rejects_an_unsafe_deployment_profile(
+        DeploymentRole role,
+        InitialDataProfile profile)
+    {
+        var root = Path.Combine(Path.GetTempPath(), "warepro-role-profile-" + Guid.NewGuid());
+        var path = Path.Combine(root, "Config", "warepro.settings.json");
+        var settings = WareProSettings.CreateDefault();
+        settings.DeploymentRole = role;
+        settings.InitialDataProfile = profile;
+
+        try
+        {
+            Assert.Throws<WareProConfigurationException>(
+                () => new WareProSettingsStore(path).Save(settings));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
     [Fact]
     public void Paths_create_only_the_explicit_writable_directories()
     {
