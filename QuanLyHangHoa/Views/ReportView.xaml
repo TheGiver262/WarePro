@@ -276,7 +276,7 @@
                                         <DataGridTextColumn Header="LOẠI GIAO DỊCH" Binding="{Binding Purpose}" Width="2*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
                                         <DataGridTextColumn Header="ĐỐI TÁC" Binding="{Binding PartnerName}" Width="3*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
                                     <DataGridTextColumn Header="KHO" Binding="{Binding WarehouseName}" Width="2*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
-                                    <DataGridTextColumn Header="NGUOI GHI" Binding="{Binding UserName}" Width="1.5*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
+                                    <DataGridTextColumn Header="NGƯỜI GHI" Binding="{Binding UserName}" Width="1.5*" ElementStyle="{StaticResource MaterialDesignDataGridTextColumnElementStyle}"/>
                                         <DataGridTextColumn Header="SỐ LƯỢNG NHẬP" Binding="{Binding InQty, StringFormat=N0}" Width="1.5*">
                                             <DataGridTextColumn.ElementStyle>
                                                 <Style TargetType="TextBlock" BasedOn="{StaticResource MaterialDesignDataGridTextColumnRightElementStyle}">
@@ -344,7 +344,7 @@
                                     <DataGridTextColumn Header="TRẠNG THÁI" Binding="{Binding CurrentStatus}" Width="140" ElementStyle="{DynamicResource AppDataGridTextCenter}"/>
                                     <DataGridTextColumn Header="KHO HIỆN TẠI" Binding="{Binding CurrentWarehouseName}" Width="180" ElementStyle="{DynamicResource AppDataGridText}"/>
                                     <DataGridTextColumn Header="KHÁCH HÀNG" Binding="{Binding DisplayCustomerName}" Width="200" ElementStyle="{DynamicResource AppDataGridText}"/>
-                                    <DataGridTemplateColumn Header="THAO TÁC" Width="80">
+                                    <DataGridTemplateColumn Header="THAO TÁC" Width="100">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
                                                 <Button Style="{StaticResource ProMaxIconButtonStyle}"

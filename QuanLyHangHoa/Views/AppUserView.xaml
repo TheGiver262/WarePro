@@ -147,7 +147,7 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                             
-                            <DataGridTemplateColumn Width="150" SortMemberPath="Username">
+                            <DataGridTemplateColumn Width="200" SortMemberPath="Username">
                                 <DataGridTemplateColumn.Header>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                                         <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
@@ -161,7 +161,7 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                             
-                            <DataGridTemplateColumn Width="170" SortMemberPath="RoleCode">
+                            <DataGridTemplateColumn Width="180" SortMemberPath="RoleCode">
                                 <DataGridTemplateColumn.Header>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                                         <materialDesign:PackIcon Kind="Filter" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0.6"/>
@@ -208,7 +208,7 @@
                             </DataGridTemplateColumn>
                             
                             <!-- Status Column -->
-                            <DataGridTemplateColumn Width="110" SortMemberPath="IsActive"
+                            <DataGridTemplateColumn Width="140" SortMemberPath="IsActive"
                                                     CellTemplate="{StaticResource BooleanStatusBadgeTemplate}">
                                 <DataGridTemplateColumn.Header>
                                     <StackPanel Orientation="Horizontal">
@@ -218,7 +218,7 @@
                                 </DataGridTemplateColumn.Header>
                             </DataGridTemplateColumn>
                             
-                            <DataGridTemplateColumn Width="120">
+                            <DataGridTemplateColumn Width="130">
                                 <DataGridTemplateColumn.Header>
                                     <TextBlock Text="THAO TÁC" VerticalAlignment="Center" FontWeight="SemiBold"/>
                                 </DataGridTemplateColumn.Header>
