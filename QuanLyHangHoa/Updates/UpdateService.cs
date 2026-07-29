@@ -255,9 +255,9 @@ public sealed class UpdateService
     public void LaunchPreparedInstaller(PreparedUpdate update, string logPath)
     {
         ArgumentNullException.ThrowIfNull(update);
-        // app-only giữ nguyên SQL Server; upgrade cho phép bộ cài thay file ứng dụng và ghi log riêng.
+        // client giữ nguyên SQL Server; upgrade cho phép bộ cài thay file ứng dụng và ghi log riêng.
         var arguments =
-            $"/CLOSEAPPLICATIONS /NORESTART /WAREPROMODE=upgrade /TYPE=app-only /LOG=\"{Path.GetFullPath(logPath)}\"";
+            $"/CLOSEAPPLICATIONS /NORESTART /WAREPROMODE=upgrade /TYPE=client /LOG=\"{Path.GetFullPath(logPath)}\"";
         _installerLauncher.Launch(Path.GetFullPath(update.InstallerPath), arguments);
     }
 

@@ -47,13 +47,13 @@ MinVersion=10.0.17763
 
 ; full tự cài SQL Express; app-only chỉ cấu hình kết nối tới SQL Server đã có.
 [Types]
-Name: "full"; Description: "cài đầy đủ một-click (WarePro + SQL Server Express)"
-Name: "app-only"; Description: "chỉ cài WarePro (dùng SQL Server có sẵn)"
+Name: "server"; Description: "Máy chủ dữ liệu (SQL Server + WarePro)"
+Name: "client"; Description: "Máy trạm WarePro (dùng máy chủ có sẵn)"
+Name: "standalone"; Description: "Một máy độc lập (WarePro + SQL Server)"
 
 [Components]
-Name: "application"; Description: "phần mềm WarePro"; Types: full app-only; Flags: fixed
-Name: "sql"; Description: "SQL Server Express 2022"; Types: full
-
+Name: "application"; Description: "phần mềm WarePro"; Types: server client standalone; Flags: fixed
+Name: "sql"; Description: "SQL Server Express 2022"; Types: server standalone
 [Tasks]
 Name: "desktopicon"; Description: "tạo biểu tượng ngoài màn hình"; GroupDescription: "tùy chọn:"; Flags: unchecked
 
@@ -71,6 +71,9 @@ Filename: "{app}\{#MyAppExeName}"; Description: "mở WarePro"; Flags: postinsta
 
 [Code]
 const
+  ServerMode = 'server';
+  ClientMode = 'client';
+  StandaloneMode = 'standalone';
   FullMode = 'full';
   AppOnlyMode = 'app-only';
   DefaultServer = '.\SQLEXPRESS';
@@ -81,6 +84,9 @@ const
 var
   ConnectionPage: TInputQueryWizardPage;
   AuthenticationPage: TInputOptionWizardPage;
+  InitialDataPage: TInputOptionWizardPage;
+  LanPage: TInputQueryWizardPage;
+  EnableLanCheckBox: TNewCheckBox;
   BootstrapPage: TInputQueryWizardPage;
   RemoveLocalDataCheckBox: TNewCheckBox;
   SqlRestartRequired: Boolean;
@@ -93,18 +99,58 @@ var
   HelperExecutable: String;
 
 // lần chạy tiếp sau restart giữ full mode; upgrade chỉ thay ứng dụng và nâng schema hiện có.
+function RequestedSetupType: String;
+var
+  RequestedType: String;
+begin
+  RequestedType := ExpandConstant('{param:TYPE|}');
+  if RequestedType = '' then
+  begin
+    if UpgradeMode then
+      RequestedType := ClientMode
+    else if ResumeFullMode then
+      RequestedType := StandaloneMode
+    else
+      RequestedType := WizardSetupType(False);
+  end;
+
+  if CompareText(RequestedType, FullMode) = 0 then
+    Result := StandaloneMode
+  else if CompareText(RequestedType, AppOnlyMode) = 0 then
+    Result := ClientMode
+  else
+    Result := RequestedType;
+end;
+
+function IsServerRole: Boolean;
+begin
+  Result := CompareText(RequestedSetupType, ServerMode) = 0;
+end;
+
+function IsClientRole: Boolean;
+begin
+  Result := CompareText(RequestedSetupType, ClientMode) = 0;
+end;
+
+function IsStandaloneRole: Boolean;
+begin
+  Result := CompareText(RequestedSetupType, StandaloneMode) = 0;
+end;
+
+function ShouldProvisionDatabase: Boolean;
+begin
+  Result := IsServerRole or IsStandaloneRole;
+end;
+
 function IsFullMode: Boolean;
 begin
-  Result := ResumeFullMode or ((not UpgradeMode) and
-    (CompareText(WizardSetupType(False), FullMode) = 0));
+  Result := ShouldProvisionDatabase;
 end;
 
 function IsAppOnlyMode: Boolean;
 begin
-  Result := UpgradeMode or
-    (CompareText(WizardSetupType(False), AppOnlyMode) = 0);
+  Result := IsClientRole;
 end;
-
 #include "includes\SqlExpress2022.iss"
 
 function ParameterOrDefault(const Name, DefaultValue: String): String;
@@ -132,14 +178,24 @@ end;
 
 procedure WritePendingFullInstall;
 begin
-  if not RegWriteDWordValue(HKLM64, PendingFullInstall, 'Pending', 1) then
+  if not RegWriteDWordValue(HKLM64, PendingFullInstall, 'Pending', 1) or
+     not RegWriteDWordValue(HKLM64, PendingFullInstall, 'LanEnabled', Ord(ShouldEnableLan)) or
+     not RegWriteStringValue(HKLM64, PendingFullInstall, 'LanPort', IntToStr(SelectedLanPort)) then
     RaiseException('không lưu được trạng thái tiếp tục cài đặt sau khi khởi động lại.');
 end;
 
 procedure ClearPendingFullInstall;
 begin
   RegDeleteValue(HKLM64, PendingFullInstall, 'Pending');
+  RegDeleteValue(HKLM64, PendingFullInstall, 'LanEnabled');
+  RegDeleteValue(HKLM64, PendingFullInstall, 'LanPort');
 end;
+
+function ReadPendingLanEnabled: Boolean; forward;
+function SelectedLanPort: Integer; forward;
+function ShouldEnableLan: Boolean; forward;
+function RunSetupHelper(const Arguments: String; var ExitCode: Integer): Boolean; forward;
+procedure ConfigureLanEndpoint; forward;
 function PreviousInstallExists: Boolean;
 var
   InstallLocation: String;
@@ -156,6 +212,7 @@ end;
 procedure InitializeWizard;
 var
   Authentication: String;
+  ResumeLanPort: String;
 begin
   ResumeFullMode := ReadPendingFullInstall;
   UpgradeMode := (not ResumeFullMode) and
@@ -186,6 +243,42 @@ begin
   if CompareText(Authentication, 'SqlPassword') = 0 then
     AuthenticationPage.SelectedValueIndex := 1;
 
+  InitialDataPage := CreateInputOptionPage(
+    AuthenticationPage.ID,
+    'dữ liệu khởi tạo',
+    'chọn dữ liệu cho máy chủ WarePro',
+    'Production tạo database trống. Demo chỉ nạp dữ liệu mẫu khi được chọn rõ ràng.',
+    True,
+    False);
+  InitialDataPage.Add('Production (database trống)');
+  InitialDataPage.Add('Demo (nạp dữ liệu mẫu)');
+  InitialDataPage.SelectedValueIndex := 0;
+  if CompareText(ParameterOrDefault('WAREPROINITIALDATA', 'None'), 'Demo') = 0 then
+    InitialDataPage.SelectedValueIndex := 1;
+  LanPage := CreateInputQueryPage(
+    InitialDataPage.ID,
+    'kết nối LAN SQL Server',
+    'cấu hình endpoint LAN cho WarePro',
+    'Chỉ mở TCP cho LocalSubnet. Không mở SQL Server ra Internet.');
+  LanPage.Add('TCP port:', False);
+  LanPage.Values[0] := ParameterOrDefault('WAREPROLANPORT', '1433');
+  EnableLanCheckBox := TNewCheckBox.Create(LanPage.Surface);
+  EnableLanCheckBox.Parent := LanPage.Surface;
+  EnableLanCheckBox.Left := 0;
+  EnableLanCheckBox.Top := ScaleY(42);
+  EnableLanCheckBox.Width := LanPage.Surface.Width;
+  EnableLanCheckBox.Caption := 'cho phép máy trạm trong LocalSubnet kết nối SQL Server';
+  EnableLanCheckBox.Checked := not SqlInstanceExists;
+  if ResumeFullMode then
+  begin
+    if RegQueryStringValue(HKLM64, PendingFullInstall, 'LanPort', ResumeLanPort) then
+      LanPage.Values[0] := ResumeLanPort;
+    EnableLanCheckBox.Checked := ReadPendingLanEnabled;
+  end;
+  if CompareText(ParameterOrDefault('WAREPROLAN', ''), 'true') = 0 then
+    EnableLanCheckBox.Checked := True
+  else if CompareText(ParameterOrDefault('WAREPROLAN', ''), 'false') = 0 then
+    EnableLanCheckBox.Checked := False;
   BootstrapPage := CreateInputQueryPage(
     AuthenticationPage.ID,
     'tài khoản quản trị WarePro',
@@ -199,11 +292,14 @@ begin
   Result :=
     (UpgradeMode and
       ((PageID = wpSelectComponents) or (PageID = ConnectionPage.ID) or
-       (PageID = AuthenticationPage.ID) or (PageID = BootstrapPage.ID))) or
-    (IsFullMode and
-      ((PageID = ConnectionPage.ID) or (PageID = AuthenticationPage.ID)));
+       (PageID = AuthenticationPage.ID) or (PageID = InitialDataPage.ID) or
+       (PageID = LanPage.ID) or (PageID = BootstrapPage.ID))) or
+    (ShouldProvisionDatabase and
+      ((PageID = ConnectionPage.ID) or (PageID = AuthenticationPage.ID))) or
+    (IsClientRole and
+      ((PageID = InitialDataPage.ID) or (PageID = LanPage.ID) or
+       (PageID = BootstrapPage.ID)));
 end;
-
 function NextButtonClick(CurPageID: Integer): Boolean;
 begin
   Result := True;
@@ -229,12 +325,19 @@ begin
       SuppressibleMsgBox('hãy nhập tên cơ sở dữ liệu.', mbError, MB_OK, IDOK);
       Result := False;
     end;
+  end
+  else if (CurPageID = LanPage.ID) and EnableLanCheckBox.Checked and
+      ((StrToIntDef(Trim(LanPage.Values[0]), 0) < 1024) or
+       (StrToIntDef(Trim(LanPage.Values[0]), 0) > 65535)) then
+  begin
+    SuppressibleMsgBox('TCP port phải nằm trong khoảng 1024 đến 65535.', mbError, MB_OK, IDOK);
+    Result := False;
   end;
 end;
 
 function SelectedServer: String;
 begin
-  if IsFullMode then
+  if ShouldProvisionDatabase then
     Result := DefaultServer
   else
     Result := Trim(ConnectionPage.Values[0]);
@@ -242,7 +345,7 @@ end;
 
 function SelectedDatabase: String;
 begin
-  if IsFullMode then
+  if ShouldProvisionDatabase then
     Result := DefaultDatabase
   else
     Result := Trim(ConnectionPage.Values[1]);
@@ -250,12 +353,61 @@ end;
 
 function SelectedAuthentication: String;
 begin
-  if IsFullMode or (AuthenticationPage.SelectedValueIndex = 0) then
+  if ShouldProvisionDatabase or (AuthenticationPage.SelectedValueIndex = 0) then
     Result := 'Windows'
   else
     Result := 'SqlPassword';
 end;
 
+function SelectedDeploymentRole: String;
+begin
+  if IsServerRole then
+    Result := 'Server'
+  else if IsStandaloneRole then
+    Result := 'Standalone'
+  else
+    Result := 'Client';
+end;
+
+function SelectedInitialDataProfile: String;
+begin
+  if ShouldProvisionDatabase and (InitialDataPage.SelectedValueIndex = 1) then
+    Result := 'Demo'
+  else
+    Result := 'None';
+end;
+
+function ReadPendingLanEnabled: Boolean;
+var
+  Value: Cardinal;
+begin
+  Result := RegQueryDWordValue(HKLM64, PendingFullInstall, 'LanEnabled', Value) and
+    (Value = 1);
+end;
+
+function SelectedLanPort: Integer;
+begin
+  Result := StrToIntDef(Trim(LanPage.Values[0]), 0);
+end;
+
+function ShouldEnableLan: Boolean;
+begin
+  Result := ShouldProvisionDatabase and EnableLanCheckBox.Checked;
+end;
+
+procedure ConfigureLanEndpoint;
+var
+  ExitCode: Integer;
+begin
+  if not ShouldEnableLan then
+    Exit;
+
+  if not RunSetupHelper(
+      'configure-lan --instance SQLEXPRESS --port ' + IntToStr(SelectedLanPort) +
+      ' --scope LocalSubnet',
+      ExitCode) or (ExitCode <> 0) then
+    RaiseException(Format('không cấu hình được endpoint SQL LAN (mã %d).', [ExitCode]));
+end;
 function HelperLogPath: String;
 begin
   Result := ExpandConstant(MachineLogDirectory + '\setup-helper.log');
@@ -281,6 +433,8 @@ begin
     'write-config --server ' + AddQuotes(SelectedServer) +
     ' --database ' + AddQuotes(SelectedDatabase) +
     ' --auth ' + SelectedAuthentication +
+    ' --role ' + SelectedDeploymentRole +
+    ' --initial-data ' + SelectedInitialDataProfile +
     (' --encrypt ' + ParameterOrDefault('WAREPROENCRYPT', 'false')) +
     ' --config ' + AddQuotes(Path);
   Result := RunSetupHelper(Arguments, ExitCode) and (ExitCode = 0);
@@ -361,7 +515,7 @@ begin
     ConfigToTest := StagingConfig;
   end;
 
-  if IsFullMode then
+  if ShouldProvisionDatabase then
   begin
     if not RunSetupHelper(
         'detect-sql --instance ' + AddQuotes(DefaultServer),
@@ -370,11 +524,6 @@ begin
     if not TestConfiguration(ConfigToTest, '--mode full', ExitCode) then
       RaiseException(Format('SQL Server chưa sẵn sàng (mã %d).', [ExitCode]));
   end
-  else if not TestConfiguration(ConfigToTest, '--mode app-only', ExitCode) then
-    RaiseException(Format(
-      'không kết nối được database; SQL credential phải được lưu sẵn trong Windows Credential Manager (mã %d).',
-      { credential must already exist in Windows Credential Manager; bootstrap secret only creates admin } [ExitCode]));
-
   if CompareText(ConfigToTest, StagingConfig) = 0 then
     if not WriteConfiguration(FinalConfig, ExitCode) then
       RaiseException(Format('không lưu được cấu hình máy (mã %d).', [ExitCode]));
@@ -422,17 +571,63 @@ begin
       ' --app-version {#MyAppVersion} --expected-schema {#MySchemaRelease}',
     ExitCode) and (ExitCode = 0);
 end;
+procedure PrepareClientInstall;
+var
+  StagingConfig: String;
+  FinalConfig: String;
+  ExitCode: Integer;
+begin
+  FinalConfig := ExpandConstant('{commonappdata}\WarePro\Config\warepro.settings.json');
+  if UpgradeMode then
+  begin
+    if not FileExists(FinalConfig) then
+      RaiseException('không tìm thấy cấu hình WarePro hiện tại; không thể xác định database cần kết nối.');
+    Exit;
+  end;
+
+  StagingConfig := ExpandConstant('{tmp}\warepro.settings.json');
+  if not WriteConfiguration(StagingConfig, ExitCode) then
+    RaiseException(Format('không ghi được cấu hình máy trạm tạm (mã %d).', [ExitCode]));
+
+  if CompareText(SelectedAuthentication, 'SqlPassword') = 0 then
+  begin
+    if not WriteConfiguration(FinalConfig, ExitCode) then
+      RaiseException(Format('không lưu được cấu hình máy trạm (mã %d).', [ExitCode]));
+    SuppressibleMsgBox(
+      'WarePro sẽ yêu cầu SQL credential ở lần mở WarePro đầu tiên.',
+      mbInformation,
+      MB_OK,
+      IDOK);
+    Exit;
+  end;
+
+  if not TestConfiguration(StagingConfig, '--mode app-only', ExitCode) then
+    RaiseException(Format('không kết nối được database máy chủ (mã %d).', [ExitCode]));
+  if not WriteConfiguration(FinalConfig, ExitCode) then
+    RaiseException(Format('không lưu được cấu hình máy trạm (mã %d).', [ExitCode]));
+end;
+
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 begin
   Result := '';
   ExtractTemporaryFiles('*');
   HelperExecutable := ExpandConstant('{tmp}\WarePro.SetupHelper.exe');
 
-  if not EnsureSqlExpress(Result) then
-    Exit;
-  NeedsRestart := SqlRestartRequired;
-  if not SqlRestartRequired then
-    PrepareDatabaseCutover;
+  if ShouldProvisionDatabase then
+  begin
+    if not EnsureSqlExpress(Result) then
+      Exit;
+    NeedsRestart := SqlRestartRequired;
+    if not SqlRestartRequired then
+    begin
+      PrepareDatabaseCutover;
+    end;
+  end
+  else
+  begin
+    NeedsRestart := False;
+    PrepareClientInstall;
+  end;
 end;
 procedure SaveConfigurationForRestart;
 var
@@ -469,9 +664,12 @@ begin
       end;
       DatabaseFinalized := True;
       DatabaseCutoverStarted := False;
+      ConfigureLanEndpoint;
       ClearPendingFullInstall;
       InstallReady := True;
-    end;
+    end
+    else if IsClientRole then
+      InstallReady := True;
   end;
 end;
 

@@ -63,6 +63,11 @@ public interface ISetupProbe
         SetupMode mode,
         CancellationToken cancellationToken);
 
+    Task<SetupProbeResult> BackupDatabaseAsync(
+        string configPath,
+        CancellationToken cancellationToken) =>
+        Task.FromResult(new SetupProbeResult(SetupExitCode.BackupFailed, "Database backup is not available."));
+
     Task<SetupProbeResult> UpgradeDatabaseAsync(string configPath, Version appVersion, int expectedSchema, CancellationToken cancellationToken) =>
         Task.FromResult(new SetupProbeResult(SetupExitCode.MigrationFailed, "Database upgrade is not available."));
     Task<SetupProbeResult> PrepareDatabaseAsync(string configPath, Version appVersion, int expectedSchema, string? bootstrapSecretFile, CancellationToken cancellationToken) =>
@@ -91,21 +96,25 @@ public sealed class SetupCommands
     private readonly ISetupProbe _probe;
     private readonly ISetupConfigWriter _writer;
     private readonly Func<string> _defaultConfigPath;
+    private readonly IServerNetworkConfigurator _lanConfigurator;
 
     public SetupCommands(
         ISetupProbe probe,
         ISetupConfigWriter writer,
-        Func<string> defaultConfigPath)
+        Func<string> defaultConfigPath,
+        IServerNetworkConfigurator? lanConfigurator = null)
     {
         _probe = probe ?? throw new ArgumentNullException(nameof(probe));
         _writer = writer ?? throw new ArgumentNullException(nameof(writer));
         _defaultConfigPath = defaultConfigPath ?? throw new ArgumentNullException(nameof(defaultConfigPath));
+        _lanConfigurator = lanConfigurator ?? ServerNetworkConfigurator.CreateDefault();
     }
 
     public static SetupCommands CreateDefault() => new(
         new SqlSetupProbe(),
         new SetupConfigWriter(),
-        () => WareProPaths.Current.MachineConfigPath);
+        () => WareProPaths.Current.MachineConfigPath,
+        ServerNetworkConfigurator.CreateDefault());
 
     public async Task<SetupExecutionResult> ExecuteAsync(
         IReadOnlyList<string> arguments,
@@ -121,7 +130,9 @@ public sealed class SetupCommands
         {
             "detect-sql" => await DetectSqlAsync(arguments, cancellationToken),
             "write-config" => WriteConfig(arguments),
+            "configure-lan" => await ConfigureLanAsync(arguments, cancellationToken),
             "test-connection" => await TestConnectionAsync(arguments, cancellationToken),
+            "backup-database" => await BackupDatabaseAsync(arguments, cancellationToken),
             "upgrade-database" or "prepare-database" or "finalize-database" or "rollback-database" =>
                 await DatabaseCutoverAsync(arguments, cancellationToken),
             _ => Invalid("Unknown command.")
@@ -163,6 +174,29 @@ public sealed class SetupCommands
                 SetupExitCode.SqlServiceUnavailable,
                 "SQL service is unavailable.",
                 detail: ex.Message);
+        }
+    }
+
+    private async Task<SetupExecutionResult> BackupDatabaseAsync(
+        IReadOnlyList<string> arguments,
+        CancellationToken cancellationToken)
+    {
+        if (!TryParseOptions(arguments, ["--config", "--log"], out var options, out var error)
+            || !Required(options, "--config", out var configPath))
+        {
+            return Invalid(error ?? "--config is required.");
+        }
+
+        try
+        {
+            var result = await _probe.BackupDatabaseAsync(
+                Path.GetFullPath(configPath),
+                cancellationToken);
+            return FromProbe(result);
+        }
+        catch (Exception ex)
+        {
+            return Result(SetupExitCode.BackupFailed, "Database backup failed.", detail: ex.Message);
         }
     }
 
@@ -208,6 +242,42 @@ public sealed class SetupCommands
         catch (Exception ex)
         {
             return Result(SetupExitCode.MigrationFailed, "Database cutover failed.", detail: ex.Message);
+        }
+    }
+    private async Task<SetupExecutionResult> ConfigureLanAsync(
+        IReadOnlyList<string> arguments,
+        CancellationToken cancellationToken)
+    {
+        if (!TryParseOptions(
+                arguments,
+                ["--instance", "--port", "--scope", "--log"],
+                out var options,
+                out var error)
+            || !Required(options, "--instance", out var instance)
+            || !Required(options, "--port", out var portText)
+            || !int.TryParse(portText, out var port))
+        {
+            return Invalid(error ?? "--instance and --port are required.");
+        }
+
+        var scope = options.GetValueOrDefault("--scope") ?? "LocalSubnet";
+        try
+        {
+            await _lanConfigurator
+                .ConfigureAsync(new SqlLanOptions(instance, port, scope), cancellationToken)
+                .ConfigureAwait(false);
+            return Result(SetupExitCode.Success, "SQL LAN endpoint was configured.");
+        }
+        catch (ArgumentException ex)
+        {
+            return Invalid(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return Result(
+                SetupExitCode.SqlServiceUnavailable,
+                "SQL LAN endpoint could not be configured.",
+                detail: ex.Message);
         }
     }
     private SetupExecutionResult WriteConfig(IReadOnlyList<string> arguments)
@@ -509,6 +579,44 @@ public sealed class SqlSetupProbe : ISetupProbe
         productMajorVersion >= 16
         && edition.Contains("Express Edition", StringComparison.OrdinalIgnoreCase);
 
+    public async Task<SetupProbeResult> BackupDatabaseAsync(
+        string configPath,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var settings = new WareProSettingsStore(configPath).Load()
+                ?? throw new InvalidOperationException("Configuration is invalid.");
+            var connectionString = new ConnectionStringFactory(
+                new SqlCredentialStore(),
+                () => null,
+                () => settings).Resolve(settings);
+            var backupPath = await DatabaseUpgradeRunner.BackupAsync(connectionString, cancellationToken);
+            return new SetupProbeResult(
+                SetupExitCode.Success,
+                "Database backup was verified.",
+                backupPath);
+        }
+        catch (WareProCredentialException ex)
+        {
+            return new SetupProbeResult(
+                SetupExitCode.ValidationFailed,
+                "SQL credential must be saved in Windows Credential Manager before backup.",
+                TechnicalDetail: ex.ToString());
+        }
+        catch (DatabaseUpgradeException ex)
+        {
+            return new SetupProbeResult(ex.ExitCode, ex.Message, TechnicalDetail: ex.ToString());
+        }
+        catch (Exception ex)
+        {
+            return new SetupProbeResult(
+                SetupExitCode.BackupFailed,
+                "Database backup failed.",
+                TechnicalDetail: ex.Message);
+        }
+    }
+
     public Task<SetupProbeResult> UpgradeDatabaseAsync(
         string configPath,
         Version appVersion,
@@ -752,6 +860,14 @@ internal static class MaintenanceCommandTimeouts
 internal static class DatabaseUpgradeRunner
 {
     private const int SupportedSchema = 9;
+
+    public static async Task<string> BackupAsync(
+        string connectionString,
+        CancellationToken cancellationToken)
+    {
+        await using var connection = await OpenConnectionAsync(connectionString, cancellationToken);
+        return await CreateAndVerifyBackupAsync(connection, cancellationToken);
+    }
 
     public static Task RunAsync(
         string connectionString,
@@ -1149,7 +1265,7 @@ internal static class DatabaseUpgradeRunner
             // timestamp giúp tra cứu; guid ngăn hai lần prepare cùng mili giây ghi đè cùng file.
             path = Path.Combine(directory, $"WarePro-{connection.Database}-{DateTime.UtcNow:yyyyMMddHHmmssfff}-{Guid.NewGuid():N}.bak");
             var database = connection.Database.Replace("]", "]]", StringComparison.Ordinal);
-            await ExecuteAsync(connection, $"BACKUP DATABASE [{database}] TO DISK = @path WITH CHECKSUM, INIT;", cancellationToken, MaintenanceCommandTimeouts.BackupSeconds, ("@path", path));
+            await ExecuteAsync(connection, $"BACKUP DATABASE [{database}] TO DISK = @path WITH COPY_ONLY, CHECKSUM, INIT;", cancellationToken, MaintenanceCommandTimeouts.BackupSeconds, ("@path", path));
             await ExecuteAsync(connection, "RESTORE VERIFYONLY FROM DISK = @path WITH CHECKSUM;", cancellationToken, MaintenanceCommandTimeouts.VerifySeconds, ("@path", path));
             return path;
         }

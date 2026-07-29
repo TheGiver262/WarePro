@@ -29,6 +29,8 @@ namespace QuanLyHangHoa.Services.DataImport
         private readonly Dictionary<string, int> _stockOutMap = new();
         private readonly Dictionary<string, int> _purchaseInvoiceMap = new();
         private readonly Dictionary<string, int> _salesInvoiceMap = new();
+        private readonly Dictionary<string, int> _productSerialMap = new();
+        private readonly Dictionary<string, int> _warrantyCoverageMap = new();
         private readonly Dictionary<string, int> _warrantyClaimMap = new();
 
         public DatabaseSeeder(Func<AppDbContext> contextFactory, string excelPath)
@@ -283,6 +285,25 @@ namespace QuanLyHangHoa.Services.DataImport
                     }
                 }
 
+                if (workbook.TryGetSheet("ProductSerial", out var warrantySerialSheet))
+                {
+                    // Map source serial IDs to database IDs for warranty data.
+                    var serialIdsByNumber = (await _context.ProductSerials
+                        .AsNoTracking()
+                        .ToListAsync(cancellationToken))
+                        .ToDictionary(serial => serial.SerialNumber, serial => serial.Id, StringComparer.OrdinalIgnoreCase);
+                    foreach (var wrapper in warrantySerialSheet.Rows)
+                    {
+                        var sourceSerialId = wrapper.GetString("Id");
+                        var serialNumber = wrapper.GetString("SerialNumber") ?? wrapper.GetString("SerialCode");
+                        if (!string.IsNullOrWhiteSpace(sourceSerialId)
+                            && !string.IsNullOrWhiteSpace(serialNumber)
+                            && serialIdsByNumber.TryGetValue(serialNumber, out var productSerialId))
+                        {
+                            _productSerialMap[sourceSerialId] = productSerialId;
+                        }
+                    }
+                }
                 // 9. StockOut
                 await SeedTableWithMappingAsync<StockOut>(workbook, "StockOut", "DocumentCode", "Id", (row, item) =>
                 {
@@ -301,7 +322,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     if (type == "Sales" || type == "Sale") item.PurposeCode = "Sale";
                     else if (type == "WarrantyReplacement") item.PurposeCode = "WarrantyReplacement";
                     else item.PurposeCode = "Sale"; // Fallback to Sale for other types to satisfy constraint
-                    item.CreatedBy = (int)(row.GetDouble("CreatedBy") ?? 1);
+                    item.CreatedBy = 1;
                     var custRef = row.GetString("CustomerId");
                     if (!string.IsNullOrEmpty(custRef)) item.CustomerId = _customerMap.GetValueOrDefault(custRef);
                     if (item.CustomerId == 0) item.CustomerId = _customerMap.Values.FirstOrDefault();
@@ -429,15 +450,54 @@ namespace QuanLyHangHoa.Services.DataImport
                     }
                 }
 
-                // 12. Warranty Claims
-                await SeedTableWithMappingAsync<WarrantyClaim>(workbook, "Yêu cầu bảo hành", "ClaimCode", "id", (row, item) =>
+                // 12. Warranty coverage
+                await SeedWarrantyCoveragesAsync(workbook, log, cancellationToken);
+
+                // 13. Warranty claims
+                var warrantyClaimSheetName = workbook.TryGetSheet("Yêu cầu bảo hành", out _)
+                    ? "Yêu cầu bảo hành"
+                    : "WarrantyClaim";
+                await SeedTableWithMappingAsync<WarrantyClaim>(workbook, warrantyClaimSheetName, "ClaimCode", "Id", (row, item) =>
                 {
+                    var coverageReference = row.GetString("WarrantyCoverageId") ?? "";
+                    var serialReference = row.GetString("ProductSerialId") ?? "";
+                    item.WarrantyCoverageId = _warrantyCoverageMap.GetValueOrDefault(coverageReference);
+                    item.ProductSerialId = _productSerialMap.GetValueOrDefault(serialReference);
+                    if (item.WarrantyCoverageId == 0 || item.ProductSerialId == 0)
+                    {
+                        throw new InvalidDataException("WarrantyClaim has an unresolved coverage or serial reference.");
+                    }
+
+                    var replacementSerialReference = row.GetString("ReplacementSerialId");
+                    item.ReplacementSerialId = string.IsNullOrWhiteSpace(replacementSerialReference)
+                        ? null
+                        : _productSerialMap.GetValueOrDefault(replacementSerialReference);
+                    if (!string.IsNullOrWhiteSpace(replacementSerialReference) && item.ReplacementSerialId == 0)
+                    {
+                        throw new InvalidDataException("WarrantyClaim has an unresolved replacement serial reference.");
+                    }
+
+                    var replacementStockOutReference = row.GetString("ReplacementStockOutId");
+                    item.ReplacementStockOutId = string.IsNullOrWhiteSpace(replacementStockOutReference)
+                        ? null
+                        : _stockOutMap.GetValueOrDefault(replacementStockOutReference);
+                    if (!string.IsNullOrWhiteSpace(replacementStockOutReference) && item.ReplacementStockOutId == 0)
+                    {
+                        throw new InvalidDataException("WarrantyClaim has an unresolved replacement stock-out reference.");
+                    }
+
                     item.ClaimCode = row.GetString("ClaimCode") ?? "WRN";
                     item.ReceivedDate = row.GetDateTime("ReceivedDate") ?? DateTime.Now;
                     item.ProblemDescription = row.GetString("ProblemDescription");
+                    item.TechnicalConclusion = row.GetString("TechnicalConclusion");
+                    item.ManufacturerResult = row.GetString("ManufacturerResult");
+                    item.RejectionReason = row.GetString("RejectionReason");
+                    item.ProcessingNote = row.GetString("ProcessingNote");
                     item.ResolutionType = row.GetString("ResolutionType");
                     item.Status = row.GetString("Status") ?? "Pending";
-                    item.ProcessedBy = (int)(row.GetDouble("ProcessedBy") ?? 1);
+                    item.ApprovedBy = row.GetDouble("ApprovedBy") is null ? null : 1;
+                    item.ProcessedBy = 1;
+                    item.ClosedDate = row.GetDateTime("ClosedDate");
                 }, _warrantyClaimMap, log, cancellationToken);
 
             return log.ToString();
@@ -569,6 +629,8 @@ namespace QuanLyHangHoa.Services.DataImport
             _stockOutMap.Clear();
             _purchaseInvoiceMap.Clear();
             _salesInvoiceMap.Clear();
+            _productSerialMap.Clear();
+            _warrantyCoverageMap.Clear();
             _warrantyClaimMap.Clear();
         }
 
@@ -643,6 +705,101 @@ namespace QuanLyHangHoa.Services.DataImport
             log.AppendLine($"Đã đồng bộ bảng 'ProductUnit': thêm {inserted} dòng.");
         }
 
+        private async Task SeedWarrantyCoveragesAsync(
+            PreparedWorkbook workbook,
+            System.Text.StringBuilder log,
+            CancellationToken cancellationToken)
+        {
+            if (!workbook.TryGetSheet("WarrantyCoverage", out var sheet))
+            {
+                log.AppendLine("Bỏ qua sheet 'WarrantyCoverage': Không tìm thấy.");
+                return;
+            }
+
+            var existingByKey = (await _context.WarrantyCoverages
+                    .ToListAsync(cancellationToken))
+                .ToDictionary(CreateWarrantyCoverageKey);
+            var inserted = 0;
+
+            foreach (var row in sheet.Rows)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var serialReference = row.GetString("ProductSerialId") ?? "";
+                var customerReference = row.GetString("CustomerId") ?? "";
+                var productSerialId = _productSerialMap.GetValueOrDefault(serialReference);
+                var customerId = _customerMap.GetValueOrDefault(customerReference);
+                if (productSerialId == 0 || customerId == 0)
+                {
+                    throw new InvalidDataException("WarrantyCoverage has an unresolved serial or customer reference.");
+                }
+
+                var salesInvoiceReference = row.GetString("SalesInvoiceId");
+                int? salesInvoiceId = string.IsNullOrWhiteSpace(salesInvoiceReference)
+                    ? null
+                    : _salesInvoiceMap.GetValueOrDefault(salesInvoiceReference);
+                if (!string.IsNullOrWhiteSpace(salesInvoiceReference) && salesInvoiceId == 0)
+                {
+                    throw new InvalidDataException("WarrantyCoverage has an unresolved sales invoice reference.");
+                }
+
+                var startDate = row.GetDateTime("WarrantyStartDate") ?? DateTime.Now;
+                var endDate = row.GetDateTime("WarrantyEndDate") ?? DateTime.Now;
+                var coverageStatus = row.GetString("CoverageStatus") ?? "Active";
+                var key = new WarrantyCoverageSeedKey(
+                    productSerialId,
+                    customerId,
+                    salesInvoiceId,
+                    NormalizeWarrantyDate(startDate),
+                    NormalizeWarrantyDate(endDate),
+                    coverageStatus.ToUpperInvariant());
+
+                if (!existingByKey.TryGetValue(key, out var coverage))
+                {
+                    coverage = new WarrantyCoverage
+                    {
+                        ProductSerialId = productSerialId,
+                        CustomerId = customerId,
+                        SalesInvoiceId = salesInvoiceId,
+                        WarrantyStartDate = startDate,
+                        WarrantyEndDate = endDate,
+                        CoverageStatus = coverageStatus
+                    };
+                    _context.WarrantyCoverages.Add(coverage);
+                    await _context.SaveChangesAsync(cancellationToken);
+                    existingByKey.Add(key, coverage);
+                    inserted++;
+                }
+
+                var sourceId = row.GetString("Id");
+                if (!string.IsNullOrWhiteSpace(sourceId))
+                {
+                    _warrantyCoverageMap[sourceId] = coverage.Id;
+                }
+            }
+
+            log.AppendLine($"Đã đồng bộ bảng 'WarrantyCoverage': thêm {inserted} dòng.");
+        }
+
+        private static WarrantyCoverageSeedKey CreateWarrantyCoverageKey(WarrantyCoverage coverage) =>
+            new(
+                coverage.ProductSerialId,
+                coverage.CustomerId,
+                coverage.SalesInvoiceId,
+                NormalizeWarrantyDate(coverage.WarrantyStartDate),
+                NormalizeWarrantyDate(coverage.WarrantyEndDate),
+                coverage.CoverageStatus.ToUpperInvariant());
+
+        private static DateTime NormalizeWarrantyDate(DateTime value) =>
+            value.AddTicks(-(value.Ticks % TimeSpan.TicksPerSecond));
+
+        private readonly record struct WarrantyCoverageSeedKey(
+            int ProductSerialId,
+            int CustomerId,
+            int? SalesInvoiceId,
+            DateTime WarrantyStartDate,
+            DateTime WarrantyEndDate,
+            string CoverageStatus);
         private static bool IsTrue(string? value) =>
             string.Equals(value, "true", StringComparison.OrdinalIgnoreCase) || value == "1";
 

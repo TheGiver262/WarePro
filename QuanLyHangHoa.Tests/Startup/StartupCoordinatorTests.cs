@@ -107,6 +107,20 @@ public class StartupCoordinatorTests
     }
 
     [Fact]
+    public void Default_runtime_seeds_before_registering_the_client_session()
+    {
+        var source = File.ReadAllText(Path.Combine(
+            RepoRoot, "QuanLyHangHoa", "Startup", "StartupCoordinator.cs"));
+
+        var seedIndex = source.IndexOf(
+            "await FirstInstallDemoSeeder.CreateDefault(connectionString, settings).RunAsync", StringComparison.Ordinal);
+        var leaseIndex = source.IndexOf(
+            "_sessionLease = await ClientSessionLease.RegisterAsync", StringComparison.Ordinal);
+
+        Assert.True(seedIndex >= 0, "First-install demo seeding is not part of startup.");
+        Assert.True(leaseIndex > seedIndex, "Client session is registered before demo seeding finishes.");
+    }
+    [Fact]
     public void Login_command_remains_disabled_until_database_ready()
     {
         var source = File.ReadAllText(Path.Combine(
@@ -147,7 +161,7 @@ public class StartupCoordinatorTests
             }
         }
 
-        public Task InitializeDatabaseAsync(string connectionString, CancellationToken cancellationToken)
+        public Task InitializeDatabaseAsync(string connectionString, WareProSettings? settings, CancellationToken cancellationToken)
         {
             Calls.Add("initialize-database");
             ThrowIfNeeded();

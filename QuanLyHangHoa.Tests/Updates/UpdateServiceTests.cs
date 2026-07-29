@@ -165,7 +165,7 @@ public class UpdateServiceTests : IDisposable
         Assert.Contains("/CLOSEAPPLICATIONS", launcher.Arguments, StringComparison.Ordinal);
         Assert.Contains("/NORESTART", launcher.Arguments, StringComparison.Ordinal);
         Assert.Contains("/WAREPROMODE=upgrade", launcher.Arguments, StringComparison.Ordinal);
-        Assert.Contains("/TYPE=app-only", launcher.Arguments, StringComparison.Ordinal);
+        Assert.Contains("/TYPE=client", launcher.Arguments, StringComparison.Ordinal);
         Assert.Contains(log, launcher.Arguments, StringComparison.Ordinal);
         Assert.DoesNotContain("password", launcher.Arguments, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("connection", launcher.Arguments, StringComparison.OrdinalIgnoreCase);

@@ -61,6 +61,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="..\Database\warepro_database_seed.xlsx" Link="Database\warepro_database_seed.xlsx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\WarePro.Core\WarePro.Core.csproj" />
   </ItemGroup>
 

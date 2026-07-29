@@ -17,7 +17,7 @@ public interface IStartupRuntime
     WareProSettings? LoadSettings();
     string ResolveConnectionString(WareProSettings? settings);
     Task ProbeSqlAsync(string connectionString, CancellationToken cancellationToken);
-    Task InitializeDatabaseAsync(string connectionString, CancellationToken cancellationToken);
+    Task InitializeDatabaseAsync(string connectionString, WareProSettings? settings, CancellationToken cancellationToken);
     string GetLogPath();
 }
 
@@ -47,7 +47,7 @@ public sealed class StartupCoordinator : IAsyncDisposable
             await _runtime.ProbeSqlAsync(connectionString, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             // startup kiểm tra trạng thái tương thích, không tự migrate để một client mở app không đổi database dùng chung.
-            await _runtime.InitializeDatabaseAsync(connectionString, cancellationToken);
+            await _runtime.InitializeDatabaseAsync(connectionString, settings, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             return StartupResult.Succeeded(GetLogPathSafely());
         }
@@ -190,6 +190,7 @@ public sealed class DefaultStartupRuntime : IStartupRuntime, IAsyncDisposable
 
     public async Task InitializeDatabaseAsync(
         string connectionString,
+        WareProSettings? settings,
         CancellationToken cancellationToken)
     {
         var readiness = new DatabaseReadinessService(ReadDatabaseSnapshotAsync);
@@ -205,6 +206,8 @@ public sealed class DefaultStartupRuntime : IStartupRuntime, IAsyncDisposable
             throw new StartupFailureException("DB-UNAVAILABLE", "Không đọc được trạng thái database.", result.Code);
 
         // runtime sở hữu lease này đến DisposeAsync; nhờ vậy session không biến mất khi coordinator còn phục vụ app.
+        await FirstInstallDemoSeeder.CreateDefault(connectionString, settings).RunAsync(cancellationToken);
+
         _sessionLease = await ClientSessionLease.RegisterAsync(
             connectionString,
             GetAppVersion().ToString(3),

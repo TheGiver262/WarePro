@@ -21,28 +21,29 @@ public class InstallerContractTests
     }
 
     [Fact]
-    public void Installer_contains_full_and_app_only_modes_with_helper_gates()
+    public void Installer_contains_server_client_and_standalone_roles_with_helper_gates()
     {
         var script = ReadInstaller() + ReadSqlInclude();
 
+        Assert.Contains("ServerMode", script, StringComparison.Ordinal);
+        Assert.Contains("ClientMode", script, StringComparison.Ordinal);
+        Assert.Contains("StandaloneMode", script, StringComparison.Ordinal);
         Assert.Contains("FullMode", script, StringComparison.Ordinal);
         Assert.Contains("AppOnlyMode", script, StringComparison.Ordinal);
+        Assert.Contains("RequestedSetupType", script, StringComparison.Ordinal);
         Assert.Contains("detect-sql", script, StringComparison.Ordinal);
         Assert.Contains("write-config", script, StringComparison.Ordinal);
         Assert.Contains("WAREPROENCRYPT", script, StringComparison.Ordinal);
         Assert.Contains("ParameterOrDefault('WAREPROENCRYPT', 'false')", script, StringComparison.Ordinal);
         Assert.Contains("test-connection", script, StringComparison.Ordinal);
-        Assert.Contains("--mode full", script, StringComparison.Ordinal);
-        Assert.Contains("--mode app-only", script, StringComparison.Ordinal);
         Assert.Contains("SQL2022-SSEI-Expr.exe", script, StringComparison.Ordinal);
         Assert.Contains("/FEATURES=SQLEngine", script, StringComparison.Ordinal);
         Assert.Contains("/INSTANCENAME=SQLEXPRESS", script, StringComparison.Ordinal);
         Assert.Contains("/ADDCURRENTUSERASSQLADMIN=True", script, StringComparison.Ordinal);
         Assert.Contains("[Components]", script, StringComparison.Ordinal);
-        Assert.Contains("Types: full app-only", script, StringComparison.Ordinal);
-        Assert.Contains("Types: full", script, StringComparison.Ordinal);
+        Assert.Contains("Types: server client standalone", script, StringComparison.Ordinal);
+        Assert.Contains("Types: server standalone", script, StringComparison.Ordinal);
     }
-
     [Fact]
     public void Full_mode_checks_existing_SQL_version_and_defers_health_check_after_3010()
     {
@@ -58,17 +59,17 @@ public class InstallerContractTests
     }
 
     [Fact]
-    public void Upgrade_mode_requires_existing_config_and_never_enters_full_sql_mode()
+    public void Upgrade_mode_defaults_to_client_and_requires_existing_config()
     {
         var script = ReadInstaller();
 
         Assert.Contains("UpgradeMode", script, StringComparison.Ordinal);
         Assert.Contains("WAREPROMODE", script, StringComparison.Ordinal);
         Assert.Contains("PreviousInstallExists", script, StringComparison.Ordinal);
-        Assert.Contains("(not UpgradeMode) and", script, StringComparison.Ordinal);
-        Assert.Contains("if UpgradeMode or ResumeFullMode then", script, StringComparison.Ordinal);
+        Assert.Contains("RequestedType := ClientMode", script, StringComparison.Ordinal);
+        Assert.Contains("if UpgradeMode then", script, StringComparison.Ordinal);
         Assert.Contains("if not FileExists(FinalConfig) then", script, StringComparison.Ordinal);
-        Assert.Contains("ConfigToTest := FinalConfig", script, StringComparison.Ordinal);
+        Assert.Contains("PrepareClientInstall", script, StringComparison.Ordinal);
         Assert.Contains("PageID = wpSelectComponents", script, StringComparison.Ordinal);
     }
     [Fact]
@@ -105,23 +106,82 @@ public class InstallerContractTests
     }
 
     [Fact]
-    public void App_only_sql_authentication_requires_pre_provisioned_credential_before_upgrade()
+    public void Client_sql_password_setup_defers_credential_probe_to_first_launch()
     {
         var script = ReadInstaller();
+        var clientStart = script.IndexOf("procedure PrepareClientInstall", StringComparison.Ordinal);
+        var clientEnd = script.IndexOf("function PrepareToInstall", clientStart, StringComparison.Ordinal);
+        var clientFlow = script[clientStart..clientEnd];
 
-        Assert.Contains("credential must already exist in Windows Credential Manager", script, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("TestConfiguration(ConfigToTest, '--mode app-only'", script, StringComparison.Ordinal);
-        Assert.Contains("'prepare-database --config ' + AddQuotes(FinalConfig)", script, StringComparison.Ordinal);
-        Assert.DoesNotContain("first-run credential", script, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("CompareText(SelectedAuthentication, 'SqlPassword') = 0", clientFlow, StringComparison.Ordinal);
+        Assert.Contains("TestConfiguration(StagingConfig, '--mode app-only'", clientFlow, StringComparison.Ordinal);
+        Assert.Contains("lần mở WarePro đầu tiên", clientFlow, StringComparison.Ordinal);
+        Assert.DoesNotContain("credential must already exist in Windows Credential Manager", script, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("--username", script, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("--password", script, StringComparison.OrdinalIgnoreCase);
     }
     [Fact]
-    public void Installer_packages_setup_helper_without_seed_workbook()
+    public void Client_install_writes_and_tests_configuration_without_database_cutover()
+    {
+        var installer = ReadInstaller();
+        var clientStart = installer.IndexOf("procedure PrepareClientInstall", StringComparison.Ordinal);
+        var clientEnd = installer.IndexOf("function PrepareToInstall", clientStart, StringComparison.Ordinal);
+        var clientFlow = installer[clientStart..clientEnd];
+
+        Assert.Contains("WriteConfiguration(StagingConfig", clientFlow, StringComparison.Ordinal);
+        Assert.Contains("TestConfiguration(StagingConfig, '--mode app-only'", clientFlow, StringComparison.Ordinal);
+        Assert.Contains("WriteConfiguration(FinalConfig", clientFlow, StringComparison.Ordinal);
+        Assert.DoesNotContain("PrepareDatabaseCutover", clientFlow, StringComparison.Ordinal);
+        Assert.DoesNotContain("FinalizeDatabaseCutover", clientFlow, StringComparison.Ordinal);
+        Assert.DoesNotContain("RollbackDatabaseCutover", clientFlow, StringComparison.Ordinal);
+    }
+    [Fact]
+    public void Installer_declares_roles_and_keeps_client_out_of_database_provisioning()
     {
         var script = ReadInstaller();
 
-        Assert.DoesNotContain("Database\\warepro_database_seed.xlsx", script, StringComparison.Ordinal);
+        Assert.Contains("Name: \"server\"", script, StringComparison.Ordinal);
+        Assert.Contains("Name: \"client\"", script, StringComparison.Ordinal);
+        Assert.Contains("Name: \"standalone\"", script, StringComparison.Ordinal);
+        Assert.Contains("function IsServerRole", script, StringComparison.Ordinal);
+        Assert.Contains("function IsClientRole", script, StringComparison.Ordinal);
+        Assert.Contains("function IsStandaloneRole", script, StringComparison.Ordinal);
+        Assert.Contains("function ShouldProvisionDatabase", script, StringComparison.Ordinal);
+        Assert.Contains("Result := IsServerRole or IsStandaloneRole;", script, StringComparison.Ordinal);
+
+        var installFlow = script[script.IndexOf("function PrepareToInstall", StringComparison.Ordinal)..];
+        Assert.Contains("if ShouldProvisionDatabase then", installFlow, StringComparison.Ordinal);
+        Assert.Contains("EnsureSqlExpress", installFlow, StringComparison.Ordinal);
+        Assert.Contains("PrepareDatabaseCutover;", installFlow, StringComparison.Ordinal);
+        Assert.Contains("configure-lan", script, StringComparison.Ordinal);
+        Assert.Contains("LocalSubnet", script, StringComparison.Ordinal);
+        Assert.Contains("/TCPENABLED=1", ReadSqlInclude(), StringComparison.Ordinal);
+        Assert.Contains("/NPENABLED=0", ReadSqlInclude(), StringComparison.Ordinal);
+    }
+    [Fact]
+    public void Installer_activates_the_LAN_endpoint_only_after_database_finalization()
+    {
+        var script = ReadInstaller();
+        var prepareStart = script.IndexOf("function PrepareToInstall", StringComparison.Ordinal);
+        var prepareEnd = script.IndexOf("procedure SaveConfigurationForRestart", prepareStart, StringComparison.Ordinal);
+        var prepare = script[prepareStart..prepareEnd];
+        var postInstallStart = script.IndexOf("else if DatabasePrepared then", StringComparison.Ordinal);
+        var postInstallEnd = script.IndexOf("else if IsClientRole", postInstallStart, StringComparison.Ordinal);
+        var postInstall = script[postInstallStart..postInstallEnd];
+
+        Assert.DoesNotContain("ConfigureLanEndpoint;", prepare, StringComparison.Ordinal);
+        Assert.True(postInstall.IndexOf("FinalizeDatabaseCutover", StringComparison.Ordinal) >= 0);
+        Assert.True(
+            postInstall.IndexOf("DatabaseFinalized := True", StringComparison.Ordinal)
+            < postInstall.IndexOf("ConfigureLanEndpoint;", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Installer_packages_setup_helper_and_the_complete_app_publish_tree()
+    {
+        var script = ReadInstaller();
+
+        Assert.Contains("Source: \"{#PublishDir}\\*\"", script, StringComparison.Ordinal);
         Assert.Contains("WarePro.SetupHelper.exe", script, StringComparison.Ordinal);
         Assert.Contains("{commonappdata}\\WarePro\\InstallerLogs", script, StringComparison.Ordinal);
         Assert.Contains("desktopicon", script, StringComparison.Ordinal);

@@ -24,6 +24,15 @@ public class SetupHelperTests
     }
 
     [Fact]
+    public void Program_logs_backup_database_command()
+    {
+        var source = File.ReadAllText(Path.Combine(
+            RepoRoot, "WarePro.SetupHelper", "Program.cs"));
+
+        Assert.Contains(@"""backup-database"" => ""backup-database""", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Detect_sql_returns_probe_exit_code_and_machine_readable_summary()
     {
         var probe = new FakeProbe
@@ -133,6 +142,44 @@ public class SetupHelperTests
     }
 
     [Fact]
+    public async Task Backup_database_uses_only_the_saved_config_and_returns_the_verified_backup()
+    {
+        var probe = new FakeProbe
+        {
+            BackupResult = new SetupProbeResult(
+                SetupExitCode.Success,
+                "Database backup was verified.",
+                @"D:\SqlBackups\WarePro.bak")
+        };
+        var commands = CreateCommands(probe);
+        var path = Path.Combine(Path.GetTempPath(), "Ware Pro Data", "appsettings.json");
+
+        var result = await commands.ExecuteAsync(["backup-database", "--config", path]);
+
+        Assert.Equal(SetupExitCode.Success, result.ExitCode);
+        Assert.Equal(Path.GetFullPath(path), probe.BackupConfigPath);
+        Assert.Contains("verified", result.Summary, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("restore", result.Summary, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Configure_lan_forwards_only_the_static_local_subnet_endpoint()
+    {
+        var configurator = new FakeLanConfigurator();
+        var commands = CreateCommands(lanConfigurator: configurator);
+
+        var result = await commands.ExecuteAsync(
+        [
+            "configure-lan",
+            "--instance", "SQLEXPRESS",
+            "--port", "1433",
+            "--scope", "LocalSubnet"
+        ]);
+
+        Assert.Equal(SetupExitCode.Success, result.ExitCode);
+        Assert.Equal(new SqlLanOptions("SQLEXPRESS", 1433, "LocalSubnet"), configurator.Options);
+    }
+    [Fact]
     public async Task Write_config_failure_uses_stable_code_and_redacts_detail()
     {
         var writer = new FakeWriter
@@ -204,10 +251,12 @@ public class SetupHelperTests
 
     private static SetupCommands CreateCommands(
         FakeProbe? probe = null,
-        FakeWriter? writer = null) => new(
+        FakeWriter? writer = null,
+        FakeLanConfigurator? lanConfigurator = null) => new(
             probe ?? new FakeProbe(),
             writer ?? new FakeWriter(),
-            () => Path.Combine(Path.GetTempPath(), "WarePro", "appsettings.json"));
+            () => Path.Combine(Path.GetTempPath(), "WarePro", "appsettings.json"),
+            lanConfigurator ?? new FakeLanConfigurator());
 
     private sealed class FakeProbe : ISetupProbe
     {
@@ -215,8 +264,11 @@ public class SetupHelperTests
             new(SetupExitCode.Success, "SQL instance is ready.");
         public SetupProbeResult ConnectionResult { get; init; } =
             new(SetupExitCode.Success, "Database is ready.");
+        public SetupProbeResult BackupResult { get; init; } =
+            new(SetupExitCode.Success, "Database backup was verified.");
         public Exception? DetectException { get; init; }
         public string? ConfigPath { get; private set; }
+        public string? BackupConfigPath { get; private set; }
         public SetupMode Mode { get; private set; }
 
         public Task<SetupProbeResult> DetectSqlAsync(
@@ -231,6 +283,14 @@ public class SetupHelperTests
             return Task.FromResult(DetectResult);
         }
 
+        public Task<SetupProbeResult> BackupDatabaseAsync(
+            string configPath,
+            CancellationToken cancellationToken)
+        {
+            BackupConfigPath = configPath;
+            return Task.FromResult(BackupResult);
+        }
+
         public Task<SetupProbeResult> TestConnectionAsync(
             string configPath,
             SetupMode mode,
@@ -242,6 +302,16 @@ public class SetupHelperTests
         }
     }
 
+    private sealed class FakeLanConfigurator : IServerNetworkConfigurator
+    {
+        public SqlLanOptions? Options { get; private set; }
+
+        public Task ConfigureAsync(SqlLanOptions options, CancellationToken cancellationToken)
+        {
+            Options = options;
+            return Task.CompletedTask;
+        }
+    }
     private sealed class FakeWriter : ISetupConfigWriter
     {
         public string? Path { get; private set; }

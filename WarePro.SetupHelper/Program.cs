@@ -24,7 +24,9 @@ public static class Program
                 {
                     "detect-sql" => "detect-sql",
                     "write-config" => "write-config",
+                    "configure-lan" => "configure-lan",
                     "test-connection" => "test-connection",
+                    "backup-database" => "backup-database",
                     "upgrade-database" => "upgrade-database",
                     "prepare-database" => "prepare-database",
                     "finalize-database" => "finalize-database",
