@@ -2,7 +2,7 @@
 
 ## 1. Cách dùng tài liệu
 
-Đây là bản ôn tập do “giảng viên hướng dẫn” biên soạn từ bản Word chuẩn hóa ngày 25/07/2026, bộ slide bảo vệ 12 trang và mã nguồn WarePro hiện tại. Học theo thứ tự:
+Đây là bản ôn tập đồng bộ với báo cáo canonical ngày 01/08/2026, bộ slide bảo vệ và mã nguồn WarePro hiện tại. Học theo thứ tự:
 
 1. Nắm bài toán và phạm vi.
 2. Kể được một vòng đời serial từ nhập kho đến bảo hành/đổi mới.
@@ -12,7 +12,7 @@
 
 ## 2. Bài nói mở đầu 60–90 giây
 
-Đồ án xây dựng ứng dụng desktop quản lý kho và bảo hành cho doanh nghiệp, tập trung vào việc nối liền số lượng tồn kho với lịch sử của từng thiết bị có số sê-ri. Hệ thống dùng WPF và MVVM ở tầng giao diện, EF Core kết nối SQL Server ở tầng dữ liệu. Sáu phân hệ chính là danh mục, kho, serial, bảo hành, kiểm soát người dùng–phân quyền–audit, và dashboard–báo cáo. Điểm cốt lõi là mọi nghiệp vụ ghi sổ đều cập nhật nguyên tử số dư hiện tại, lịch sử StockLedger, trạng thái serial và nhật ký audit; chứng từ đã ghi sổ không sửa như bản nháp mà phải đảo hoặc điều chỉnh. Nhờ đó người dùng có thể truy vết một serial từ nguồn nhập, kho hiện tại, lần bán, khách hàng và quyền bảo hành đến hồ sơ sửa chữa hoặc đổi thiết bị.
+Đồ án xây dựng ứng dụng desktop quản lý kho và bảo hành cho doanh nghiệp, tập trung vào việc nối liền số lượng tồn kho với lịch sử của từng thiết bị có số sê-ri. Hệ thống dùng WPF và MVVM ở tầng giao diện, EF Core kết nối SQL Server ở tầng dữ liệu. Sáu nhóm dữ liệu chính là danh mục–đối tác, luồng tồn kho, kiểm soát kho–sê-ri, hóa đơn, bảo hành, và người dùng–audit; dashboard/báo cáo đọc dữ liệu đã ghi sổ từ các nhóm này. Điểm cốt lõi là mọi nghiệp vụ ghi sổ đều cập nhật nguyên tử số dư hiện tại, lịch sử StockLedger, trạng thái serial và nhật ký audit; chứng từ đã ghi sổ không sửa như bản nháp mà phải đảo hoặc điều chỉnh. Nhờ đó người dùng có thể truy vết một serial từ nguồn nhập, kho hiện tại, lần bán, khách hàng và quyền bảo hành đến hồ sơ sửa chữa hoặc đổi thiết bị.
 
 ## 3. Phạm vi và giới hạn
 
@@ -54,6 +54,17 @@ MVVM được chọn vì WPF có data binding và commanding; ViewModel có th�
 - `WarrantyCoverage` giữ quyền bảo hành; `WarrantyClaim` giữ từng lần tiếp nhận/xử lý.
 - `AuditLog` giữ người thao tác, thời điểm, đối tượng, hành động và dữ liệu trước/sau khi cần.
 - Unique/index tiêu biểu: serial number duy nhất; `(ProductId, WarehouseId)` cho số dư; chỉ một coverage active trên một serial.
+
+### Quan hệ cơ sở dữ liệu cần giải thích được
+
+- `Product` là thực thể trung tâm của danh mục: mỗi sản phẩm bắt buộc thuộc một `Category`, một `Brand` và có một `DefaultUnit`; bảng nối `ProductUnit` cho phép một sản phẩm dùng nhiều đơn vị quy đổi. `UNIQUE(ProductId, UnitId)` ngăn khai báo trùng, filtered unique trên `ProductId` khi `IsBaseUnit = 1` bảo đảm tối đa một đơn vị cơ sở.
+- `StockIn`/`StockOut` là header, còn `StockInLine`/`StockOutLine` là dòng chi tiết. Mỗi dòng bắt buộc thuộc đúng một header; không có FK trực tiếp `StockOutLine → StockIn` hoặc `StockOutLine → StockInLine`.
+- `StockBalance` là ảnh chụp số dư hiện tại theo cặp kho–sản phẩm. `StockLedger` có FK vật lý tới `Warehouse`, `Product` và tùy chọn tới `ProductSerial`; cặp `SourceDocumentType + SourceDocumentId` chỉ là tham chiếu logic đa hình tới chứng từ nguồn.
+- `ProductSerial.LastStockInLineId`, `LastStockOutLineId` và `StockTransferLineId` là con trỏ nguồn/trạng thái gần nhất để truy vấn nhanh. Chúng không thay thế lịch sử đầy đủ, vì lịch sử biến động nằm trong `StockLedger`.
+- `PurchaseInvoice.StockInId` và `SalesInvoice.StockOutId` là FK nullable có filtered unique index, nên một phiếu kho liên kết tối đa một hóa đơn cùng loại. FK dòng hóa đơn tới dòng kho nullable và không unique, nên chỉ dùng đối chiếu chi tiết, không áp đặt quan hệ 1–1.
+- `WarrantyClaim` dùng FK kép `(WarrantyCoverageId, ProductSerialId)` tới alternate key cùng cặp trên `WarrantyCoverage`; database vì vậy chặn claim gắn coverage của serial khác. Filtered unique index còn chặn nhiều coverage Active hoặc nhiều claim đang mở trên cùng serial.
+- `AuditArchiveManifest` là biên nhận của một lần xuất log: giữ operation id, phạm vi thời gian, số dòng, tên file và SHA-256. Nó không phải bảng log thứ hai và không thay thế `AuditLog`.
+- Trong SQL Server, `RowVersion` là kiểu `rowversion` cố định 8 byte; trong EF Core nó được ánh xạ thành `byte[]`. `TaxRate` của dòng hóa đơn dùng `decimal(9,4)`, còn các trường tiền dùng `decimal(18,2)`.
 
 ### Ghi sổ nhập
 
@@ -188,7 +199,7 @@ Nguyên tắc: Posted không sửa/xóa tùy tiện; sửa sai bằng chứng t�
 79. Test đổi mới bảo hành kiểm tra gì?
 80. Vì sao integration test SQL Server có thể thất bại dù unit test pass?
 81. 95/95 test trên slide là phạm vi nào?
-82. 852 test trong trạng thái dự án khác 95/95 trên slide thế nào?
+82. 891 test hiện tại khác 95/95 trên slide thế nào?
 83. Cách tạo dữ liệu demo có thể reset?
 84. Yêu cầu cài đặt?
 85. Nếu mất kết nối SQL Server thì UI phản ứng thế nào?
@@ -232,7 +243,7 @@ Nguyên tắc: Posted không sửa/xóa tùy tiện; sửa sai bằng chứng t�
 - [ ] Chuẩn bị database reset và video dự phòng.
 
 
-## 10. Đáp án ngắn gọn cho 105 câu hỏi
+## 11. Đáp án ngắn gọn cho 105 câu hỏi
 
 Học theo công thức: trả lời kết luận trước, nêu cơ chế sau, chỉ thêm ví dụ khi giáo viên hỏi tiếp.
 
@@ -289,16 +300,16 @@ Học theo công thức: trả lời kết luận trước, nêu cơ chế sau, 
 
 41. Balance là số hiện tại; Ledger là lịch sử giải thích số đó.
 42. Đối soát ledger và tạo điều chỉnh có audit.
-43. Quan trọng nhất là quan hệ sản phẩm–serial–tồn–chứng từ–bảo hành.
+43. Quan trọng nhất là Product làm trục, dòng chứng từ gắn header/sản phẩm, serial gắn sản phẩm và các bảng tồn–bảo hành cùng tham chiếu lại trục đó.
 44. Một serial đại diện một thiết bị nên phải duy nhất.
-45. Ngăn hai coverage active cùng một serial.
-46. Không; ledger dùng tham chiếu đa hình loại + mã.
+45. Filtered unique index ngăn hai coverage trạng thái Active cùng một serial nhưng vẫn cho phép giữ lịch sử coverage đã đóng.
+46. Không; đây là tham chiếu logic đa hình. FK vật lý của ledger chỉ tới kho, sản phẩm, serial tùy chọn và người ghi sổ.
 47. Serial đã bán/đang bảo hành có thể không ở kho.
-48. RowVersion phát hiện sửa đồng thời.
+48. SQL Server `rowversion` 8 byte phát hiện sửa đồng thời; EF Core biểu diễn token đó bằng `byte[]`.
 49. Index serial, sản phẩm–kho–trạng thái và ledger theo thời gian.
 50. Kiểm tra tồn trong transaction trước khi giảm.
-51. Unique ProductUnit và quy định rõ đơn vị cơ sở.
-52. Biết ai làm gì, lúc nào, trước/sau ra sao.
+51. `UNIQUE(ProductId, UnitId)` ngăn đơn vị trùng và filtered unique bảo đảm tối đa một `IsBaseUnit = 1` cho mỗi sản phẩm.
+52. `AuditLog` cho biết ai làm gì, lúc nào, trước/sau ra sao; `AuditArchiveManifest` chỉ chứng minh file log đã xuất có phạm vi, số dòng và SHA-256 nào.
 53. Không xóa lịch sử; chỉ archive theo policy.
 54. Giữ unique ProductId–WarehouseId và thêm kho nguồn/đích.
 55. Index, phân trang, tổng hợp và summary theo kỳ.
@@ -337,7 +348,7 @@ Học theo công thức: trả lời kết luận trước, nêu cơ chế sau, 
 79. Test serial thay thế, coverage, ledger, audit.
 80. Integration phụ thuộc SQL Server và cấu hình môi trường.
 81. 95/95 là bộ test trình bày trên slide.
-82. 852 là gate test rộng hơn trong trạng thái dự án.
+82. 891 là kết quả gate test đầy đủ vừa chạy; 95/95 là tập test được trình bày trên slide.
 83. Dùng seed, reset script và backup.
 84. Windows, .NET, SQL Server và connection string.
 85. Không commit, báo lỗi và cho phép thử lại.
