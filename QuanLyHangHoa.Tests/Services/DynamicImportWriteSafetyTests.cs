@@ -497,6 +497,73 @@ public sealed class DynamicImportWriteSafetyTests
         Assert.Contains("SalesInvoiceLines.CountAsync", source, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task Category_import_query_count_does_not_grow_per_row()
+    {
+        var singleRowCount = await CountImportSelectsAsync(
+            CategoryRows(("N1-CAT-1", "N+1 category 1")),
+            ImportFileType.Category,
+            CategoryMappings());
+        var twelveRowCount = await CountImportSelectsAsync(
+            CategoryRows(Enumerable.Range(0, 12)
+                .Select(index => ($"N1-CAT-{index}", $"N+1 category {index}"))
+                .ToArray()),
+            ImportFileType.Category,
+            CategoryMappings());
+
+        Assert.True(
+            twelveRowCount <= singleRowCount + 2,
+            $"Expected at most {singleRowCount + 2} SELECTs, but observed {twelveRowCount}.");
+    }
+
+    [Fact]
+    public async Task Product_import_query_count_does_not_grow_per_row()
+    {
+        var singleRowCount = await CountImportSelectsAsync(
+            ProductRows(1),
+            ImportFileType.Product,
+            ProductMappings());
+        var twelveRowCount = await CountImportSelectsAsync(
+            ProductRows(12),
+            ImportFileType.Product,
+            ProductMappings());
+
+        Assert.True(
+            twelveRowCount <= singleRowCount + 2,
+            $"Expected at most {singleRowCount + 2} SELECTs, but observed {twelveRowCount}.");
+    }
+
+    private static async Task<int> CountImportSelectsAsync(
+        List<Dictionary<string, string>> rows,
+        ImportFileType type,
+        Dictionary<string, string> mappings)
+    {
+        using var connection = OpenDatabase();
+        var counter = new SelectCommandCounter();
+        var service = new DynamicImportService(
+            () => DatabaseHelper.CreateContext(connection, counter));
+
+        var result = await service.ExecuteImportAsync(
+            rows, type, mappings, 1, false, Guid.NewGuid());
+
+        Assert.Equal(rows.Count, result.SuccessCount);
+        Assert.Empty(result.Errors);
+        return counter.Count;
+    }
+
+    private static List<Dictionary<string, string>> ProductRows(int count) =>
+        Enumerable.Range(0, count)
+            .Select(index => new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["ProductCode"] = $"N1-PRODUCT-{index}",
+                ["DisplayName"] = $"N+1 product {index}",
+                ["DefaultPrice"] = "50",
+                ["CategoryName"] = "Default Category",
+                ["BrandName"] = "Default Brand",
+                ["DefaultUnitName"] = "Pieces"
+            })
+            .ToList();
+
     private static List<Dictionary<string, string>> InvoiceRows(
         string partyKey,
         string partyName,

@@ -736,56 +736,60 @@ namespace QuanLyHangHoa.Services.DataImport
             switch (batch.Type)
             {
                 case ImportFileType.Category:
-                    foreach (var row in batch.Rows)
-                    {
-                        if (!await db.Categories.AnyAsync(
-                                category => category.CategoryCode == row.CategoryCode &&
-                                            category.DisplayName == row.DisplayName,
-                                cancellationToken))
-                        {
-                            return false;
-                        }
-                    }
-                    return true;
+                    var categoryCodes = batch.Rows.Select(row => row.CategoryCode!).Distinct().ToList();
+                    var persistedCategories = (await db.Categories
+                            .Where(category => categoryCodes.Contains(category.CategoryCode))
+                            .Select(category => new { category.CategoryCode, category.DisplayName })
+                            .ToListAsync(cancellationToken))
+                        .Select(category => (category.CategoryCode, category.DisplayName))
+                        .ToHashSet();
+                    return batch.Rows.All(row =>
+                        persistedCategories.Contains((row.CategoryCode!, row.DisplayName!)));
                 case ImportFileType.Product:
-                    foreach (var row in batch.Rows)
-                    {
-                        if (!await db.Products.AnyAsync(
-                                product => product.ProductCode == row.ProductCode &&
-                                           product.DisplayName == row.DisplayName,
-                                cancellationToken))
-                        {
-                            return false;
-                        }
-                    }
-                    return true;
+                    var productCodes = batch.Rows.Select(row => row.ProductCode!).Distinct().ToList();
+                    var persistedProducts = (await db.Products
+                            .Where(product => productCodes.Contains(product.ProductCode))
+                            .Select(product => new { product.ProductCode, product.DisplayName })
+                            .ToListAsync(cancellationToken))
+                        .Select(product => (product.ProductCode, product.DisplayName))
+                        .ToHashSet();
+                    return batch.Rows.All(row =>
+                        persistedProducts.Contains((row.ProductCode!, row.DisplayName!)));
                 case ImportFileType.ProductSerial:
                     var serialDocumentPrefix = $"SI-{operationId:N}-";
-                    foreach (var row in batch.Rows)
-                    {
-                        var postedSerial = await db.ProductSerials
+                    var serialNumbers = batch.Rows.Select(row => row.SerialNumber!).Distinct().ToList();
+                    var postedSerials = await db.ProductSerials
                             .Where(serial =>
-                                serial.SerialNumber == row.SerialNumber &&
+                                serialNumbers.Contains(serial.SerialNumber) &&
                                 serial.LastStockInLine.StockIn.DocumentCode.StartsWith(serialDocumentPrefix))
                             .Select(serial => new
                             {
+                                serial.SerialNumber,
                                 serial.ProductId,
                                 serial.CurrentWarehouseId,
                                 StockInId = serial.LastStockInLine.StockInId
                             })
-                            .SingleOrDefaultAsync(cancellationToken);
-                        if (postedSerial is null ||
-                            !await db.StockLedgers.AnyAsync(ledger =>
+                            .ToListAsync(cancellationToken);
+                    var postedBySerial = postedSerials
+                        .GroupBy(serial => serial.SerialNumber, StringComparer.Ordinal)
+                        .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+                    var stockInIds = postedSerials.Select(serial => serial.StockInId).Distinct().ToList();
+                    var ledgerKeys = (await db.StockLedgers
+                            .Where(ledger =>
                                 ledger.SourceDocumentType == "StockIn" &&
-                                ledger.SourceDocumentId == postedSerial.StockInId &&
-                                ledger.ProductId == postedSerial.ProductId &&
-                                ledger.WarehouseId == postedSerial.CurrentWarehouseId,
-                                cancellationToken))
-                        {
-                            return false;
-                        }
-                    }
-                    return true;
+                                stockInIds.Contains(ledger.SourceDocumentId))
+                            .Select(ledger => new
+                            {
+                                ledger.SourceDocumentId,
+                                ledger.ProductId,
+                                WarehouseId = (int?)ledger.WarehouseId
+                            })
+                            .ToListAsync(cancellationToken))
+                        .Select(ledger => (ledger.SourceDocumentId, ledger.ProductId, ledger.WarehouseId))
+                        .ToHashSet();
+                    return batch.Rows.All(row =>
+                        postedBySerial.TryGetValue(row.SerialNumber!, out var serial) &&
+                        ledgerKeys.Contains((serial.StockInId, serial.ProductId, serial.CurrentWarehouseId)));
                 case ImportFileType.StockIn:
                     foreach (var group in GroupStockRows(batch.Rows))
                     {
@@ -966,6 +970,13 @@ namespace QuanLyHangHoa.Services.DataImport
             DynamicImportResult result,
             ref int rowIdx)
         {
+            var categoryCodes = rows
+                .Select(row => row.CategoryCode!)
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+            var categoriesByCode = db.Categories
+                .Where(category => categoryCodes.Contains(category.CategoryCode))
+                .ToDictionary(category => category.CategoryCode, StringComparer.Ordinal);
             foreach (var row in rows)
             {
                 rowIdx++;
@@ -974,19 +985,21 @@ namespace QuanLyHangHoa.Services.DataImport
                     string categoryCode = row.CategoryCode!;
                     string displayName = row.DisplayName!;
 
-                    var existing = db.Categories.FirstOrDefault(c => c.CategoryCode == categoryCode);
+                    categoriesByCode.TryGetValue(categoryCode, out var existing);
                     if (existing != null)
                     {
                         existing.DisplayName = displayName;
                     }
                     else
                     {
-                        db.Categories.Add(new Category
+                        var category = new Category
                         {
                             CategoryCode = categoryCode,
                             DisplayName = displayName,
                             IsActive = true
-                        });
+                        };
+                        db.Categories.Add(category);
+                        categoriesByCode[categoryCode] = category;
                     }
                     result.SuccessCount++;
                 }
@@ -1005,6 +1018,31 @@ namespace QuanLyHangHoa.Services.DataImport
             int rowIdx,
             CancellationToken cancellationToken)
         {
+            var categoryNames = rows.Select(row => row.CategoryName!).Distinct(StringComparer.Ordinal).ToList();
+            var brandNames = rows.Select(row => row.BrandName!).Distinct(StringComparer.Ordinal).ToList();
+            var unitNames = rows.Select(row => row.DefaultUnitName!).Distinct(StringComparer.Ordinal).ToList();
+            var productCodes = rows.Select(row => row.ProductCode!).Distinct(StringComparer.Ordinal).ToList();
+            var categoriesByName = db.Categories
+                .Where(category => categoryNames.Contains(category.DisplayName))
+                .ToList()
+                .GroupBy(category => category.DisplayName, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+            var brandsByName = db.Brands
+                .Where(brand => brandNames.Contains(brand.DisplayName))
+                .ToList()
+                .GroupBy(brand => brand.DisplayName, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+            var unitsByName = db.Units
+                .Where(unit => unitNames.Contains(unit.DisplayName))
+                .ToList()
+                .GroupBy(unit => unit.DisplayName, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+            var productsByCode = db.Products
+                .Where(product => productCodes.Contains(product.ProductCode))
+                .ToList()
+                .GroupBy(product => product.ProductCode, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+
             foreach (var row in rows)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -1026,7 +1064,7 @@ namespace QuanLyHangHoa.Services.DataImport
 
                     // các bảng tham chiếu phải có id trước khi gán vào product; tùy chọn auto-create quyết định tạo mới hay báo lỗi
                     // Resolve category
-                    var category = db.Categories.FirstOrDefault(c => c.DisplayName == categoryName);
+                    categoriesByName.TryGetValue(categoryName, out var category);
                     if (category == null)
                     {
                         if (autoCreateReferences)
@@ -1039,6 +1077,7 @@ namespace QuanLyHangHoa.Services.DataImport
                             };
                             db.Categories.Add(category);
                             await db.SaveChangesAsync(cancellationToken);
+                            categoriesByName[categoryName] = category;
                         }
                         else
                         {
@@ -1047,7 +1086,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     }
 
                     // Resolve brand
-                    var brand = db.Brands.FirstOrDefault(b => b.DisplayName == brandName);
+                    brandsByName.TryGetValue(brandName, out var brand);
                     if (brand == null)
                     {
                         if (autoCreateReferences)
@@ -1060,6 +1099,7 @@ namespace QuanLyHangHoa.Services.DataImport
                             };
                             db.Brands.Add(brand);
                             await db.SaveChangesAsync(cancellationToken);
+                            brandsByName[brandName] = brand;
                         }
                         else
                         {
@@ -1068,7 +1108,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     }
 
                     // Resolve unit
-                    var unit = db.Units.FirstOrDefault(u => u.DisplayName == unitName);
+                    unitsByName.TryGetValue(unitName, out var unit);
                     if (unit == null)
                     {
                         if (autoCreateReferences)
@@ -1081,6 +1121,7 @@ namespace QuanLyHangHoa.Services.DataImport
                             };
                             db.Units.Add(unit);
                             await db.SaveChangesAsync(cancellationToken);
+                            unitsByName[unitName] = unit;
                         }
                         else
                         {
@@ -1088,7 +1129,7 @@ namespace QuanLyHangHoa.Services.DataImport
                         }
                     }
 
-                    var existing = db.Products.FirstOrDefault(p => p.ProductCode == productCode);
+                    productsByCode.TryGetValue(productCode, out var existing);
                     if (existing != null)
                     {
                         existing.DisplayName = displayName;
@@ -1104,7 +1145,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     }
                     else
                     {
-                        db.Products.Add(new Product
+                        var product = new Product
                         {
                             ProductCode = productCode,
                             DisplayName = displayName,
@@ -1118,7 +1159,9 @@ namespace QuanLyHangHoa.Services.DataImport
                             BrandId = brand.Id,
                             DefaultUnitId = unit.Id,
                             IsActive = true
-                        });
+                        };
+                        db.Products.Add(product);
+                        productsByCode[productCode] = product;
                     }
                     result.SuccessCount++;
                 }
@@ -1167,13 +1210,18 @@ namespace QuanLyHangHoa.Services.DataImport
                 operationId, rowIdx, cancellationToken, openingBalance: true);
 
             var documentPrefix = $"SI-{operationId:N}-";
+            var noteSerialNumbers = rows.Select(row => row.SerialNumber!).Distinct().ToList();
+            var importedSerials = await db.ProductSerials
+                .Where(item =>
+                    noteSerialNumbers.Contains(item.SerialNumber) &&
+                    item.LastStockInLine.StockIn.DocumentCode.StartsWith(documentPrefix))
+                .ToListAsync(cancellationToken);
+            var importedBySerial = importedSerials
+                .GroupBy(serial => serial.SerialNumber, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
             foreach (var row in rows)
             {
-                var serial = await db.ProductSerials.SingleOrDefaultAsync(item =>
-                    item.SerialNumber == row.SerialNumber &&
-                    item.LastStockInLine.StockIn.DocumentCode.StartsWith(documentPrefix),
-                    cancellationToken);
-                if (serial is not null)
+                if (importedBySerial.TryGetValue(row.SerialNumber!, out var serial))
                     serial.Note = row.Note;
             }
 
