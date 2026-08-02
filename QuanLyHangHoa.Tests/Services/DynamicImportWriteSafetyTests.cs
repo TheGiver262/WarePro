@@ -493,8 +493,8 @@ public sealed class DynamicImportWriteSafetyTests
             "DataImport",
             "DynamicImportService.cs"));
 
-        Assert.Contains("PurchaseInvoiceLines.CountAsync", source, StringComparison.Ordinal);
-        Assert.Contains("SalesInvoiceLines.CountAsync", source, StringComparison.Ordinal);
+        Assert.Contains("LineCount = db.PurchaseInvoiceLines.Count", source, StringComparison.Ordinal);
+        Assert.Contains("LineCount = db.SalesInvoiceLines.Count", source, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -533,6 +533,61 @@ public sealed class DynamicImportWriteSafetyTests
             $"Expected at most {singleRowCount + 2} SELECTs, but observed {twelveRowCount}.");
     }
 
+    [Theory]
+    [InlineData(ImportFileType.StockIn)]
+    [InlineData(ImportFileType.PurchaseInvoice)]
+    [InlineData(ImportFileType.SalesInvoice)]
+    public async Task Transactional_import_query_count_does_not_grow_per_row(ImportFileType type)
+    {
+        var singleRowCount = await CountImportSelectsAsync(
+            TransactionRows(type, 1),
+            type,
+            TransactionMappings(type));
+        var twelveRowCount = await CountImportSelectsAsync(
+            TransactionRows(type, 12),
+            type,
+            TransactionMappings(type));
+
+        Assert.True(
+            twelveRowCount <= singleRowCount + 4,
+            $"Expected at most {singleRowCount + 4} SELECTs, but observed {twelveRowCount}.");
+    }
+
+    [Fact]
+    public async Task Stock_out_import_query_count_does_not_grow_per_row()
+    {
+        var singleRowCount = await CountStockOutSelectsAsync(1);
+        var twelveRowCount = await CountStockOutSelectsAsync(12);
+
+        Assert.True(
+            twelveRowCount <= singleRowCount + 4,
+            $"Expected at most {singleRowCount + 4} SELECTs, but observed {twelveRowCount}.");
+    }
+    [Theory]
+    [InlineData(ImportFileType.PurchaseInvoice)]
+    [InlineData(ImportFileType.SalesInvoice)]
+    public async Task Invoice_replay_query_count_does_not_grow_per_document(ImportFileType type)
+    {
+        var singleDocumentCount = await CountInvoiceReplaySelectsAsync(type, 1);
+        var twelveDocumentCount = await CountInvoiceReplaySelectsAsync(type, 12);
+
+        Assert.True(
+            twelveDocumentCount <= singleDocumentCount + 2,
+            $"Expected at most {singleDocumentCount + 2} SELECTs, but observed {twelveDocumentCount}.");
+    }
+
+    [Fact]
+    public async Task Product_serial_import_query_count_does_not_grow_per_row()
+    {
+        var singleRowCount = await CountProductSerialSelectsAsync(1);
+        var twelveRowCount = await CountProductSerialSelectsAsync(12);
+
+        Assert.True(
+            twelveRowCount <= singleRowCount + 4,
+            $"Expected at most {singleRowCount + 4} SELECTs, but observed {twelveRowCount}.");
+    }
+
+
     private static async Task<int> CountImportSelectsAsync(
         List<Dictionary<string, string>> rows,
         ImportFileType type,
@@ -550,6 +605,184 @@ public sealed class DynamicImportWriteSafetyTests
         Assert.Empty(result.Errors);
         return counter.Count;
     }
+
+    private static async Task<int> CountInvoiceReplaySelectsAsync(
+        ImportFileType type,
+        int count)
+    {
+        using var connection = OpenDatabase();
+        var counter = new SelectCommandCounter();
+        var service = new DynamicImportService(
+            () => DatabaseHelper.CreateContext(connection, counter));
+        var partyKey = type == ImportFileType.PurchaseInvoice ? "SupplierName" : "CustomerName";
+        var partyName = type == ImportFileType.PurchaseInvoice ? "General Supplier" : "General Customer";
+        var prefix = type == ImportFileType.PurchaseInvoice ? "PI-N1-REPLAY" : "SI-N1-REPLAY";
+        var rows = Enumerable.Range(0, count)
+            .Select(index => InvoiceRow(
+                partyKey,
+                partyName,
+                $"{prefix}-{index}",
+                "DYN-PRODUCT-001"))
+            .ToList();
+        var mappings = InvoiceMappings(partyKey);
+        var operationId = Guid.NewGuid();
+
+        var first = await service.ExecuteImportAsync(
+            rows, type, mappings, 1, false, operationId);
+        Assert.Equal(count, first.SuccessCount);
+        Assert.Empty(first.Errors);
+
+        counter.Reset();
+        var replay = await service.ExecuteImportAsync(
+            rows, type, mappings, 1, false, operationId);
+
+        Assert.Equal(count, replay.SuccessCount);
+        Assert.Empty(replay.Errors);
+        return counter.Count;
+    }
+
+    private static async Task<int> CountProductSerialSelectsAsync(int count)
+    {
+        using var connection = OpenDatabase();
+        using (var db = DatabaseHelper.CreateContext(connection))
+        {
+            db.Products.Add(new QuanLyHangHoa.Models.Product
+            {
+                Id = 1800,
+                ProductCode = "DYN-SERIAL-N1",
+                DisplayName = "Dynamic serial N+1",
+                CategoryId = 1,
+                BrandId = 1,
+                DefaultUnitId = 1,
+                DefaultPrice = 50,
+                IsActive = true,
+                IsSerialTracked = true
+            });
+            db.SaveChanges();
+        }
+
+        var rows = Enumerable.Range(0, count)
+            .Select(index => new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["SerialNumber"] = $"DYN-N1-SERIAL-{index}",
+                ["ProductCode"] = "DYN-SERIAL-N1",
+                ["WarehouseName"] = string.Empty,
+                ["Note"] = string.Empty
+            })
+            .ToList();
+        var mappings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["SerialNumber"] = "SerialNumber",
+            ["ProductCode"] = "ProductCode",
+            ["WarehouseName"] = "WarehouseName",
+            ["Note"] = "Note"
+        };
+        var counter = new SelectCommandCounter();
+        var service = new DynamicImportService(
+            () => DatabaseHelper.CreateContext(connection, counter));
+
+        var result = await service.ExecuteImportAsync(
+            rows,
+            ImportFileType.ProductSerial,
+            mappings,
+            1,
+            false,
+            Guid.NewGuid());
+
+        Assert.Equal(count, result.SuccessCount);
+        Assert.Empty(result.Errors);
+        return counter.Count;
+    }
+
+    private static async Task<int> CountStockOutSelectsAsync(int count)
+    {
+        using var connection = OpenDatabase();
+        using (var db = DatabaseHelper.CreateContext(connection))
+        {
+            db.StockBalances.Add(new QuanLyHangHoa.Models.StockBalance
+            {
+                ProductId = 1700,
+                WarehouseId = 1,
+                OnHandQuantity = 100,
+                AvailableQuantity = 100
+            });
+            db.SaveChanges();
+        }
+
+        var counter = new SelectCommandCounter();
+        var service = new DynamicImportService(
+            () => DatabaseHelper.CreateContext(connection, counter));
+        var rows = TransactionRows(ImportFileType.StockOut, count);
+        var result = await service.ExecuteImportAsync(
+            rows,
+            ImportFileType.StockOut,
+            TransactionMappings(ImportFileType.StockOut),
+            1,
+            false,
+            Guid.NewGuid());
+
+        Assert.Equal(count, result.SuccessCount);
+        Assert.Empty(result.Errors);
+        return counter.Count;
+    }
+
+    private static List<Dictionary<string, string>> TransactionRows(
+        ImportFileType type,
+        int count)
+    {
+        if (type is ImportFileType.StockIn or ImportFileType.StockOut)
+        {
+            var documentCode = type == ImportFileType.StockIn ? "SI-N1" : "SO-N1";
+            return Enumerable.Range(0, count)
+                .Select(_ => new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["DocumentCode"] = documentCode,
+                    [type == ImportFileType.StockIn ? "ImportDate" : "ExportDate"] = "2026-07-18",
+                    [type == ImportFileType.StockIn ? "SupplierName" : "CustomerName"] = string.Empty,
+                    ["WarehouseName"] = string.Empty,
+                    ["Notes"] = "N+1 query count",
+                    ["ProductCode"] = "DYN-PRODUCT-001",
+                    ["Quantity"] = "1",
+                    ["SerialNumbers"] = string.Empty
+                })
+                .ToList();
+        }
+
+        var partyKey = type == ImportFileType.PurchaseInvoice ? "SupplierName" : "CustomerName";
+        var partyName = type == ImportFileType.PurchaseInvoice ? "General Supplier" : "General Customer";
+        return Enumerable.Range(0, count)
+            .Select(_ => InvoiceRow(
+                partyKey,
+                partyName,
+                type == ImportFileType.PurchaseInvoice ? "PI-N1" : "SI-N1",
+                "DYN-PRODUCT-001"))
+            .Select(row =>
+            {
+                row["TotalAmount"] = (count * 50m).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                return row;
+            })
+            .ToList();
+    }
+
+    private static Dictionary<string, string> TransactionMappings(ImportFileType type) =>
+        type switch
+        {
+            ImportFileType.StockIn => StockMappings(),
+            ImportFileType.StockOut => new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["DocumentCode"] = "DocumentCode",
+                ["ExportDate"] = "ExportDate",
+                ["CustomerName"] = "CustomerName",
+                ["WarehouseName"] = "WarehouseName",
+                ["Notes"] = "Notes",
+                ["ProductCode"] = "ProductCode",
+                ["Quantity"] = "Quantity",
+                ["SerialNumbers"] = "SerialNumbers"
+            },
+            ImportFileType.PurchaseInvoice => InvoiceMappings("SupplierName"),
+            ImportFileType.SalesInvoice => InvoiceMappings("CustomerName"),
+            _ => throw new ArgumentOutOfRangeException(nameof(type))
+        };
 
     private static List<Dictionary<string, string>> ProductRows(int count) =>
         Enumerable.Range(0, count)

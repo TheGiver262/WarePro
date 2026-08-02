@@ -791,63 +791,83 @@ namespace QuanLyHangHoa.Services.DataImport
                         postedBySerial.TryGetValue(row.SerialNumber!, out var serial) &&
                         ledgerKeys.Contains((serial.StockInId, serial.ProductId, serial.CurrentWarehouseId)));
                 case ImportFileType.StockIn:
-                    foreach (var group in GroupStockRows(batch.Rows))
-                    {
-                        var documentCode = GetStockDocumentCode(group.Key, operationId, isStockIn: true);
-                        var document = await db.StockIns.AsNoTracking().SingleOrDefaultAsync(
-                            item => item.DocumentCode == documentCode, cancellationToken);
-                        if (document is null ||
-                            !PayloadMatches(document.Notes, group.First().PayloadMarker!) ||
-                            await db.StockInLines.CountAsync(
-                                line => line.StockInId == document.Id, cancellationToken) != group.Count())
+                    var stockInGroups = GroupStockRows(batch.Rows).ToList();
+                    var stockInCodes = stockInGroups
+                        .Select(group => GetStockDocumentCode(group.Key, operationId, isStockIn: true))
+                        .ToList();
+                    var stockIns = await db.StockIns
+                        .AsNoTracking()
+                        .Where(document => stockInCodes.Contains(document.DocumentCode))
+                        .Select(document => new
                         {
-                            return false;
-                        }
-                    }
-                    return true;
+                            document.DocumentCode,
+                            document.Notes,
+                            LineCount = db.StockInLines.Count(line => line.StockInId == document.Id)
+                        })
+                        .ToDictionaryAsync(document => document.DocumentCode, cancellationToken);
+                    return stockInGroups.All(group =>
+                    {
+                        var code = GetStockDocumentCode(group.Key, operationId, isStockIn: true);
+                        return stockIns.TryGetValue(code, out var document) &&
+                               PayloadMatches(document.Notes, group.First().PayloadMarker!) &&
+                               document.LineCount == group.Count();
+                    });
                 case ImportFileType.StockOut:
-                    foreach (var group in GroupStockRows(batch.Rows))
-                    {
-                        var documentCode = GetStockDocumentCode(group.Key, operationId, isStockIn: false);
-                        var document = await db.StockOuts.AsNoTracking().SingleOrDefaultAsync(
-                            item => item.DocumentCode == documentCode, cancellationToken);
-                        if (document is null ||
-                            !PayloadMatches(document.Notes, group.First().PayloadMarker!) ||
-                            await db.StockOutLines.CountAsync(
-                                line => line.StockOutId == document.Id, cancellationToken) != group.Count())
+                    var stockOutGroups = GroupStockRows(batch.Rows).ToList();
+                    var stockOutCodes = stockOutGroups
+                        .Select(group => GetStockDocumentCode(group.Key, operationId, isStockIn: false))
+                        .ToList();
+                    var stockOuts = await db.StockOuts
+                        .AsNoTracking()
+                        .Where(document => stockOutCodes.Contains(document.DocumentCode))
+                        .Select(document => new
                         {
-                            return false;
-                        }
-                    }
-                    return true;
+                            document.DocumentCode,
+                            document.Notes,
+                            LineCount = db.StockOutLines.Count(line => line.StockOutId == document.Id)
+                        })
+                        .ToDictionaryAsync(document => document.DocumentCode, cancellationToken);
+                    return stockOutGroups.All(group =>
+                    {
+                        var code = GetStockDocumentCode(group.Key, operationId, isStockIn: false);
+                        return stockOuts.TryGetValue(code, out var document) &&
+                               PayloadMatches(document.Notes, group.First().PayloadMarker!) &&
+                               document.LineCount == group.Count();
+                    });
                 case ImportFileType.PurchaseInvoice:
-                    foreach (var group in batch.Rows.GroupBy(row => row.InvoiceCode!))
-                    {
-                        var invoice = await db.PurchaseInvoices.AsNoTracking().SingleOrDefaultAsync(
-                            item => item.InvoiceCode == group.Key, cancellationToken);
-                        if (invoice is null ||
-                            !PayloadMatches(invoice.Notes, group.First().PayloadMarker!) ||
-                            await db.PurchaseInvoiceLines.CountAsync(
-                                line => line.PurchaseInvoiceId == invoice.Id, cancellationToken) != group.Count())
+                    var purchaseGroups = batch.Rows.GroupBy(row => row.InvoiceCode!).ToList();
+                    var purchaseCodes = purchaseGroups.Select(group => group.Key).ToList();
+                    var purchaseInvoices = await db.PurchaseInvoices
+                        .AsNoTracking()
+                        .Where(invoice => purchaseCodes.Contains(invoice.InvoiceCode))
+                        .Select(invoice => new
                         {
-                            return false;
-                        }
-                    }
-                    return true;
+                            invoice.InvoiceCode,
+                            invoice.Notes,
+                            LineCount = db.PurchaseInvoiceLines.Count(line => line.PurchaseInvoiceId == invoice.Id)
+                        })
+                        .ToDictionaryAsync(invoice => invoice.InvoiceCode, cancellationToken);
+                    return purchaseGroups.All(group =>
+                        purchaseInvoices.TryGetValue(group.Key, out var invoice) &&
+                        PayloadMatches(invoice.Notes, group.First().PayloadMarker!) &&
+                        invoice.LineCount == group.Count());
                 case ImportFileType.SalesInvoice:
-                    foreach (var group in batch.Rows.GroupBy(row => row.InvoiceCode!))
-                    {
-                        var invoice = await db.SalesInvoices.AsNoTracking().SingleOrDefaultAsync(
-                            item => item.InvoiceCode == group.Key, cancellationToken);
-                        if (invoice is null ||
-                            !PayloadMatches(invoice.Notes, group.First().PayloadMarker!) ||
-                            await db.SalesInvoiceLines.CountAsync(
-                                line => line.SalesInvoiceId == invoice.Id, cancellationToken) != group.Count())
+                    var salesGroups = batch.Rows.GroupBy(row => row.InvoiceCode!).ToList();
+                    var salesCodes = salesGroups.Select(group => group.Key).ToList();
+                    var salesInvoices = await db.SalesInvoices
+                        .AsNoTracking()
+                        .Where(invoice => salesCodes.Contains(invoice.InvoiceCode))
+                        .Select(invoice => new
                         {
-                            return false;
-                        }
-                    }
-                    return true;
+                            invoice.InvoiceCode,
+                            invoice.Notes,
+                            LineCount = db.SalesInvoiceLines.Count(line => line.SalesInvoiceId == invoice.Id)
+                        })
+                        .ToDictionaryAsync(invoice => invoice.InvoiceCode, cancellationToken);
+                    return salesGroups.All(group =>
+                        salesInvoices.TryGetValue(group.Key, out var invoice) &&
+                        PayloadMatches(invoice.Notes, group.First().PayloadMarker!) &&
+                        invoice.LineCount == group.Count());
                 default:
                     return false;
             }
@@ -1254,6 +1274,21 @@ namespace QuanLyHangHoa.Services.DataImport
         {
             // mọi dòng cùng mã được xem là một chứng từ; mã trống được gom vào một phiếu tự sinh
             var grouped = GroupStockRows(rows);
+            var productCodes = rows.Select(row => row.ProductCode!).Distinct().ToList();
+            var productsByCode = await db.Products
+                .Where(product => productCodes.Contains(product.ProductCode) && product.IsActive)
+                .ToDictionaryAsync(product => product.ProductCode, cancellationToken);
+            var productIds = productsByCode.Values.Select(product => product.Id).ToList();
+            var conversionFactors = (await db.ProductUnits
+                    .Where(unit => productIds.Contains(unit.ProductId))
+                    .ToListAsync(cancellationToken))
+                .ToDictionary(unit => (unit.ProductId, unit.UnitId), unit => unit.ConversionFactor);
+            var importSerialNumbers = rows.SelectMany(row => row.Serials).Distinct().ToList();
+            var existingSerialNumbers = (await db.ProductSerials
+                    .Where(serial => importSerialNumbers.Contains(serial.SerialNumber))
+                    .Select(serial => serial.SerialNumber)
+                    .ToListAsync(cancellationToken))
+                .ToHashSet(StringComparer.Ordinal);
 
             foreach (var group in grouped)
             {
@@ -1325,6 +1360,9 @@ namespace QuanLyHangHoa.Services.DataImport
 
                     // preparedLines tách bước kiểm tra khỏi bước ghi; documentSerials chặn serial lặp giữa nhiều dòng của cùng phiếu
                     // baseQuantity là số lượng sau quy đổi về đơn vị cơ sở, dùng cho tồn kho và số lượng serial
+                    await db.StockBalances
+                        .Where(balance => productIds.Contains(balance.ProductId) && balance.WarehouseId == warehouse.Id)
+                        .LoadAsync(cancellationToken);
                     var preparedLines = new List<PreparedStockInImportLine>();
 
                     foreach (var itemRow in groupRows)
@@ -1336,12 +1374,9 @@ namespace QuanLyHangHoa.Services.DataImport
                             throw new InventoryDomainException("Stock-in quantity must be greater than zero.");
                         }
 
-                        var product = db.Products.SingleOrDefault(item => item.ProductCode == productCode && item.IsActive)
+                        var product = productsByCode.GetValueOrDefault(productCode)
                             ?? throw new InventoryDomainException($"Không tìm thấy sản phẩm '{productCode}' khi import dòng.");
-                        var conversionFactor = db.ProductUnits
-                            .Where(unit => unit.ProductId == product.Id && unit.UnitId == product.DefaultUnitId)
-                            .Select(unit => unit.ConversionFactor)
-                            .FirstOrDefault();
+                        var conversionFactor = conversionFactors.GetValueOrDefault((product.Id, product.DefaultUnitId));
                         if (conversionFactor <= 0)
                         {
                             conversionFactor = 1m;
@@ -1361,8 +1396,7 @@ namespace QuanLyHangHoa.Services.DataImport
                             throw new InventoryDomainException("Non-serial products cannot receive serial numbers.");
                         }
 
-                        if (serialNumbers.Length > 0 &&
-                            db.ProductSerials.Any(serial => serialNumbers.Contains(serial.SerialNumber)))
+                        if (serialNumbers.Any(existingSerialNumbers.Contains))
                         {
                             throw new InventoryDomainException("One or more serial numbers already exist.");
                         }
@@ -1415,8 +1449,11 @@ namespace QuanLyHangHoa.Services.DataImport
 
                     // cần lưu phiếu và các dòng trước để lấy id thật cho sổ kho và liên kết LastStockInLineId
                     await db.SaveChangesAsync(cancellationToken);
+                    var inventoryUnitOfWork = new EfInventoryUnitOfWork(db);
+                    inventoryUnitOfWork.MarkSerialsLoaded(importSerialNumbers);
+                    inventoryUnitOfWork.MarkBalancesLoaded(productIds.Select(id => (id, warehouse.Id)));
                     var postingService = new InventoryPostingService(
-                        new EfInventoryUnitOfWork(db),
+                        inventoryUnitOfWork,
                         new DbDefaultWarehouseProvider(db),
                         new SystemClock());
 
@@ -1431,18 +1468,16 @@ namespace QuanLyHangHoa.Services.DataImport
                             item.Prepared.BaseQuantity,
                             item.Prepared.SerialNumbers,
                             userId));
-
-                        if (item.Prepared.SerialNumbers.Length > 0)
-                        {
-                            var serials = db.ProductSerials
-                                .Where(serial => item.Prepared.SerialNumbers.Contains(serial.SerialNumber))
-                                .ToList();
-                            foreach (var serial in serials)
-                            {
-                                serial.LastStockInLineId = item.Line.Id;
-                            }
-                        }
                     }
+                    var documentSerialNumbers = persistedLines
+                        .SelectMany(item => item.Prepared.SerialNumbers)
+                        .ToList();
+                    var documentSerials = await db.ProductSerials
+                        .Where(serial => documentSerialNumbers.Contains(serial.SerialNumber))
+                        .ToDictionaryAsync(serial => serial.SerialNumber, cancellationToken);
+                    foreach (var item in persistedLines)
+                    foreach (var serialNumber in item.Prepared.SerialNumbers)
+                        documentSerials[serialNumber].LastStockInLineId = item.Line.Id;
 
                     await db.SaveChangesAsync(cancellationToken);
                     await db.Database.CurrentTransaction!.ReleaseSavepointAsync(
@@ -1486,6 +1521,19 @@ namespace QuanLyHangHoa.Services.DataImport
             CancellationToken cancellationToken)
         {
             var grouped = GroupStockRows(rows);
+            var productCodes = rows.Select(row => row.ProductCode!).Distinct().ToList();
+            var productsByCode = await db.Products
+                .Where(product => productCodes.Contains(product.ProductCode) && product.IsActive)
+                .ToDictionaryAsync(product => product.ProductCode, cancellationToken);
+            var productIds = productsByCode.Values.Select(product => product.Id).ToList();
+            var conversionFactors = (await db.ProductUnits
+                    .Where(unit => productIds.Contains(unit.ProductId))
+                    .ToListAsync(cancellationToken))
+                .ToDictionary(unit => (unit.ProductId, unit.UnitId), unit => unit.ConversionFactor);
+            var issueSerialNumbers = rows.SelectMany(row => row.Serials).Distinct().ToList();
+            var serialsByNumber = await db.ProductSerials
+                .Where(serial => issueSerialNumbers.Contains(serial.SerialNumber))
+                .ToDictionaryAsync(serial => serial.SerialNumber, cancellationToken);
 
             foreach (var group in grouped)
             {
@@ -1562,6 +1610,9 @@ namespace QuanLyHangHoa.Services.DataImport
                     }
 
                     // kiểm tra đủ tồn và trạng thái từng serial trước khi tạo phiếu, tránh ghi dở dang rồi mới phát hiện thiếu hàng
+                    await db.StockBalances
+                        .Where(balance => productIds.Contains(balance.ProductId) && balance.WarehouseId == warehouse.Id)
+                        .LoadAsync(cancellationToken);
                     var preparedLines = new List<PreparedStockOutImportLine>();
 
                     foreach (var itemRow in groupRows)
@@ -1573,12 +1624,9 @@ namespace QuanLyHangHoa.Services.DataImport
                             throw new InventoryDomainException("Stock-out quantity must be greater than zero.");
                         }
 
-                        var product = db.Products.SingleOrDefault(item => item.ProductCode == productCode && item.IsActive)
+                        var product = productsByCode.GetValueOrDefault(productCode)
                             ?? throw new InventoryDomainException($"Không tìm thấy sản phẩm '{productCode}' khi import dòng.");
-                        var conversionFactor = db.ProductUnits
-                            .Where(unit => unit.ProductId == product.Id && unit.UnitId == product.DefaultUnitId)
-                            .Select(unit => unit.ConversionFactor)
-                            .FirstOrDefault();
+                        var conversionFactor = conversionFactors.GetValueOrDefault((product.Id, product.DefaultUnitId));
                         if (conversionFactor <= 0)
                         {
                             conversionFactor = 1m;
@@ -1600,7 +1648,7 @@ namespace QuanLyHangHoa.Services.DataImport
 
                         foreach (var serialNumber in serialNumbers)
                         {
-                            var serial = db.ProductSerials.SingleOrDefault(item => item.SerialNumber == serialNumber)
+                            var serial = serialsByNumber.GetValueOrDefault(serialNumber)
                                 ?? throw new InventoryDomainException($"Serial {serialNumber} does not exist.");
                             if (serial.ProductId != product.Id ||
                                 serial.CurrentWarehouseId != warehouse.Id ||
@@ -1621,7 +1669,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     foreach (var productGroup in preparedLines.GroupBy(item => item.Product.Id))
                     {
                         var requiredQuantity = productGroup.Sum(item => item.BaseQuantity);
-                        var balance = db.StockBalances.SingleOrDefault(item =>
+                        var balance = db.StockBalances.Local.SingleOrDefault(item =>
                             item.ProductId == productGroup.Key && item.WarehouseId == warehouse.Id);
                         if (balance is null || balance.AvailableQuantity < requiredQuantity)
                         {
@@ -1670,8 +1718,11 @@ namespace QuanLyHangHoa.Services.DataImport
                     }
 
                     await db.SaveChangesAsync(cancellationToken);
+                    var inventoryUnitOfWork = new EfInventoryUnitOfWork(db);
+                    inventoryUnitOfWork.MarkBalancesLoaded(productIds.Select(id => (id, warehouse.Id)));
+                    inventoryUnitOfWork.MarkSerialsLoaded(issueSerialNumbers);
                     var postingService = new InventoryPostingService(
-                        new EfInventoryUnitOfWork(db),
+                        inventoryUnitOfWork,
                         new DbDefaultWarehouseProvider(db),
                         new SystemClock());
 
@@ -1687,16 +1738,8 @@ namespace QuanLyHangHoa.Services.DataImport
                             item.Prepared.SerialNumbers,
                             userId));
 
-                        if (item.Prepared.SerialNumbers.Length > 0)
-                        {
-                            var serials = db.ProductSerials
-                                .Where(serial => item.Prepared.SerialNumbers.Contains(serial.SerialNumber))
-                                .ToList();
-                            foreach (var serial in serials)
-                            {
-                                serial.LastStockOutLineId = item.Line.Id;
-                            }
-                        }
+                        foreach (var serialNumber in item.Prepared.SerialNumbers)
+                            serialsByNumber[serialNumber].LastStockOutLineId = item.Line.Id;
                     }
 
                     await db.SaveChangesAsync(cancellationToken);
@@ -1760,6 +1803,26 @@ namespace QuanLyHangHoa.Services.DataImport
             CancellationToken cancellationToken)
         {
             var grouped = rows.GroupBy(row => row.InvoiceCode!);
+            var productCodes = rows.Select(row => row.ProductCode!).Distinct().ToList();
+            var productsByCode = await db.Products
+                .Where(product => productCodes.Contains(product.ProductCode))
+                .ToDictionaryAsync(product => product.ProductCode, cancellationToken);
+            var invoiceCodes = rows.Select(row => row.InvoiceCode!).Distinct().ToList();
+            var existingInvoices = await db.PurchaseInvoices
+                .AsNoTracking()
+                .Where(invoice => invoiceCodes.Contains(invoice.InvoiceCode))
+                .ToDictionaryAsync(invoice => invoice.InvoiceCode, cancellationToken);
+            var existingInvoiceIds = existingInvoices.Values.Select(invoice => invoice.Id).ToList();
+            var existingLineCounts = await db.PurchaseInvoiceLines
+                .Where(line => existingInvoiceIds.Contains(line.PurchaseInvoiceId))
+                .GroupBy(line => line.PurchaseInvoiceId)
+                .ToDictionaryAsync(group => group.Key, group => group.Count(), cancellationToken);
+            var supplierNames = rows.Select(row => row.SupplierName!).Distinct().ToList();
+            var suppliersByName = (await db.Suppliers
+                    .Where(supplier => supplierNames.Contains(supplier.DisplayName))
+                    .ToListAsync(cancellationToken))
+                .GroupBy(supplier => supplier.DisplayName, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
 
             foreach (var group in grouped)
             {
@@ -1785,20 +1848,16 @@ namespace QuanLyHangHoa.Services.DataImport
                         decimal qty = itemRow.Quantity;
                         decimal unitPrice = itemRow.UnitPrice;
                         decimal taxRate = itemRow.TaxRate;
-                        var product = db.Products.FirstOrDefault(p => p.ProductCode == productCode)
+                        var product = productsByCode.GetValueOrDefault(productCode)
                             ?? throw new ArgumentException($"Không tìm thấy sản phẩm '{productCode}'.");
                         preparedLines.Add((product, qty, unitPrice, taxRate));
                     }
                     var payloadMarker = firstRow.PayloadMarker!;
-                    var existingInvoice = await db.PurchaseInvoices
-                        .AsNoTracking()
-                        .SingleOrDefaultAsync(item => item.InvoiceCode == group.Key, cancellationToken);
+                    existingInvoices.TryGetValue(group.Key, out var existingInvoice);
                     if (existingInvoice is not null)
                     {
                         EnsurePayloadMatches(existingInvoice.Notes, payloadMarker);
-                        var existingLineCount = await db.PurchaseInvoiceLines.CountAsync(
-                            line => line.PurchaseInvoiceId == existingInvoice.Id,
-                            cancellationToken);
+                        existingLineCounts.TryGetValue(existingInvoice.Id, out var existingLineCount);
                         if (existingLineCount != groupRows.Count)
                         {
                             throw new InvalidOperationException(
@@ -1810,7 +1869,7 @@ namespace QuanLyHangHoa.Services.DataImport
                     }
                     var calculatedSubTotal = ValidateImportedInvoiceTotals(
                         preparedLines, totalAmount, discount, taxAmount);
-                    var supplier = db.Suppliers.FirstOrDefault(s => s.DisplayName == supplierName);
+                    suppliersByName.TryGetValue(supplierName, out var supplier);
                     if (supplier == null)
                     {
                         if (autoCreateReferences)
@@ -1818,6 +1877,7 @@ namespace QuanLyHangHoa.Services.DataImport
                             supplier = new Supplier { DisplayName = supplierName, SupplierCode = $"SUP-{Guid.NewGuid().ToString().Substring(0, 8).ToUpperInvariant()}", IsActive = true };
                             db.Suppliers.Add(supplier);
                             await db.SaveChangesAsync(cancellationToken);
+                            suppliersByName[supplierName] = supplier;
                         }
                         else
                         {
@@ -1884,6 +1944,26 @@ namespace QuanLyHangHoa.Services.DataImport
             CancellationToken cancellationToken)
         {
             var grouped = rows.GroupBy(row => row.InvoiceCode!);
+            var productCodes = rows.Select(row => row.ProductCode!).Distinct().ToList();
+            var productsByCode = await db.Products
+                .Where(product => productCodes.Contains(product.ProductCode))
+                .ToDictionaryAsync(product => product.ProductCode, cancellationToken);
+            var invoiceCodes = rows.Select(row => row.InvoiceCode!).Distinct().ToList();
+            var existingInvoices = await db.SalesInvoices
+                .AsNoTracking()
+                .Where(invoice => invoiceCodes.Contains(invoice.InvoiceCode))
+                .ToDictionaryAsync(invoice => invoice.InvoiceCode, cancellationToken);
+            var existingInvoiceIds = existingInvoices.Values.Select(invoice => invoice.Id).ToList();
+            var existingLineCounts = await db.SalesInvoiceLines
+                .Where(line => existingInvoiceIds.Contains(line.SalesInvoiceId))
+                .GroupBy(line => line.SalesInvoiceId)
+                .ToDictionaryAsync(group => group.Key, group => group.Count(), cancellationToken);
+            var customerNames = rows.Select(row => row.CustomerName!).Distinct().ToList();
+            var customersByName = (await db.Customers
+                    .Where(customer => customerNames.Contains(customer.DisplayName))
+                    .ToListAsync(cancellationToken))
+                .GroupBy(customer => customer.DisplayName, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
 
             foreach (var group in grouped)
             {
@@ -1909,20 +1989,16 @@ namespace QuanLyHangHoa.Services.DataImport
                         decimal qty = itemRow.Quantity;
                         decimal unitPrice = itemRow.UnitPrice;
                         decimal taxRate = itemRow.TaxRate;
-                        var product = db.Products.FirstOrDefault(p => p.ProductCode == productCode)
+                        var product = productsByCode.GetValueOrDefault(productCode)
                             ?? throw new ArgumentException($"Không tìm thấy sản phẩm '{productCode}'.");
                         preparedLines.Add((product, qty, unitPrice, taxRate));
                     }
                     var payloadMarker = firstRow.PayloadMarker!;
-                    var existingInvoice = await db.SalesInvoices
-                        .AsNoTracking()
-                        .SingleOrDefaultAsync(item => item.InvoiceCode == group.Key, cancellationToken);
+                    existingInvoices.TryGetValue(group.Key, out var existingInvoice);
                     if (existingInvoice is not null)
                     {
                         EnsurePayloadMatches(existingInvoice.Notes, payloadMarker);
-                        var existingLineCount = await db.SalesInvoiceLines.CountAsync(
-                            line => line.SalesInvoiceId == existingInvoice.Id,
-                            cancellationToken);
+                        existingLineCounts.TryGetValue(existingInvoice.Id, out var existingLineCount);
                         if (existingLineCount != groupRows.Count)
                         {
                             throw new InvalidOperationException(
@@ -1932,7 +2008,7 @@ namespace QuanLyHangHoa.Services.DataImport
                         result.SuccessCount += groupRows.Count;
                         continue;
                     }
-                    var customer = db.Customers.FirstOrDefault(c => c.DisplayName == customerName);
+                    customersByName.TryGetValue(customerName, out var customer);
                     var calculatedSubTotal = ValidateImportedInvoiceTotals(
                         preparedLines, totalAmount, discount, taxAmount);
                     if (customer == null)
@@ -1942,6 +2018,7 @@ namespace QuanLyHangHoa.Services.DataImport
                             customer = new Customer { DisplayName = customerName, CustomerCode = $"CUS-{Guid.NewGuid().ToString().Substring(0, 8).ToUpperInvariant()}", IsActive = true };
                             db.Customers.Add(customer);
                             await db.SaveChangesAsync(cancellationToken);
+                            customersByName[customerName] = customer;
                         }
                         else
                         {

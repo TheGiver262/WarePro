@@ -16,6 +16,7 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
     private readonly AppDbContext _context;
     private readonly bool _commitChanges;
     private readonly Dictionary<int, bool> _stockApprovalCache = [];
+    private readonly HashSet<(int ProductId, int WarehouseId)> _loadedBalanceKeys = [];
     private readonly Dictionary<int, bool> _warrantyPermissionCache = [];
     private readonly HashSet<string> _loadedSerialNumbers = new(StringComparer.Ordinal);
 
@@ -32,6 +33,9 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
     }
     internal void MarkSerialsLoaded(IEnumerable<string> serialNumbers) =>
         _loadedSerialNumbers.UnionWith(serialNumbers);
+    internal void MarkBalancesLoaded(IEnumerable<(int ProductId, int WarehouseId)> keys) =>
+        _loadedBalanceKeys.UnionWith(keys);
+
 
     public bool CanApproveStock(int userId)
     {
@@ -281,9 +285,11 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
 
     private StockBalance? FindTrackedOrPersistedBalance(int productId, int warehouseId)
     {
-        return _context.StockBalances.Local
-            .SingleOrDefault(b => b.ProductId == productId && b.WarehouseId == warehouseId)
-            ?? _context.StockBalances
-                .SingleOrDefault(b => b.ProductId == productId && b.WarehouseId == warehouseId);
+        var tracked = _context.StockBalances.Local
+            .SingleOrDefault(b => b.ProductId == productId && b.WarehouseId == warehouseId);
+        return tracked
+            ?? (_loadedBalanceKeys.Contains((productId, warehouseId))
+                ? null
+                : _context.StockBalances.SingleOrDefault(b => b.ProductId == productId && b.WarehouseId == warehouseId));
     }
 }
