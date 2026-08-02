@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
@@ -14,6 +15,9 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
 {
     private readonly AppDbContext _context;
     private readonly bool _commitChanges;
+    private readonly Dictionary<int, bool> _stockApprovalCache = [];
+    private readonly Dictionary<int, bool> _warrantyPermissionCache = [];
+    private readonly HashSet<string> _loadedSerialNumbers = new(StringComparer.Ordinal);
 
     public EfInventoryUnitOfWork(AppDbContext context)
         : this(context, commitChanges: true)
@@ -26,22 +30,39 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
         _context = context;
         _commitChanges = commitChanges;
     }
+    internal void MarkSerialsLoaded(IEnumerable<string> serialNumbers) =>
+        _loadedSerialNumbers.UnionWith(serialNumbers);
 
     public bool CanApproveStock(int userId)
     {
+        if (_stockApprovalCache.TryGetValue(userId, out var cached))
+        {
+            return cached;
+        }
+
         var actor = _context.AppUsers.AsNoTracking().SingleOrDefault(user => user.Id == userId);
-        return AuthorizationService.CanPerform(actor, PermissionAction.ApproveStock);
+        var allowed = AuthorizationService.CanPerform(actor, PermissionAction.ApproveStock);
+        _stockApprovalCache[userId] = allowed;
+        return allowed;
     }
 
     public bool CanProcessWarrantyStock(int userId)
     {
+        if (_warrantyPermissionCache.TryGetValue(userId, out var cached))
+        {
+            return cached;
+        }
+
         var actor = _context.AppUsers.AsNoTracking().SingleOrDefault(user => user.Id == userId);
-        return AuthorizationService.CanPerform(actor, PermissionAction.CreateWarrantyClaim);
+        var allowed = AuthorizationService.CanPerform(actor, PermissionAction.CreateWarrantyClaim);
+        _warrantyPermissionCache[userId] = allowed;
+        return allowed;
     }
 
     public ProductSnapshot GetProduct(int productId)
     {
-        var product = _context.Products.SingleOrDefault(p => p.Id == productId && p.IsActive);
+        var product = _context.Products.Local.SingleOrDefault(p => p.Id == productId && p.IsActive)
+            ?? _context.Products.SingleOrDefault(p => p.Id == productId && p.IsActive);
         if (product is null)
         {
             throw new InventoryDomainException($"Product {productId} does not exist.");
@@ -53,8 +74,7 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
     // entity được track để EF giữ rowversion gốc; snapshot trả ra chỉ mang số dùng cho nghiệp vụ.
     public StockBalanceSnapshot? FindBalance(int productId, int warehouseId)
     {
-        var balance = _context.StockBalances
-            .SingleOrDefault(b => b.ProductId == productId && b.WarehouseId == warehouseId);
+        var balance = FindTrackedOrPersistedBalance(productId, warehouseId);
 
         return balance is null ? null : ToSnapshot(balance);
     }
@@ -100,13 +120,12 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
 
     public bool SerialExists(string serialNumber)
     {
-        return _context.ProductSerials.Any(s => s.SerialNumber == serialNumber);
+        return FindTrackedOrPersistedSerial(serialNumber) is not null;
     }
 
     public ProductSerialSnapshot GetSerial(string serialNumber)
     {
-        var serial = _context.ProductSerials
-            .SingleOrDefault(s => s.SerialNumber == serialNumber);
+        var serial = FindTrackedOrPersistedSerial(serialNumber);
 
         if (serial is null)
         {
@@ -118,15 +137,24 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
 
     public void SaveSerial(ProductSerialSnapshot snapshot)
     {
-        var serial = _context.ProductSerials.SingleOrDefault(s => s.SerialNumber == snapshot.SerialNumber);
+        var serial = FindTrackedOrPersistedSerial(snapshot.SerialNumber);
         if (serial is null)
         {
             // schema cũ yêu cầu LastStockInLineId; lấy dòng nhập gần nhất của sản phẩm làm liên kết tương thích.
-            var stockInLineId = _context.StockInLines
+            var stockInLineId = _context.StockInLines.Local
                 .Where(l => l.ProductId == snapshot.ProductId)
                 .OrderByDescending(l => l.Id)
                 .Select(l => l.Id)
                 .FirstOrDefault();
+
+            if (stockInLineId == 0)
+            {
+                stockInLineId = _context.StockInLines
+                    .Where(l => l.ProductId == snapshot.ProductId)
+                    .OrderByDescending(l => l.Id)
+                    .Select(l => l.Id)
+                    .FirstOrDefault();
+            }
 
             if (stockInLineId == 0)
             {
@@ -240,6 +268,17 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
     }
 
     // tìm Local trước để không tạo hai entity cùng khóa khi balance vừa được thêm nhưng chưa commit.
+    private ProductSerial? FindTrackedOrPersistedSerial(string serialNumber)
+    {
+        var tracked = _context.ProductSerials.Local
+            .SingleOrDefault(serial => serial.SerialNumber == serialNumber);
+
+        return tracked
+            ?? (_loadedSerialNumbers.Contains(serialNumber)
+                ? null
+                : _context.ProductSerials.SingleOrDefault(serial => serial.SerialNumber == serialNumber));
+    }
+
     private StockBalance? FindTrackedOrPersistedBalance(int productId, int warehouseId)
     {
         return _context.StockBalances.Local

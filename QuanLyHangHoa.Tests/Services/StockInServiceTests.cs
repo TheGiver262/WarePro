@@ -239,6 +239,72 @@ public class StockInServiceTests
         Assert.Equal(24, ledger.Quantity);
     }
 
+    [Fact]
+    public void Post_query_count_does_not_grow_per_line()
+    {
+        var singleLineCount = CountPostSelects(1);
+        var sixLineCount = CountPostSelects(6);
+
+        Assert.True(
+            sixLineCount <= singleLineCount + 2,
+            $"Expected at most {singleLineCount + 2} SELECTs, but observed {sixLineCount}.");
+    }
+
+    private static int CountPostSelects(int lineCount)
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        using (var seedContext = CreateContext(connection))
+        {
+            DatabaseHelper.SeedBasicData(seedContext);
+            seedContext.Products.AddRange(Enumerable.Range(0, lineCount).Select(index => new Product
+            {
+                Id = 500 + index,
+                ProductCode = $"N1-IN-{index}",
+                DisplayName = $"N+1 stock-in product {index}",
+                CategoryId = 1,
+                BrandId = 1,
+                DefaultUnitId = 1,
+                DefaultPrice = 10m,
+                IsActive = true,
+                IsSerialTracked = true
+            }));
+            seedContext.SaveChanges();
+        }
+
+        var counter = new SelectCommandCounter();
+        var service = new StockInService(() => DatabaseHelper.CreateContext(connection, counter));
+        var stockIn = new StockIn
+        {
+            DocumentCode = $"SI-N1-{lineCount}",
+            SupplierId = 1,
+            WarehouseId = 1,
+            PurposeCode = "Purchase",
+            CreatedAt = DateTime.UtcNow
+        };
+        var lines = Enumerable.Range(0, lineCount)
+            .Select(index => new StockInLine
+            {
+                ProductId = 500 + index,
+                UnitId = 1,
+                Quantity = 1m,
+                UnitPrice = 10m,
+                ProductSerials =
+                [
+                    new ProductSerial { SerialNumber = $"N1-IN-SN-{index}" }
+                ]
+            })
+            .ToList();
+
+        service.SaveDraft(stockIn, lines, 1);
+        ApproveForPosting(service, connection, stockIn.Id);
+        counter.Reset();
+
+        service.Post(stockIn.Id, 1);
+
+        return counter.Count;
+    }
+
     private static void ApproveForPosting(StockInService service, SqliteConnection connection, int stockInId)
     {
         using (var db = CreateContext(connection))

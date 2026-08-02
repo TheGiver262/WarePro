@@ -479,9 +479,17 @@ namespace QuanLyHangHoa.Services
 
             // tính lại hệ số từ database khi post để không dùng conversion factor draft đã cũ.
             var lineProductIds = stockOut.Lines.Select(l => l.ProductId).Distinct().ToList();
+            var productMap = db.Products
+                .Where(product => lineProductIds.Contains(product.Id))
+                .ToDictionary(product => product.Id);
             var unitMap = db.ProductUnits
                 .Where(pu => lineProductIds.Contains(pu.ProductId))
                 .ToList();
+            db.StockBalances
+                .Where(balance =>
+                    lineProductIds.Contains(balance.ProductId) &&
+                    balance.WarehouseId == stockOut.WarehouseId)
+                .Load();
 
             foreach (var line in stockOut.Lines)
             {
@@ -494,25 +502,45 @@ namespace QuanLyHangHoa.Services
             // snapshot serial theo line được tạo trước khi gọi posting service.
             var lineSerialsMap = new Dictionary<int, List<string>>();
             var allDocumentSerials = new List<string>();
+            var stockOutLineIds = stockOut.Lines.Select(line => line.Id).ToList();
+            var legacySerialsByLineId = db.ProductSerials
+                .Where(serial =>
+                    serial.LastStockOutLineId.HasValue &&
+                    stockOutLineIds.Contains(serial.LastStockOutLineId.Value))
+                .Select(serial => new { LineId = serial.LastStockOutLineId!.Value, serial.SerialNumber })
+                .ToList()
+                .ToLookup(serial => serial.LineId, serial => serial.SerialNumber);
             foreach (var line in stockOut.Lines)
             {
-                var serials = new List<string>();
-                if (!string.IsNullOrWhiteSpace(line.DraftSerials))
+                var serials = !string.IsNullOrWhiteSpace(line.DraftSerials)
+                    ? line.DraftSerials
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(serial => serial.Trim())
+                        .ToList()
+                    : legacySerialsByLineId[line.Id].ToList();
+                lineSerialsMap[line.Id] = serials;
+                allDocumentSerials.AddRange(serials);
+            }
+
+            var dbSerialsByNumber = db.ProductSerials
+                .Where(serial => allDocumentSerials.Contains(serial.SerialNumber))
+                .ToList()
+                .ToDictionary(serial => serial.SerialNumber, StringComparer.OrdinalIgnoreCase);
+
+            foreach (var line in stockOut.Lines)
+            {
+                var serials = lineSerialsMap[line.Id];
+                if (serials.Count == 0 && !string.IsNullOrWhiteSpace(line.DraftSerials))
                 {
                     serials = line.DraftSerials.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToList();
                 }
-                else
+                else if (serials.Count == 0)
                 {
                     // dữ liệu cũ không có DraftSerials được truy ngược qua LastStockOutLineId.
-                    serials = db.ProductSerials
-                        .Where(ps => ps.LastStockOutLineId == line.Id)
-                        .Select(ps => ps.SerialNumber)
-                        .ToList();
+                    serials = legacySerialsByLineId[line.Id].ToList();
                 }
-                lineSerialsMap[line.Id] = serials;
-                allDocumentSerials.AddRange(serials);
 
-                var product = db.Products.Find(line.ProductId);
+                productMap.TryGetValue(line.ProductId, out var product);
                 if (product != null && product.IsSerialTracked)
                 {
                     if (line.BaseQuantity != decimal.Truncate(line.BaseQuantity))
@@ -529,14 +557,11 @@ namespace QuanLyHangHoa.Services
                     }
 
                     // mọi serial phải còn InStock, đúng sản phẩm và đúng kho nguồn trước khi trừ tồn.
-                    var dbSerials = db.ProductSerials
-                        .Where(ps => serials.Contains(ps.SerialNumber))
-                        .ToList();
 
                     var invalidSerials = new List<string>();
                     foreach (var sn in serials)
                     {
-                        var dbSerial = dbSerials.FirstOrDefault(ps => string.Equals(ps.SerialNumber, sn, StringComparison.OrdinalIgnoreCase));
+                        dbSerialsByNumber.TryGetValue(sn, out var dbSerial);
                         if (dbSerial == null || 
                             dbSerial.ProductId != line.ProductId || 
                             dbSerial.CurrentWarehouseId != stockOut.WarehouseId || 
@@ -568,8 +593,10 @@ namespace QuanLyHangHoa.Services
             stockOut.PostedBy = userId;
             stockOut.PostedAt = DateTime.UtcNow;
 
+            var unitOfWork = new EfInventoryUnitOfWork(db, commitChanges: false);
+            unitOfWork.MarkSerialsLoaded(allDocumentSerials);
             var postingService = new InventoryPostingService(
-                new EfInventoryUnitOfWork(db, commitChanges: false),
+                unitOfWork,
                 new DbDefaultWarehouseProvider(db),
                 new SystemClock());
 
@@ -595,7 +622,10 @@ namespace QuanLyHangHoa.Services
                 var serials = lineSerialsMap.TryGetValue(line.Id, out var sns) ? sns : new List<string>();
                 if (serials.Any())
                 {
-                    var dbSerials = db.ProductSerials.Where(ps => serials.Contains(ps.SerialNumber)).ToList();
+                    var dbSerials = serials
+                        .Where(dbSerialsByNumber.ContainsKey)
+                        .Select(serialNumber => dbSerialsByNumber[serialNumber])
+                        .ToList();
                     foreach (var s in dbSerials)
                     {
                         s.LastStockOutLineId = line.Id;

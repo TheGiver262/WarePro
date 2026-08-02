@@ -255,6 +255,91 @@ public class StockOutServiceTests
         Assert.Equal(24, ledger.Quantity);
     }
 
+    [Fact]
+    public void Post_query_count_does_not_grow_per_line()
+    {
+        var singleLineCount = CountPostSelects(1);
+        var sixLineCount = CountPostSelects(6);
+
+        Assert.True(
+            sixLineCount <= singleLineCount + 2,
+            $"Expected at most {singleLineCount + 2} SELECTs, but observed {sixLineCount}.");
+    }
+
+    private static int CountPostSelects(int lineCount)
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        using (var seedContext = DatabaseHelper.CreateContext(connection))
+        {
+            DatabaseHelper.SeedBasicData(seedContext);
+            foreach (var index in Enumerable.Range(0, lineCount))
+            {
+                var productId = 600 + index;
+                seedContext.Products.Add(new Product
+                {
+                    Id = productId,
+                    ProductCode = $"N1-OUT-{index}",
+                    DisplayName = $"N+1 stock-out product {index}",
+                    CategoryId = 1,
+                    BrandId = 1,
+                    DefaultUnitId = 1,
+                    DefaultPrice = 10m,
+                    IsActive = true,
+                    IsSerialTracked = true
+                });
+                seedContext.StockBalances.Add(new StockBalance
+                {
+                    ProductId = productId,
+                    WarehouseId = 1,
+                    OnHandQuantity = 10m,
+                    AvailableQuantity = 10m
+                });
+                seedContext.ProductSerials.Add(new ProductSerial
+                {
+                    SerialNumber = $"N1-OUT-SN-{index}",
+                    ProductId = productId,
+                    CurrentWarehouseId = 1,
+                    CurrentStatus = "InStock",
+                    LastStockInLineId = 1
+                });
+            }
+            seedContext.SaveChanges();
+        }
+
+        var counter = new SelectCommandCounter();
+        var service = new StockOutService(() => DatabaseHelper.CreateContext(connection, counter));
+        var stockOut = new StockOut
+        {
+            DocumentCode = $"SO-N1-{lineCount}",
+            CustomerId = 1,
+            WarehouseId = 1,
+            PurposeCode = "Sale",
+            CreatedAt = DateTime.UtcNow
+        };
+        var lines = Enumerable.Range(0, lineCount)
+            .Select(index => new StockOutLine
+            {
+                ProductId = 600 + index,
+                UnitId = 1,
+                Quantity = 1m,
+                UnitPrice = 10m,
+                ProductSerials =
+                [
+                    new ProductSerial { SerialNumber = $"N1-OUT-SN-{index}" }
+                ]
+            })
+            .ToList();
+
+        service.SaveDraft(stockOut, lines, 1);
+        ApproveForPosting(service, connection, stockOut.Id);
+        counter.Reset();
+
+        service.Post(stockOut.Id, 1);
+
+        return counter.Count;
+    }
+
     private static void GrantApprovalPermission(SqliteConnection connection)
     {
         using var db = DatabaseHelper.CreateContext(connection);
