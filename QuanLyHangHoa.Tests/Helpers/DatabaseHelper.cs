@@ -1,5 +1,6 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
 using System;
@@ -8,7 +9,9 @@ namespace QuanLyHangHoa.Tests.Helpers
 {
     public static class DatabaseHelper
     {
-        public static AppDbContext CreateContext(SqliteConnection connection)
+        public static AppDbContext CreateContext(
+            SqliteConnection connection,
+            params IInterceptor[] interceptors)
         {
             // Disable foreign key constraints for unit tests to allow seeding dummy references
             using (var command = connection.CreateCommand())
@@ -17,11 +20,15 @@ namespace QuanLyHangHoa.Tests.Helpers
                 command.ExecuteNonQuery();
             }
 
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseSqlite(connection)
-                .Options;
+            var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>()
+                .UseSqlite(connection);
 
-            return new AppDbContext(options);
+            if (interceptors.Length > 0)
+            {
+                optionsBuilder.AddInterceptors(interceptors);
+            }
+
+            return new AppDbContext(optionsBuilder.Options);
         }
 
         public static void SeedBasicData(AppDbContext context)
