@@ -361,10 +361,40 @@ namespace QuanLyHangHoa.Services
 
             // kiểm tra đủ serial theo BaseQuantity trước khi bất kỳ balance nào được lưu.
             var beforeJson = Serialize(stockTransfer);
+            var productIds = stockTransfer.Lines
+                .Select(line => line.ProductId)
+                .Distinct()
+                .ToList();
+            var productMap = db.Products
+                .Where(product => productIds.Contains(product.Id))
+                .ToDictionary(product => product.Id);
+            var balances = db.StockBalances
+                .Where(balance =>
+                    productIds.Contains(balance.ProductId) &&
+                    (balance.WarehouseId == stockTransfer.FromWarehouseId ||
+                     balance.WarehouseId == stockTransfer.ToWarehouseId))
+                .ToList();
+            var destinationProductIds = balances
+                .Where(balance => balance.WarehouseId == stockTransfer.ToWarehouseId)
+                .Select(balance => balance.ProductId)
+                .ToHashSet();
+            foreach (var productId in productMap.Keys.Where(
+                         productId => !destinationProductIds.Contains(productId)))
+            {
+                db.StockBalances.Add(new StockBalance
+                {
+                    ProductId = productId,
+                    WarehouseId = stockTransfer.ToWarehouseId
+                });
+            }
+            var serialNumbers = stockTransfer.Lines
+                .SelectMany(line => line.ProductSerials.Select(serial => serial.SerialNumber))
+                .ToList();
             foreach (var line in stockTransfer.Lines)
             {
-                var product = db.Products.Find(line.ProductId)
-                    ?? throw new InventoryDomainException($"Product {line.ProductId} does not exist.");
+                if (!productMap.TryGetValue(line.ProductId, out var product))
+                    throw new InventoryDomainException($"Product {line.ProductId} does not exist.");
+
                 if (!product.IsSerialTracked)
                 {
                     continue;
@@ -388,8 +418,10 @@ namespace QuanLyHangHoa.Services
             stockTransfer.PostedBy = userId;
             stockTransfer.PostedAt = DateTime.UtcNow;
 
+            var unitOfWork = new EfInventoryUnitOfWork(db, commitChanges: false);
+            unitOfWork.MarkSerialsLoaded(serialNumbers);
             var postingService = new InventoryPostingService(
-                new EfInventoryUnitOfWork(db, commitChanges: false),
+                unitOfWork,
                 new DbDefaultWarehouseProvider(db),
                 new SystemClock());
 

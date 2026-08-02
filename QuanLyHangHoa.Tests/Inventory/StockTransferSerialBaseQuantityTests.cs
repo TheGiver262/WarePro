@@ -94,4 +94,97 @@ public class StockTransferSerialBaseQuantityTests
         Assert.All(serials, serial => Assert.Equal(2, serial.CurrentWarehouseId));
         Assert.All(serials, serial => Assert.Equal("InStock", serial.CurrentStatus));
     }
+    [Fact]
+    public void PostTransfer_query_count_does_not_grow_per_line()
+    {
+        var singleLineCount = CountPostSelects(1);
+        var sixLineCount = CountPostSelects(6);
+
+        Assert.True(
+            sixLineCount <= singleLineCount + 2,
+            $"Expected at most {singleLineCount + 2} SELECTs, but observed {sixLineCount}.");
+    }
+
+    private static int CountPostSelects(int lineCount)
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        using (var setup = DatabaseHelper.CreateContext(connection))
+        {
+            DatabaseHelper.SeedBasicData(setup);
+            setup.Warehouses.Add(new Warehouse
+            {
+                Id = 2,
+                WarehouseCode = "WH2-N1",
+                DisplayName = "Transfer destination",
+                IsActive = true
+            });
+
+            var lines = new List<StockTransferLine>();
+            foreach (var index in Enumerable.Range(0, lineCount))
+            {
+                var productId = 700 + index;
+                setup.Products.Add(new Product
+                {
+                    Id = productId,
+                    ProductCode = $"N1-TRANSFER-{index}",
+                    DisplayName = $"N+1 transfer product {index}",
+                    CategoryId = 1,
+                    BrandId = 1,
+                    DefaultUnitId = 1,
+                    DefaultPrice = 10m,
+                    IsActive = true,
+                    IsSerialTracked = true
+                });
+                setup.StockBalances.Add(new StockBalance
+                {
+                    ProductId = productId,
+                    WarehouseId = 1,
+                    OnHandQuantity = 1m,
+                    AvailableQuantity = 1m
+                });
+                var line = new StockTransferLine
+                {
+                    ProductId = productId,
+                    UnitId = 1,
+                    Quantity = 1m,
+                    BaseQuantity = 1m
+                };
+                line.ProductSerials.Add(new ProductSerial
+                {
+                    ProductId = productId,
+                    SerialNumber = $"N1-TRANSFER-SN-{index}",
+                    CurrentWarehouseId = 1,
+                    CurrentStatus = "InStock",
+                    LastStockInLineId = 0
+                });
+                lines.Add(line);
+            }
+
+            setup.StockTransfers.Add(new StockTransfer
+            {
+                Id = 702,
+                DocumentCode = $"ST-N1-{lineCount}",
+                FromWarehouseId = 1,
+                ToWarehouseId = 2,
+                Status = "Draft",
+                TransferDate = DateTime.UtcNow,
+                CreatedBy = 1,
+                CreatedAt = DateTime.UtcNow,
+                Lines = lines
+            });
+            setup.SaveChanges();
+        }
+
+        var counter = new SelectCommandCounter();
+        var service = new StockTransferService(
+            () => DatabaseHelper.CreateContext(connection, counter));
+        service.SubmitForApproval(702, 1);
+        service.Approve(702, 1);
+        counter.Reset();
+
+        service.Post(702, 1);
+
+        return counter.Count;
+    }
 }

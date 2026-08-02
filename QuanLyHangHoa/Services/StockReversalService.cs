@@ -346,13 +346,19 @@ public sealed class StockReversalService
                 group.Key.ProductId,
                 group.Key.WarehouseId,
                 Quantity = group.Sum(entry => entry.Quantity)
-            });
+            })
+            .ToList();
+        var productIds = movements.Select(movement => movement.ProductId).Distinct().ToList();
+        var warehouseIds = movements.Select(movement => movement.WarehouseId).Distinct().ToList();
+        var balances = db.StockBalances
+            .Where(balance =>
+                productIds.Contains(balance.ProductId) &&
+                warehouseIds.Contains(balance.WarehouseId))
+            .ToDictionary(balance => (balance.ProductId, balance.WarehouseId));
 
         foreach (var movement in movements)
         {
-            var balance = db.StockBalances.SingleOrDefault(item =>
-                item.ProductId == movement.ProductId &&
-                item.WarehouseId == movement.WarehouseId);
+            balances.TryGetValue((movement.ProductId, movement.WarehouseId), out var balance);
 
             if (sourceType == "StockIn")
             {
