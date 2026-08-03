@@ -49,6 +49,21 @@ SQL Server trung tâm
 - Inno Setup cho bộ cài Windows.
 
 ## Chạy từ source
+## Hi?u n?ng truy v?n
+
+C?c lu?ng ghi kho v? import t?i d? li?u tham chi?u theo l? tr??c khi x? l? d?ng: nh?p kho, xu?t kho, chuy?n kho, ??o ch?ng t? v? Dynamic Import. Vi?c n?y tr?nh s? truy v?n `SELECT` t?ng theo s? d?ng ho?c serial.
+
+Query-count tests d?ng `DbCommandInterceptor` v? so s?nh l? nh? v?i l? l?n. Ch?ng bao ph? ghi s? kho, chuy?n kho, ??o ch?ng t?, import danh m?c/s?n ph?m/serial, ch?ng t? nh?p/xu?t v? h?a ??n, g?m c? replay h?a ??n.
+
+Ki?m tra ??y ??:
+
+```powershell
+dotnet test QuanLyHangHoa/QuanLyHangHoa.sln --no-restore -m:1 -nr:false -p:UseSharedCompilation=false -p:RestoreBuildInParallel=false
+dotnet build QuanLyHangHoa/QuanLyHangHoa.sln --no-restore -m:1 -nr:false -p:UseSharedCompilation=false -p:RestoreBuildInParallel=false
+```
+
+M?c x?c minh 03/08/2026: 904 test pass, 0 fail; 15 test t?ch h?p SQL Server/real database ???c skip theo c?u h?nh s?n c?. Build ??t 0 warning v? 0 error.
+
 
 Clone repo phù hợp khi cần phát triển hoặc kiểm thử. Nếu chỉ cần sử dụng phần mềm, hãy tải bộ cài từ GitHub Releases.
 

@@ -54,6 +54,13 @@ Test tập trung vào:
 
 Các test nghiệp vụ hiện có vẫn phải vượt qua.
 
+## Implemented Result (2026-08-03)
+
+- Stock-in, stock-out, transfer, and reversal preload their product, serial, or balance keys before looping.
+- Dynamic Import batches master-data, product/unit, serial, balance, partner, invoice, and replay-verification lookups. Replay verification uses one projected query per import type, then compares markers and line counts in memory.
+- `EfInventoryUnitOfWork` remembers preloaded serial and balance keys so a known-missing key is not queried again during one posting operation.
+- Query-count regression tests cover 1-to-many row/document/serial growth, while existing business tests retain validation, atomicity, replay, and rollback coverage.
+
 ## Success Criteria
 
 - Không còn truy vấn EF đọc dữ liệu tham chiếu bên trong các vòng lặp thuộc phạm vi trên.
