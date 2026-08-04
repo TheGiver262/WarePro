@@ -48,23 +48,22 @@ SQL Server trung tâm
 - xUnit, Moq và SQLite in-memory cho kiểm thử;
 - Inno Setup cho bộ cài Windows.
 
-## Chạy từ source
-## Hi?u n?ng truy v?n
+## Hiệu năng truy vấn
 
-C?c lu?ng ghi kho v? import t?i d? li?u tham chi?u theo l? tr??c khi x? l? d?ng: nh?p kho, xu?t kho, chuy?n kho, ??o ch?ng t? v? Dynamic Import. Vi?c n?y tr?nh s? truy v?n `SELECT` t?ng theo s? d?ng ho?c serial.
+Các luồng ghi kho và import tải dữ liệu tham chiếu theo lô trước khi xử lý dòng: nhập kho, xuất kho, chuyển kho, đảo chứng từ và Dynamic Import. Việc này tránh số truy vấn `SELECT` tăng theo số dòng hoặc serial.
 
-Query-count tests d?ng `DbCommandInterceptor` v? so s?nh l? nh? v?i l? l?n. Ch?ng bao ph? ghi s? kho, chuy?n kho, ??o ch?ng t?, import danh m?c/s?n ph?m/serial, ch?ng t? nh?p/xu?t v? h?a ??n, g?m c? replay h?a ??n.
+Query-count tests dùng `DbCommandInterceptor` và so sánh lô nhỏ với lô lớn. Chúng bao phủ ghi sổ kho, chuyển kho, đảo chứng từ, import danh mục/sản phẩm/serial, chứng từ nhập/xuất và hóa đơn, gồm cả replay hóa đơn.
 
-Ki?m tra ??y ??:
+Kiểm tra đầy đủ:
 
 ```powershell
 dotnet test QuanLyHangHoa/QuanLyHangHoa.sln --no-restore -m:1 -nr:false -p:UseSharedCompilation=false -p:RestoreBuildInParallel=false
 dotnet build QuanLyHangHoa/QuanLyHangHoa.sln --no-restore -m:1 -nr:false -p:UseSharedCompilation=false -p:RestoreBuildInParallel=false
 ```
 
-M?c x?c minh 03/08/2026: 904 test pass, 0 fail; 15 test t?ch h?p SQL Server/real database ???c skip theo c?u h?nh s?n c?. Build ??t 0 warning v? 0 error.
+Mốc xác minh 03/08/2026: 904 test pass, 0 fail; 15 test tích hợp SQL Server/real database được skip theo cấu hình sẵn có. Build đạt 0 warning và 0 error.
 
-
+## Chạy từ source
 Clone repo phù hợp khi cần phát triển hoặc kiểm thử. Nếu chỉ cần sử dụng phần mềm, hãy tải bộ cài từ GitHub Releases.
 
 1. Cài Visual Studio 2022 với workload **.NET desktop development**, .NET 8 SDK và SQL Server Express hoặc LocalDB.
