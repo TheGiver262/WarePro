@@ -77,7 +77,8 @@ public sealed class InventoryPostingService
                 serialNumber,
                 command.ProductId,
                 warehouseId,
-                SerialStatus.InStock));
+                SerialStatus.InStock,
+                StockInLineId: command.StockInLineId));
         }
 
         _unitOfWork.AddLedger(new StockLedgerEntry(

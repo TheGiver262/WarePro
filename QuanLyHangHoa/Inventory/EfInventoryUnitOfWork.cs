@@ -18,7 +18,8 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
     private readonly Dictionary<int, bool> _stockApprovalCache = [];
     private readonly HashSet<(int ProductId, int WarehouseId)> _loadedBalanceKeys = [];
     private readonly Dictionary<int, bool> _warrantyPermissionCache = [];
-    private readonly HashSet<string> _loadedSerialNumbers = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _loadedSerialNumbers = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, ProductSerial> _serialTrackerIndex = new(StringComparer.OrdinalIgnoreCase);
 
     public EfInventoryUnitOfWork(AppDbContext context)
         : this(context, commitChanges: true)
@@ -144,14 +145,18 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
         var serial = FindTrackedOrPersistedSerial(snapshot.SerialNumber);
         if (serial is null)
         {
-            // schema cũ yêu cầu LastStockInLineId; lấy dòng nhập gần nhất của sản phẩm làm liên kết tương thích.
-            var stockInLineId = _context.StockInLines.Local
-                .Where(l => l.ProductId == snapshot.ProductId)
-                .OrderByDescending(l => l.Id)
-                .Select(l => l.Id)
-                .FirstOrDefault();
+            int stockInLineId = snapshot.StockInLineId ?? 0;
 
-            if (stockInLineId == 0)
+            if (stockInLineId <= 0)
+            {
+                stockInLineId = _context.StockInLines.Local
+                    .Where(l => l.ProductId == snapshot.ProductId)
+                    .OrderByDescending(l => l.Id)
+                    .Select(l => l.Id)
+                    .FirstOrDefault();
+            }
+
+            if (stockInLineId <= 0)
             {
                 stockInLineId = _context.StockInLines
                     .Where(l => l.ProductId == snapshot.ProductId)
@@ -160,9 +165,21 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
                     .FirstOrDefault();
             }
 
-            if (stockInLineId == 0)
+            if (stockInLineId <= 0)
             {
-                stockInLineId = _context.StockInLines.Select(l => l.Id).FirstOrDefault();
+                // Last resort: only for non-StockIn paths (e.g., StockAdjustment-In) where no product-scoped
+                // StockInLine exists. The schema requires LastStockInLineId NOT NULL, so we reference
+                // the most recent line in the DB. The PostStockIn path always passes an explicit StockInLineId,
+                // so this branch is never reached for normal stock-in operations.
+                stockInLineId = _context.StockInLines
+                    .OrderByDescending(l => l.Id)
+                    .Select(l => l.Id)
+                    .FirstOrDefault();
+            }
+
+            if (stockInLineId <= 0)
+            {
+                throw new InventoryDomainException($"StockInLine is required when creating serial {snapshot.SerialNumber}. No StockIn document exists in the database.");
             }
 
             serial = new ProductSerial
@@ -172,6 +189,7 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
                 LastStockInLineId = stockInLineId
             };
             _context.ProductSerials.Add(serial);
+            _serialTrackerIndex[snapshot.SerialNumber] = serial;
         }
 
         serial.ProductId = snapshot.ProductId;
@@ -274,13 +292,34 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
     // tìm Local trước để không tạo hai entity cùng khóa khi balance vừa được thêm nhưng chưa commit.
     private ProductSerial? FindTrackedOrPersistedSerial(string serialNumber)
     {
-        var tracked = _context.ProductSerials.Local
-            .SingleOrDefault(serial => serial.SerialNumber == serialNumber);
+        if (_serialTrackerIndex.TryGetValue(serialNumber, out var cached))
+        {
+            return cached;
+        }
 
-        return tracked
-            ?? (_loadedSerialNumbers.Contains(serialNumber)
-                ? null
-                : _context.ProductSerials.SingleOrDefault(serial => serial.SerialNumber == serialNumber));
+        var tracked = _context.ProductSerials.Local
+            .FirstOrDefault(serial => string.Equals(serial.SerialNumber, serialNumber, StringComparison.OrdinalIgnoreCase));
+
+        if (tracked is not null)
+        {
+            _serialTrackerIndex[serialNumber] = tracked;
+            return tracked;
+        }
+
+        if (_loadedSerialNumbers.Contains(serialNumber))
+        {
+            return null;
+        }
+
+        var dbSerial = _context.ProductSerials
+            .FirstOrDefault(serial => serial.SerialNumber == serialNumber);
+
+        if (dbSerial is not null)
+        {
+            _serialTrackerIndex[serialNumber] = dbSerial;
+        }
+
+        return dbSerial;
     }
 
     private StockBalance? FindTrackedOrPersistedBalance(int productId, int warehouseId)

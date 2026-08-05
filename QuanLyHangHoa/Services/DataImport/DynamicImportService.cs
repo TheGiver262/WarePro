@@ -1467,7 +1467,8 @@ namespace QuanLyHangHoa.Services.DataImport
                             item.Prepared.Product.Id,
                             item.Prepared.BaseQuantity,
                             item.Prepared.SerialNumbers,
-                            userId));
+                            userId,
+                            StockInLineId: item.Line.Id));
                     }
                     var documentSerialNumbers = persistedLines
                         .SelectMany(item => item.Prepared.SerialNumbers)

@@ -106,6 +106,18 @@ public class StockAdjustmentServiceTests
                 DefaultPrice = 10m,
                 IsSerialTracked = true
             });
+            // Seed a placeholder StockIn so the last-resort fallback in SaveSerial can satisfy
+            // the NOT NULL LastStockInLineId constraint when creating serials via Adjustment-In.
+            seedContext.StockIns.Add(new StockIn
+            {
+                DocumentCode = "PLACEHOLDER-001",
+                WarehouseId = 1,
+                PurposeCode = "OpeningBalance",
+                Status = "Approved",
+                PostedBy = 1,
+                PostedAt = DateTime.UtcNow,
+                Lines = [new StockInLine { ProductId = 501, Quantity = 0, BaseQuantity = 0, UnitPrice = 0m }]
+            });
             seedContext.SaveChanges();
         }
 

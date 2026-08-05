@@ -215,7 +215,8 @@ public sealed class OpeningBalanceImportService
                             item.Prepared.ProductId,
                             item.Prepared.Quantity,
                             item.Prepared.SerialNumbers,
-                            postedByUserId));
+                            postedByUserId,
+                            StockInLineId: item.Line.Id));
 
                         if (item.Prepared.SerialNumbers.Length > 0)
                         {

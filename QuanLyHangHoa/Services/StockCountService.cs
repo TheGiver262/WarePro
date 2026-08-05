@@ -308,7 +308,8 @@ namespace QuanLyHangHoa.Services
                 countLine.ProductId,
                 quantity,
                 serialNumbers,
-                userId));
+                userId,
+                StockInLineId: documentLine.Id));
 
             if (serialNumbers.Count > 0)
             {

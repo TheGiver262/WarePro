@@ -361,27 +361,62 @@ namespace QuanLyHangHoa.Services
             await db.StockAdjustmentLines.AnyAsync(item => item.ProductId == productId, token) ||
             await db.StockCountLines.AnyAsync(item => item.ProductId == productId, token) ||
             await db.StockLedgers.AnyAsync(item => item.ProductId == productId, token);
-        public virtual void AddInitialStock(int productId, List<string> serialNumbers, int userId)
+
+        public virtual Task AddInitialStockAsync(int productId, List<string> serialNumbers, int userId)
         {
-            using var db = _contextFactory();
-            var product = db.Products.Find(productId);
-            if (product == null) return;
+            return WriteExecutor.ExecuteAsync(
+                new DatabaseWriteRequest("product.add-initial-stock", Guid.NewGuid()),
+                async (db, token) =>
+                {
+                    var product = await db.Products.FindAsync([productId], token);
+                    if (product == null) return;
 
-            var warehouseProvider = new DbDefaultWarehouseProvider(db);
-            var service = new InventoryPostingService(
-                new EfInventoryUnitOfWork(db),
-                warehouseProvider,
-                new SystemClock());
+                    var warehouseProvider = new DbDefaultWarehouseProvider(db);
+                    var warehouseId = warehouseProvider.GetDefaultWarehouseId();
 
-            service.PostStockIn(new PostStockInCommand(
-                0,
-                warehouseProvider.GetDefaultWarehouseId(),
-                StockInKind.OpeningBalance,
-                StockDocumentStatus.Approved,
-                productId,
-                serialNumbers.Count,
-                serialNumbers,
-                PostedByUserId: userId));
+                    var stockIn = new Models.StockIn
+                    {
+                        DocumentCode = $"INIT-{productId}-{DateTime.UtcNow:yyyyMMddHHmmss}",
+                        WarehouseId = warehouseId,
+                        PurposeCode = "OpeningBalance",
+                        Status = "Approved",
+                        PostedBy = userId,
+                        PostedAt = DateTime.UtcNow,
+                        Notes = "Tạo tồn kho ban đầu",
+                        Lines =
+                        [
+                            new Models.StockInLine
+                            {
+                                ProductId = productId,
+                                Quantity = serialNumbers.Count,
+                                BaseQuantity = serialNumbers.Count,
+                                UnitPrice = product.DefaultPrice
+                            }
+                        ]
+                    };
+                    db.StockIns.Add(stockIn);
+                    await db.SaveChangesAsync(token);
+
+                    var stockInLine = stockIn.Lines.First();
+
+                    var postingService = new InventoryPostingService(
+                        new EfInventoryUnitOfWork(db),
+                        warehouseProvider,
+                        new SystemClock());
+
+                    postingService.PostStockIn(new PostStockInCommand(
+                        stockIn.Id,
+                        warehouseId,
+                        StockInKind.OpeningBalance,
+                        StockDocumentStatus.Approved,
+                        productId,
+                        serialNumbers.Count,
+                        serialNumbers,
+                        PostedByUserId: userId,
+                        StockInLineId: stockInLine.Id));
+                },
+                verifySucceeded: (db, token) => db.StockLedgers.AnyAsync(l => l.ProductId == productId, token),
+                entityKey: $"product-{productId}");
         }
 
         private sealed class DbDefaultWarehouseProvider : IDefaultWarehouseProvider

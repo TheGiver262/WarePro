@@ -229,7 +229,8 @@ public sealed class ProductSerialImportService : IProductSerialImportService
                                 item.Line.ProductId,
                                 item.SerialNumbers.Length,
                                 item.SerialNumbers,
-                                actorId));
+                                actorId,
+                                StockInLineId: item.Line.Id));
 
                             var serials = await db.ProductSerials
                                 .Where(serial => item.SerialNumbers.Contains(serial.SerialNumber))

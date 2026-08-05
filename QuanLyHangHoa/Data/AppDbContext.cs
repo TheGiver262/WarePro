@@ -595,7 +595,7 @@ public partial class AppDbContext : DbContext
 
             entity.ToTable("StockBalance");
 
-            // mỗi cặp kho-sản phẩm có đúng một dòng tổng tồn; ba quantity là optimistic concurrency token.
+            // mỗi cặp kho-sản phẩm có đúng một dòng tổng tồn; RowVersion là optimistic concurrency token.
             entity.HasIndex(e => new { e.WarehouseId, e.ProductId }, "UX_StockBalance_Warehouse_Product").IsUnique();
 
             entity.Property(e => e.AvailableQuantity).HasColumnType("decimal(18, 2)");

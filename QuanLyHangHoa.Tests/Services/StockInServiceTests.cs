@@ -146,7 +146,7 @@ public class StockInServiceTests
 
         // 3. Post Draft B -> should fail because "SN-001" already exists in DB
         ApproveForPosting(service, connection, stockInB.Id);
-        var ex = Assert.Throws<Exception>(() => service.Post(stockInB.Id, 1));
+        var ex = Assert.Throws<InventoryDomainException>(() => service.Post(stockInB.Id, 1));
         Assert.Equal("Số serial [SN-001] đã tồn tại trong hệ thống. Vui lòng kiểm tra và chỉnh sửa lại phiếu nháp trước khi duyệt.", ex.Message);
 
         // 4. Test document-level duplicate serials: Draft C with duplicate serials in the same document
@@ -169,7 +169,7 @@ public class StockInServiceTests
         service.SaveDraft(stockInC, linesC, 1);
 
         ApproveForPosting(service, connection, stockInC.Id);
-        var exDup = Assert.Throws<Exception>(() => service.Post(stockInC.Id, 1));
+        var exDup = Assert.Throws<InventoryDomainException>(() => service.Post(stockInC.Id, 1));
         Assert.Equal("Các số serial sau bị trùng lặp trong phiếu: [SN-002]. Vui lòng kiểm tra lại trước khi duyệt.", exDup.Message);
     }
 

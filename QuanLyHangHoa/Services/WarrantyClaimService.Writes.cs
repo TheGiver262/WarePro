@@ -440,7 +440,8 @@ public partial class WarrantyClaimService
                     product.Id,
                     1,
                     [normalizedSerial],
-                    userId));
+                    userId,
+                    StockInLineId: stockIn.Lines.First().Id));
 
                 var newSerial = await db.ProductSerials.SingleOrDefaultAsync(
                     item => item.SerialNumber == normalizedSerial,
