@@ -74,4 +74,28 @@ public class SerialValidationTests
         Assert.Empty(store.Audits);
         Assert.False(store.WasCommitted);
     }
+
+    [Fact]
+    public void Adjustment_in_command_creates_serial_with_null_stock_in_line_id_and_canonicalizes_to_uppercase()
+    {
+        var store = new InMemoryInventoryStore();
+        store.Products[52] = new ProductSnapshot(52, true);
+        var service = new InventoryPostingService(store, new FixedWarehouseProvider(1), new FixedClock(new DateTime(2026, 4, 26, 11, 20, 0)));
+        var command = new PostStockInCommand(
+            403, WarehouseId: 1,
+            StockInKind.Adjustment,
+            StockDocumentStatus.Approved,
+            52,
+            1,
+            new[] { "sn-lower-adj-001" },
+            7,
+            StockInLineId: null);
+
+        service.PostStockIn(command);
+
+        Assert.True(store.Serials.ContainsKey("SN-LOWER-ADJ-001"));
+        var serial = store.Serials["SN-LOWER-ADJ-001"];
+        Assert.Equal("SN-LOWER-ADJ-001", serial.SerialNumber);
+        Assert.Null(serial.StockInLineId);
+    }
 }

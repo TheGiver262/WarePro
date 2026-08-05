@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
+using QuanLyHangHoa.Helpers;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
 
@@ -267,7 +268,7 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
     }
 
     // điểm chuẩn hóa duy nhất: Trim + ToUpperInvariant → serial trong DB luôn là uppercase
-    private static string Normalize(string serial) => serial.Trim().ToUpperInvariant();
+    private static string Normalize(string serial) => SerialNumberNormalizer.Normalize(serial) ?? string.Empty;
 
     // tìm Local trước để không tạo hai entity cùng khóa khi balance vừa được thêm nhưng chưa commit.
     private ProductSerial? FindTrackedOrPersistedSerial(string serialNumber)

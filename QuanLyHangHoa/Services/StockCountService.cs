@@ -313,8 +313,9 @@ namespace QuanLyHangHoa.Services
 
             if (serialNumbers.Count > 0)
             {
+                var serialSet = QuanLyHangHoa.Helpers.SerialNumberNormalizer.ToNormalizedHashSet(serialNumbers);
                 var serials = db.ProductSerials.Local
-                    .Where(item => serialNumbers.Contains(item.SerialNumber))
+                    .Where(item => serialSet.Contains(item.SerialNumber))
                     .ToList();
                 foreach (var serial in serials)
                 {
@@ -381,8 +382,9 @@ namespace QuanLyHangHoa.Services
 
             if (serialNumbers.Count > 0)
             {
+                var serialSet = QuanLyHangHoa.Helpers.SerialNumberNormalizer.ToNormalizedHashSet(serialNumbers);
                 var serials = db.ProductSerials.Local
-                    .Where(item => serialNumbers.Contains(item.SerialNumber))
+                    .Where(item => serialSet.Contains(item.SerialNumber))
                     .ToList();
                 foreach (var serial in serials)
                 {

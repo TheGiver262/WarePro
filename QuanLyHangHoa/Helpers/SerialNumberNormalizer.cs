@@ -22,7 +22,6 @@ public static class SerialNumberNormalizer
         return serialNumbers
             .Where(s => !string.IsNullOrWhiteSpace(s))
             .Select(s => s!.Trim().ToUpperInvariant())
-            .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
 

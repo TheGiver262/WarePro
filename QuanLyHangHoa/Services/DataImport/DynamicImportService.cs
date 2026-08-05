@@ -13,6 +13,7 @@ using ClosedXML.Excel;
 using CsvHelper;
 using CsvHelper.Configuration;
 using Microsoft.EntityFrameworkCore;
+using QuanLyHangHoa.Helpers;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Inventory;
@@ -757,7 +758,7 @@ namespace QuanLyHangHoa.Services.DataImport
                         persistedProducts.Contains((row.ProductCode!, row.DisplayName!)));
                 case ImportFileType.ProductSerial:
                     var serialDocumentPrefix = $"SI-{operationId:N}-";
-                    var serialNumbers = batch.Rows.Select(row => row.SerialNumber!).Distinct().ToList();
+                    var serialNumbers = SerialNumberNormalizer.NormalizeAll(batch.Rows.Select(row => row.SerialNumber!));
                     var postedSerials = await db.ProductSerials
                             .Where(serial =>
                                 serialNumbers.Contains(serial.SerialNumber) &&
@@ -771,8 +772,8 @@ namespace QuanLyHangHoa.Services.DataImport
                             })
                             .ToListAsync(cancellationToken);
                     var postedBySerial = postedSerials
-                        .GroupBy(serial => serial.SerialNumber, StringComparer.Ordinal)
-                        .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+                        .GroupBy(serial => serial.SerialNumber, StringComparer.OrdinalIgnoreCase)
+                        .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
                     var stockInIds = postedSerials.Select(serial => serial.StockInId).Distinct().ToList();
                     var ledgerKeys = (await db.StockLedgers
                             .Where(ledger =>
@@ -1230,18 +1231,19 @@ namespace QuanLyHangHoa.Services.DataImport
                 operationId, rowIdx, cancellationToken, openingBalance: true);
 
             var documentPrefix = $"SI-{operationId:N}-";
-            var noteSerialNumbers = rows.Select(row => row.SerialNumber!).Distinct().ToList();
+            var noteSerialNumbers = SerialNumberNormalizer.NormalizeAll(rows.Select(row => row.SerialNumber!));
             var importedSerials = await db.ProductSerials
                 .Where(item =>
                     noteSerialNumbers.Contains(item.SerialNumber) &&
                     item.LastStockInLine.StockIn.DocumentCode.StartsWith(documentPrefix))
                 .ToListAsync(cancellationToken);
             var importedBySerial = importedSerials
-                .GroupBy(serial => serial.SerialNumber, StringComparer.Ordinal)
-                .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+                .GroupBy(serial => serial.SerialNumber, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
             foreach (var row in rows)
             {
-                if (importedBySerial.TryGetValue(row.SerialNumber!, out var serial))
+                var norm = SerialNumberNormalizer.Normalize(row.SerialNumber);
+                if (norm != null && importedBySerial.TryGetValue(norm, out var serial))
                     serial.Note = row.Note;
             }
 
@@ -1283,12 +1285,12 @@ namespace QuanLyHangHoa.Services.DataImport
                     .Where(unit => productIds.Contains(unit.ProductId))
                     .ToListAsync(cancellationToken))
                 .ToDictionary(unit => (unit.ProductId, unit.UnitId), unit => unit.ConversionFactor);
-            var importSerialNumbers = rows.SelectMany(row => row.Serials).Distinct().ToList();
+            var importSerialNumbers = SerialNumberNormalizer.NormalizeAll(rows.SelectMany(row => row.Serials));
             var existingSerialNumbers = (await db.ProductSerials
                     .Where(serial => importSerialNumbers.Contains(serial.SerialNumber))
                     .Select(serial => serial.SerialNumber)
                     .ToListAsync(cancellationToken))
-                .ToHashSet(StringComparer.Ordinal);
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
             foreach (var group in grouped)
             {
@@ -1475,15 +1477,18 @@ namespace QuanLyHangHoa.Services.DataImport
                             userId,
                             StockInLineId: item.Line.Id));
                     }
-                    var documentSerialNumbers = persistedLines
-                        .SelectMany(item => item.Prepared.SerialNumbers)
-                        .ToList();
+                    var documentSerialNumbers = SerialNumberNormalizer.NormalizeAll(persistedLines
+                        .SelectMany(item => item.Prepared.SerialNumbers));
                     var documentSerials = await db.ProductSerials
                         .Where(serial => documentSerialNumbers.Contains(serial.SerialNumber))
-                        .ToDictionaryAsync(serial => serial.SerialNumber, cancellationToken);
+                        .ToDictionaryAsync(serial => serial.SerialNumber, StringComparer.OrdinalIgnoreCase, cancellationToken);
                     foreach (var item in persistedLines)
                     foreach (var serialNumber in item.Prepared.SerialNumbers)
-                        documentSerials[serialNumber].LastStockInLineId = item.Line.Id;
+                    {
+                        var norm = SerialNumberNormalizer.Normalize(serialNumber);
+                        if (norm != null && documentSerials.TryGetValue(norm, out var ps))
+                            ps.LastStockInLineId = item.Line.Id;
+                    }
 
                     await db.SaveChangesAsync(cancellationToken);
                     await db.Database.CurrentTransaction!.ReleaseSavepointAsync(
@@ -1536,10 +1541,10 @@ namespace QuanLyHangHoa.Services.DataImport
                     .Where(unit => productIds.Contains(unit.ProductId))
                     .ToListAsync(cancellationToken))
                 .ToDictionary(unit => (unit.ProductId, unit.UnitId), unit => unit.ConversionFactor);
-            var issueSerialNumbers = rows.SelectMany(row => row.Serials).Distinct().ToList();
+            var issueSerialNumbers = SerialNumberNormalizer.NormalizeAll(rows.SelectMany(row => row.Serials));
             var serialsByNumber = await db.ProductSerials
                 .Where(serial => issueSerialNumbers.Contains(serial.SerialNumber))
-                .ToDictionaryAsync(serial => serial.SerialNumber, cancellationToken);
+                .ToDictionaryAsync(serial => serial.SerialNumber, StringComparer.OrdinalIgnoreCase, cancellationToken);
 
             foreach (var group in grouped)
             {

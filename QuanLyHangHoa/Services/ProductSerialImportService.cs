@@ -11,6 +11,7 @@ using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Inventory;
+using QuanLyHangHoa.Helpers;
 using QuanLyHangHoa.Models;
 
 namespace QuanLyHangHoa.Services;
@@ -146,12 +147,9 @@ public sealed class ProductSerialImportService : IProductSerialImportService
                         }
                     }
 
-                    var requestedSerials = mappedRows
-                        .Select(row => row.SerialNumber)
-                        .Distinct(StringComparer.OrdinalIgnoreCase)
-                        .ToArray();
+                    var requestedSerials = SerialNumberNormalizer.NormalizeAll(mappedRows.Select(row => row.SerialNumber));
                     // set bắt đầu bằng serial đã có trong database; Add bên dưới đồng thời loại trùng giữa các dòng của file.
-                    var usedSerials = requestedSerials.Length == 0
+                    var usedSerials = requestedSerials.Count == 0
                         ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                         : new HashSet<string>(
                             await db.ProductSerials
@@ -232,8 +230,9 @@ public sealed class ProductSerialImportService : IProductSerialImportService
                                 actorId,
                                 StockInLineId: item.Line.Id));
 
+                            var normalizedItemSerials = SerialNumberNormalizer.NormalizeAll(item.SerialNumbers);
                             var serials = await db.ProductSerials
-                                .Where(serial => item.SerialNumbers.Contains(serial.SerialNumber))
+                                .Where(serial => normalizedItemSerials.Contains(serial.SerialNumber))
                                 .ToListAsync(token);
                             foreach (var serial in serials)
                                 serial.LastStockInLineId = item.Line.Id;

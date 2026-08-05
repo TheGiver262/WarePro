@@ -333,7 +333,7 @@ await database.ApplyUpgradeAsync();
 
     [SqlServerFact]
     [Trait("Category", "RealDatabase")]
-    public async Task Adjustment_in_creates_serial_with_null_last_stock_in_line_id_and_case_insensitive_lookup()
+    public async Task Schema10_allows_null_LastStockInLineId()
     {
         await using var database = await SqlServerTestDatabase.CreateMigratedAsync();
         await using var connection = await database.OpenConnectionAsync(clientSchema: 10);
@@ -349,7 +349,7 @@ await database.ApplyUpgradeAsync();
         command.CommandText = """
             SELECT SerialNumber, LastStockInLineId
             FROM dbo.ProductSerial
-            WHERE ProductId = 100 AND UPPER(TRIM(SerialNumber)) = UPPER(TRIM(N'real-sn-001'));
+            WHERE ProductId = 100 AND SerialNumber = N'REAL-SN-001';
             """;
         await using var reader = await command.ExecuteReaderAsync(CommandBehavior.SingleRow);
         Assert.True(await reader.ReadAsync());

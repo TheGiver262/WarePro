@@ -36,10 +36,7 @@ public sealed class InventoryPostingService
 
         var warehouseId = command.WarehouseId;
         var product = _unitOfWork.GetProduct(command.ProductId);
-        var serialNumbers = command.SerialNumbers
-            .Select(s => s.Trim())
-            .Where(s => s.Length > 0)
-            .ToArray();
+        var serialNumbers = QuanLyHangHoa.Helpers.SerialNumberNormalizer.NormalizeAll(command.SerialNumbers).ToArray();
 
         EnsureNoDuplicateSerials(serialNumbers);
 
@@ -121,10 +118,7 @@ public sealed class InventoryPostingService
 
         var warehouseId = command.WarehouseId;
         var product = _unitOfWork.GetProduct(command.ProductId);
-        var serialNumbers = command.SerialNumbers
-            .Select(s => s.Trim())
-            .Where(s => s.Length > 0)
-            .ToArray();
+        var serialNumbers = QuanLyHangHoa.Helpers.SerialNumberNormalizer.NormalizeAll(command.SerialNumbers).ToArray();
 
         EnsureNoDuplicateSerials(serialNumbers);
 
@@ -218,10 +212,7 @@ public sealed class InventoryPostingService
         }
 
         var product = _unitOfWork.GetProduct(command.ProductId);
-        var serialNumbers = command.SerialNumbers
-            .Select(s => s.Trim())
-            .Where(s => s.Length > 0)
-            .ToArray();
+        var serialNumbers = QuanLyHangHoa.Helpers.SerialNumberNormalizer.NormalizeAll(command.SerialNumbers).ToArray();
 
         EnsureNoDuplicateSerials(serialNumbers);
 
