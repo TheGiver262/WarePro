@@ -494,10 +494,11 @@ namespace QuanLyHangHoa.Services
                 allDocumentSerials.AddRange(serials);
             }
 
+            // dùng OrdinalIgnoreCase để phát hiện trùng kể cả khác hoa thường giữa document và DB.
             var existingDbSerialNumbers = db.ProductSerials
                 .Where(serial => allDocumentSerials.Contains(serial.SerialNumber))
                 .Select(serial => serial.SerialNumber)
-                .ToHashSet(StringComparer.Ordinal);
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
 
             foreach (var line in stockIn.Lines)
@@ -557,7 +558,12 @@ namespace QuanLyHangHoa.Services
             stockIn.PostedAt = DateTime.UtcNow;
 
             var unitOfWork = new EfInventoryUnitOfWork(db, commitChanges: false);
-            unitOfWork.MarkSerialsLoaded(allDocumentSerials);
+            // Bulk-index entities đã load vào EF Local để FindTrackedOrPersistedSerial O(1) thay vì O(N²).
+            var preloadedSerialEntities = db.ProductSerials.Local
+                .Where(s => allDocumentSerials.Contains(s.SerialNumber, StringComparer.OrdinalIgnoreCase))
+                .ToList();
+            unitOfWork.MarkSerialsLoaded(preloadedSerialEntities);
+            unitOfWork.MarkSerialsLoaded(allDocumentSerials); // mark string keys còn lại (serial chưa tồn tại)
             var postingService = new InventoryPostingService(
                 unitOfWork,
                 new DbDefaultWarehouseProvider(db),

@@ -33,7 +33,18 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
         _commitChanges = commitChanges;
     }
     internal void MarkSerialsLoaded(IEnumerable<string> serialNumbers) =>
-        _loadedSerialNumbers.UnionWith(serialNumbers);
+        _loadedSerialNumbers.UnionWith(serialNumbers.Select(Normalize));
+
+    // Bulk-index entities đã preload vào EF Local; tránh O(N²) scan khi lookup từng serial lần đầu.
+    internal void MarkSerialsLoaded(IEnumerable<ProductSerial> entities)
+    {
+        foreach (var e in entities)
+        {
+            var key = Normalize(e.SerialNumber);
+            _serialTrackerIndex.TryAdd(key, e);
+            _loadedSerialNumbers.Add(key);
+        }
+    }
     internal void MarkBalancesLoaded(IEnumerable<(int ProductId, int WarehouseId)> keys) =>
         _loadedBalanceKeys.UnionWith(keys);
 
@@ -142,54 +153,20 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
 
     public void SaveSerial(ProductSerialSnapshot snapshot)
     {
-        var serial = FindTrackedOrPersistedSerial(snapshot.SerialNumber);
+        var normalizedSerial = Normalize(snapshot.SerialNumber);
+        var serial = FindTrackedOrPersistedSerial(normalizedSerial);
         if (serial is null)
         {
-            int stockInLineId = snapshot.StockInLineId ?? 0;
-
-            if (stockInLineId <= 0)
-            {
-                stockInLineId = _context.StockInLines.Local
-                    .Where(l => l.ProductId == snapshot.ProductId)
-                    .OrderByDescending(l => l.Id)
-                    .Select(l => l.Id)
-                    .FirstOrDefault();
-            }
-
-            if (stockInLineId <= 0)
-            {
-                stockInLineId = _context.StockInLines
-                    .Where(l => l.ProductId == snapshot.ProductId)
-                    .OrderByDescending(l => l.Id)
-                    .Select(l => l.Id)
-                    .FirstOrDefault();
-            }
-
-            if (stockInLineId <= 0)
-            {
-                // Last resort: only for non-StockIn paths (e.g., StockAdjustment-In) where no product-scoped
-                // StockInLine exists. The schema requires LastStockInLineId NOT NULL, so we reference
-                // the most recent line in the DB. The PostStockIn path always passes an explicit StockInLineId,
-                // so this branch is never reached for normal stock-in operations.
-                stockInLineId = _context.StockInLines
-                    .OrderByDescending(l => l.Id)
-                    .Select(l => l.Id)
-                    .FirstOrDefault();
-            }
-
-            if (stockInLineId <= 0)
-            {
-                throw new InventoryDomainException($"StockInLine is required when creating serial {snapshot.SerialNumber}. No StockIn document exists in the database.");
-            }
-
             serial = new ProductSerial
             {
-                SerialNumber = snapshot.SerialNumber,
+                SerialNumber = normalizedSerial,
                 ProductId = snapshot.ProductId,
-                LastStockInLineId = stockInLineId
+                // null cho serial từ Adjustment-In (không bắt nguồn từ phiếu nhập);
+                // PostStockIn luôn truyền giá trị tường minh qua snapshot.StockInLineId.
+                LastStockInLineId = snapshot.StockInLineId
             };
             _context.ProductSerials.Add(serial);
-            _serialTrackerIndex[snapshot.SerialNumber] = serial;
+            _serialTrackerIndex[normalizedSerial] = serial;
         }
 
         serial.ProductId = snapshot.ProductId;
@@ -289,34 +266,40 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
             serial.StockTransferLineId);
     }
 
+    // điểm chuẩn hóa duy nhất: Trim + ToUpperInvariant → serial trong DB luôn là uppercase
+    private static string Normalize(string serial) => serial.Trim().ToUpperInvariant();
+
     // tìm Local trước để không tạo hai entity cùng khóa khi balance vừa được thêm nhưng chưa commit.
     private ProductSerial? FindTrackedOrPersistedSerial(string serialNumber)
     {
-        if (_serialTrackerIndex.TryGetValue(serialNumber, out var cached))
+        var key = Normalize(serialNumber);
+
+        if (_serialTrackerIndex.TryGetValue(key, out var cached))
         {
             return cached;
         }
 
         var tracked = _context.ProductSerials.Local
-            .FirstOrDefault(serial => string.Equals(serial.SerialNumber, serialNumber, StringComparison.OrdinalIgnoreCase));
+            .FirstOrDefault(serial => string.Equals(serial.SerialNumber, key, StringComparison.OrdinalIgnoreCase));
 
         if (tracked is not null)
         {
-            _serialTrackerIndex[serialNumber] = tracked;
+            _serialTrackerIndex[key] = tracked;
             return tracked;
         }
 
-        if (_loadedSerialNumbers.Contains(serialNumber))
+        if (_loadedSerialNumbers.Contains(key))
         {
             return null;
         }
 
+        // DB query dùng normalized key (uppercase) — đảm bảo case-consistent dù DB collation.
         var dbSerial = _context.ProductSerials
-            .FirstOrDefault(serial => serial.SerialNumber == serialNumber);
+            .FirstOrDefault(serial => serial.SerialNumber == key);
 
         if (dbSerial is not null)
         {
-            _serialTrackerIndex[serialNumber] = dbSerial;
+            _serialTrackerIndex[key] = dbSerial;
         }
 
         return dbSerial;

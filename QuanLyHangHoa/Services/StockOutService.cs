@@ -594,6 +594,10 @@ namespace QuanLyHangHoa.Services
             stockOut.PostedAt = DateTime.UtcNow;
 
             var unitOfWork = new EfInventoryUnitOfWork(db, commitChanges: false);
+            var preloadedSerialEntities = db.ProductSerials.Local
+                .Where(s => allDocumentSerials.Contains(s.SerialNumber, StringComparer.OrdinalIgnoreCase))
+                .ToList();
+            unitOfWork.MarkSerialsLoaded(preloadedSerialEntities);
             unitOfWork.MarkSerialsLoaded(allDocumentSerials);
             var postingService = new InventoryPostingService(
                 unitOfWork,

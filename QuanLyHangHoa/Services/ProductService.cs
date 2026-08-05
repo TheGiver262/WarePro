@@ -364,6 +364,9 @@ namespace QuanLyHangHoa.Services
 
         public virtual Task AddInitialStockAsync(int productId, List<string> serialNumbers, int userId)
         {
+            // DocumentCode cố định trước để verifySucceeded có thể tìm đúng document của operation này.
+            var documentCode = $"INIT-{productId}-{DateTime.UtcNow:yyyyMMddHHmmss}";
+
             return WriteExecutor.ExecuteAsync(
                 new DatabaseWriteRequest("product.add-initial-stock", Guid.NewGuid()),
                 async (db, token) =>
@@ -373,21 +376,27 @@ namespace QuanLyHangHoa.Services
 
                     var warehouseProvider = new DbDefaultWarehouseProvider(db);
                     var warehouseId = warehouseProvider.GetDefaultWarehouseId();
+                    var now = DateTime.UtcNow;
 
                     var stockIn = new Models.StockIn
                     {
-                        DocumentCode = $"INIT-{productId}-{DateTime.UtcNow:yyyyMMddHHmmss}",
+                        DocumentCode = documentCode,
                         WarehouseId = warehouseId,
                         PurposeCode = "OpeningBalance",
                         Status = "Approved",
+                        CreatedBy = userId,
+                        CreatedAt = now,
+                        ApprovedBy = userId,
+                        ApprovedAt = now,
                         PostedBy = userId,
-                        PostedAt = DateTime.UtcNow,
+                        PostedAt = now,
                         Notes = "Tạo tồn kho ban đầu",
                         Lines =
                         [
                             new Models.StockInLine
                             {
                                 ProductId = productId,
+                                UnitId = product.DefaultUnitId,
                                 Quantity = serialNumbers.Count,
                                 BaseQuantity = serialNumbers.Count,
                                 UnitPrice = product.DefaultPrice
@@ -415,7 +424,7 @@ namespace QuanLyHangHoa.Services
                         PostedByUserId: userId,
                         StockInLineId: stockInLine.Id));
                 },
-                verifySucceeded: (db, token) => db.StockLedgers.AnyAsync(l => l.ProductId == productId, token),
+                verifySucceeded: (db, token) => db.StockIns.AnyAsync(s => s.DocumentCode == documentCode, token),
                 entityKey: $"product-{productId}");
         }
 
