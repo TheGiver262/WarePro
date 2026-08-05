@@ -846,6 +846,48 @@ public class WarrantyClaimServiceTests
         Assert.Null(unsafeOverload);
     }
 
+    [Fact]
+    public async Task CreateClaimAsync_canonicalizes_lowercase_serial_input()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        using (var arrange = CreateContext(connection))
+        {
+            DatabaseHelper.SeedBasicData(arrange);
+            arrange.AppUsers.Add(new AppUser { Id = 4, Username = "w1", FullName = "W1", PasswordHash = "h", RoleCode = "Nhân viên bảo hành", IsActive = true });
+            arrange.ProductSerials.Add(new ProductSerial { Id = 88, ProductId = 1, SerialNumber = "SN-WARRANTY-001", CurrentStatus = "Sold", CurrentWarehouseId = null, LastStockInLineId = 1 });
+            arrange.WarrantyCoverages.Add(new WarrantyCoverage { ProductSerialId = 88, CustomerId = 1, CoverageStatus = "Active", WarrantyStartDate = DateTime.Today.AddDays(-10), WarrantyEndDate = DateTime.Today.AddDays(30) });
+            arrange.SaveChanges();
+        }
+
+        var service = new WarrantyClaimService(() => CreateContext(connection));
+        var claimId = await service.CreateClaimAsync("CLM-LOWER-01", "sn-warranty-001", "Screen broken", 4, Guid.NewGuid());
+
+        using var assert = CreateContext(connection);
+        var claim = assert.WarrantyClaims.Single(c => c.Id == claimId);
+        Assert.Equal(88, claim.ProductSerialId);
+    }
+
+    [Fact]
+    public void GetCoverageBySerial_canonicalizes_lowercase_serial_input()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        using (var arrange = CreateContext(connection))
+        {
+            DatabaseHelper.SeedBasicData(arrange);
+            arrange.ProductSerials.Add(new ProductSerial { Id = 99, ProductId = 1, SerialNumber = "SN-COVERAGE-001", CurrentStatus = "Sold", CurrentWarehouseId = null, LastStockInLineId = 1 });
+            arrange.WarrantyCoverages.Add(new WarrantyCoverage { ProductSerialId = 99, CustomerId = 1, CoverageStatus = "Active", WarrantyStartDate = DateTime.Today.AddDays(-10), WarrantyEndDate = DateTime.Today.AddDays(30) });
+            arrange.SaveChanges();
+        }
+
+        var service = new WarrantyClaimService(() => CreateContext(connection));
+        var coverage = service.GetCoverageBySerial("sn-coverage-001");
+
+        Assert.NotNull(coverage);
+        Assert.Equal(99, coverage.ProductSerialId);
+    }
+
     private static int SeedReplacementClaim(
         SqliteConnection connection,
         string status,

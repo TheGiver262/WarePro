@@ -375,10 +375,8 @@ namespace QuanLyHangHoa.Services
         {
             return lines.Select(line =>
             {
-                var serialNumbers = StockInService.ParseSerialRange(line.DraftSerials ?? string.Empty)
-                    .Select(serial => serial.Trim())
-                    .Where(serial => serial.Length > 0)
-                    .ToList();
+                var serialNumbers = QuanLyHangHoa.Helpers.SerialNumberNormalizer.NormalizeAll(
+                    StockInService.ParseSerialRange(line.DraftSerials ?? string.Empty));
                 // dòng legacy có FK serial nhưng chưa có DraftSerials được chuyển lại thành serial number.
                 if (line.ProductSerialId.HasValue && serialNumbers.Count == 0)
                 {
