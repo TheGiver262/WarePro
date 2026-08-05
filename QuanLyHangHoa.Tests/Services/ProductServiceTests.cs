@@ -67,7 +67,7 @@ public class ProductServiceTests
 
         var service = new ProductService(() => CreateContext(connection));
 
-        service.AddInitialStock(1100, new List<string> { "INIT-001", "INIT-002" }, userId: 1);
+        service.AddInitialStockAsync(1100, new List<string> { "INIT-001", "INIT-002" }, userId: 1).GetAwaiter().GetResult();
 
         using var assertContext = CreateContext(connection);
         // Quantity removed

@@ -522,8 +522,9 @@ namespace QuanLyHangHoa.Services
                 allDocumentSerials.AddRange(serials);
             }
 
+            var normalizedAllDocumentSerials = QuanLyHangHoa.Helpers.SerialNumberNormalizer.NormalizeAll(allDocumentSerials);
             var dbSerialsByNumber = db.ProductSerials
-                .Where(serial => allDocumentSerials.Contains(serial.SerialNumber))
+                .Where(serial => normalizedAllDocumentSerials.Contains(serial.SerialNumber))
                 .ToList()
                 .ToDictionary(serial => serial.SerialNumber, StringComparer.OrdinalIgnoreCase);
 
@@ -594,6 +595,11 @@ namespace QuanLyHangHoa.Services
             stockOut.PostedAt = DateTime.UtcNow;
 
             var unitOfWork = new EfInventoryUnitOfWork(db, commitChanges: false);
+            var documentSerialSet = allDocumentSerials.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var preloadedSerialEntities = db.ProductSerials.Local
+                .Where(s => documentSerialSet.Contains(s.SerialNumber))
+                .ToList();
+            unitOfWork.MarkSerialsLoaded(preloadedSerialEntities);
             unitOfWork.MarkSerialsLoaded(allDocumentSerials);
             var postingService = new InventoryPostingService(
                 unitOfWork,

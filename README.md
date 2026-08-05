@@ -119,7 +119,7 @@ Tài khoản mẫu để kiểm tra được khai báo trong `Database/database_
 - các thao tác nghiệp vụ liên quan nhiều bảng được ghi trong cùng transaction;
 - số lượng tồn, sổ kho, serial, trạng thái chứng từ và audit log được lưu cùng một lần;
 - mỗi cặp kho–sản phẩm chỉ có một dòng `StockBalance`;
-- các trường số lượng của `StockBalance` là optimistic concurrency token;
+- `RowVersion` của `StockBalance` là optimistic concurrency token;
 - nếu tồn kho đã bị client khác thay đổi, ứng dụng trả lỗi yêu cầu tải lại thay vì âm thầm ghi đè;
 - các quy trình nhạy cảm dùng mức cô lập phù hợp và kiểm tra lại dữ liệu trước khi commit.
 

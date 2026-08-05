@@ -10,7 +10,8 @@ public sealed record ProductSerialSnapshot(
     int ProductId,
     int? CurrentWarehouseId,
     SerialStatus Status,
-    int? StockTransferLineId = null);
+    int? StockTransferLineId = null,
+    int? StockInLineId = null);
 
 /// <summary>
 /// số lượng theo đơn vị tồn kho gốc tại một cặp sản phẩm-kho.
@@ -47,7 +48,8 @@ public sealed record PostStockInCommand(
     int ProductId,
     decimal Quantity,
     IReadOnlyCollection<string> SerialNumbers,
-    int PostedByUserId);
+    int PostedByUserId,
+    int? StockInLineId = null);
 
 public sealed record PostStockOutCommand(
     int DocumentId,

@@ -462,7 +462,7 @@ CREATE TABLE dbo.ProductSerial
     SerialNumber       NVARCHAR(150) NOT NULL,
     CurrentStatus      NVARCHAR(50) NOT NULL,
     CurrentWarehouseId INT NULL,
-    LastStockInLineId  INT NOT NULL,
+    LastStockInLineId  INT NULL,
     LastStockOutLineId INT NULL,
     CONSTRAINT FK_ProductSerial_Product FOREIGN KEY (ProductId) REFERENCES dbo.Product(Id),
     CONSTRAINT FK_ProductSerial_CurrentWarehouse FOREIGN KEY (CurrentWarehouseId) REFERENCES dbo.Warehouse(Id),

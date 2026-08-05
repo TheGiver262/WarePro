@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Inventory;
+using QuanLyHangHoa.Helpers;
 using QuanLyHangHoa.Models;
 
 namespace QuanLyHangHoa.Services;
@@ -115,7 +116,8 @@ public partial class WarrantyClaimService
     {
         // chuẩn hóa input trước executor để mọi attempt dùng cùng mã claim, serial và mô tả.
         var normalizedCode = claimCode.Trim();
-        var normalizedSerial = serialNumber.Trim();
+        var normalizedSerial = SerialNumberNormalizer.Normalize(serialNumber)
+            ?? throw new InvalidOperationException("Serial không hợp lệ.");
         var normalizedProblem = problemDescription.Trim();
 
         try
@@ -440,7 +442,8 @@ public partial class WarrantyClaimService
                     product.Id,
                     1,
                     [normalizedSerial],
-                    userId));
+                    userId,
+                    StockInLineId: stockIn.Lines.First().Id));
 
                 var newSerial = await db.ProductSerials.SingleOrDefaultAsync(
                     item => item.SerialNumber == normalizedSerial,

@@ -30,7 +30,7 @@ await database.ApplyUpgradeAsync();
         await database.ApplyFinalizeAsync();
 
         Assert.All(DatabaseSchemaScripts.BaselineBatches, AssertHasNoGoBatch);
-        AssertHasNoGoBatch(DatabaseSchemaScripts.BuildUpgradeSql(9, "1.1.0"));
+        AssertHasNoGoBatch(DatabaseSchemaScripts.BuildUpgradeSql(10, "1.1.0"));
 
         await using var connection = await database.OpenConnectionAsync();
         await using var command = connection.CreateCommand();
@@ -54,7 +54,7 @@ await database.ApplyUpgradeAsync();
         await using var reader = await command.ExecuteReaderAsync(CommandBehavior.SingleRow);
         Assert.True(await reader.ReadAsync());
         Assert.True(reader.GetBoolean(0));
-        Assert.Equal(9, reader.GetInt32(1));
+        Assert.Equal(10, reader.GetInt32(1));
         Assert.Equal("1.1.0", reader.GetString(2));
         Assert.Equal(1, reader.GetInt32(3));
         Assert.Equal(1, reader.GetInt32(4));
@@ -156,7 +156,7 @@ await database.ApplyUpgradeAsync();
     [InlineData(3)]
     [InlineData(4)]
     [InlineData(5)]
-    public async Task Legacy_versions_and_transfer_shape_upgrade_to_schema_9(int currentVersion)
+    public async Task Legacy_versions_and_transfer_shape_upgrade_to_schema_10(int currentVersion)
     {
         await using var database = await SqlServerTestDatabase.CreateLegacyAsync(currentVersion);
         await AssertHistoricalVersionMarkerAsync(database, currentVersion);
@@ -168,7 +168,7 @@ await database.ApplyUpgradeAsync();
         await using var command = connection.CreateCommand();
         command.CommandText = $"""
             SELECT CASE WHEN
-                (SELECT Version FROM dbo.__WareProSchemaVersion WHERE Id = 1) = 9
+                (SELECT Version FROM dbo.__WareProSchemaVersion WHERE Id = 1) = 10
                 AND ({DatabaseSchemaScripts.ShapeValidationPredicate})
                 THEN 1 ELSE 0 END;
             """;
@@ -205,7 +205,7 @@ await database.ApplyUpgradeAsync();
     public async Task Warranty_index_rejects_second_open_claim_but_allows_closed_history()
     {
         await using var database = await SqlServerTestDatabase.CreateMigratedAsync();
-        await using var connection = await database.OpenConnectionAsync(clientSchema: 9);
+        await using var connection = await database.OpenConnectionAsync(clientSchema: 10);
         await using var command = connection.CreateCommand();
 
         command.CommandText = """
@@ -240,7 +240,7 @@ await database.ApplyUpgradeAsync();
     public async Task Invoice_stock_link_indexes_reject_duplicates_and_allow_multiple_nulls()
     {
         await using var database = await SqlServerTestDatabase.CreateMigratedAsync();
-        await using var connection = await database.OpenConnectionAsync(clientSchema: 9);
+        await using var connection = await database.OpenConnectionAsync(clientSchema: 10);
         await using var command = connection.CreateCommand();
 
         command.CommandText = """
@@ -289,7 +289,7 @@ await database.ApplyUpgradeAsync();
     public async Task Rowversion_rejects_a_stale_update()
     {
         await using var database = await SqlServerTestDatabase.CreateMigratedAsync();
-        await using var connection = await database.OpenConnectionAsync(clientSchema: 9);
+        await using var connection = await database.OpenConnectionAsync(clientSchema: 10);
 
         await using var insert = connection.CreateCommand();
         insert.CommandText = """
@@ -317,7 +317,7 @@ await database.ApplyUpgradeAsync();
         await database.ApplyFinalizeAsync();
         await database.ApplyFinalizeAsync();
 
-        await using (var oldClient = await database.OpenConnectionAsync(clientSchema: 5))
+        await using (var oldClient = await database.OpenConnectionAsync(clientSchema: 9))
         await using (var oldWrite = oldClient.CreateCommand())
         {
             oldWrite.CommandText = "INSERT dbo.Category (CategoryCode, DisplayName, IsActive) VALUES (N'OLD', N'Old', 1);";
@@ -325,10 +325,36 @@ await database.ApplyUpgradeAsync();
             Assert.Equal(51006, error.Number);
         }
 
-        await using var currentClient = await database.OpenConnectionAsync(clientSchema: 9);
+        await using var currentClient = await database.OpenConnectionAsync(clientSchema: 10);
         await using var currentWrite = currentClient.CreateCommand();
         currentWrite.CommandText = "INSERT dbo.Category (CategoryCode, DisplayName, IsActive) VALUES (N'CURRENT', N'Current', 1);";
         Assert.Equal(1, await currentWrite.ExecuteNonQueryAsync());
+    }
+
+    [SqlServerFact]
+    [Trait("Category", "RealDatabase")]
+    public async Task Schema10_allows_null_LastStockInLineId()
+    {
+        await using var database = await SqlServerTestDatabase.CreateMigratedAsync();
+        await using var connection = await database.OpenConnectionAsync(clientSchema: 10);
+        await using var command = connection.CreateCommand();
+
+        command.CommandText = """
+            ALTER TABLE dbo.ProductSerial NOCHECK CONSTRAINT ALL;
+            INSERT dbo.ProductSerial (ProductId, SerialNumber, CurrentStatus, CurrentWarehouseId, LastStockInLineId)
+            VALUES (100, N'REAL-SN-001', N'InStock', 1, NULL);
+            """;
+        Assert.Equal(1, await command.ExecuteNonQueryAsync());
+
+        command.CommandText = """
+            SELECT SerialNumber, LastStockInLineId
+            FROM dbo.ProductSerial
+            WHERE ProductId = 100 AND SerialNumber = N'REAL-SN-001';
+            """;
+        await using var reader = await command.ExecuteReaderAsync(CommandBehavior.SingleRow);
+        Assert.True(await reader.ReadAsync());
+        Assert.Equal("REAL-SN-001", reader.GetString(0));
+        Assert.True(reader.IsDBNull(1));
     }
 
     private static async Task AssertHistoricalVersionMarkerAsync(SqlServerTestDatabase database, int version)

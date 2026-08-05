@@ -465,6 +465,7 @@ public static class DatabaseSchemaScripts
     public static string SchemaVersion7 => ReadEmbeddedText("WarePro.Core.Resources.v7-invoice-void-open-claim.sql");
     public static string SchemaVersion8 => ReadEmbeddedText("WarePro.Core.Resources.v8-unique-invoice-stock-links.sql");
     public static string SchemaVersion9 => ReadEmbeddedText("WarePro.Core.Resources.v9-nullable-login-audit-performer.sql");
+    public static string SchemaVersion10 => ReadEmbeddedText("WarePro.Core.Resources.v10-nullable-serial-last-stock-in.sql");
     public static string SchemaArchiveReplay => SingleBatch("SchemaArchiveReplaySql");
 
     public static string ShapeValidationPredicate => """
@@ -506,7 +507,8 @@ public static class DatabaseSchemaScripts
                 (N'StockTransferLine', N'UnitId', N'int', 4, 10, 0, 0),
                 (N'StockTransferLine', N'Quantity', N'decimal', 9, 18, 2, 0),
                 (N'StockTransferLine', N'BaseQuantity', N'decimal', 9, 18, 2, 0),
-                (N'StockTransferLine', N'RowVersion', N'timestamp', 8, 0, 0, 0)
+                (N'StockTransferLine', N'RowVersion', N'timestamp', 8, 0, 0, 0),
+                (N'ProductSerial', N'LastStockInLineId', N'int', 4, 10, 0, 1)
             ) AS expected(TableName, ColumnName, TypeName, MaxLength, Precision, Scale, IsNullable)
             EXCEPT
             SELECT OBJECT_NAME(columns.object_id), columns.name, TYPE_NAME(columns.system_type_id),
@@ -517,7 +519,8 @@ public static class DatabaseSchemaScripts
                 OBJECT_ID(N'dbo.AuditLog'),
                 OBJECT_ID(N'dbo.AuditArchiveManifest'),
                 OBJECT_ID(N'dbo.StockTransfer'),
-                OBJECT_ID(N'dbo.StockTransferLine')
+                OBJECT_ID(N'dbo.StockTransferLine'),
+                OBJECT_ID(N'dbo.ProductSerial')
             )
         )
         AND NOT EXISTS
@@ -821,6 +824,7 @@ public static class DatabaseSchemaScripts
         var version7 = AsDynamicSql(SchemaVersion7);
         var version8 = AsDynamicSql(SchemaVersion8);
         var version9 = AsDynamicSql(SchemaVersion9);
+        var version10 = AsDynamicSql(SchemaVersion10);
         var archiveReplay = AsDynamicSql(SchemaArchiveReplay);
         var shapeValidation = AsDynamicSql($$"""
             IF NOT ({{ShapeValidationPredicate}})
@@ -844,6 +848,7 @@ public static class DatabaseSchemaScripts
             IF @CurrentVersion < 8 BEGIN {{version8}} END;
 
             IF @CurrentVersion < 9 BEGIN {{version9}} END;
+            IF @CurrentVersion < 10 BEGIN {{version10}} END;
             {{archiveReplay}}
 
             {{shapeValidation}}
@@ -914,7 +919,7 @@ public static class DatabaseSchemaScripts
 
     private static void ValidateRelease(int expectedSchema, string version)
     {
-        if (expectedSchema != 9)
+        if (expectedSchema != 10)
             throw new ArgumentOutOfRangeException(nameof(expectedSchema));
         if (!Version.TryParse(version, out _))
             throw new ArgumentException("Version is invalid.", nameof(version));

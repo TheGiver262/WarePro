@@ -136,9 +136,12 @@ namespace QuanLyHangHoa.Services
         // lookup chỉ trả coverage active và còn nằm trong khoảng ngày hiệu lực
         public WarrantyCoverage? GetCoverageBySerial(string serialNumber)
         {
+            var normalizedSerial = QuanLyHangHoa.Helpers.SerialNumberNormalizer.Normalize(serialNumber);
+            if (string.IsNullOrEmpty(normalizedSerial)) return null;
+
             using var db = _contextFactory();
             var serial = db.ProductSerials
-                .FirstOrDefault(s => s.SerialNumber == serialNumber);
+                .FirstOrDefault(s => s.SerialNumber == normalizedSerial);
 
             if (serial == null) return null;
 

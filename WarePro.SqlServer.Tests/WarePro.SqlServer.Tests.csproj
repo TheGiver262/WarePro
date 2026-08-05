@@ -34,6 +34,9 @@
     <EmbeddedResource Include="..\Database\Schema\v9-nullable-login-audit-performer.sql"
                       Link="Resources\v9-nullable-login-audit-performer.sql"
                       LogicalName="WarePro.Core.Resources.v9-nullable-login-audit-performer.sql" />
+    <EmbeddedResource Include="..\Database\Schema\v10-nullable-serial-last-stock-in.sql"
+                      Link="Resources\v10-nullable-serial-last-stock-in.sql"
+                      LogicalName="WarePro.Core.Resources.v10-nullable-serial-last-stock-in.sql" />
   </ItemGroup>
 
   <ItemGroup>

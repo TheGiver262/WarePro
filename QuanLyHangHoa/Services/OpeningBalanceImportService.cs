@@ -215,12 +215,14 @@ public sealed class OpeningBalanceImportService
                             item.Prepared.ProductId,
                             item.Prepared.Quantity,
                             item.Prepared.SerialNumbers,
-                            postedByUserId));
+                            postedByUserId,
+                            StockInLineId: item.Line.Id));
 
                         if (item.Prepared.SerialNumbers.Length > 0)
                         {
+                            var normalizedItemSerials = QuanLyHangHoa.Helpers.SerialNumberNormalizer.NormalizeAll(item.Prepared.SerialNumbers);
                             var serials = await db.ProductSerials
-                                .Where(serial => item.Prepared.SerialNumbers.Contains(serial.SerialNumber))
+                                .Where(serial => normalizedItemSerials.Contains(serial.SerialNumber))
                                 .ToListAsync(token);
                             foreach (var serial in serials)
                             {
@@ -343,8 +345,8 @@ public sealed class OpeningBalanceImportService
             .GroupBy(unit => unit.ProductId)
             .Select(group => new { ProductId = group.Key, UnitId = group.Min(unit => unit.UnitId) })
             .ToDictionaryAsync(item => item.ProductId, item => item.UnitId, cancellationToken);
-        var requestedSerials = preparedRows.SelectMany(row => row.SerialNumbers).ToArray();
-        var existingSerials = requestedSerials.Length == 0
+        var requestedSerials = QuanLyHangHoa.Helpers.SerialNumberNormalizer.NormalizeAll(preparedRows.SelectMany(row => row.SerialNumbers));
+        var existingSerials = requestedSerials.Count == 0
             ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             : new HashSet<string>(
                 await db.ProductSerials

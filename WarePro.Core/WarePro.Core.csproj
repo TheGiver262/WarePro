@@ -25,5 +25,6 @@
     <EmbeddedResource Include="..\Database\Schema\v7-invoice-void-open-claim.sql" Link="Resources\v7-invoice-void-open-claim.sql" LogicalName="WarePro.Core.Resources.v7-invoice-void-open-claim.sql" />
     <EmbeddedResource Include="..\Database\Schema\v8-unique-invoice-stock-links.sql" Link="Resources\v8-unique-invoice-stock-links.sql" LogicalName="WarePro.Core.Resources.v8-unique-invoice-stock-links.sql" />
     <EmbeddedResource Include="..\Database\Schema\v9-nullable-login-audit-performer.sql" Link="Resources\v9-nullable-login-audit-performer.sql" LogicalName="WarePro.Core.Resources.v9-nullable-login-audit-performer.sql" />
+    <EmbeddedResource Include="..\Database\Schema\v10-nullable-serial-last-stock-in.sql" Link="Resources\v10-nullable-serial-last-stock-in.sql" LogicalName="WarePro.Core.Resources.v10-nullable-serial-last-stock-in.sql" />
   </ItemGroup>
 </Project>

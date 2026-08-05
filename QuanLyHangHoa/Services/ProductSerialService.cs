@@ -125,7 +125,7 @@ namespace QuanLyHangHoa.Services
 
             if (!string.IsNullOrWhiteSpace(serial))
             {
-                var keyword = serial.Trim();
+                var keyword = QuanLyHangHoa.Helpers.SerialNumberNormalizer.Normalize(serial)!;
                 query = query.Where(s => s.SerialNumber.Contains(keyword));
             }
 

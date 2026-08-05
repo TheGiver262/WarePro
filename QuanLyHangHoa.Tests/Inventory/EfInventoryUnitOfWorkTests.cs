@@ -39,7 +39,25 @@ public class EfInventoryUnitOfWorkTests
         context.SaveChanges();
 
         var postedAt = new DateTime(2026, 4, 27, 9, 0, 0);
-        var documentId = 501;
+        var stockIn = new StockIn
+        {
+            Id = 501,
+            DocumentCode = "EF-OPEN-001",
+            WarehouseId = 1,
+            PurposeCode = "OpeningBalance",
+            Status = "Approved",
+            PostedBy = 1,
+            PostedAt = postedAt,
+            Lines =
+            [
+                new StockInLine { Id = 5001, ProductId = 100, Quantity = 2, BaseQuantity = 2, UnitPrice = 10m }
+            ]
+        };
+        context.StockIns.Add(stockIn);
+        context.SaveChanges();
+        var stockInLineId = stockIn.Lines.First().Id;
+
+        var documentId = stockIn.Id;
         var service = new InventoryPostingService(
             new EfInventoryUnitOfWork(context),
             new TestWarehouseProvider(1),
@@ -52,7 +70,8 @@ public class EfInventoryUnitOfWorkTests
             100,
             2,
             new[] { "EF-SN-001", "EF-SN-002" },
-            1));
+            1,
+            StockInLineId: stockInLineId));
 
         var balance = Assert.Single(context.StockBalances);
         Assert.Equal(100, balance.ProductId);

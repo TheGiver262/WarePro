@@ -403,7 +403,7 @@ public sealed class StockReversalService
                 .Where(line => line.StockInId == sourceId && line.Product.IsSerialTracked)
                 .Select(line => new { line.Id, line.ProductId, line.BaseQuantity })
                 .ToList();
-            var lineIds = lines.Select(line => line.Id).ToArray();
+            var lineIds = lines.Select(line => (int?)line.Id).ToArray();
             var serials = db.ProductSerials
                 .Where(serial => lineIds.Contains(serial.LastStockInLineId))
                 .ToList();

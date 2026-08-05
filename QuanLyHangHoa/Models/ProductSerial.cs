@@ -25,8 +25,8 @@ public partial class ProductSerial
 
     public int? CurrentWarehouseId { get; set; }
 
-    // các link dòng nhập/xuất/chuyển là nguồn truy vết vòng đời serial, không phải lịch sử đầy đủ thay cho ledger
-    public int LastStockInLineId { get; set; }
+    // serial từ StockIn: có FK trỏ đến dòng phiếu nhập gốc; serial từ Adjustment-In: null (không có StockInLine)
+    public int? LastStockInLineId { get; set; }
 
     public int? LastStockOutLineId { get; set; }
     public int? StockTransferLineId { get; set; }
@@ -34,7 +34,7 @@ public partial class ProductSerial
 
     public virtual Warehouse? CurrentWarehouse { get; set; }
 
-    public virtual StockInLine LastStockInLine { get; set; } = null!;
+    public virtual StockInLine? LastStockInLine { get; set; }
 
     public virtual StockOutLine? LastStockOutLine { get; set; }
 

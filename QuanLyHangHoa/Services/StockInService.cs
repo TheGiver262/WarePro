@@ -494,10 +494,12 @@ namespace QuanLyHangHoa.Services
                 allDocumentSerials.AddRange(serials);
             }
 
+            // dùng OrdinalIgnoreCase và uppercase normalized keys để phát hiện trùng bất kể DB collation.
+            var normalizedAllDocumentSerials = QuanLyHangHoa.Helpers.SerialNumberNormalizer.NormalizeAll(allDocumentSerials);
             var existingDbSerialNumbers = db.ProductSerials
-                .Where(serial => allDocumentSerials.Contains(serial.SerialNumber))
+                .Where(serial => normalizedAllDocumentSerials.Contains(serial.SerialNumber))
                 .Select(serial => serial.SerialNumber)
-                .ToHashSet(StringComparer.Ordinal);
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
 
             foreach (var line in stockIn.Lines)
@@ -536,7 +538,7 @@ namespace QuanLyHangHoa.Services
 
                     if (existingDbSerials.Any())
                     {
-                        throw new Exception($"Số serial [{string.Join(", ", existingDbSerials)}] đã tồn tại trong hệ thống. Vui lòng kiểm tra và chỉnh sửa lại phiếu nháp trước khi duyệt.");
+                        throw new InventoryDomainException($"Số serial [{string.Join(", ", existingDbSerials)}] đã tồn tại trong hệ thống. Vui lòng kiểm tra và chỉnh sửa lại phiếu nháp trước khi duyệt.");
                     }
                 }
             }
@@ -549,7 +551,7 @@ namespace QuanLyHangHoa.Services
                 .ToList();
             if (duplicateDocumentSerials.Any())
             {
-                throw new Exception($"Các số serial sau bị trùng lặp trong phiếu: [{string.Join(", ", duplicateDocumentSerials)}]. Vui lòng kiểm tra lại trước khi duyệt.");
+                throw new InventoryDomainException($"Các số serial sau bị trùng lặp trong phiếu: [{string.Join(", ", duplicateDocumentSerials)}]. Vui lòng kiểm tra lại trước khi duyệt.");
             }
 
             // trạng thái trung gian đã được SaveChanges nhưng vẫn nằm trong transaction và sẽ rollback nếu posting lỗi.
@@ -557,7 +559,12 @@ namespace QuanLyHangHoa.Services
             stockIn.PostedAt = DateTime.UtcNow;
 
             var unitOfWork = new EfInventoryUnitOfWork(db, commitChanges: false);
-            unitOfWork.MarkSerialsLoaded(allDocumentSerials);
+            var documentSerialSet = allDocumentSerials.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var preloadedSerialEntities = db.ProductSerials.Local
+                .Where(s => documentSerialSet.Contains(s.SerialNumber))
+                .ToList();
+            unitOfWork.MarkSerialsLoaded(preloadedSerialEntities);
+            unitOfWork.MarkSerialsLoaded(allDocumentSerials); // mark string keys còn lại (serial chưa tồn tại)
             var postingService = new InventoryPostingService(
                 unitOfWork,
                 new DbDefaultWarehouseProvider(db),
@@ -576,7 +583,8 @@ namespace QuanLyHangHoa.Services
                     line.ProductId,
                     line.BaseQuantity > 0 ? line.BaseQuantity : line.Quantity,
                     serials,
-                    userId));
+                    userId,
+                    StockInLineId: line.Id));
             }
 
             // sau khi serial được tạo, gắn lại line nguồn để truy xuất lịch sử nhập của từng serial.

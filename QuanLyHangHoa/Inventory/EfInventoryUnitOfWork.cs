@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
+using QuanLyHangHoa.Helpers;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
 
@@ -18,7 +19,8 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
     private readonly Dictionary<int, bool> _stockApprovalCache = [];
     private readonly HashSet<(int ProductId, int WarehouseId)> _loadedBalanceKeys = [];
     private readonly Dictionary<int, bool> _warrantyPermissionCache = [];
-    private readonly HashSet<string> _loadedSerialNumbers = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _loadedSerialNumbers = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, ProductSerial> _serialTrackerIndex = new(StringComparer.OrdinalIgnoreCase);
 
     public EfInventoryUnitOfWork(AppDbContext context)
         : this(context, commitChanges: true)
@@ -32,7 +34,18 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
         _commitChanges = commitChanges;
     }
     internal void MarkSerialsLoaded(IEnumerable<string> serialNumbers) =>
-        _loadedSerialNumbers.UnionWith(serialNumbers);
+        _loadedSerialNumbers.UnionWith(serialNumbers.Select(Normalize));
+
+    // Bulk-index entities đã preload vào EF Local; tránh O(N²) scan khi lookup từng serial lần đầu.
+    internal void MarkSerialsLoaded(IEnumerable<ProductSerial> entities)
+    {
+        foreach (var e in entities)
+        {
+            var key = Normalize(e.SerialNumber);
+            _serialTrackerIndex.TryAdd(key, e);
+            _loadedSerialNumbers.Add(key);
+        }
+    }
     internal void MarkBalancesLoaded(IEnumerable<(int ProductId, int WarehouseId)> keys) =>
         _loadedBalanceKeys.UnionWith(keys);
 
@@ -141,37 +154,20 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
 
     public void SaveSerial(ProductSerialSnapshot snapshot)
     {
-        var serial = FindTrackedOrPersistedSerial(snapshot.SerialNumber);
+        var normalizedSerial = Normalize(snapshot.SerialNumber);
+        var serial = FindTrackedOrPersistedSerial(normalizedSerial);
         if (serial is null)
         {
-            // schema cũ yêu cầu LastStockInLineId; lấy dòng nhập gần nhất của sản phẩm làm liên kết tương thích.
-            var stockInLineId = _context.StockInLines.Local
-                .Where(l => l.ProductId == snapshot.ProductId)
-                .OrderByDescending(l => l.Id)
-                .Select(l => l.Id)
-                .FirstOrDefault();
-
-            if (stockInLineId == 0)
-            {
-                stockInLineId = _context.StockInLines
-                    .Where(l => l.ProductId == snapshot.ProductId)
-                    .OrderByDescending(l => l.Id)
-                    .Select(l => l.Id)
-                    .FirstOrDefault();
-            }
-
-            if (stockInLineId == 0)
-            {
-                stockInLineId = _context.StockInLines.Select(l => l.Id).FirstOrDefault();
-            }
-
             serial = new ProductSerial
             {
-                SerialNumber = snapshot.SerialNumber,
+                SerialNumber = normalizedSerial,
                 ProductId = snapshot.ProductId,
-                LastStockInLineId = stockInLineId
+                // null cho serial từ Adjustment-In (không bắt nguồn từ phiếu nhập);
+                // PostStockIn luôn truyền giá trị tường minh qua snapshot.StockInLineId.
+                LastStockInLineId = snapshot.StockInLineId
             };
             _context.ProductSerials.Add(serial);
+            _serialTrackerIndex[normalizedSerial] = serial;
         }
 
         serial.ProductId = snapshot.ProductId;
@@ -271,16 +267,43 @@ public sealed class EfInventoryUnitOfWork : IInventoryUnitOfWork
             serial.StockTransferLineId);
     }
 
+    // điểm chuẩn hóa duy nhất: Trim + ToUpperInvariant → serial trong DB luôn là uppercase
+    private static string Normalize(string serial) => SerialNumberNormalizer.Normalize(serial) ?? string.Empty;
+
     // tìm Local trước để không tạo hai entity cùng khóa khi balance vừa được thêm nhưng chưa commit.
     private ProductSerial? FindTrackedOrPersistedSerial(string serialNumber)
     {
-        var tracked = _context.ProductSerials.Local
-            .SingleOrDefault(serial => serial.SerialNumber == serialNumber);
+        var key = Normalize(serialNumber);
 
-        return tracked
-            ?? (_loadedSerialNumbers.Contains(serialNumber)
-                ? null
-                : _context.ProductSerials.SingleOrDefault(serial => serial.SerialNumber == serialNumber));
+        if (_serialTrackerIndex.TryGetValue(key, out var cached))
+        {
+            return cached;
+        }
+
+        var tracked = _context.ProductSerials.Local
+            .FirstOrDefault(serial => string.Equals(serial.SerialNumber, key, StringComparison.OrdinalIgnoreCase));
+
+        if (tracked is not null)
+        {
+            _serialTrackerIndex[key] = tracked;
+            return tracked;
+        }
+
+        if (_loadedSerialNumbers.Contains(key))
+        {
+            return null;
+        }
+
+        // DB query dùng normalized key (uppercase) — đảm bảo case-consistent dù DB collation.
+        var dbSerial = _context.ProductSerials
+            .FirstOrDefault(serial => serial.SerialNumber == key);
+
+        if (dbSerial is not null)
+        {
+            _serialTrackerIndex[key] = dbSerial;
+        }
+
+        return dbSerial;
     }
 
     private StockBalance? FindTrackedOrPersistedBalance(int productId, int warehouseId)
