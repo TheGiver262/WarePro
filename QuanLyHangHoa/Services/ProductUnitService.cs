@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
+using QuanLyHangHoa.Inventory;
 using QuanLyHangHoa.Models;
 
 namespace QuanLyHangHoa.Services
@@ -118,7 +119,8 @@ namespace QuanLyHangHoa.Services
                 {
                     AuthorizationService.RequireFreshActor(db, actorId, PermissionAction.ManageMasterData);
                     var entity = await db.ProductUnits.SingleOrDefaultAsync(item => item.Id == id, token);
-                    if (entity is null) return;
+                    if (entity is null)
+                        throw new InventoryDomainException("Dữ liệu đã bị xóa hoặc không còn tồn tại. Vui lòng tải lại dữ liệu.");
                     // rowversion chặn ghi đè; callback sau đó chỉ nhận commit thành công khi toàn bộ mapping đúng và token đã đổi
                     db.Entry(entity).Property(item => item.RowVersion).OriginalValue = rowVersion;
                     entity.UnitId = unitId;

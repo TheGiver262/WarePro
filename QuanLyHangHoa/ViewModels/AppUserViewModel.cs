@@ -5,8 +5,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Data;
+using QuanLyHangHoa.Inventory;
+using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
 using QuanLyHangHoa.Views;
 
@@ -188,6 +189,17 @@ namespace QuanLyHangHoa.ViewModels
                     System.Windows.MessageBoxButton.OK,
                     System.Windows.MessageBoxImage.Warning);
             }
+            catch (InventoryDomainException ex)
+            {
+                LoadData();
+                ClearInput();
+                IsEditPanelOpen = false;
+                System.Windows.MessageBox.Show(
+                    ex.Message,
+                    "Dữ liệu không còn tồn tại",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Warning);
+            }
             catch (Exception)
             {
                 System.Windows.MessageBox.Show(DatabaseWriteUi.TechnicalErrorMessage, "Lỗi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
@@ -229,6 +241,16 @@ namespace QuanLyHangHoa.ViewModels
                         System.Windows.MessageBoxButton.OK,
                         System.Windows.MessageBoxImage.Warning);
                 }
+                catch (InventoryDomainException ex)
+                {
+                    LoadData();
+                    if (SelectedUser?.Id == user.Id) ClearInput();
+                    System.Windows.MessageBox.Show(
+                        ex.Message,
+                        "Dữ liệu không còn tồn tại",
+                        System.Windows.MessageBoxButton.OK,
+                        System.Windows.MessageBoxImage.Warning);
+                }
                 catch (Exception)
                 {
                     System.Windows.MessageBox.Show(DatabaseWriteUi.TechnicalErrorMessage, "Lỗi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
@@ -257,6 +279,15 @@ namespace QuanLyHangHoa.ViewModels
                 System.Windows.MessageBox.Show(
                     "Người dùng đã thay đổi trên máy khác. Danh sách đã được tải lại.",
                     "Dữ liệu đã thay đổi",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Warning);
+            }
+            catch (InventoryDomainException ex)
+            {
+                LoadData();
+                System.Windows.MessageBox.Show(
+                    ex.Message,
+                    "Dữ liệu không còn tồn tại",
                     System.Windows.MessageBoxButton.OK,
                     System.Windows.MessageBoxImage.Warning);
             }

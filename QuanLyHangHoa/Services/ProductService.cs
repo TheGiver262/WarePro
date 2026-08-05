@@ -235,7 +235,8 @@ namespace QuanLyHangHoa.Services
                 {
                     AuthorizationService.RequireFreshActor(db, userId, PermissionAction.ManageMasterData);
                     var entity = await db.Products.SingleOrDefaultAsync(item => item.Id == id, token);
-                    if (entity is null) return;
+                    if (entity is null)
+                        throw new InventoryDomainException("Dữ liệu đã bị xóa hoặc không còn tồn tại. Vui lòng tải lại dữ liệu.");
                     // token client đọc trở thành giá trị gốc của câu UPDATE; lệch token phải nổi lỗi concurrency, không tự ghi đè
                     db.Entry(entity).Property(item => item.RowVersion).OriginalValue = rowVersion;
                     var before = new { entity.ProductCode, entity.DisplayName, entity.IsActive };
@@ -274,7 +275,8 @@ namespace QuanLyHangHoa.Services
                 {
                     AuthorizationService.RequireFreshActor(db, userId, PermissionAction.ManageMasterData);
                     var entity = await db.Products.SingleOrDefaultAsync(item => item.Id == id, token);
-                    if (entity is null) return;
+                    if (entity is null)
+                        throw new InventoryDomainException("Dữ liệu đã bị xóa hoặc không còn tồn tại. Vui lòng tải lại dữ liệu.");
                     db.Entry(entity).Property(item => item.RowVersion).OriginalValue = rowVersion;
                     entity.IsActive = false;
                     AddAudit(db, "Product", id, "DEACTIVATE", userId,

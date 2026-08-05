@@ -43,6 +43,49 @@ public sealed class ProductWriteConcurrencyTests
     }
 
     [Fact]
+    public async Task Product_update_fails_when_entity_was_deleted_after_client_read()
+    {
+        using var connection = CreateDatabase();
+        Product stale;
+        using (var db = CreateContext(connection))
+            stale = db.Products.AsNoTracking().Single(item => item.Id == 1400);
+
+        // Client B xóa entity sau khi Client A đã đọc
+        using (var db = CreateContext(connection))
+        {
+            var toDelete = db.Products.Single(item => item.Id == 1400);
+            db.Products.Remove(toDelete);
+            db.SaveChanges();
+        }
+
+        var service = new ProductService(() => CreateContext(connection));
+
+        // Client A gọi Update với dữ liệu cũ — phải fail rõ ràng, không silent success
+        await Assert.ThrowsAsync<QuanLyHangHoa.Inventory.InventoryDomainException>(() => service.UpdateProductAsync(
+            stale.Id,
+            new Product
+            {
+                ProductCode = stale.ProductCode,
+                DisplayName = "Stale update after delete",
+                CategoryId = stale.CategoryId,
+                BrandId = stale.BrandId,
+                DefaultUnitId = stale.DefaultUnitId,
+                DefaultPrice = stale.DefaultPrice,
+                OriginCountry = stale.OriginCountry,
+                WarrantyPeriodMonths = stale.WarrantyPeriodMonths,
+                IsSerialTracked = stale.IsSerialTracked,
+                IsActive = stale.IsActive
+            },
+            stale.RowVersion,
+            userId: 1,
+            Guid.NewGuid()));
+
+        // Assert: không có product nào bị tạo lại
+        using var verify = CreateContext(connection);
+        Assert.False(verify.Products.Any(item => item.Id == 1400));
+    }
+
+    [Fact]
     public async Task Product_unit_update_rejects_stale_rowversion()
     {
         using var connection = CreateDatabase();

@@ -5,10 +5,11 @@ using System.Threading.Tasks;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using QuanLyHangHoa.Data;
+using QuanLyHangHoa.Inventory;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
 using System.Text.Json;
-using QuanLyHangHoa.Data;
 
 namespace QuanLyHangHoa.ViewModels
 {
@@ -101,6 +102,23 @@ namespace QuanLyHangHoa.ViewModels
             }
             catch (DatabaseWriteConflictException)
             {
+                // Dữ liệu đã được user khác thay đổi — thông báo cho user và đóng dialog để parent reload dữ liệu mới
+                MessageBox.Show(
+                    DatabaseWriteUi.ConflictMessage,
+                    "Xung đột dữ liệu",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                window.DialogResult = true;
+                window.Close();
+            }
+            catch (InventoryDomainException ex)
+            {
+                // Dữ liệu đã bị xóa trên máy khác — thông báo cho user và đóng dialog để parent reload làm mới danh sách
+                MessageBox.Show(
+                    ex.Message,
+                    "Dữ liệu không còn tồn tại",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
                 window.DialogResult = true;
                 window.Close();
             }
