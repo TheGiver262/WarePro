@@ -30,7 +30,7 @@ await database.ApplyUpgradeAsync();
         await database.ApplyFinalizeAsync();
 
         Assert.All(DatabaseSchemaScripts.BaselineBatches, AssertHasNoGoBatch);
-        AssertHasNoGoBatch(DatabaseSchemaScripts.BuildUpgradeSql(9, "1.1.0"));
+        AssertHasNoGoBatch(DatabaseSchemaScripts.BuildUpgradeSql(10, "1.1.0"));
 
         await using var connection = await database.OpenConnectionAsync();
         await using var command = connection.CreateCommand();

@@ -11,16 +11,16 @@ public sealed class SqlServerCiContractTests
     [Fact]
     public void Shared_migration_commands_are_ordered_and_go_free()
     {
-        var upgrade = DatabaseSchemaScripts.BuildUpgradeSql(9, "1.1.0");
-        for (var version = 3; version <= 9; version++)
+        var upgrade = DatabaseSchemaScripts.BuildUpgradeSql(10, "1.1.0");
+        for (var version = 3; version <= 10; version++)
             Assert.Contains($"IF @CurrentVersion < {version} BEGIN EXEC sys.sp_executesql N'", upgrade, StringComparison.Ordinal);
-        Assert.DoesNotContain("IF @CurrentVersion < 1", upgrade, StringComparison.Ordinal);
-        Assert.DoesNotContain("IF @CurrentVersion < 2", upgrade, StringComparison.Ordinal);
+        Assert.DoesNotContain("IF @CurrentVersion < 1 ", upgrade, StringComparison.Ordinal);
+        Assert.DoesNotContain("IF @CurrentVersion < 2 ", upgrade, StringComparison.Ordinal);
         Assert.True(upgrade.IndexOf("COL_LENGTH(''SalesInvoice'', ''PaidAmount'')", StringComparison.Ordinal) < upgrade.IndexOf("UPDATE dbo.SalesInvoice SET PaidAmount", StringComparison.Ordinal));
 
         Assert.All(DatabaseSchemaScripts.BaselineBatches, AssertHasNoGoBatch);
         AssertHasNoGoBatch(upgrade);
-        AssertHasNoGoBatch(DatabaseSchemaScripts.BuildFinalizeSql(9, "1.1.0"));
+        AssertHasNoGoBatch(DatabaseSchemaScripts.BuildFinalizeSql(10, "1.1.0"));
         Assert.Matches(new Regex(@"(?i)\[RowCount\]\s+INT\s+NOT\s+NULL"), string.Join('\n', DatabaseSchemaScripts.BaselineBatches));
         Assert.Matches(new Regex(@"(?i)\[RowCount\]\s+INT\s+NOT\s+NULL"), upgrade);
     }

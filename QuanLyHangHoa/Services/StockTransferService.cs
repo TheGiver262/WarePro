@@ -419,8 +419,9 @@ namespace QuanLyHangHoa.Services
             stockTransfer.PostedAt = DateTime.UtcNow;
 
             var unitOfWork = new EfInventoryUnitOfWork(db, commitChanges: false);
+            var transferSerialSet = serialNumbers.ToHashSet(StringComparer.OrdinalIgnoreCase);
             var preloadedSerialEntities = db.ProductSerials.Local
-                .Where(s => serialNumbers.Contains(s.SerialNumber, StringComparer.OrdinalIgnoreCase))
+                .Where(s => transferSerialSet.Contains(s.SerialNumber))
                 .ToList();
             unitOfWork.MarkSerialsLoaded(preloadedSerialEntities);
             unitOfWork.MarkSerialsLoaded(serialNumbers);

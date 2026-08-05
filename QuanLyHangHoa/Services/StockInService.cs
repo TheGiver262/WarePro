@@ -558,9 +558,9 @@ namespace QuanLyHangHoa.Services
             stockIn.PostedAt = DateTime.UtcNow;
 
             var unitOfWork = new EfInventoryUnitOfWork(db, commitChanges: false);
-            // Bulk-index entities đã load vào EF Local để FindTrackedOrPersistedSerial O(1) thay vì O(N²).
+            var documentSerialSet = allDocumentSerials.ToHashSet(StringComparer.OrdinalIgnoreCase);
             var preloadedSerialEntities = db.ProductSerials.Local
-                .Where(s => allDocumentSerials.Contains(s.SerialNumber, StringComparer.OrdinalIgnoreCase))
+                .Where(s => documentSerialSet.Contains(s.SerialNumber))
                 .ToList();
             unitOfWork.MarkSerialsLoaded(preloadedSerialEntities);
             unitOfWork.MarkSerialsLoaded(allDocumentSerials); // mark string keys còn lại (serial chưa tồn tại)

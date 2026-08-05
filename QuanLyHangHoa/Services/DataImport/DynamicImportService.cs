@@ -1450,8 +1450,9 @@ namespace QuanLyHangHoa.Services.DataImport
                     // cần lưu phiếu và các dòng trước để lấy id thật cho sổ kho và liên kết LastStockInLineId
                     await db.SaveChangesAsync(cancellationToken);
                     var inventoryUnitOfWork = new EfInventoryUnitOfWork(db);
+                    var importSerialSet = importSerialNumbers.ToHashSet(StringComparer.OrdinalIgnoreCase);
                     var preloadedEntities = db.ProductSerials.Local
-                        .Where(s => importSerialNumbers.Contains(s.SerialNumber, StringComparer.OrdinalIgnoreCase))
+                        .Where(s => importSerialSet.Contains(s.SerialNumber))
                         .ToList();
                     inventoryUnitOfWork.MarkSerialsLoaded(preloadedEntities);
                     inventoryUnitOfWork.MarkSerialsLoaded(importSerialNumbers);
@@ -1725,8 +1726,9 @@ namespace QuanLyHangHoa.Services.DataImport
                     await db.SaveChangesAsync(cancellationToken);
                     var inventoryUnitOfWork = new EfInventoryUnitOfWork(db);
                     inventoryUnitOfWork.MarkBalancesLoaded(productIds.Select(id => (id, warehouse.Id)));
+                    var issueSerialSet = issueSerialNumbers.ToHashSet(StringComparer.OrdinalIgnoreCase);
                     var preloadedStockOutEntities = db.ProductSerials.Local
-                        .Where(s => issueSerialNumbers.Contains(s.SerialNumber, StringComparer.OrdinalIgnoreCase))
+                        .Where(s => issueSerialSet.Contains(s.SerialNumber))
                         .ToList();
                     inventoryUnitOfWork.MarkSerialsLoaded(preloadedStockOutEntities);
                     inventoryUnitOfWork.MarkSerialsLoaded(issueSerialNumbers);

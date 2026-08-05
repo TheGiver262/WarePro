@@ -458,7 +458,7 @@ CREATE TABLE dbo.ProductSerial
     SerialNumber       NVARCHAR(150) NOT NULL,
     CurrentStatus      NVARCHAR(50) NOT NULL,
     CurrentWarehouseId INT NULL,
-    LastStockInLineId  INT NOT NULL,
+    LastStockInLineId  INT NULL,
     LastStockOutLineId INT NULL,
     CONSTRAINT FK_ProductSerial_Product FOREIGN KEY (ProductId) REFERENCES dbo.Product(Id),
     CONSTRAINT FK_ProductSerial_CurrentWarehouse FOREIGN KEY (CurrentWarehouseId) REFERENCES dbo.Warehouse(Id),
@@ -974,9 +974,39 @@ END;
 IF OBJECT_ID(N'dbo.__WareProSchemaVersion', N'U') IS NOT NULL
 BEGIN
     UPDATE dbo.__WareProSchemaVersion
-    SET [Version] = 7,
+    SET [Version] = 10,
         UpdatedAt = SYSUTCDATETIME()
-    WHERE Id = 1 AND [Version] < 7;
+    WHERE Id = 1 AND [Version] < 10;
+END;
+
+-- SchemaVersion10Sql
+
+IF OBJECT_ID(N'dbo.ProductSerial', N'U') IS NOT NULL
+   AND COL_LENGTH(N'dbo.ProductSerial', N'LastStockInLineId') IS NOT NULL
+BEGIN
+    IF EXISTS
+    (
+        SELECT 1
+        FROM sys.columns
+        WHERE object_id = OBJECT_ID(N'dbo.ProductSerial')
+          AND name = N'LastStockInLineId'
+          AND is_nullable = 0
+    )
+    BEGIN
+        ALTER TABLE dbo.ProductSerial ALTER COLUMN LastStockInLineId INT NULL;
+    END;
+
+    UPDATE dbo.ProductSerial
+    SET SerialNumber = UPPER(TRIM(SerialNumber))
+    WHERE SerialNumber <> UPPER(TRIM(SerialNumber));
+END;
+
+IF OBJECT_ID(N'dbo.__WareProSchemaVersion', N'U') IS NOT NULL
+BEGIN
+    UPDATE dbo.__WareProSchemaVersion
+    SET [Version] = 10,
+        UpdatedAt = SYSUTCDATETIME()
+    WHERE Id = 1 AND [Version] < 10;
 END;
 
 -- SchemaArchiveReplaySql
