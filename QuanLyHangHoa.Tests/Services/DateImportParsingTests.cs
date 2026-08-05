@@ -70,12 +70,11 @@ public sealed class DateImportParsingTests
     }
 
     [Fact]
-    public void US_mdy_format_is_not_supported_after_fix()
+    public void US_only_mdy_format_is_rejected()
     {
-        // 13/04/2026: ngày 13 tháng 4 — rõ ràng là dd/MM/yyyy không phải MM/dd/yyyy
-        // Điều này chứng minh parser không nhầm sang US format
-        var result = Invoke(CreateService(), "13/04/2026");
-        Assert.Equal(new DateTime(2026, 4, 13), result);
+        // 12/31/2026 chỉ có thể hợp lệ theo định dạng US (MM/dd/yyyy).
+        // Sau khi loại bỏ MM/dd/yyyy, giá trị này phải bị từ chối và ném ArgumentException.
+        Assert.Throws<ArgumentException>(() => Invoke(CreateService(), "12/31/2026"));
     }
 
     [Fact]
@@ -86,11 +85,11 @@ public sealed class DateImportParsingTests
     }
 
     [Fact]
-    public void Ambiguous_us_format_is_rejected()
+    public void Ambiguous_date_is_parsed_as_vietnamese_dmy()
     {
-        // "04/03/2026" trong context Việt Nam là 4 tháng 3
-        // Sau khi fix, MM/dd/yyyy không có trong danh sách => chỉ parse theo dd/MM/yyyy
+        // "04/03/2026" trong hệ thống Việt Nam được hiểu là ngày 4 tháng 3 năm 2026 (dd/MM/yyyy),
+        // chứ không bị nhầm sang ngày 3 tháng 4 (MM/dd/yyyy).
         var result = Invoke(CreateService(), "04/03/2026");
-        Assert.Equal(new DateTime(2026, 3, 4), result); // ngày 4 tháng 3, không phải ngày 3 tháng 4 theo US
+        Assert.Equal(new DateTime(2026, 3, 4), result);
     }
 }

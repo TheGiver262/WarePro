@@ -102,19 +102,25 @@ namespace QuanLyHangHoa.ViewModels
             }
             catch (DatabaseWriteConflictException)
             {
-                // Dữ liệu đã được user khác thay đổi — save THẤT BẠI, phải thông báo trước khi đóng
+                // Dữ liệu đã được user khác thay đổi — thông báo cho user và đóng dialog để parent reload dữ liệu mới
                 MessageBox.Show(
                     DatabaseWriteUi.ConflictMessage,
                     "Xung đột dữ liệu",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
-                window.DialogResult = false;
+                window.DialogResult = true;
                 window.Close();
             }
             catch (InventoryDomainException ex)
             {
-                // Lỗi nghiệp vụ user-safe — hiện message, giữ dialog mở để user sửa lại
-                MessageBox.Show(ex.Message, "Không thể lưu", MessageBoxButton.OK, MessageBoxImage.Warning);
+                // Dữ liệu đã bị xóa trên máy khác — thông báo cho user và đóng dialog để parent reload làm mới danh sách
+                MessageBox.Show(
+                    ex.Message,
+                    "Dữ liệu không còn tồn tại",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                window.DialogResult = true;
+                window.Close();
             }
             catch (Exception ex)
             {
