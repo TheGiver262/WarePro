@@ -522,8 +522,9 @@ namespace QuanLyHangHoa.Services
                 allDocumentSerials.AddRange(serials);
             }
 
+            var normalizedAllDocumentSerials = QuanLyHangHoa.Helpers.SerialNumberNormalizer.NormalizeAll(allDocumentSerials);
             var dbSerialsByNumber = db.ProductSerials
-                .Where(serial => allDocumentSerials.Contains(serial.SerialNumber))
+                .Where(serial => normalizedAllDocumentSerials.Contains(serial.SerialNumber))
                 .ToList()
                 .ToDictionary(serial => serial.SerialNumber, StringComparer.OrdinalIgnoreCase);
 

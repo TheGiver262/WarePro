@@ -13,6 +13,18 @@ BEGIN
         ALTER TABLE dbo.ProductSerial ALTER COLUMN LastStockInLineId INT NULL;
     END;
 
+    -- Collision preflight guard before uppercase normalization
+    IF EXISTS
+    (
+        SELECT UPPER(TRIM(SerialNumber))
+        FROM dbo.ProductSerial
+        GROUP BY UPPER(TRIM(SerialNumber))
+        HAVING COUNT_BIG(*) > 1
+    )
+    BEGIN
+        THROW 51008, 'Schema 10 upgrade blocked: duplicate serial numbers exist when normalized to uppercase.', 1;
+    END;
+
     -- Canonicalize serial numbers to UPPER(TRIM(SerialNumber)) for invariant lookup
     UPDATE dbo.ProductSerial
     SET SerialNumber = UPPER(TRIM(SerialNumber))

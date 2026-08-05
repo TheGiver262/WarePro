@@ -996,6 +996,17 @@ BEGIN
         ALTER TABLE dbo.ProductSerial ALTER COLUMN LastStockInLineId INT NULL;
     END;
 
+    IF EXISTS
+    (
+        SELECT UPPER(TRIM(SerialNumber))
+        FROM dbo.ProductSerial
+        GROUP BY UPPER(TRIM(SerialNumber))
+        HAVING COUNT_BIG(*) > 1
+    )
+    BEGIN
+        THROW 51008, 'Schema 10 upgrade blocked: duplicate serial numbers exist when normalized to uppercase.', 1;
+    END;
+
     UPDATE dbo.ProductSerial
     SET SerialNumber = UPPER(TRIM(SerialNumber))
     WHERE SerialNumber <> UPPER(TRIM(SerialNumber));

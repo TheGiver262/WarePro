@@ -494,9 +494,10 @@ namespace QuanLyHangHoa.Services
                 allDocumentSerials.AddRange(serials);
             }
 
-            // dùng OrdinalIgnoreCase để phát hiện trùng kể cả khác hoa thường giữa document và DB.
+            // dùng OrdinalIgnoreCase và uppercase normalized keys để phát hiện trùng bất kể DB collation.
+            var normalizedAllDocumentSerials = QuanLyHangHoa.Helpers.SerialNumberNormalizer.NormalizeAll(allDocumentSerials);
             var existingDbSerialNumbers = db.ProductSerials
-                .Where(serial => allDocumentSerials.Contains(serial.SerialNumber))
+                .Where(serial => normalizedAllDocumentSerials.Contains(serial.SerialNumber))
                 .Select(serial => serial.SerialNumber)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
