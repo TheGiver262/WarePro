@@ -221,9 +221,18 @@ namespace QuanLyHangHoa.ViewModels
                 OutOfStockActiveCount = Products.Count(product =>
                     product.IsActive && product.StockBalances.Sum(balance => balance.OnHandQuantity) <= 0);
             }
+            catch (OperationCanceledException)
+            {
+                // debounce cancel là flow bình thường — không hiện lỗi
+            }
             catch (Exception)
             {
-                // Silence or handle
+                // mất kết nối, timeout, lỗi query — hiện thông báo user-safe, không leak SQL details
+                MessageBox.Show(
+                    "Không thể tải danh sách sản phẩm. Vui lòng kiểm tra kết nối và thử lại.",
+                    "Lỗi tải dữ liệu",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
             }
             finally
             {

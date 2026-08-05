@@ -36,11 +36,13 @@ AGENTS.md
 CLAUDE.md
 GEMINI.md
 
-# tài liệu giải thích code chỉ giữ ở máy local
+# tài liệu giải thích code và báo cáo đồ án chỉ giữ ở máy local
 /code-explained/
 /outputs/
 /Test_Data/
 /artifacts/
 /docs/
+05_*/
+06_*/
 /scripts/
 /Database/WarePro_Export_*.xlsx

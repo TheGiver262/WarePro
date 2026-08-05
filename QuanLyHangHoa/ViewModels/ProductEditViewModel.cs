@@ -5,10 +5,11 @@ using System.Threading.Tasks;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using QuanLyHangHoa.Data;
+using QuanLyHangHoa.Inventory;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
 using System.Text.Json;
-using QuanLyHangHoa.Data;
 
 namespace QuanLyHangHoa.ViewModels
 {
@@ -101,8 +102,19 @@ namespace QuanLyHangHoa.ViewModels
             }
             catch (DatabaseWriteConflictException)
             {
-                window.DialogResult = true;
+                // Dữ liệu đã được user khác thay đổi — save THẤT BẠI, phải thông báo trước khi đóng
+                MessageBox.Show(
+                    DatabaseWriteUi.ConflictMessage,
+                    "Xung đột dữ liệu",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                window.DialogResult = false;
                 window.Close();
+            }
+            catch (InventoryDomainException ex)
+            {
+                // Lỗi nghiệp vụ user-safe — hiện message, giữ dialog mở để user sửa lại
+                MessageBox.Show(ex.Message, "Không thể lưu", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             catch (Exception ex)
             {

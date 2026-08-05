@@ -2186,13 +2186,9 @@ namespace QuanLyHangHoa.Services.DataImport
             string val = GetMappedString(row, mappings, dbKey, required);
             if (string.IsNullOrWhiteSpace(val)) return DateTime.Now;
 
-            string[] formats = { "dd/MM/yyyy", "d/M/yyyy", "yyyy-MM-dd", "MM/dd/yyyy", "yyyy/MM/dd", "dd-MM-yyyy" };
+            // chỉ hỗ trợ định dạng Việt Nam — loại bỏ MM/dd/yyyy để tránh import sai ngày ambiguous
+            string[] formats = { "dd/MM/yyyy", "d/M/yyyy", "yyyy-MM-dd", "yyyy/MM/dd", "dd-MM-yyyy" };
             if (DateTime.TryParseExact(val, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime res))
-            {
-                return res;
-            }
-
-            if (DateTime.TryParse(val, CultureInfo.CurrentCulture, DateTimeStyles.None, out res))
             {
                 return res;
             }
