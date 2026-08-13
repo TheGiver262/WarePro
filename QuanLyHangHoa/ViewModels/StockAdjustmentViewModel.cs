@@ -109,6 +109,8 @@ namespace QuanLyHangHoa.ViewModels
         // Summary
         [ObservableProperty] private int _totalCount;
         [ObservableProperty] private int _draftCount;
+        [ObservableProperty] private int _pendingApprovalCount;
+        [ObservableProperty] private int _approvedCount;
         [ObservableProperty] private int _postedCount;
         [ObservableProperty] private bool _isWriting;
         [ObservableProperty] private string _writeStatus = string.Empty;
@@ -205,6 +207,8 @@ namespace QuanLyHangHoa.ViewModels
         {
             TotalCount = AdjustmentList.Count;
             DraftCount = AdjustmentList.Count(x => x.Status == DocumentStatus.Draft || x.Status == "nháp");
+            PendingApprovalCount = AdjustmentList.Count(item => StockDocumentUiLifecycle.IsPendingApproval(item.Status));
+            ApprovedCount = AdjustmentList.Count(item => StockDocumentUiLifecycle.IsApproved(item.Status));
             PostedCount = AdjustmentList.Count(x => x.Status == DocumentStatus.Posted || x.Status == "đã ghi sổ");
         }
 
@@ -558,7 +562,7 @@ namespace QuanLyHangHoa.ViewModels
                     worksheet.Cell(i + 2, 2).Value = adj.PostedAt?.ToString("dd/MM/yyyy HH:mm") ?? adj.ApprovedAt?.ToString("dd/MM/yyyy HH:mm") ?? "";
                     worksheet.Cell(i + 2, 3).Value = adj.Warehouse?.DisplayName ?? "";
                     worksheet.Cell(i + 2, 4).Value = adj.ReasonCode;
-                    worksheet.Cell(i + 2, 5).Value = (adj.Status == DocumentStatus.Posted || adj.Status == "đã ghi sổ") ? "Đã ghi sổ" : "Phiếu nháp";
+                    worksheet.Cell(i + 2, 5).Value = StockDocumentUiLifecycle.GetDisplayLabel(adj.Status);
                     worksheet.Cell(i + 2, 6).Value = adj.Notes ?? "";
                 }
 

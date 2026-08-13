@@ -161,7 +161,10 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private bool _isAdvancedFilterOpen;
         [ObservableProperty] private Warehouse? _selectedWarehouseFilter;
         [ObservableProperty] private string _selectedStatusFilter = "Tất cả";
-        public ObservableCollection<string> StatusOptions { get; } = new() { "Tất cả", "Phiếu nháp", "Đã ghi sổ" };
+        public ObservableCollection<string> StatusOptions { get; } = new()
+        {
+            "Tất cả", "Phiếu nháp", "Chờ duyệt", "Đã duyệt", "Đã ghi sổ"
+        };
 
         partial void OnSearchDocumentCodeChanged(string value) => ScheduleFilterReload();
         partial void OnSearchSupplierNameChanged(string value) => ScheduleFilterReload();
@@ -173,6 +176,8 @@ namespace QuanLyHangHoa.ViewModels
         // Footer stats
         [ObservableProperty] private int _totalCount;
         [ObservableProperty] private int _draftCount;
+        [ObservableProperty] private int _pendingApprovalCount;
+        [ObservableProperty] private int _approvedCount;
         [ObservableProperty] private int _postedCount;
 
         public decimal TotalAmount => Lines.Sum(l => l.Quantity * l.Price);
@@ -317,6 +322,8 @@ namespace QuanLyHangHoa.ViewModels
 
                 TotalCount = stats.TotalCount;
                 DraftCount = stats.DraftCount;
+                PendingApprovalCount = stats.PendingApprovalCount;
+                ApprovedCount = stats.ApprovedCount;
                 PostedCount = stats.PostedCount;
                 LoadErrorMessage = null;
             }
@@ -379,7 +386,7 @@ namespace QuanLyHangHoa.ViewModels
                     worksheet.Cell(i + 2, 3).Value = si.Supplier?.DisplayName ?? "";
                     worksheet.Cell(i + 2, 4).Value = si.Warehouse?.DisplayName ?? "";
                     worksheet.Cell(i + 2, 5).Value = si.Creator?.FullName ?? "";
-                    worksheet.Cell(i + 2, 6).Value = (si.Status == DocumentStatus.Posted || si.Status == "đã ghi sổ") ? "Đã ghi sổ" : "Phiếu nháp";
+                    worksheet.Cell(i + 2, 6).Value = StockDocumentUiLifecycle.GetDisplayLabel(si.Status);
                     worksheet.Cell(i + 2, 7).Value = si.Notes ?? "";
                     worksheet.Cell(i + 2, 8).Value = totalAmount;
                     worksheet.Cell(i + 2, 8).Style.NumberFormat.Format = "#,##0";

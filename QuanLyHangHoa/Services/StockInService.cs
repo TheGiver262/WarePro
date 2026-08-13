@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Inventory;
 using QuanLyHangHoa.Models;
+using QuanLyHangHoa.ViewModels;
 
 namespace QuanLyHangHoa.Services
 {
@@ -103,6 +104,10 @@ namespace QuanLyHangHoa.Services
                     TotalCount = group.Count(),
                     DraftCount = group.Count(stockIn =>
                         stockIn.Status == DocumentStatus.Draft || stockIn.Status == "nháp"),
+                    PendingApprovalCount = group.Count(stockIn =>
+                        stockIn.Status == DocumentStatus.PendingApproval || stockIn.Status == "chờ duyệt"),
+                    ApprovedCount = group.Count(stockIn =>
+                        stockIn.Status == DocumentStatus.Approved || stockIn.Status == "đã duyệt"),
                     PostedCount = group.Count(stockIn =>
                         stockIn.Status == DocumentStatus.Posted || stockIn.Status == "đã ghi sổ")
                 })
@@ -146,10 +151,14 @@ namespace QuanLyHangHoa.Services
                 query = query.Where(s => s.WarehouseId == warehouseId.Value);
             }
 
-            if (!string.IsNullOrEmpty(status) && status != "Tất cả")
+            var targetStatus = StockDocumentUiLifecycle.ParseFilter(status);
+            if (targetStatus != null)
             {
-                string targetStatus = status == "Đã ghi sổ" ? DocumentStatus.Posted : DocumentStatus.Draft;
-                query = query.Where(s => s.Status == targetStatus || (targetStatus == DocumentStatus.Draft && s.Status == "nháp") || (targetStatus == DocumentStatus.Posted && s.Status == "đã ghi sổ"));
+                query = query.Where(s => s.Status == targetStatus
+                    || (targetStatus == DocumentStatus.Draft && s.Status == "nháp")
+                    || (targetStatus == DocumentStatus.PendingApproval && s.Status == "chờ duyệt")
+                    || (targetStatus == DocumentStatus.Approved && s.Status == "đã duyệt")
+                    || (targetStatus == DocumentStatus.Posted && s.Status == "đã ghi sổ"));
             }
 
             return query;

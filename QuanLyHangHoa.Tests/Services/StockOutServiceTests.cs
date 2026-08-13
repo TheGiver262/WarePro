@@ -15,6 +15,49 @@ namespace QuanLyHangHoa.Tests.Services;
 public class StockOutServiceTests
 {
     [Fact]
+    public void List_stats_and_filters_preserve_all_lifecycle_states()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        using (var db = DatabaseHelper.CreateContext(connection))
+        {
+            DatabaseHelper.SeedBasicData(db);
+            var now = DateTime.UtcNow;
+            db.StockOuts.AddRange(
+                CreateLifecycleDocument("LIFE-OUT-D", DocumentStatus.Draft, now),
+                CreateLifecycleDocument("LIFE-OUT-P", DocumentStatus.PendingApproval, now),
+                CreateLifecycleDocument("LIFE-OUT-A", DocumentStatus.Approved, now),
+                CreateLifecycleDocument("LIFE-OUT-X", DocumentStatus.Posted, now));
+            db.SaveChanges();
+        }
+        var service = new StockOutService(() => DatabaseHelper.CreateContext(connection));
+
+        var stats = service.GetStockOutStats("LIFE-OUT", "", null, null, null, "Tất cả");
+
+        Assert.Equal(4, stats.TotalCount);
+        Assert.Equal(1, stats.DraftCount);
+        Assert.Equal(1, stats.PendingApprovalCount);
+        Assert.Equal(1, stats.ApprovedCount);
+        Assert.Equal(1, stats.PostedCount);
+        Assert.Equal(DocumentStatus.Draft, Assert.Single(service.GetStockOutPaged("LIFE-OUT", "", null, null, null, "Phiếu nháp", 0, 10)).Status);
+        Assert.Equal(DocumentStatus.PendingApproval, Assert.Single(service.GetStockOutPaged("LIFE-OUT", "", null, null, null, "Chờ duyệt", 0, 10)).Status);
+        Assert.Equal(DocumentStatus.Approved, Assert.Single(service.GetStockOutPaged("LIFE-OUT", "", null, null, null, "Đã duyệt", 0, 10)).Status);
+        Assert.Equal(DocumentStatus.Posted, Assert.Single(service.GetStockOutPaged("LIFE-OUT", "", null, null, null, "Đã ghi sổ", 0, 10)).Status);
+    }
+
+    private static StockOut CreateLifecycleDocument(string code, string status, DateTime now) => new()
+    {
+        DocumentCode = code,
+        CustomerId = 1,
+        WarehouseId = 1,
+        PurposeCode = "Sale",
+        Status = status,
+        ExportDate = now,
+        CreatedBy = 1,
+        CreatedAt = now
+    };
+
+    [Fact]
     public async Task SaveDraft_allocates_document_code_when_new_document_code_is_blank()
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
