@@ -240,14 +240,16 @@ namespace QuanLyHangHoa.ViewModels
                     query = query.Where(claim => claim.Status == SelectedStatusFilter);
                 }
 
-                if (SearchFromDate.HasValue)
+                var from = SearchFromDate?.Date;
+                if (from.HasValue)
                 {
-                    query = query.Where(claim => claim.ReceivedDate >= SearchFromDate.Value);
+                    query = query.Where(claim => claim.ReceivedDate >= from.Value);
                 }
 
-                if (SearchToDate.HasValue)
+                var toExclusive = SearchToDate?.Date.AddDays(1);
+                if (toExclusive.HasValue)
                 {
-                    query = query.Where(claim => claim.ReceivedDate <= SearchToDate.Value);
+                    query = query.Where(claim => claim.ReceivedDate < toExclusive.Value);
                 }
 
                 var claims = await query

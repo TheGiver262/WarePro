@@ -253,6 +253,78 @@ namespace QuanLyHangHoa.Tests.ViewModels
             }
         }
 
+        [Fact]
+        public async Task Claim_date_filter_includes_the_whole_selected_end_day()
+        {
+            using var connection = new Microsoft.Data.Sqlite.SqliteConnection("Data Source=:memory:");
+            connection.Open();
+            var selectedDate = new DateTime(2026, 8, 13);
+            using (var db = DatabaseHelper.CreateContext(connection))
+            {
+                DatabaseHelper.SeedBasicData(db);
+                db.Products.Add(new Product
+                {
+                    Id = 3701,
+                    ProductCode = "DATE-PRODUCT",
+                    DisplayName = "Date filter product",
+                    CategoryId = 1,
+                    BrandId = 1,
+                    DefaultUnitId = 1,
+                    DefaultPrice = 1m,
+                    IsActive = true,
+                    IsSerialTracked = true
+                });
+                foreach (var id in Enumerable.Range(701, 4))
+                {
+                    db.ProductSerials.Add(new ProductSerial
+                    {
+                        Id = id,
+                        SerialNumber = $"DATE-SERIAL-{id}",
+                        ProductId = 3701,
+                        CurrentStatus = SerialStatus.InWarrantyProcess.ToString()
+                    });
+                    db.WarrantyCoverages.Add(new WarrantyCoverage
+                    {
+                        Id = id,
+                        ProductSerialId = id,
+                        CustomerId = 1,
+                        WarrantyStartDate = selectedDate.AddYears(-1),
+                        WarrantyEndDate = selectedDate.AddYears(1),
+                        CoverageStatus = "Active"
+                    });
+                }
+                db.WarrantyClaims.AddRange(
+                    CreateClaim(701, "DATE-START", selectedDate),
+                    CreateClaim(702, "DATE-LATE", selectedDate.AddHours(23).AddMinutes(59)),
+                    CreateClaim(703, "DATE-NEXT", selectedDate.AddDays(1)),
+                    CreateClaim(704, "DATE-AFTER", selectedDate.AddDays(2)));
+                db.SaveChanges();
+            }
+            var viewModel = new WarrantyViewModel(
+                new AppUser { Id = 1 },
+                () => DatabaseHelper.CreateContext(connection),
+                (_, _) => { })
+            {
+                SearchFromDate = selectedDate.AddHours(14),
+                SearchToDate = selectedDate.AddHours(10)
+            };
+
+            await viewModel.LoadData();
+
+            Assert.Equal(["DATE-LATE", "DATE-START"], viewModel.Warranties.Select(item => item.ClaimCode));
+        }
+
+        private static WarrantyClaim CreateClaim(int id, string code, DateTime receivedDate) => new()
+        {
+            Id = id,
+            ClaimCode = code,
+            WarrantyCoverageId = id,
+            ProductSerialId = id,
+            ReceivedDate = receivedDate,
+            Status = "Open",
+            ProcessedBy = 1
+        };
+
         [Theory]
         [InlineData("Open", true, true, false, false, true, false, true)]
         [InlineData("ManufacturerWait", false, false, true, true, false, false, true)]

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
+using QuanLyHangHoa.Inventory;
 using QuanLyHangHoa.Models;
 using System;
 using System.Linq;
@@ -30,8 +31,9 @@ namespace QuanLyHangHoa.Services
 
     public class TopSellingProductData
     {
+        public int ProductId { get; set; }
         public string ProductName { get; set; } = string.Empty;
-        public int TotalSold { get; set; }
+        public decimal TotalSold { get; set; }
     }
 
     public class StockMovementData
@@ -246,20 +248,70 @@ namespace QuanLyHangHoa.Services
         public async Task<System.Collections.Generic.List<TopSellingProductData>> GetTopSellingProductsAsync(int limit)
         {
             using var context = _contextFactory();
-            var grouped = await context.SalesInvoiceLines
+            var lines = await context.SalesInvoiceLines
                 .AsNoTracking()
                 .Where(line => line.SalesInvoice.Status == InvoiceStatus.Active)
-                .GroupBy(l => l.Product.DisplayName)
-                .Select(g => new TopSellingProductData
+                .Select(line => new
                 {
-                    ProductName = g.Key,
-                    TotalSold = (int)g.Sum(l => l.Quantity)
+                    line.ProductId,
+                    ProductName = line.Product.DisplayName,
+                    line.Quantity,
+                    line.UnitId,
+                    line.Product.DefaultUnitId,
+                    LinkedBaseQuantity = line.StockOutLineId.HasValue
+                        ? (decimal?)line.StockOutLine!.BaseQuantity
+                        : null,
+                    ConversionFactor = context.ProductUnits
+                        .Where(mapping => mapping.ProductId == line.ProductId && mapping.UnitId == line.UnitId)
+                        .Select(mapping => (decimal?)mapping.ConversionFactor)
+                        .SingleOrDefault()
                 })
-                .OrderByDescending(x => x.TotalSold)
-                .Take(limit)
                 .ToListAsync();
 
-            return grouped;
+            return lines
+                .Select(line => new
+                {
+                    line.ProductId,
+                    line.ProductName,
+                    BaseQuantity = line.LinkedBaseQuantity ?? ConvertLegacyInvoiceQuantity(
+                        line.ProductId,
+                        line.UnitId,
+                        line.DefaultUnitId,
+                        line.Quantity,
+                        line.ConversionFactor)
+                })
+                .GroupBy(line => new { line.ProductId, line.ProductName })
+                .Select(group => new TopSellingProductData
+                {
+                    ProductId = group.Key.ProductId,
+                    ProductName = group.Key.ProductName,
+                    TotalSold = group.Sum(line => line.BaseQuantity)
+                })
+                .OrderByDescending(x => x.TotalSold)
+                .ThenByDescending(x => x.ProductId)
+                .Take(limit)
+                .ToList();
+        }
+
+        private static decimal ConvertLegacyInvoiceQuantity(
+            int productId,
+            int unitId,
+            int defaultUnitId,
+            decimal quantity,
+            decimal? conversionFactor)
+        {
+            if (unitId == defaultUnitId)
+            {
+                return quantity;
+            }
+
+            if (conversionFactor is null or <= 0m)
+            {
+                throw new InventoryDomainException(
+                    $"Dữ liệu hóa đơn cũ của sản phẩm {productId} thiếu quy đổi đơn vị hợp lệ.");
+            }
+
+            return quantity * conversionFactor.Value;
         }
 
         // tạo đủ từng ngày trong khoảng để biểu đồ không bị đứt khi ngày đó không có chứng từ
