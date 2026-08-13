@@ -299,7 +299,7 @@ namespace QuanLyHangHoa.Services
             var rowVersion = SnapshotRowVersion(expectedRowVersion);
             await _writeExecutor.ExecuteAsync(
                 new DatabaseWriteRequest("stock-in.submit", operationId),
-                (db, token) => StageSubmitForApprovalAsync(db, stockInId, rowVersion, userId),
+                (db, token) => StageSubmitForApprovalAsync(db, stockInId, rowVersion, userId, token),
                 (db, token) => db.StockIns.AnyAsync(
                     item => item.Id == stockInId && item.Status == DocumentStatus.PendingApproval,
                     token),
@@ -310,15 +310,20 @@ namespace QuanLyHangHoa.Services
         internal virtual void SubmitForApproval(int stockInId, int userId) =>
             SubmitForApprovalAsync(stockInId, userId, Guid.NewGuid()).GetAwaiter().GetResult();
 
-        private Task StageSubmitForApprovalAsync(
+        private async Task StageSubmitForApprovalAsync(
             AppDbContext db,
             int stockInId,
             byte[] expectedRowVersion,
-            int userId)
+            int userId,
+            CancellationToken cancellationToken)
         {
             AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockIn);
-            var stockIn = db.StockIns.SingleOrDefault(item => item.Id == stockInId)
+            var stockIn = db.StockIns
+                .Include(item => item.Lines)
+                    .ThenInclude(line => line.ProductSerials)
+                .SingleOrDefault(item => item.Id == stockInId)
                 ?? throw new InventoryDomainException("Không tìm thấy phiếu nhập kho.");
+            await StockDocumentDraftValidator.ValidateAsync(db, stockIn.Lines.ToArray(), cancellationToken);
             var beforeJson = Serialize(stockIn);
             db.Entry(stockIn).Property(item => item.RowVersion).OriginalValue = expectedRowVersion;
             var lifecycle = new StockDocumentLifecycleService();
@@ -326,7 +331,6 @@ namespace QuanLyHangHoa.Services
             stockIn.UpdatedBy = userId;
             stockIn.UpdatedAt = DateTime.UtcNow;
             AddAudit(db, "SUBMIT", stockIn.Id, beforeJson, Serialize(stockIn), userId);
-            return Task.CompletedTask;
         }
 
         internal Task ApproveAsync(

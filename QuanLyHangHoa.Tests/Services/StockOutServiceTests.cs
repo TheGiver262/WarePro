@@ -182,8 +182,8 @@ public class StockOutServiceTests
         };
         service.SaveDraft(stockOutC, linesC, 1);
 
-        ApproveForPosting(service, connection, stockOutC.Id);
-        var exDup = Assert.Throws<Exception>(() => service.Post(stockOutC.Id, 1));
+        var exDup = Assert.Throws<InventoryDomainException>(() =>
+            ApproveForPosting(service, connection, stockOutC.Id));
         Assert.Equal("Các số serial sau bị trùng lặp trong phiếu: [SN-102]. Vui lòng kiểm tra lại trước khi duyệt.", exDup.Message);
     }
 
@@ -253,6 +253,63 @@ public class StockOutServiceTests
         var ledger = assertContext.StockLedgers.Single(l => l.ProductId == 400);
         Assert.Equal("Out", ledger.MovementType);
         Assert.Equal(24, ledger.Quantity);
+    }
+
+    [Fact]
+    public async Task SubmitForApproval_rejects_invalid_serial_draft_and_keeps_status_draft()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        using (var seedContext = DatabaseHelper.CreateContext(connection))
+        {
+            DatabaseHelper.SeedBasicData(seedContext);
+            seedContext.Products.Add(new Product
+            {
+                Id = 450,
+                ProductCode = "P450-OUT",
+                DisplayName = "Submit validation product out",
+                CategoryId = 1,
+                BrandId = 1,
+                DefaultUnitId = 1,
+                DefaultPrice = 10m,
+                IsSerialTracked = true
+            });
+            seedContext.ProductUnits.Add(new ProductUnit
+            {
+                ProductId = 450,
+                UnitId = 1,
+                ConversionFactor = 1m,
+                IsBaseUnit = true,
+                IsPurchaseUnit = true,
+                IsSalesUnit = true
+            });
+            seedContext.SaveChanges();
+        }
+
+        var service = new StockOutService(() => DatabaseHelper.CreateContext(connection));
+        var document = new StockOut
+        {
+            DocumentCode = "SO-INVALID-SUBMIT",
+            CustomerId = 1,
+            WarehouseId = 1,
+            PurposeCode = "Sale"
+        };
+        await service.SaveDraftAsync(document,
+        [
+            new StockOutLine
+            {
+                ProductId = 450,
+                UnitId = 1,
+                Quantity = 2m,
+                ProductSerials = [new ProductSerial { SerialNumber = "ONLY-ONE" }]
+            }
+        ], 1, Guid.NewGuid());
+
+        await Assert.ThrowsAsync<InventoryDomainException>(() => service.SubmitForApprovalAsync(
+            document.Id, document.RowVersion, 1, Guid.NewGuid()));
+
+        using var assertContext = DatabaseHelper.CreateContext(connection);
+        Assert.Equal(DocumentStatus.Draft, assertContext.StockOuts.Single(item => item.Id == document.Id).Status);
     }
 
     [Fact]

@@ -26,11 +26,13 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private ObservableCollection<Unit> _availableUnits = new();
         [ObservableProperty] private ObservableCollection<string> _serialNumbers = new();
         [ObservableProperty] [NotifyPropertyChangedFor(nameof(IsSerialComplete))] private bool _isSerialRequired;
-        [ObservableProperty] private decimal _baseQuantity;
+        [ObservableProperty] [NotifyPropertyChangedFor(nameof(IsSerialComplete))] private decimal _baseQuantity;
 
         public string SerialSummary => SerialNumbers.Count > 0 ? $"{SerialNumbers.Count} Serial" : "Chưa có Serial";
         public string SerialDetail => SerialNumbers.Count > 0 ? string.Join(", ", SerialNumbers) : "";
-        public bool IsSerialComplete => !IsSerialRequired || SerialNumbers.Count == (int)Quantity;
+        public bool IsSerialComplete => !IsSerialRequired ||
+            (BaseQuantity > 0m && BaseQuantity == decimal.Truncate(BaseQuantity) &&
+             SerialNumbers.Count == (int)BaseQuantity);
 
         public StockInLineEditor(ProductUnitService productUnitService)
         {
@@ -43,6 +45,15 @@ namespace QuanLyHangHoa.ViewModels
             OnPropertyChanged(nameof(SerialSummary));
             OnPropertyChanged(nameof(SerialDetail));
             OnPropertyChanged(nameof(IsSerialComplete));
+        }
+
+        public void ReplaceSerials(IEnumerable<string> serials)
+        {
+            SerialNumbers.Clear();
+            foreach (var serial in serials)
+            {
+                SerialNumbers.Add(serial);
+            }
         }
 
         partial void OnQuantityChanged(decimal value) => UpdateBaseQuantity();
@@ -567,13 +578,7 @@ namespace QuanLyHangHoa.ViewModels
                 if (dialog.ShowDialog() == true)
                 {
                     var serials = StockInService.ParseSerialRange(dialog.SerialInput);
-                    line.SerialNumbers.Clear();
-                    foreach (var sn in serials)
-                    {
-                        line.SerialNumbers.Add(sn);
-                    }
-                    line.Quantity = serials.Count;
-                    line.NotifySerialChanges();
+                    line.ReplaceSerials(serials);
                 }
             }
             else
@@ -648,17 +653,6 @@ namespace QuanLyHangHoa.ViewModels
                     return;
                 }
 
-                foreach (var line in Lines)
-                {
-                    if (line.IsSerialRequired && line.SerialNumbers.Count != (int)line.Quantity)
-                    {
-                        var result = MessageBox.Show(
-                            $"Sản phẩm {line.SelectedProduct?.DisplayName} yêu cầu {(int)line.Quantity} serial, nhưng hiện mới có {line.SerialNumbers.Count}.\n\nBạn có muốn bổ sung serial trước khi gửi duyệt không?",
-                            "Thiếu Serial", MessageBoxButton.YesNo, MessageBoxImage.Warning);
-
-                        if (result == MessageBoxResult.Yes) return;
-                    }
-                }
             }
 
             var confirmMessage = isDraft && !IsAdminOrManager
@@ -804,6 +798,26 @@ namespace QuanLyHangHoa.ViewModels
                 if (line.SelectedUnit == null)
                 {
                     MessageBox.Show($"Sản phẩm '{line.SelectedProduct.DisplayName}' chưa chọn đơn vị tính. Vui lòng kiểm tra lại.", "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return false;
+                }
+                if (line.Quantity <= 0m || line.BaseQuantity <= 0m)
+                {
+                    MessageBox.Show($"Số lượng sản phẩm '{line.SelectedProduct.DisplayName}' phải lớn hơn 0.", "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return false;
+                }
+                if (line.IsSerialRequired && !line.IsSerialComplete)
+                {
+                    MessageBox.Show($"Sản phẩm '{line.SelectedProduct.DisplayName}' cần đúng số serial theo số lượng quy đổi ({line.BaseQuantity}).", "Thiếu Serial", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return false;
+                }
+                if (!line.IsSerialRequired && line.SerialNumbers.Count > 0)
+                {
+                    MessageBox.Show($"Sản phẩm '{line.SelectedProduct.DisplayName}' không quản lý serial.", "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return false;
+                }
+                if (line.SerialNumbers.GroupBy(serial => serial.Trim(), StringComparer.OrdinalIgnoreCase).Any(group => group.Count() > 1))
+                {
+                    MessageBox.Show($"Sản phẩm '{line.SelectedProduct.DisplayName}' có serial trùng lặp.", "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return false;
                 }
             }

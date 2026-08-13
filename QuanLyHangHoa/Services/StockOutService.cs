@@ -316,7 +316,7 @@ namespace QuanLyHangHoa.Services
             CancellationToken cancellationToken = default) =>
             _writeExecutor.ExecuteAsync(
                 new DatabaseWriteRequest("stock-out.submit", operationId),
-                (db, token) => StageSubmitForApprovalAsync(db, stockOutId, userId),
+                (db, token) => StageSubmitForApprovalAsync(db, stockOutId, userId, token),
                 (db, token) => db.StockOuts.AnyAsync(
                     item => item.Id == stockOutId && item.Status == DocumentStatus.PendingApproval, token),
                 cancellationToken: cancellationToken);
@@ -328,7 +328,7 @@ namespace QuanLyHangHoa.Services
             var rowVersion = SnapshotRowVersion(expectedRowVersion);
             await _writeExecutor.ExecuteAsync(
                 new DatabaseWriteRequest("stock-out.submit", operationId),
-                (db, token) => StageSubmitForApprovalAsync(db, stockOutId, rowVersion, userId),
+                (db, token) => StageSubmitForApprovalAsync(db, stockOutId, rowVersion, userId, token),
                 (db, token) => db.StockOuts.AnyAsync(
                     item => item.Id == stockOutId && item.Status == DocumentStatus.PendingApproval, token),
                 cancellationToken: cancellationToken);
@@ -338,18 +338,27 @@ namespace QuanLyHangHoa.Services
         internal virtual void SubmitForApproval(int stockOutId, int userId) =>
             SubmitForApprovalAsync(stockOutId, userId, Guid.NewGuid()).GetAwaiter().GetResult();
 
-        private Task StageSubmitForApprovalAsync(AppDbContext db, int stockOutId, int userId) =>
-            StageSubmitForApprovalAsync(db, stockOutId, null, userId);
-
         private Task StageSubmitForApprovalAsync(
             AppDbContext db,
             int stockOutId,
+            int userId,
+            CancellationToken cancellationToken) =>
+            StageSubmitForApprovalAsync(db, stockOutId, null, userId, cancellationToken);
+
+        private async Task StageSubmitForApprovalAsync(
+            AppDbContext db,
+            int stockOutId,
             byte[]? expectedRowVersion,
-            int userId)
+            int userId,
+            CancellationToken cancellationToken)
         {
             AuthorizationService.RequireFreshActor(db, userId, PermissionAction.PostStockOut);
-            var stockOut = db.StockOuts.SingleOrDefault(item => item.Id == stockOutId)
+            var stockOut = db.StockOuts
+                .Include(item => item.Lines)
+                    .ThenInclude(line => line.ProductSerials)
+                .SingleOrDefault(item => item.Id == stockOutId)
                 ?? throw new InventoryDomainException("Không tìm thấy phiếu xuất kho.");
+            await StockDocumentDraftValidator.ValidateAsync(db, stockOut.Lines.ToArray(), cancellationToken);
             var beforeJson = Serialize(stockOut);
             if (expectedRowVersion is not null)
             {
@@ -360,7 +369,6 @@ namespace QuanLyHangHoa.Services
             stockOut.UpdatedBy = userId;
             stockOut.UpdatedAt = DateTime.UtcNow;
             AddAudit(db, "SUBMIT", stockOut.Id, beforeJson, Serialize(stockOut), userId);
-            return Task.CompletedTask;
         }
 
         public Task ApproveAsync(
