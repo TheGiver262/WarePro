@@ -47,7 +47,7 @@ namespace QuanLyHangHoa.Services
                     // kiểm tra trước để báo lỗi rõ; unique index vẫn là hàng rào cuối nếu hai máy cùng tạo một mã
                     if (await db.Categories.AnyAsync(item => item.CategoryCode == code, token))
                     {
-                        throw new InvalidOperationException($"Category code '{code}' already exists.");
+                        throw new InventoryDomainException($"Mã danh mục '{code}' đã tồn tại.");
                     }
 
                     var created = new Category { CategoryCode = code, DisplayName = name, IsActive = isActive };

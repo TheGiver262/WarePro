@@ -101,7 +101,7 @@ namespace QuanLyHangHoa.Services
                     // kiểm tra trước để báo lỗi rõ; unique index vẫn là hàng rào cuối nếu hai máy cùng tạo một mã
                     if (await db.Customers.AnyAsync(item => item.CustomerCode == code, token))
                     {
-                        throw new InvalidOperationException($"Customer code '{code}' already exists.");
+                        throw new InventoryDomainException($"Mã khách hàng '{code}' đã tồn tại.");
                     }
 
                     var created = new Customer

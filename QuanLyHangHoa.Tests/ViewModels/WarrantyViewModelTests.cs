@@ -254,6 +254,31 @@ namespace QuanLyHangHoa.Tests.ViewModels
         }
 
         [Fact]
+        public async Task CreateWarrantyClaim_keeps_actionable_domain_message()
+        {
+            using var connection = new Microsoft.Data.Sqlite.SqliteConnection("Data Source=:memory:");
+            connection.Open();
+            using (var db = DatabaseHelper.CreateContext(connection))
+                DatabaseHelper.SeedBasicData(db);
+            var messages = new List<string>();
+            var viewModel = new WarrantyViewModel(
+                new AppUser { Id = 1 },
+                () => DatabaseHelper.CreateContext(connection),
+                (message, _) => messages.Add(message))
+            {
+                ClaimCode = "WC-NOT-FOUND",
+                SerialNumber = "SERIAL-NOT-FOUND",
+                ProblemDescription = "Không khởi động"
+            };
+
+            await viewModel.CreateWarrantyClaimCommand.ExecuteAsync(null);
+
+            var message = Assert.Single(messages);
+            Assert.Contains("không tồn tại", message, StringComparison.OrdinalIgnoreCase);
+            Assert.NotEqual(DatabaseWriteUi.TechnicalErrorMessage, message);
+        }
+
+        [Fact]
         public async Task Claim_date_filter_includes_the_whole_selected_end_day()
         {
             using var connection = new Microsoft.Data.Sqlite.SqliteConnection("Data Source=:memory:");

@@ -117,7 +117,7 @@ public partial class WarrantyClaimService
         // chuẩn hóa input trước executor để mọi attempt dùng cùng mã claim, serial và mô tả.
         var normalizedCode = claimCode.Trim();
         var normalizedSerial = SerialNumberNormalizer.Normalize(serialNumber)
-            ?? throw new InvalidOperationException("Serial không hợp lệ.");
+            ?? throw new InventoryDomainException("Serial không hợp lệ.");
         var normalizedProblem = problemDescription.Trim();
 
         try
@@ -137,7 +137,7 @@ public partial class WarrantyClaimService
                     var serial = await db.ProductSerials.SingleOrDefaultAsync(
                         item => item.SerialNumber == normalizedSerial,
                         token)
-                        ?? throw new InvalidOperationException(
+                        ?? throw new InventoryDomainException(
                             $"Serial {normalizedSerial} không tồn tại.");
 
                     var existing = await db.WarrantyClaims.AsNoTracking()
@@ -151,7 +151,7 @@ public partial class WarrantyClaimService
                             return existing.Id;
                         }
 
-                        throw new InvalidOperationException(
+                        throw new InventoryDomainException(
                             $"Mã phiếu bảo hành {normalizedCode} đã tồn tại.");
                     }
 
@@ -173,7 +173,7 @@ public partial class WarrantyClaimService
                         && item.WarrantyStartDate.Date <= today
                         && item.WarrantyEndDate.Date >= today,
                         token)
-                        ?? throw new InvalidOperationException(
+                        ?? throw new InventoryDomainException(
                             $"Serial {normalizedSerial} không có bảo hành còn hiệu lực.");
 
                     if (serial.CurrentStatus is not "InWarrantyProcess" and not "ReturnedToManufacturer")
@@ -210,20 +210,20 @@ public partial class WarrantyClaimService
         }
         catch (DbUpdateException ex)
         {
-            throw new InvalidOperationException(
+            throw new InventoryDomainException(
                 "Không thể tạo phiếu bảo hành. Vui lòng kiểm tra mã phiếu và dữ liệu bảo hành đã tồn tại.",
                 ex);
         }
     }
 
-    private static InvalidOperationException OpenClaimExists(
+    private static InventoryDomainException OpenClaimExists(
         string serialNumber,
         Exception? innerException = null)
     {
         var message = $"Serial {serialNumber} đang có phiếu bảo hành chưa kết thúc.";
         return innerException is null
-            ? new InvalidOperationException(message)
-            : new InvalidOperationException(message, innerException);
+            ? new InventoryDomainException(message)
+            : new InventoryDomainException(message, innerException);
     }
 
     private static bool IsOpenClaimUniqueViolation(Exception exception)
@@ -389,7 +389,7 @@ public partial class WarrantyClaimService
                         .ThenInclude(serial => serial.Product)
                     .Include(item => item.WarrantyCoverage)
                     .SingleOrDefaultAsync(item => item.Id == claimId, token)
-                    ?? throw new InvalidOperationException(
+                    ?? throw new InventoryDomainException(
                         $"Phiếu bảo hành #{claimId} không tồn tại.");
                 db.Entry(claim).Property(item => item.RowVersion).OriginalValue = rowVersion;
                 WarrantyClaimTransitions.EnsureAllowed(
@@ -448,7 +448,7 @@ public partial class WarrantyClaimService
                 var newSerial = await db.ProductSerials.SingleOrDefaultAsync(
                     item => item.SerialNumber == normalizedSerial,
                     token)
-                    ?? throw new InvalidOperationException(
+                    ?? throw new InventoryDomainException(
                         $"Serial mới {normalizedSerial} không tìm thấy sau khi nhập kho.");
 
                 var stockOut = CreateReplacementStockOut(
@@ -560,7 +560,7 @@ public partial class WarrantyClaimService
                         .ThenInclude(serial => serial.Product)
                     .Include(item => item.WarrantyCoverage)
                     .SingleOrDefaultAsync(item => item.Id == claimId, token)
-                    ?? throw new InvalidOperationException(
+                    ?? throw new InventoryDomainException(
                         $"Phiếu bảo hành #{claimId} không tồn tại.");
                 db.Entry(claim).Property(item => item.RowVersion).OriginalValue = rowVersion;
                 WarrantyClaimTransitions.EnsureAllowed(
@@ -576,12 +576,12 @@ public partial class WarrantyClaimService
                     && item.CurrentStatus == "InStock"
                     && item.CurrentWarehouseId == warehouseId,
                     token)
-                    ?? throw new InvalidOperationException(
+                    ?? throw new InventoryDomainException(
                         $"Serial {normalizedSerial} không có trong kho hoặc không ở trạng thái sẵn sàng.");
 
                 if (newSerial.ProductId != product.Id)
                 {
-                    throw new InvalidOperationException(
+                    throw new InventoryDomainException(
                         $"Serial {normalizedSerial} không thuộc sản phẩm {product.DisplayName}.");
                 }
 
@@ -658,7 +658,7 @@ public partial class WarrantyClaimService
                     || claim.ReplacementStockOutId.HasValue;
                 if (hasRelatedStockIn || hasRelatedStockOut)
                 {
-                    throw new InvalidOperationException(
+                    throw new InventoryDomainException(
                         "Không thể xóa phiếu bảo hành khi đã phát sinh chứng từ liên quan.");
                 }
 
@@ -695,7 +695,7 @@ public partial class WarrantyClaimService
                     userId,
                     PermissionAction.CreateWarrantyClaim);
                 var claim = await loadClaim(db, token)
-                    ?? throw new InvalidOperationException(
+                    ?? throw new InventoryDomainException(
                         $"Phiếu bảo hành #{claimId} không tồn tại.");
                 db.Entry(claim).Property(item => item.RowVersion).OriginalValue = rowVersion;
                 stage(db, claim);

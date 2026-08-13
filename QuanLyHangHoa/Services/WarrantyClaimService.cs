@@ -24,7 +24,7 @@ namespace QuanLyHangHoa.Services
         {
             if (endDate.Date < startDate.Date)
             {
-                throw new InvalidOperationException(
+                throw new InventoryDomainException(
                     "Warranty end date cannot be before warranty start date.");
             }
         }
@@ -46,7 +46,7 @@ namespace QuanLyHangHoa.Services
         {
             if (claim.ReplacementSerialId.HasValue || claim.ReplacementStockOutId.HasValue)
             {
-                throw new InvalidOperationException(
+                throw new InventoryDomainException(
                     $"Warranty claim {claim.Id} already has a replacement.");
             }
         }

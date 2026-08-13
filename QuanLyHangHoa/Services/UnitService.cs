@@ -92,7 +92,7 @@ namespace QuanLyHangHoa.Services
                     // kiểm tra trước để báo lỗi rõ; unique index vẫn là hàng rào cuối nếu hai máy cùng tạo một mã
                     if (await db.Units.AnyAsync(item => item.UnitCode == code, token))
                     {
-                        throw new InvalidOperationException($"Unit code '{code}' already exists.");
+                        throw new InventoryDomainException($"Mã đơn vị '{code}' đã tồn tại.");
                     }
 
                     var created = new Unit { UnitCode = code, DisplayName = name, IsActive = isActive };

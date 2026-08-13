@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using QuanLyHangHoa.Models;
 using QuanLyHangHoa.Services;
 using QuanLyHangHoa.Data;
+using QuanLyHangHoa.Inventory;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -332,8 +333,14 @@ namespace QuanLyHangHoa.ViewModels
                     window.Close();
                 }
             }
-            catch (Exception)
+            catch (InventoryDomainException ex)
             {
+                StatusMessage = ex.Message;
+                _showMessage(ex.Message, "Lỗi bảo hành");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(ex);
                 StatusMessage = DatabaseWriteUi.TechnicalErrorMessage;
                 _showMessage(DatabaseWriteUi.TechnicalErrorMessage, "Lỗi bảo hành");
             }
@@ -510,9 +517,14 @@ namespace QuanLyHangHoa.ViewModels
                 var printWindow = new Views.WarrantyPrintWindow(claim);
                 printWindow.ShowDialog();
             }
-            catch (Exception ex)
+            catch (InventoryDomainException ex)
             {
                 _showMessage(ex.Message, "Lỗi");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(ex);
+                _showMessage(DatabaseWriteUi.TechnicalErrorMessage, "Lỗi");
             }
         }
 
@@ -616,8 +628,14 @@ namespace QuanLyHangHoa.ViewModels
                 await LoadData();
                 IsDetailPanelOpen = false;
             }
-            catch (Exception)
+            catch (InventoryDomainException ex)
             {
+                StatusMessage = ex.Message;
+                _showMessage(ex.Message, "Lỗi bảo hành");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(ex);
                 StatusMessage = DatabaseWriteUi.TechnicalErrorMessage;
                 _showMessage(DatabaseWriteUi.TechnicalErrorMessage, "Lỗi bảo hành");
             }

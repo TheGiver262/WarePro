@@ -85,7 +85,7 @@ public class WarrantyClaimServiceTests
     [Fact]
     public void CoverageDates_reject_end_before_start()
     {
-        Assert.Throws<InvalidOperationException>(() =>
+        Assert.Throws<InventoryDomainException>(() =>
             WarrantyClaimService.EnsureValidCoverageDates(
                 new DateTime(2026, 5, 2),
                 new DateTime(2026, 5, 1)));
@@ -239,7 +239,7 @@ public class WarrantyClaimServiceTests
         var service = new WarrantyClaimService(() => CreateContext(connection));
 
         Assert.Null(service.GetCoverageBySerial("WARRANTY-FUTURE"));
-        Assert.Throws<InvalidOperationException>(() =>
+        Assert.Throws<InventoryDomainException>(() =>
             service.CreateClaim(
                 "WC-FUTURE",
                 "WARRANTY-FUTURE",
@@ -300,7 +300,7 @@ public class WarrantyClaimServiceTests
 
         var service = new WarrantyClaimService(() => CreateContext(connection));
 
-        var error = Assert.Throws<InvalidOperationException>(() =>
+        var error = Assert.Throws<InventoryDomainException>(() =>
             service.CreateClaim("WC-0002", "WARRANTY-002", "Battery issue", userId: 1));
 
         Assert.Contains("đang có phiếu bảo hành chưa kết thúc", error.Message);
@@ -351,7 +351,7 @@ public class WarrantyClaimServiceTests
 
         var service = new WarrantyClaimService(() => CreateContext(connection));
 
-        var exception = Assert.Throws<InvalidOperationException>(
+        var exception = Assert.Throws<InventoryDomainException>(
             () => service.CreateClaim("WC-DUP", "WARRANTY-DUP-CODE", "Duplicate code", userId: 1));
 
         Assert.Contains("đã tồn tại", exception.Message);
@@ -392,7 +392,7 @@ public class WarrantyClaimServiceTests
         }
 
         var service = new WarrantyClaimService(() => CreateContext(connection));
-        var ex = Assert.Throws<InvalidOperationException>(() => service.DeleteClaim(claimId));
+        var ex = Assert.Throws<InventoryDomainException>(() => service.DeleteClaim(claimId));
         Assert.Contains("Không thể xóa phiếu bảo hành", ex.Message);
     }
 

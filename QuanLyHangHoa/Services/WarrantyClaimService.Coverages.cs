@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
+using QuanLyHangHoa.Inventory;
 
 namespace QuanLyHangHoa.Services;
 
@@ -38,7 +39,7 @@ public partial class WarrantyClaimService
                 var coverage = await db.WarrantyCoverages.SingleOrDefaultAsync(
                     item => item.Id == coverageId,
                     token)
-                    ?? throw new InvalidOperationException(
+                    ?? throw new InventoryDomainException(
                         $"Thông tin bảo hành #{coverageId} không tồn tại.");
                 db.Entry(coverage).Property(item => item.RowVersion).OriginalValue = rowVersion;
                 coverage.WarrantyStartDate = startDate;
@@ -77,7 +78,7 @@ public partial class WarrantyClaimService
                 var coverage = await db.WarrantyCoverages.SingleOrDefaultAsync(
                     item => item.Id == coverageId,
                     token)
-                    ?? throw new InvalidOperationException(
+                    ?? throw new InventoryDomainException(
                         $"Thông tin bảo hành #{coverageId} không tồn tại.");
                 db.Entry(coverage).Property(item => item.RowVersion).OriginalValue = rowVersion;
                 db.WarrantyCoverages.Remove(coverage);
