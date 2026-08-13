@@ -193,9 +193,16 @@ namespace QuanLyHangHoa.Services
             {
                 throw new ArgumentException("RowVersion is required for draft updates.", nameof(stockIn));
             }
+            var committedCode = snapshot.DocumentCode;
             var saved = await _writeExecutor.ExecuteAsync(
                 new DatabaseWriteRequest("stock-in.save-draft", operationId),
-                (db, token) => StageSaveDraftAsync(db, snapshot, token),
+                async (db, token) =>
+                {
+                    var result = await StageSaveDraftAsync(db, snapshot, token);
+                    committedCode = result.DocumentCode;
+                    return result;
+                },
+                (db, token) => VerifySavedDraftAsync(db, snapshot, committedCode, token),
                 entityKey: snapshot.DocumentCode,
                 cancellationToken: cancellationToken);
             stockIn.Id = saved.Id;
@@ -296,6 +303,44 @@ namespace QuanLyHangHoa.Services
             await db.SaveChangesAsync(cancellationToken);
             AddAudit(db, "CREATE", document.Id, null, Serialize(document), snapshot.UserId);
             return (document.Id, document.DocumentCode);
+        }
+
+        private static async Task<bool> VerifySavedDraftAsync(
+            AppDbContext db,
+            StockInDraftSnapshot snapshot,
+            string documentCode,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(documentCode))
+                return false;
+
+            var document = await db.StockIns.AsNoTracking()
+                .Include(item => item.Lines)
+                .SingleOrDefaultAsync(item =>
+                    (snapshot.Id == 0 || item.Id == snapshot.Id)
+                    && item.DocumentCode == documentCode,
+                    cancellationToken);
+            if (document is null
+                || document.SupplierId != snapshot.SupplierId
+                || (snapshot.WarehouseId != 0 && document.WarehouseId != snapshot.WarehouseId)
+                || document.ImportDate != snapshot.ImportDate
+                || document.Notes != snapshot.Notes
+                || (snapshot.Id == 0 && document.CreatedBy != snapshot.UserId))
+            {
+                return false;
+            }
+
+            var expectedLines = snapshot.Lines
+                .Select(line => (line.ProductId, line.UnitId, line.Quantity, line.UnitPrice, line.DraftSerials))
+                .OrderBy(line => line.ProductId).ThenBy(line => line.UnitId)
+                .ThenBy(line => line.Quantity).ThenBy(line => line.UnitPrice).ThenBy(line => line.DraftSerials)
+                .ToArray();
+            var actualLines = document.Lines
+                .Select(line => (line.ProductId, line.UnitId, line.Quantity, line.UnitPrice, line.DraftSerials))
+                .OrderBy(line => line.ProductId).ThenBy(line => line.UnitId)
+                .ThenBy(line => line.Quantity).ThenBy(line => line.UnitPrice).ThenBy(line => line.DraftSerials)
+                .ToArray();
+            return expectedLines.SequenceEqual(actualLines);
         }
         internal Task SubmitForApprovalAsync(
             int stockInId,

@@ -102,7 +102,7 @@ public sealed class InventoryWriteExecutorTests
 
 
     [Fact]
-    public async Task SaveDraftAsync_existing_draft_does_not_false_succeed_after_ambiguous_commit()
+    public async Task Stock_in_save_verifies_committed_update_after_ambiguous_commit()
     {
         var interceptor = new ThrowAfterFirstCommitInterceptor();
         await using var database = await ExecutorTestDatabase.CreateAsync(interceptor);
@@ -139,8 +139,7 @@ public sealed class InventoryWriteExecutorTests
         };
 
         var service = new StockInService(database.CreateContext);
-        await Assert.ThrowsAsync<TestTransientException>(() => service.SaveDraftAsync(
-            stale, changedLines, 1, Guid.NewGuid()));
+        await service.SaveDraftAsync(stale, changedLines, 1, Guid.NewGuid());
 
         using var verify = database.CreateContext();
         var committed = verify.StockIns.AsNoTracking()
@@ -149,6 +148,49 @@ public sealed class InventoryWriteExecutorTests
         Assert.Equal("changed header", committed.Notes);
         Assert.Single(committed.Lines);
         Assert.Equal(11, committed.Lines.Single().ProductId);
+    }
+
+    [Fact]
+    public async Task Stock_out_save_verifies_committed_create_after_ambiguous_commit()
+    {
+        var interceptor = new ThrowAfterFirstCommitInterceptor();
+        await using var database = await ExecutorTestDatabase.CreateAsync(interceptor);
+        var service = new StockOutService(database.CreateContext);
+        var document = new StockOut
+        {
+            CustomerId = 1,
+            WarehouseId = 1,
+            PurposeCode = "Sale",
+            ExportDate = DateTime.UtcNow
+        };
+
+        await service.SaveDraftAsync(document, [], 1, Guid.NewGuid());
+
+        using var verify = database.CreateContext();
+        var committed = Assert.Single(verify.StockOuts.AsNoTracking());
+        Assert.Equal(document.Id, committed.Id);
+        Assert.Equal(document.DocumentCode, committed.DocumentCode);
+    }
+
+    [Fact]
+    public async Task Stock_adjustment_save_verifies_committed_create_after_ambiguous_commit()
+    {
+        var interceptor = new ThrowAfterFirstCommitInterceptor();
+        await using var database = await ExecutorTestDatabase.CreateAsync(interceptor);
+        var service = new StockAdjustmentService(database.CreateContext);
+        var document = new StockAdjustment
+        {
+            WarehouseId = 1,
+            AdjustmentType = "Increase",
+            ReasonCode = "Count"
+        };
+
+        await service.SaveDraftAsync(document, [], 1, Guid.NewGuid());
+
+        using var verify = database.CreateContext();
+        var committed = Assert.Single(verify.StockAdjustments.AsNoTracking());
+        Assert.Equal(document.Id, committed.Id);
+        Assert.Equal(document.DocumentCode, committed.DocumentCode);
     }
 
 

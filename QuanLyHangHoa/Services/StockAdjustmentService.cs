@@ -85,9 +85,16 @@ namespace QuanLyHangHoa.Services
                 throw new ArgumentException("RowVersion is required for draft updates.", nameof(adjustment));
             }
 
+            var committedCode = snapshot.DocumentCode;
             var saved = await _writeExecutor.ExecuteAsync(
                 new DatabaseWriteRequest("stock-adjustment.save-draft", operationId),
-                (db, token) => StageSaveDraftAsync(db, snapshot, userId, token),
+                async (db, token) =>
+                {
+                    var result = await StageSaveDraftAsync(db, snapshot, userId, token);
+                    committedCode = result.DocumentCode;
+                    return result;
+                },
+                (db, token) => VerifySavedDraftAsync(db, snapshot, committedCode, userId, token),
                 entityKey: snapshot.DocumentCode,
                 cancellationToken: cancellationToken);
             adjustment.Id = saved.Id;
@@ -164,6 +171,52 @@ namespace QuanLyHangHoa.Services
             // flush để database cấp id phiếu trước khi trả về; transaction ngoài vẫn quyết định commit hay rollback.
             await db.SaveChangesAsync(cancellationToken);
             return (freshAdjustment.Id, freshAdjustment.DocumentCode);
+        }
+
+        private static async Task<bool> VerifySavedDraftAsync(
+            AppDbContext db,
+            SaveDraftSnapshot snapshot,
+            string documentCode,
+            int userId,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(documentCode))
+                return false;
+
+            var document = await db.StockAdjustments.AsNoTracking()
+                .Include(item => item.Lines)
+                .SingleOrDefaultAsync(item =>
+                    (snapshot.Id == 0 || item.Id == snapshot.Id)
+                    && item.DocumentCode == documentCode,
+                    cancellationToken);
+            if (document is null
+                || document.WarehouseId != snapshot.WarehouseId
+                || document.AdjustmentType != snapshot.AdjustmentType
+                || document.ReasonCode != snapshot.ReasonCode
+                || document.Notes != snapshot.Notes
+                || document.ReferenceDocumentCode != snapshot.ReferenceDocumentCode
+                || document.ReferenceDocumentType != snapshot.ReferenceDocumentType
+                || document.ReferenceDocumentId != snapshot.ReferenceDocumentId
+                || (snapshot.Id == 0 && document.CreatedBy != userId))
+            {
+                return false;
+            }
+
+            var expectedLines = snapshot.Lines
+                .Select(line => (line.ProductId, line.ProductSerialId, line.DraftSerials,
+                    line.QuantityDelta, line.BaseQuantityDelta, line.Direction))
+                .OrderBy(line => line.ProductId).ThenBy(line => line.ProductSerialId)
+                .ThenBy(line => line.QuantityDelta).ThenBy(line => line.BaseQuantityDelta)
+                .ThenBy(line => line.Direction).ThenBy(line => line.DraftSerials)
+                .ToArray();
+            var actualLines = document.Lines
+                .Select(line => (line.ProductId, line.ProductSerialId, line.DraftSerials,
+                    line.QuantityDelta, line.BaseQuantityDelta, line.Direction))
+                .OrderBy(line => line.ProductId).ThenBy(line => line.ProductSerialId)
+                .ThenBy(line => line.QuantityDelta).ThenBy(line => line.BaseQuantityDelta)
+                .ThenBy(line => line.Direction).ThenBy(line => line.DraftSerials)
+                .ToArray();
+            return expectedLines.SequenceEqual(actualLines);
         }
 
         private sealed record SaveDraftSnapshot(

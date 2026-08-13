@@ -204,9 +204,16 @@ namespace QuanLyHangHoa.Services
                 throw new ArgumentException("RowVersion is required for draft updates.", nameof(stockOut));
             }
 
+            var committedCode = snapshot.DocumentCode;
             var saved = await _writeExecutor.ExecuteAsync(
                 new DatabaseWriteRequest("stock-out.save-draft", operationId),
-                (db, token) => StageSaveDraftAsync(db, snapshot, userId, token),
+                async (db, token) =>
+                {
+                    var result = await StageSaveDraftAsync(db, snapshot, userId, token);
+                    committedCode = result.DocumentCode;
+                    return result;
+                },
+                (db, token) => VerifySavedDraftAsync(db, snapshot, committedCode, userId, token),
                 entityKey: snapshot.DocumentCode,
                 cancellationToken: cancellationToken);
             stockOut.Id = saved.Id;
@@ -291,6 +298,54 @@ namespace QuanLyHangHoa.Services
             await db.SaveChangesAsync(cancellationToken);
             AddAudit(db, "CREATE", freshStockOut.Id, null, Serialize(freshStockOut), userId);
             return (freshStockOut.Id, freshStockOut.DocumentCode);
+        }
+
+        private static async Task<bool> VerifySavedDraftAsync(
+            AppDbContext db,
+            SaveDraftSnapshot snapshot,
+            string documentCode,
+            int userId,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(documentCode))
+                return false;
+
+            var document = await db.StockOuts.AsNoTracking()
+                .Include(item => item.Lines)
+                .SingleOrDefaultAsync(item =>
+                    (snapshot.Id == 0 || item.Id == snapshot.Id)
+                    && item.DocumentCode == documentCode,
+                    cancellationToken);
+            if (document is null
+                || document.CustomerId != snapshot.CustomerId
+                || document.WarehouseId != snapshot.WarehouseId
+                || document.ExportDate != snapshot.ExportDate
+                || document.Notes != snapshot.Notes
+                || document.StockCountSessionId != snapshot.StockCountSessionId
+                || document.StockCountLineId != snapshot.StockCountLineId
+                || (snapshot.Id == 0 && document.CreatedBy != userId))
+            {
+                return false;
+            }
+
+            var expectedLines = snapshot.Lines
+                .Select(line => (
+                    line.ProductId,
+                    line.UnitId,
+                    line.Quantity,
+                    line.UnitPrice,
+                    DraftSerials: line.SerialNumbers.Length == 0
+                        ? null
+                        : string.Join(",", line.SerialNumbers.Select(serial => serial.Trim()).Where(serial => serial.Length > 0))))
+                .OrderBy(line => line.ProductId).ThenBy(line => line.UnitId)
+                .ThenBy(line => line.Quantity).ThenBy(line => line.UnitPrice).ThenBy(line => line.DraftSerials)
+                .ToArray();
+            var actualLines = document.Lines
+                .Select(line => (line.ProductId, line.UnitId, line.Quantity, line.UnitPrice, line.DraftSerials))
+                .OrderBy(line => line.ProductId).ThenBy(line => line.UnitId)
+                .ThenBy(line => line.Quantity).ThenBy(line => line.UnitPrice).ThenBy(line => line.DraftSerials)
+                .ToArray();
+            return expectedLines.SequenceEqual(actualLines);
         }
 
         private static List<StockOutLine> BuildStockOut(

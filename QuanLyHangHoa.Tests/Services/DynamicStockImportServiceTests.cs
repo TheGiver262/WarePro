@@ -45,7 +45,7 @@ public sealed class DynamicStockImportServiceTests
         using var assertion = DatabaseHelper.CreateContext(connection);
         var serial = assertion.ProductSerials
             .Include(item => item.LastStockInLine)
-            .ThenInclude(line => line.StockIn)
+            .ThenInclude(line => line!.StockIn)
             .Single(item => item.SerialNumber == "DYNAMIC-SERIAL-001");
         var stockInLine = Assert.IsType<StockInLine>(serial.LastStockInLine);
         var stockIn = Assert.IsType<StockIn>(stockInLine.StockIn);
