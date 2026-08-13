@@ -47,8 +47,10 @@ public sealed class DynamicStockImportServiceTests
             .Include(item => item.LastStockInLine)
             .ThenInclude(line => line.StockIn)
             .Single(item => item.SerialNumber == "DYNAMIC-SERIAL-001");
-        Assert.Equal(1699, serial.LastStockInLine.ProductId);
-        Assert.Equal("OpeningBalance", serial.LastStockInLine.StockIn.PurposeCode);
+        var stockInLine = Assert.IsType<StockInLine>(serial.LastStockInLine);
+        var stockIn = Assert.IsType<StockIn>(stockInLine.StockIn);
+        Assert.Equal(1699, stockInLine.ProductId);
+        Assert.Equal("OpeningBalance", stockIn.PurposeCode);
         var balance = assertion.StockBalances.Single(item =>
             item.ProductId == 1699 && item.WarehouseId == serial.CurrentWarehouseId);
         Assert.Equal(1m, balance.OnHandQuantity);

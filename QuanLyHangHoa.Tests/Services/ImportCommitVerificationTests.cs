@@ -15,6 +15,18 @@ public sealed class ImportCommitVerificationTests
         const string documentCode = "IMPORT-SR-exact";
         const string payloadMarker = "[import-payload-sha256:exact]";
         SeedStockIn(connection, documentCode, payloadMarker, 1501, "SER-EXPECTED");
+        using (var seed = DatabaseHelper.CreateContext(connection))
+        {
+            seed.ProductSerials.Add(new ProductSerial
+            {
+                ProductId = 1501,
+                SerialNumber = "SER-ORPHAN",
+                CurrentStatus = "InStock",
+                CurrentWarehouseId = 1,
+                LastStockInLineId = null
+            });
+            seed.SaveChanges();
+        }
 
         using var db = DatabaseHelper.CreateContext(connection);
         var verified = await ProductSerialImportService.VerifyCommittedBatchAsync(

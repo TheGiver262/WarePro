@@ -99,7 +99,8 @@ public sealed class ProductSerialImportService : IProductSerialImportService
                         EnsurePayloadMatches(existingBatch.Notes, payloadMarker);
                         var existingCount = await db.ProductSerials
                             .CountAsync(
-                                serial => serial.LastStockInLine.StockInId == existingBatch.Id,
+                                serial => serial.LastStockInLine != null
+                                    && serial.LastStockInLine.StockInId == existingBatch.Id,
                                 token);
                         return (existingCount, BuildMessage(existingCount, parsedSkipCount));
                     }
@@ -403,7 +404,8 @@ public sealed class ProductSerialImportService : IProductSerialImportService
 
         var actualRows = await db.ProductSerials
             .AsNoTracking()
-            .Where(serial => serial.LastStockInLine.StockInId == stockInId.Value)
+            .Where(serial => serial.LastStockInLine != null
+                && serial.LastStockInLine.StockInId == stockInId.Value)
             .Select(serial => new { serial.ProductId, serial.SerialNumber })
             .ToArrayAsync(cancellationToken);
 

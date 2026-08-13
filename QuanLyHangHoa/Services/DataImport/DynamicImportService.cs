@@ -762,13 +762,17 @@ namespace QuanLyHangHoa.Services.DataImport
                     var postedSerials = await db.ProductSerials
                             .Where(serial =>
                                 serialNumbers.Contains(serial.SerialNumber) &&
+                                serial.LastStockInLine != null &&
+                                serial.LastStockInLine.StockIn != null &&
                                 serial.LastStockInLine.StockIn.DocumentCode.StartsWith(serialDocumentPrefix))
                             .Select(serial => new
                             {
                                 serial.SerialNumber,
                                 serial.ProductId,
                                 serial.CurrentWarehouseId,
-                                StockInId = serial.LastStockInLine.StockInId
+                                StockInId = serial.LastStockInLine == null
+                                    ? 0
+                                    : serial.LastStockInLine.StockInId
                             })
                             .ToListAsync(cancellationToken);
                     var postedBySerial = postedSerials
@@ -1235,6 +1239,8 @@ namespace QuanLyHangHoa.Services.DataImport
             var importedSerials = await db.ProductSerials
                 .Where(item =>
                     noteSerialNumbers.Contains(item.SerialNumber) &&
+                    item.LastStockInLine != null &&
+                    item.LastStockInLine.StockIn != null &&
                     item.LastStockInLine.StockIn.DocumentCode.StartsWith(documentPrefix))
                 .ToListAsync(cancellationToken);
             var importedBySerial = importedSerials
