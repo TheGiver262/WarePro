@@ -9,6 +9,19 @@ namespace QuanLyHangHoa.Tests.Inventory;
 public sealed class StockDocumentDraftValidatorTests
 {
     [Fact]
+    public async Task Validate_rejects_missing_default_unit_mapping()
+    {
+        using var connection = CreateDatabase(serialTracked: false, includeMapping: false);
+        using var db = DatabaseHelper.CreateContext(connection);
+        var line = new StockInLine { ProductId = 900, UnitId = 1, Quantity = 2m };
+
+        var exception = await Assert.ThrowsAsync<InventoryDomainException>(() =>
+            StockDocumentDraftValidator.ValidateAsync(db, [line], CancellationToken.None));
+
+        Assert.Contains("không hợp lệ", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task ValidateAsync_accepts_serial_count_equal_to_converted_base_quantity()
     {
         using var connection = CreateDatabase(serialTracked: true, includeMapping: true);

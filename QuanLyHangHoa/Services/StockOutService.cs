@@ -180,17 +180,6 @@ namespace QuanLyHangHoa.Services
         {
             cancellationToken.ThrowIfCancellationRequested();
             var timestamp = DateTime.Now;
-            if (stockOut.Id == 0 && string.IsNullOrWhiteSpace(stockOut.DocumentCode))
-            {
-                await using var numberingDb = _contextFactory();
-                AuthorizationService.RequireFreshActor(numberingDb, userId, PermissionAction.PostStockOut);
-                stockOut.DocumentCode = await DocumentNumberAllocator.AllocateAsync(
-                    numberingDb,
-                    "StockOut",
-                    "OUT",
-                    DateOnly.FromDateTime((stockOut.ExportDate ?? timestamp).Date),
-                    cancellationToken);
-            }
             // đóng băng cả header, line và serial trước khi vào executor để retry luôn dùng cùng một yêu cầu ban đầu.
             var snapshot = new SaveDraftSnapshot(
                 stockOut.Id,
@@ -215,20 +204,20 @@ namespace QuanLyHangHoa.Services
                 throw new ArgumentException("RowVersion is required for draft updates.", nameof(stockOut));
             }
 
-            var savedId = await _writeExecutor.ExecuteAsync(
+            var saved = await _writeExecutor.ExecuteAsync(
                 new DatabaseWriteRequest("stock-out.save-draft", operationId),
                 (db, token) => StageSaveDraftAsync(db, snapshot, userId, token),
                 entityKey: snapshot.DocumentCode,
                 cancellationToken: cancellationToken);
-            stockOut.Id = savedId;
-            stockOut.DocumentCode = snapshot.DocumentCode;
-            stockOut.RowVersion = await LoadRowVersionAsync(savedId, cancellationToken);
+            stockOut.Id = saved.Id;
+            stockOut.DocumentCode = saved.DocumentCode;
+            stockOut.RowVersion = await LoadRowVersionAsync(saved.Id, cancellationToken);
         }
 
         internal void SaveDraft(StockOut stockOut, List<StockOutLine> lines, int userId) =>
             SaveDraftAsync(stockOut, lines, userId, Guid.NewGuid()).GetAwaiter().GetResult();
 
-        private async Task<int> StageSaveDraftAsync(
+        private async Task<(int Id, string DocumentCode)> StageSaveDraftAsync(
             AppDbContext db,
             SaveDraftSnapshot snapshot,
             int userId,
@@ -269,12 +258,21 @@ namespace QuanLyHangHoa.Services
                 db.StockOutLines.RemoveRange(existing.Lines);
                 existing.Lines = freshLines;
                 AddAudit(db, "UPDATE", existing.Id, beforeJson, Serialize(existing), userId);
-                return existing.Id;
+                return (existing.Id, existing.DocumentCode);
+            }
+
+            var documentCode = snapshot.DocumentCode;
+            if (string.IsNullOrWhiteSpace(documentCode))
+            {
+                documentCode = await DocumentNumberAllocator.AllocateAsync(
+                    db, "StockOut", "OUT",
+                    DateOnly.FromDateTime((snapshot.ExportDate ?? snapshot.Timestamp).Date),
+                    cancellationToken);
             }
 
             var freshStockOut = new StockOut
             {
-                DocumentCode = snapshot.DocumentCode,
+                DocumentCode = documentCode,
                 CustomerId = snapshot.CustomerId,
                 WarehouseId = snapshot.WarehouseId,
                 PurposeCode = snapshot.PurposeCode,
@@ -292,7 +290,7 @@ namespace QuanLyHangHoa.Services
             // cần lấy id phiếu và line trước khi ghi audit hoặc dùng line làm mốc lịch sử serial.
             await db.SaveChangesAsync(cancellationToken);
             AddAudit(db, "CREATE", freshStockOut.Id, null, Serialize(freshStockOut), userId);
-            return freshStockOut.Id;
+            return (freshStockOut.Id, freshStockOut.DocumentCode);
         }
 
         private static List<StockOutLine> BuildStockOut(

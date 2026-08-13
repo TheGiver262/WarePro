@@ -367,21 +367,19 @@ namespace QuanLyHangHoa.Services
         public virtual async Task AddInitialStockAsync(int productId, List<string> serialNumbers, int userId)
         {
             // DocumentCode cố định trước để verifySucceeded có thể tìm đúng document của operation này.
-            await using var numberingDb = _contextFactory();
-            AuthorizationService.RequireFreshActor(numberingDb, userId, PermissionAction.ManageMasterData);
-            var documentCode = await DocumentNumberAllocator.AllocateAsync(
-                numberingDb,
-                "InitialStock",
-                "INIT",
-                DateOnly.FromDateTime(DateTime.UtcNow.Date),
-                CancellationToken.None);
+            var businessDate = DateOnly.FromDateTime(DateTime.UtcNow.Date);
+            var documentCode = string.Empty;
 
             await WriteExecutor.ExecuteAsync(
                 new DatabaseWriteRequest("product.add-initial-stock", Guid.NewGuid()),
                 async (db, token) =>
                 {
+                    AuthorizationService.RequireFreshActor(db, userId, PermissionAction.ManageMasterData);
                     var product = await db.Products.FindAsync([productId], token);
                     if (product == null) return;
+
+                    documentCode = await DocumentNumberAllocator.AllocateAsync(
+                        db, "InitialStock", "INIT", businessDate, token);
 
                     var warehouseProvider = new DbDefaultWarehouseProvider(db);
                     var warehouseId = warehouseProvider.GetDefaultWarehouseId();

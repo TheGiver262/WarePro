@@ -85,6 +85,7 @@ public sealed class SqlServerCiContractTests
         Assert.Contains("CREATE TABLE dbo.DocumentNumberCounter", canonical, StringComparison.Ordinal);
         Assert.Contains("PK_DocumentNumberCounter", canonical, StringComparison.Ordinal);
         Assert.Contains("AllocateDocumentNumber", canonical, StringComparison.Ordinal);
+        Assert.Contains("existingMapping.UnitId = product.DefaultUnitId", canonical, StringComparison.Ordinal);
         Assert.Contains("UPDLOCK, HOLDLOCK", canonical, StringComparison.Ordinal);
     }
 

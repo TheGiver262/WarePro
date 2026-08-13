@@ -91,6 +91,7 @@ public class StockOutServiceTests
             seedContext.Products.Add(new Product { Id = 300, ProductCode = "P300",
                 DisplayName = "Service stock-out product",
                 CategoryId = 1, BrandId = 1, DefaultUnitId = 1, DefaultPrice = 10m, IsSerialTracked = false });
+            seedContext.ProductUnits.Add(new ProductUnit { ProductId = 300, UnitId = 1, ConversionFactor = 1m, IsBaseUnit = true });
             seedContext.StockBalances.Add(new StockBalance { ProductId = 300, WarehouseId = 1, OnHandQuantity = 5, AvailableQuantity = 5 });
             seedContext.SaveChanges();
         }
@@ -167,6 +168,7 @@ public class StockOutServiceTests
                 new ProductSerial { SerialNumber = "SN-101", ProductId = 301, CurrentWarehouseId = 1, CurrentStatus = "InStock" },
                 new ProductSerial { SerialNumber = "SN-102", ProductId = 301, CurrentWarehouseId = 1, CurrentStatus = "InStock" }
             );
+            seedContext.ProductUnits.Add(new ProductUnit { ProductId = 301, UnitId = 1, ConversionFactor = 1m, IsBaseUnit = true });
             seedContext.SaveChanges();
         }
 
@@ -410,6 +412,13 @@ public class StockOutServiceTests
                     DefaultPrice = 10m,
                     IsActive = true,
                     IsSerialTracked = true
+                });
+                seedContext.ProductUnits.Add(new ProductUnit
+                {
+                    ProductId = productId,
+                    UnitId = 1,
+                    ConversionFactor = 1m,
+                    IsBaseUnit = true
                 });
                 seedContext.StockBalances.Add(new StockBalance
                 {

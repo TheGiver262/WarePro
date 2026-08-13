@@ -110,6 +110,62 @@ public class DashboardServiceTests
         await Assert.ThrowsAsync<InventoryDomainException>(() => service.GetTopSellingProductsAsync(5));
     }
 
+    [Fact]
+    public async Task Top_selling_counts_a_linked_stock_out_line_only_once()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        using (var db = DatabaseHelper.CreateContext(connection))
+        {
+            DatabaseHelper.SeedBasicData(db);
+            db.Products.Add(CreateProduct(120, "DUP-LINK", "Duplicate link"));
+            var stockOut = new StockOut
+            {
+                Id = 120,
+                DocumentCode = "SO-DUP",
+                CustomerId = 1,
+                WarehouseId = 1,
+                PurposeCode = "Sale",
+                Status = DocumentStatus.Posted,
+                ExportDate = DateTime.Today,
+                CreatedBy = 1,
+                CreatedAt = DateTime.Now
+            };
+            var stockOutLine = new StockOutLine
+            {
+                Id = 120,
+                StockOutId = stockOut.Id,
+                ProductId = 120,
+                UnitId = 1,
+                Quantity = 10m,
+                BaseQuantity = 10m,
+                UnitPrice = 1m
+            };
+            db.StockOuts.Add(stockOut);
+            db.StockOutLines.Add(stockOutLine);
+            var invoice = new SalesInvoice
+            {
+                Id = 120,
+                InvoiceCode = "INV-DUP",
+                CustomerId = 1,
+                InvoiceDate = DateTime.Today,
+                Status = InvoiceStatus.Active,
+                CreatedBy = 1,
+                CreatedAt = DateTime.Now
+            };
+            db.SalesInvoices.Add(invoice);
+            db.SalesInvoiceLines.AddRange(
+                CreateInvoiceLine(120, invoice.Id, 120, 1, 4m, stockOutLine.Id),
+                CreateInvoiceLine(121, invoice.Id, 120, 1, 6m, stockOutLine.Id));
+            db.SaveChanges();
+        }
+        var service = new DashboardService(() => DatabaseHelper.CreateContext(connection));
+
+        var result = await service.GetTopSellingProductsAsync(5);
+
+        Assert.Equal(10m, Assert.Single(result).TotalSold);
+    }
+
     private static Product CreateProduct(int id, string code, string name) => new()
     {
         Id = id,

@@ -1035,6 +1035,30 @@ BEGIN
     );
 END;
 
+INSERT dbo.ProductUnit
+    (ProductId, UnitId, ConversionFactor, IsBaseUnit, IsPurchaseUnit, IsSalesUnit)
+SELECT
+    product.Id,
+    product.DefaultUnitId,
+    CAST(1 AS DECIMAL(18, 6)),
+    CASE WHEN EXISTS
+    (
+        SELECT 1
+        FROM dbo.ProductUnit AS existingBase
+        WHERE existingBase.ProductId = product.Id
+          AND existingBase.IsBaseUnit = 1
+    ) THEN CAST(0 AS BIT) ELSE CAST(1 AS BIT) END,
+    CAST(1 AS BIT),
+    CAST(1 AS BIT)
+FROM dbo.Product AS product
+WHERE NOT EXISTS
+(
+    SELECT 1
+    FROM dbo.ProductUnit AS existingMapping
+    WHERE existingMapping.ProductId = product.Id
+      AND existingMapping.UnitId = product.DefaultUnitId
+);
+
 EXEC sys.sp_executesql N'
 CREATE OR ALTER PROCEDURE dbo.AllocateDocumentNumber
     @DocumentType NVARCHAR(32),

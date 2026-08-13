@@ -257,6 +257,7 @@ namespace QuanLyHangHoa.Services
                     ProductName = line.Product.DisplayName,
                     line.Quantity,
                     line.UnitId,
+                    line.StockOutLineId,
                     line.Product.DefaultUnitId,
                     LinkedBaseQuantity = line.StockOutLineId.HasValue
                         ? (decimal?)line.StockOutLine!.BaseQuantity
@@ -273,6 +274,7 @@ namespace QuanLyHangHoa.Services
                 {
                     line.ProductId,
                     line.ProductName,
+                    line.StockOutLineId,
                     BaseQuantity = line.LinkedBaseQuantity ?? ConvertLegacyInvoiceQuantity(
                         line.ProductId,
                         line.UnitId,
@@ -285,7 +287,13 @@ namespace QuanLyHangHoa.Services
                 {
                     ProductId = group.Key.ProductId,
                     ProductName = group.Key.ProductName,
-                    TotalSold = group.Sum(line => line.BaseQuantity)
+                    TotalSold = group
+                        .Where(line => !line.StockOutLineId.HasValue)
+                        .Sum(line => line.BaseQuantity)
+                        + group
+                            .Where(line => line.StockOutLineId.HasValue)
+                            .GroupBy(line => line.StockOutLineId!.Value)
+                            .Sum(linkedLines => linkedLines.First().BaseQuantity)
                 })
                 .OrderByDescending(x => x.TotalSold)
                 .ThenByDescending(x => x.ProductId)

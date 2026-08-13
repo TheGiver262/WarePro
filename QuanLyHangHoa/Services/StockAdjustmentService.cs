@@ -60,17 +60,6 @@ namespace QuanLyHangHoa.Services
             ArgumentNullException.ThrowIfNull(lines);
             cancellationToken.ThrowIfCancellationRequested();
             var timestamp = DateTime.Now;
-            if (adjustment.Id == 0 && string.IsNullOrWhiteSpace(adjustment.DocumentCode))
-            {
-                await using var numberingDb = _contextFactory();
-                AuthorizationService.RequireFreshActor(numberingDb, userId, PermissionAction.PostStockAdjustment);
-                adjustment.DocumentCode = await DocumentNumberAllocator.AllocateAsync(
-                    numberingDb,
-                    "StockAdjustment",
-                    "ADJ",
-                    DateOnly.FromDateTime(timestamp.Date),
-                    cancellationToken);
-            }
             // snapshot giữ nguyên cả liên kết chứng từ nguồn; retry không được đổi lý do hoặc nguồn điều chỉnh giữa chừng.
             var snapshot = new SaveDraftSnapshot(
                 adjustment.Id,
@@ -89,26 +78,27 @@ namespace QuanLyHangHoa.Services
                     line.DraftSerials,
                     line.QuantityDelta,
                     line.BaseQuantityDelta,
-                    line.Direction)).ToArray());
+                    line.Direction)).ToArray(),
+                DateOnly.FromDateTime(timestamp.Date));
             if (snapshot.Id > 0 && snapshot.RowVersion.Length == 0)
             {
                 throw new ArgumentException("RowVersion is required for draft updates.", nameof(adjustment));
             }
 
-            var savedId = await _writeExecutor.ExecuteAsync(
+            var saved = await _writeExecutor.ExecuteAsync(
                 new DatabaseWriteRequest("stock-adjustment.save-draft", operationId),
                 (db, token) => StageSaveDraftAsync(db, snapshot, userId, token),
                 entityKey: snapshot.DocumentCode,
                 cancellationToken: cancellationToken);
-            adjustment.Id = savedId;
-            adjustment.DocumentCode = snapshot.DocumentCode;
-            adjustment.RowVersion = await LoadRowVersionAsync(savedId, cancellationToken);
+            adjustment.Id = saved.Id;
+            adjustment.DocumentCode = saved.DocumentCode;
+            adjustment.RowVersion = await LoadRowVersionAsync(saved.Id, cancellationToken);
         }
 
         internal virtual void SaveDraft(StockAdjustment adjustment, List<StockAdjustmentLine> lines, int userId) =>
             SaveDraftAsync(adjustment, lines, userId, Guid.NewGuid()).GetAwaiter().GetResult();
 
-        private async Task<int> StageSaveDraftAsync(
+        private async Task<(int Id, string DocumentCode)> StageSaveDraftAsync(
             AppDbContext db,
             SaveDraftSnapshot snapshot,
             int userId,
@@ -146,12 +136,19 @@ namespace QuanLyHangHoa.Services
                 existing.ReferenceDocumentId = snapshot.ReferenceDocumentId;
                 db.StockAdjustmentLines.RemoveRange(existing.Lines);
                 existing.Lines = freshLines;
-                return existing.Id;
+                return (existing.Id, existing.DocumentCode);
+            }
+
+            var documentCode = snapshot.DocumentCode;
+            if (string.IsNullOrWhiteSpace(documentCode))
+            {
+                documentCode = await DocumentNumberAllocator.AllocateAsync(
+                    db, "StockAdjustment", "ADJ", snapshot.BusinessDate, cancellationToken);
             }
 
             var freshAdjustment = new StockAdjustment
             {
-                DocumentCode = snapshot.DocumentCode,
+                DocumentCode = documentCode,
                 WarehouseId = snapshot.WarehouseId,
                 AdjustmentType = snapshot.AdjustmentType,
                 ReasonCode = snapshot.ReasonCode,
@@ -166,7 +163,7 @@ namespace QuanLyHangHoa.Services
             db.StockAdjustments.Add(freshAdjustment);
             // flush để database cấp id phiếu trước khi trả về; transaction ngoài vẫn quyết định commit hay rollback.
             await db.SaveChangesAsync(cancellationToken);
-            return freshAdjustment.Id;
+            return (freshAdjustment.Id, freshAdjustment.DocumentCode);
         }
 
         private sealed record SaveDraftSnapshot(
@@ -180,7 +177,8 @@ namespace QuanLyHangHoa.Services
             string? ReferenceDocumentType,
             int? ReferenceDocumentId,
             byte[] RowVersion,
-            SaveDraftLineSnapshot[] Lines);
+            SaveDraftLineSnapshot[] Lines,
+            DateOnly BusinessDate);
 
         private sealed record SaveDraftLineSnapshot(
             int ProductId,

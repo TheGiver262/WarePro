@@ -28,11 +28,6 @@ namespace QuanLyHangHoa.Services
         {
             ArgumentNullException.ThrowIfNull(invoice);
             cancellationToken.ThrowIfCancellationRequested();
-            if (invoice.Id == 0 && string.IsNullOrWhiteSpace(invoice.InvoiceCode))
-            {
-                invoice.InvoiceCode = await AllocateSalesInvoiceCodeAsync(
-                    actorId, invoice.InvoiceDate, cancellationToken);
-            }
             // input giữ snapshot scalar và dòng trước khi executor retry; mỗi attempt không dùng lại entity đã bị EF gán id hoặc tracking.
             // expectedRowVersion giữ đúng phiên bản người dùng đã đọc để mọi attempt cùng kiểm tra một mốc, không vô tình ghi đè bản mới hơn.
             var input = CreateSalesInvoiceCandidate(invoice);
@@ -40,7 +35,8 @@ namespace QuanLyHangHoa.Services
             var isNew = invoice.Id == 0;
 
             // transaction serializable gom kiểm tra quyền, đối soát phiếu xuất, lưu hóa đơn và bảo hành thành một lần ghi nguyên tử.
-            var invoiceId = await _writeExecutor.ExecuteAsync(
+            var committedCode = input.InvoiceCode;
+            var saved = await _writeExecutor.ExecuteAsync(
                 new DatabaseWriteRequest(
                     "invoice.sales.save",
                     operationId,
@@ -56,6 +52,13 @@ namespace QuanLyHangHoa.Services
                     var candidate = CreateSalesInvoiceCandidate(input);
                     if (isNew)
                     {
+                        if (string.IsNullOrWhiteSpace(candidate.InvoiceCode))
+                        {
+                            candidate.InvoiceCode = await DocumentNumberAllocator.AllocateAsync(
+                                db, "SalesInvoice", "SINV",
+                                DateOnly.FromDateTime(candidate.InvoiceDate.Date), token);
+                        }
+                        committedCode = candidate.InvoiceCode;
                         candidate.CreatedBy = actorId;
                         candidate.Status = InvoiceStatus.Active;
                     }
@@ -68,12 +71,12 @@ namespace QuanLyHangHoa.Services
                         token);
                     // candidate đã có id từ SQL khi tạo hoặc id hiện có khi sửa, nên coverage luôn tham chiếu đúng hóa đơn trong transaction.
                     ReconcileWarrantyCoverages(db, candidate, stockOut);
-                    return savedId;
+                    return (Id: savedId, DocumentCode: candidate.InvoiceCode);
                 },
                 (db, token) => VerifySalesInvoiceAsync(
                     db,
                     input.Id,
-                    input.InvoiceCode,
+                    committedCode,
                     input.StockOutId,
                     input.CustomerId,
                     actorId,
@@ -82,34 +85,17 @@ namespace QuanLyHangHoa.Services
                 entityKey: input.InvoiceCode,
                 cancellationToken: cancellationToken);
 
-            invoice.Id = invoiceId;
+            invoice.Id = saved.Id;
+            invoice.InvoiceCode = saved.DocumentCode;
             // nạp rowversion đã commit về model của màn hình để lần sửa tiếp theo dùng đúng phiên bản mới nhất.
             await using (var refresh = _contextFactory())
             {
                 invoice.RowVersion = await refresh.SalesInvoices.AsNoTracking()
-                    .Where(item => item.Id == invoiceId)
+                    .Where(item => item.Id == saved.Id)
                     .Select(item => item.RowVersion)
                     .SingleAsync(cancellationToken);
             }
-            return invoiceId;
-        }
-
-        private async Task<string> AllocateSalesInvoiceCodeAsync(
-            int actorId,
-            DateTime invoiceDate,
-            CancellationToken cancellationToken)
-        {
-            await using var numberingDb = _contextFactory();
-            AuthorizationService.RequireFreshActor(
-                numberingDb,
-                actorId,
-                PermissionAction.CreateSalesInvoice);
-            return await DocumentNumberAllocator.AllocateAsync(
-                numberingDb,
-                "SalesInvoice",
-                "SINV",
-                DateOnly.FromDateTime(invoiceDate.Date),
-                cancellationToken);
+            return saved.Id;
         }
 
         public async Task<int> SavePurchaseInvoiceAsync(

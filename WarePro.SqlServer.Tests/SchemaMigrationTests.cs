@@ -54,7 +54,7 @@ await database.ApplyUpgradeAsync();
         await using var reader = await command.ExecuteReaderAsync(CommandBehavior.SingleRow);
         Assert.True(await reader.ReadAsync());
         Assert.True(reader.GetBoolean(0));
-        Assert.Equal(10, reader.GetInt32(1));
+        Assert.Equal(11, reader.GetInt32(1));
         Assert.Equal("1.1.0", reader.GetString(2));
         Assert.Equal(1, reader.GetInt32(3));
         Assert.Equal(1, reader.GetInt32(4));
@@ -168,7 +168,7 @@ await database.ApplyUpgradeAsync();
         await using var command = connection.CreateCommand();
         command.CommandText = $"""
             SELECT CASE WHEN
-                (SELECT Version FROM dbo.__WareProSchemaVersion WHERE Id = 1) = 10
+                (SELECT Version FROM dbo.__WareProSchemaVersion WHERE Id = 1) = 11
                 AND ({DatabaseSchemaScripts.ShapeValidationPredicate})
                 THEN 1 ELSE 0 END;
             """;

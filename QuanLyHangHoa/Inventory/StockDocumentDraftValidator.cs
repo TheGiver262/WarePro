@@ -66,9 +66,9 @@ public static class StockDocumentDraftValidator
             if (!products.TryGetValue(line.ProductId, out var product))
                 throw new InventoryDomainException($"Sản phẩm mã {line.ProductId} không còn tồn tại.");
             var hasMapping = units.TryGetValue((line.ProductId, line.UnitId), out var productUnit);
-            if (!hasMapping && line.UnitId != product.DefaultUnitId)
+            if (!hasMapping)
                 throw new InventoryDomainException($"Đơn vị đã chọn không hợp lệ cho sản phẩm {product.DisplayName}.");
-            var conversionFactor = hasMapping ? productUnit!.ConversionFactor : 1m;
+            var conversionFactor = productUnit!.ConversionFactor;
             if (line.Quantity <= 0m || conversionFactor <= 0m)
                 throw new InventoryDomainException($"Số lượng của sản phẩm {product.DisplayName} phải lớn hơn 0.");
 

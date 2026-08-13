@@ -91,6 +91,7 @@ public class StockInServiceTests
             seedContext.Products.Add(new Product { Id = 200, ProductCode = "P200",
                 DisplayName = "Service stock-in product",
                 CategoryId = 1, BrandId = 1, DefaultUnitId = 1, DefaultPrice = 10m, IsSerialTracked = false });
+            seedContext.ProductUnits.Add(new ProductUnit { ProductId = 200, UnitId = 1, ConversionFactor = 1m, IsBaseUnit = true });
             seedContext.SaveChanges();
         }
 
@@ -155,6 +156,7 @@ public class StockInServiceTests
                 DefaultPrice = 20m, 
                 IsSerialTracked = true 
             });
+            seedContext.ProductUnits.Add(new ProductUnit { ProductId = 201, UnitId = 1, ConversionFactor = 1m, IsBaseUnit = true });
             seedContext.SaveChanges();
         }
 
@@ -391,6 +393,13 @@ public class StockInServiceTests
                 DefaultPrice = 10m,
                 IsActive = true,
                 IsSerialTracked = true
+            }));
+            seedContext.ProductUnits.AddRange(Enumerable.Range(0, lineCount).Select(index => new ProductUnit
+            {
+                ProductId = 500 + index,
+                UnitId = 1,
+                ConversionFactor = 1m,
+                IsBaseUnit = true
             }));
             seedContext.SaveChanges();
         }
