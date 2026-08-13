@@ -45,7 +45,7 @@ public class ProductServiceTests
     }
 
     [Fact]
-    public void AddInitialStock_posts_opening_balance_without_changing_product_quantity()
+    public async Task AddInitialStock_posts_opening_balance_without_changing_product_quantity()
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
@@ -67,7 +67,7 @@ public class ProductServiceTests
 
         var service = new ProductService(() => CreateContext(connection));
 
-        service.AddInitialStockAsync(1100, new List<string> { "INIT-001", "INIT-002" }, userId: 1).GetAwaiter().GetResult();
+        await service.AddInitialStockAsync(1100, new List<string> { "INIT-001", "INIT-002" }, userId: 1);
 
         using var assertContext = CreateContext(connection);
         // Quantity removed
@@ -76,6 +76,7 @@ public class ProductServiceTests
         Assert.Equal(2, balance.AvailableQuantity);
         Assert.Equal(2, assertContext.ProductSerials.Count());
         Assert.Single(assertContext.StockLedgers);
+        Assert.Matches("^INIT-[0-9]{8}-[0-9]{6}$", Assert.Single(assertContext.StockIns).DocumentCode);
         Assert.Equal(AuditActionCode.PostStockIn.ToString(), Assert.Single(assertContext.AuditLogs).ActionCode);
     }
 

@@ -168,11 +168,23 @@ namespace QuanLyHangHoa.Services
             Guid operationId,
             CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var timestamp = DateTime.Now;
+            if (stockOut.Id == 0 && string.IsNullOrWhiteSpace(stockOut.DocumentCode))
+            {
+                await using var numberingDb = _contextFactory();
+                AuthorizationService.RequireFreshActor(numberingDb, userId, PermissionAction.PostStockOut);
+                stockOut.DocumentCode = await DocumentNumberAllocator.AllocateAsync(
+                    numberingDb,
+                    "StockOut",
+                    "OUT",
+                    DateOnly.FromDateTime((stockOut.ExportDate ?? timestamp).Date),
+                    cancellationToken);
+            }
             // đóng băng cả header, line và serial trước khi vào executor để retry luôn dùng cùng một yêu cầu ban đầu.
             var snapshot = new SaveDraftSnapshot(
                 stockOut.Id,
-                string.IsNullOrWhiteSpace(stockOut.DocumentCode) ? $"SO-{timestamp:yyyyMMddHHmmss}" : stockOut.DocumentCode,
+                stockOut.DocumentCode,
                 stockOut.CustomerId,
                 stockOut.WarehouseId,
                 stockOut.PurposeCode,

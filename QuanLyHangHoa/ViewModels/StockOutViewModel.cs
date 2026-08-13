@@ -683,6 +683,7 @@ namespace QuanLyHangHoa.ViewModels
                     async _ => await _stockOutService.SaveDraftAsync(so, soLines, _currentUser.Id, operationId, cancellationToken),
                     cancellationToken)) return;
                 StockOutId = so.Id;
+                DocumentCode = so.DocumentCode;
                 _editingRowVersion = so.RowVersion.ToArray();
                 Status = so.Status;
                 
@@ -725,6 +726,7 @@ namespace QuanLyHangHoa.ViewModels
                         async _ => await _stockOutService.SaveDraftAsync(so, soLines, _currentUser.Id, operationId, cancellationToken),
                         cancellationToken)) return;
                     StockOutId = so.Id;
+                    DocumentCode = so.DocumentCode;
                     _editingRowVersion = so.RowVersion.ToArray();
                 }
                 catch (Exception)
@@ -935,7 +937,7 @@ namespace QuanLyHangHoa.ViewModels
             StockOutId = 0;
             _editingRowVersion = [];
             Lines.Clear();
-            DocumentCode = $"OUT-{DateTime.Now:yyyyMMddHHmmss}";
+            DocumentCode = string.Empty;
             Notes = string.Empty;
             SelectedCustomer = null;
             ExportDate = DateTime.Now;

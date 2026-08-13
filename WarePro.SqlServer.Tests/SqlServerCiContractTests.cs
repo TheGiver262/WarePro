@@ -11,8 +11,8 @@ public sealed class SqlServerCiContractTests
     [Fact]
     public void Shared_migration_commands_are_ordered_and_go_free()
     {
-        var upgrade = DatabaseSchemaScripts.BuildUpgradeSql(10, "1.1.0");
-        for (var version = 3; version <= 10; version++)
+        var upgrade = DatabaseSchemaScripts.BuildUpgradeSql(11, "1.1.0");
+        for (var version = 3; version <= 11; version++)
             Assert.Contains($"IF @CurrentVersion < {version} BEGIN EXEC sys.sp_executesql N'", upgrade, StringComparison.Ordinal);
         Assert.DoesNotContain("IF @CurrentVersion < 1 ", upgrade, StringComparison.Ordinal);
         Assert.DoesNotContain("IF @CurrentVersion < 2 ", upgrade, StringComparison.Ordinal);
@@ -20,7 +20,7 @@ public sealed class SqlServerCiContractTests
 
         Assert.All(DatabaseSchemaScripts.BaselineBatches, AssertHasNoGoBatch);
         AssertHasNoGoBatch(upgrade);
-        AssertHasNoGoBatch(DatabaseSchemaScripts.BuildFinalizeSql(10, "1.1.0"));
+        AssertHasNoGoBatch(DatabaseSchemaScripts.BuildFinalizeSql(11, "1.1.0"));
         Assert.Matches(new Regex(@"(?i)\[RowCount\]\s+INT\s+NOT\s+NULL"), string.Join('\n', DatabaseSchemaScripts.BaselineBatches));
         Assert.Matches(new Regex(@"(?i)\[RowCount\]\s+INT\s+NOT\s+NULL"), upgrade);
     }
@@ -73,6 +73,19 @@ public sealed class SqlServerCiContractTests
         Assert.Equal(Normalize(canonical), Normalize(DatabaseSchemaScripts.SchemaVersion9));
         Assert.Contains("ALTER TABLE dbo.AuditLog ALTER COLUMN PerformedBy INT NULL", canonical, StringComparison.Ordinal);
         Assert.Contains("ON DELETE SET NULL", canonical, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Schema_version_11_comes_from_checked_in_document_counter_script()
+    {
+        var canonical = File.ReadAllText(Path.Combine(
+            Root, "Database", "Schema", "v11-document-number-counter.sql"));
+
+        Assert.Equal(Normalize(canonical), Normalize(DatabaseSchemaScripts.SchemaVersion11));
+        Assert.Contains("CREATE TABLE dbo.DocumentNumberCounter", canonical, StringComparison.Ordinal);
+        Assert.Contains("PK_DocumentNumberCounter", canonical, StringComparison.Ordinal);
+        Assert.Contains("AllocateDocumentNumber", canonical, StringComparison.Ordinal);
+        Assert.Contains("UPDLOCK, HOLDLOCK", canonical, StringComparison.Ordinal);
     }
 
     private static void AssertHasNoGoBatch(string sql) =>

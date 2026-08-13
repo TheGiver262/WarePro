@@ -37,6 +37,9 @@
     <EmbeddedResource Include="..\Database\Schema\v10-nullable-serial-last-stock-in.sql"
                       Link="Resources\v10-nullable-serial-last-stock-in.sql"
                       LogicalName="WarePro.Core.Resources.v10-nullable-serial-last-stock-in.sql" />
+    <EmbeddedResource Include="..\Database\Schema\v11-document-number-counter.sql"
+                      Link="Resources\v11-document-number-counter.sql"
+                      LogicalName="WarePro.Core.Resources.v11-document-number-counter.sql" />
   </ItemGroup>
 
   <ItemGroup>

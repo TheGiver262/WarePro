@@ -46,9 +46,9 @@ public sealed class DatabaseCompatibilityException : Exception
 /// </summary>
 public sealed class DatabaseCompatibilityService
 {
-    public const int CurrentSchemaVersion = 10;
-    public const int MinimumSupportedSchemaVersion = 10;
-    public const int MaximumSupportedSchemaVersion = 10;
+    public const int CurrentSchemaVersion = 11;
+    public const int MinimumSupportedSchemaVersion = 11;
+    public const int MaximumSupportedSchemaVersion = 11;
 
     public DatabaseCompatibilityResult Evaluate(int databaseSchemaVersion)
     {

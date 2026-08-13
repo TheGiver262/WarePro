@@ -213,7 +213,7 @@ namespace QuanLyHangHoa.ViewModels
         {
             EditingId = 0;
             _editingRowVersion = [];
-            DocumentCode = $"ADJ-{DateTime.Now:yyyyMMddHHmmss}";
+            DocumentCode = string.Empty;
             WarehouseId = AvailableWarehouses.FirstOrDefault(w => w.IsDefault)?.Id ?? AvailableWarehouses.FirstOrDefault()?.Id ?? 1;
             AdjustmentType = "Manual";
             ReasonCode = "DAMAGED";
@@ -421,6 +421,7 @@ namespace QuanLyHangHoa.ViewModels
                     async _ => await _adjustmentService.SaveDraftAsync(adj, lineModels, _currentUser.Id, operationId, cancellationToken),
                     cancellationToken)) return;
                 _editingRowVersion = adj.RowVersion.ToArray();
+                DocumentCode = adj.DocumentCode;
                 MessageBox.Show("Đã lưu bản nháp.", "Thông báo");
                 EditingId = adj.Id;
                 Status = adj.Status;
@@ -487,6 +488,7 @@ namespace QuanLyHangHoa.ViewModels
                         async _ => await _adjustmentService.SaveDraftAsync(adjustment, lineModels, _currentUser.Id, operationId, cancellationToken),
                         cancellationToken)) return;
                     EditingId = adjustment.Id;
+                    DocumentCode = adjustment.DocumentCode;
                     _editingRowVersion = adjustment.RowVersion.ToArray();
                     Status = adjustment.Status;
                     if (!await ExecuteWriteAsync(
@@ -592,12 +594,6 @@ namespace QuanLyHangHoa.ViewModels
         // ViewModel báo sớm lỗi form; service vẫn là lớp bảo vệ cuối cho nghiệp vụ
         private bool Validate()
         {
-            if (string.IsNullOrWhiteSpace(DocumentCode))
-            {
-                MessageBox.Show("Vui lòng nhập mã chứng từ.", "Cảnh báo");
-                return false;
-            }
-
             if (!Lines.Any())
             {
                 MessageBox.Show("Vui lòng thêm ít nhất một dòng hàng.", "Cảnh báo");

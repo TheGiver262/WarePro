@@ -44,8 +44,8 @@ public class ReleasePolicyContractTests
         Assert.Equal(
             DatabaseCompatibilityService.MaximumSupportedSchemaVersion,
             policy.GetProperty("maximumSchemaVersion").GetInt32());
-        Assert.Contains("private const int SupportedSchema = 10;", setupHelper, StringComparison.Ordinal);
-        Assert.Contains("#define MySchemaRelease 10", installer, StringComparison.Ordinal);
+        Assert.Contains("private const int SupportedSchema = 11;", setupHelper, StringComparison.Ordinal);
+        Assert.Contains("#define MySchemaRelease 11", installer, StringComparison.Ordinal);
     }
 
     private static string Read(params string[] segments)

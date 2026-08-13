@@ -14,6 +14,49 @@ namespace QuanLyHangHoa.Tests.Services;
 public class InvoiceServiceTests
 {
     [Fact]
+    public async Task SaveSalesInvoice_allocates_code_when_new_invoice_code_is_blank()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        using (var seedContext = DatabaseHelper.CreateContext(connection))
+        {
+            DatabaseHelper.SeedBasicData(seedContext);
+            seedContext.Products.Add(new Product
+            {
+                Id = 899,
+                ProductCode = "P899",
+                DisplayName = "Allocated invoice product",
+                CategoryId = 1,
+                BrandId = 1,
+                DefaultUnitId = 1,
+                DefaultPrice = 100m
+            });
+            seedContext.SaveChanges();
+        }
+        var service = new InvoiceService(() => DatabaseHelper.CreateContext(connection));
+        var invoice = new SalesInvoice
+        {
+            InvoiceCode = string.Empty,
+            CustomerId = 1,
+            InvoiceDate = new DateTime(2026, 8, 13),
+            Lines =
+            [
+                new SalesInvoiceLine
+                {
+                    ProductId = 899,
+                    UnitId = 1,
+                    Quantity = 1m,
+                    UnitPrice = 100m
+                }
+            ]
+        };
+
+        await service.SaveSalesInvoiceAsync(invoice, 1, Guid.NewGuid());
+
+        Assert.Matches("^SINV-20260813-[0-9]{6}$", invoice.InvoiceCode);
+    }
+
+    [Fact]
     public void SaveSalesInvoice_calculates_line_totals_and_invoice_totals()
     {
         using var connection = new SqliteConnection("Data Source=:memory:");

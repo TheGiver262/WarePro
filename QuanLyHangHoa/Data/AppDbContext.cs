@@ -89,6 +89,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Customer> Customers { get; set; }
 
+    public virtual DbSet<DocumentNumberCounter> DocumentNumberCounters { get; set; }
+
     public virtual DbSet<Product> Products { get; set; }
 
     public virtual DbSet<ProductSerial> ProductSerials { get; set; }
@@ -142,6 +144,17 @@ public partial class AppDbContext : DbContext
         // test SQLite và SQL Server dùng cú pháp timestamp mặc định khác nhau nhưng cùng ý nghĩa UTC hiện tại.
         var isSqlite = Database.ProviderName?.Contains("Sqlite") ?? false;
         var defaultDateTime = isSqlite ? "CURRENT_TIMESTAMP" : "sysutcdatetime()";
+        modelBuilder.Entity<DocumentNumberCounter>(entity =>
+        {
+            entity.ToTable("DocumentNumberCounter");
+            entity.HasKey(item => new { item.DocumentType, item.BusinessDate })
+                .HasName("PK_DocumentNumberCounter");
+            entity.Property(item => item.DocumentType).HasMaxLength(32);
+            entity.Property(item => item.BusinessDate).HasColumnType("date");
+            entity.ToTable(table => table.HasCheckConstraint(
+                "CK_DocumentNumberCounter_LastValue", "LastValue > 0"));
+            entity.Property(item => item.RowVersion).IsRowVersion();
+        });
         modelBuilder.Entity<AppUser>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__AppUser__3214EC07BB2116D3");

@@ -15,6 +15,29 @@ namespace QuanLyHangHoa.Tests.Services;
 public class StockOutServiceTests
 {
     [Fact]
+    public async Task SaveDraft_allocates_document_code_when_new_document_code_is_blank()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        using (var seedContext = DatabaseHelper.CreateContext(connection))
+        {
+            DatabaseHelper.SeedBasicData(seedContext);
+        }
+        var service = new StockOutService(() => DatabaseHelper.CreateContext(connection));
+        var document = new StockOut
+        {
+            DocumentCode = string.Empty,
+            CustomerId = 1,
+            WarehouseId = 1,
+            PurposeCode = "Sale"
+        };
+
+        await service.SaveDraftAsync(document, [], 1, Guid.NewGuid());
+
+        Assert.Matches("^OUT-[0-9]{8}-[0-9]{6}$", document.DocumentCode);
+    }
+
+    [Fact]
     public void Create_posts_to_database_and_updates_inventory()
     {
         using var connection = new SqliteConnection("Data Source=:memory:");

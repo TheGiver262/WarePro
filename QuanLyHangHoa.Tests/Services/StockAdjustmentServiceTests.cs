@@ -14,6 +14,29 @@ namespace QuanLyHangHoa.Tests.Services;
 public class StockAdjustmentServiceTests
 {
     [Fact]
+    public async Task SaveDraft_allocates_document_code_when_new_document_code_is_blank()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        using (var seedContext = DatabaseHelper.CreateContext(connection))
+        {
+            DatabaseHelper.SeedBasicData(seedContext);
+        }
+        var service = new StockAdjustmentService(() => DatabaseHelper.CreateContext(connection));
+        var document = new StockAdjustment
+        {
+            DocumentCode = string.Empty,
+            WarehouseId = 1,
+            AdjustmentType = "Increase",
+            ReasonCode = "Manual"
+        };
+
+        await service.SaveDraftAsync(document, [], 1, Guid.NewGuid());
+
+        Assert.Matches("^ADJ-[0-9]{8}-[0-9]{6}$", document.DocumentCode);
+    }
+
+    [Fact]
     public void Post_saves_adjustment_and_updates_stock_balance_ledger_and_audit()
     {
         using var connection = new SqliteConnection("Data Source=:memory:");

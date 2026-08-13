@@ -18,6 +18,7 @@ public sealed class RowVersionModelTests
         nameof(Brand),
         nameof(Category),
         nameof(Customer),
+        nameof(DocumentNumberCounter),
         nameof(Product),
         nameof(ProductSerial),
         nameof(ProductUnit),

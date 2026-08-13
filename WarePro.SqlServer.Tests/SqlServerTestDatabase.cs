@@ -105,12 +105,12 @@ internal sealed class SqlServerTestDatabase : IAsyncDisposable
     internal Task ApplyBaselineAsync() => ExecuteTransactionAsync(DatabaseSchemaScripts.BaselineBatches);
 
     internal Task ApplyUpgradeAsync() =>
-        ExecuteAsync(DatabaseSchemaScripts.BuildUpgradeSql(10, "1.1.0"));
+        ExecuteAsync(DatabaseSchemaScripts.BuildUpgradeSql(11, "1.1.0"));
 
     internal Task ApplyCanonicalV6Async() => ExecuteAsync(DatabaseSchemaScripts.SchemaVersion6);
 
     internal Task ApplyFinalizeAsync() =>
-        ExecuteTransactionAsync([DatabaseSchemaScripts.BuildFinalizeSql(10, "1.1.0")]);
+        ExecuteTransactionAsync([DatabaseSchemaScripts.BuildFinalizeSql(11, "1.1.0")]);
 
 internal async Task PrepareLegacyVersionAsync(int currentVersion)
     {

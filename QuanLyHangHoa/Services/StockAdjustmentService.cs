@@ -58,13 +58,23 @@ namespace QuanLyHangHoa.Services
         {
             ArgumentNullException.ThrowIfNull(adjustment);
             ArgumentNullException.ThrowIfNull(lines);
+            cancellationToken.ThrowIfCancellationRequested();
             var timestamp = DateTime.Now;
+            if (adjustment.Id == 0 && string.IsNullOrWhiteSpace(adjustment.DocumentCode))
+            {
+                await using var numberingDb = _contextFactory();
+                AuthorizationService.RequireFreshActor(numberingDb, userId, PermissionAction.PostStockAdjustment);
+                adjustment.DocumentCode = await DocumentNumberAllocator.AllocateAsync(
+                    numberingDb,
+                    "StockAdjustment",
+                    "ADJ",
+                    DateOnly.FromDateTime(timestamp.Date),
+                    cancellationToken);
+            }
             // snapshot giữ nguyên cả liên kết chứng từ nguồn; retry không được đổi lý do hoặc nguồn điều chỉnh giữa chừng.
             var snapshot = new SaveDraftSnapshot(
                 adjustment.Id,
-                string.IsNullOrWhiteSpace(adjustment.DocumentCode)
-                    ? $"ADJ-{timestamp:yyyyMMddHHmmss}"
-                    : adjustment.DocumentCode,
+                adjustment.DocumentCode,
                 adjustment.WarehouseId,
                 adjustment.AdjustmentType,
                 adjustment.ReasonCode,

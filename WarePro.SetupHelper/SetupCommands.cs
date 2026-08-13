@@ -859,7 +859,7 @@ internal static class MaintenanceCommandTimeouts
 }
 internal static class DatabaseUpgradeRunner
 {
-    private const int SupportedSchema = 10;
+    private const int SupportedSchema = 11;
 
     public static async Task<string> BackupAsync(
         string connectionString,

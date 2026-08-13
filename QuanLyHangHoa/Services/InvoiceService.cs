@@ -27,6 +27,12 @@ namespace QuanLyHangHoa.Services
             CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(invoice);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (invoice.Id == 0 && string.IsNullOrWhiteSpace(invoice.InvoiceCode))
+            {
+                invoice.InvoiceCode = await AllocateSalesInvoiceCodeAsync(
+                    actorId, invoice.InvoiceDate, cancellationToken);
+            }
             // input giữ snapshot scalar và dòng trước khi executor retry; mỗi attempt không dùng lại entity đã bị EF gán id hoặc tracking.
             // expectedRowVersion giữ đúng phiên bản người dùng đã đọc để mọi attempt cùng kiểm tra một mốc, không vô tình ghi đè bản mới hơn.
             var input = CreateSalesInvoiceCandidate(invoice);
@@ -86,6 +92,24 @@ namespace QuanLyHangHoa.Services
                     .SingleAsync(cancellationToken);
             }
             return invoiceId;
+        }
+
+        private async Task<string> AllocateSalesInvoiceCodeAsync(
+            int actorId,
+            DateTime invoiceDate,
+            CancellationToken cancellationToken)
+        {
+            await using var numberingDb = _contextFactory();
+            AuthorizationService.RequireFreshActor(
+                numberingDb,
+                actorId,
+                PermissionAction.CreateSalesInvoice);
+            return await DocumentNumberAllocator.AllocateAsync(
+                numberingDb,
+                "SalesInvoice",
+                "SINV",
+                DateOnly.FromDateTime(invoiceDate.Date),
+                cancellationToken);
         }
 
         public async Task<int> SavePurchaseInvoiceAsync(

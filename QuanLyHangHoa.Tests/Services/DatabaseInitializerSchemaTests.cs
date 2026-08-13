@@ -22,7 +22,7 @@ public class DatabaseInitializerSchemaTests
         Assert.Contains("RowVersion", DatabaseSchemaScripts.SchemaVersion6, StringComparison.Ordinal);
         Assert.Contains("__WareProClientSession", DatabaseSchemaScripts.SchemaVersion6, StringComparison.Ordinal);
         Assert.Contains("MinimumClientVersion = N'1.1.0'",
-            DatabaseSchemaScripts.BuildFinalizeSql(10, "1.1.0"), StringComparison.Ordinal);
+            DatabaseSchemaScripts.BuildFinalizeSql(11, "1.1.0"), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -34,13 +34,13 @@ public class DatabaseInitializerSchemaTests
         Assert.Contains("PurchaseInvoice", sql, StringComparison.Ordinal);
         Assert.Contains("OpenProductSerialId", sql, StringComparison.Ordinal);
         Assert.Contains("UX_WarrantyClaim_OpenProductSerialId", sql, StringComparison.Ordinal);
-        Assert.Contains("IF @CurrentVersion < 7", DatabaseSchemaScripts.BuildUpgradeSql(10, "1.1.0"), StringComparison.Ordinal);
+        Assert.Contains("IF @CurrentVersion < 7", DatabaseSchemaScripts.BuildUpgradeSql(11, "1.1.0"), StringComparison.Ordinal);
     }
 
     [Fact]
     public void Schema_8_adds_unique_invoice_stock_document_links()
     {
-        var sql = DatabaseSchemaScripts.BuildUpgradeSql(10, "1.1.0");
+        var sql = DatabaseSchemaScripts.BuildUpgradeSql(11, "1.1.0");
 
         Assert.Contains("IF @CurrentVersion < 8", sql, StringComparison.Ordinal);
         Assert.Contains("UX_SalesInvoice_StockOutId", sql, StringComparison.Ordinal);
@@ -56,7 +56,7 @@ public class DatabaseInitializerSchemaTests
     [Fact]
     public void Current_schema_allows_system_owned_login_audits()
     {
-        var sql = DatabaseSchemaScripts.BuildUpgradeSql(10, "1.1.0");
+        var sql = DatabaseSchemaScripts.BuildUpgradeSql(11, "1.1.0");
 
         Assert.Contains("ALTER TABLE dbo.AuditLog ALTER COLUMN PerformedBy INT NULL", sql, StringComparison.Ordinal);
         Assert.Contains("ON DELETE SET NULL", sql, StringComparison.Ordinal);
@@ -66,7 +66,7 @@ public class DatabaseInitializerSchemaTests
     [Fact]
     public void Schema_10_makes_last_stock_in_line_id_nullable()
     {
-        var sql = DatabaseSchemaScripts.BuildUpgradeSql(10, "1.1.0");
+        var sql = DatabaseSchemaScripts.BuildUpgradeSql(11, "1.1.0");
 
         Assert.Contains("ALTER TABLE dbo.ProductSerial ALTER COLUMN LastStockInLineId INT NULL", sql, StringComparison.Ordinal);
         Assert.Contains("OBJECT_ID(N'dbo.ProductSerial')", DatabaseSchemaScripts.ShapeValidationPredicate, StringComparison.Ordinal);

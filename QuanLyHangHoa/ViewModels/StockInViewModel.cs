@@ -242,7 +242,7 @@ namespace QuanLyHangHoa.ViewModels
                 AvailableWarehouses = new ObservableCollection<Warehouse>(await warehousesTask);
                 SelectedWarehouse = AvailableWarehouses.FirstOrDefault(warehouse => warehouse.IsDefault)
                     ?? AvailableWarehouses.FirstOrDefault();
-                DocumentCode = $"IN-{DateTime.Now:yyyyMMddHHmmss}";
+                DocumentCode = string.Empty;
                 await LoadDataAsync(true);
                 _isInitialized = true;
             }
@@ -603,6 +603,7 @@ namespace QuanLyHangHoa.ViewModels
                     async _ => await _stockInService.SaveDraftAsync(si, siLines, _currentUser.Id, operationId, cancellationToken),
                     cancellationToken)) return;
                 StockInId = si.Id;
+                DocumentCode = si.DocumentCode;
                 _editingRowVersion = si.RowVersion.ToArray();
                 Status = si.Status;
                 
@@ -645,6 +646,7 @@ namespace QuanLyHangHoa.ViewModels
                         async _ => await _stockInService.SaveDraftAsync(si, siLines, _currentUser.Id, operationId, cancellationToken),
                         cancellationToken)) return;
                     StockInId = si.Id;
+                    DocumentCode = si.DocumentCode;
                     _editingRowVersion = si.RowVersion.ToArray();
                 }
                 catch (Exception)
@@ -776,7 +778,7 @@ namespace QuanLyHangHoa.ViewModels
         // kiểm tra trường bắt buộc, số lượng dương và serial đủ trước khi gọi service
         private bool ValidateForm()
         {
-            if (string.IsNullOrWhiteSpace(DocumentCode) || !Lines.Any())
+            if (!Lines.Any())
             {
                 MessageBox.Show("Vui lòng nhập đủ thông tin sản phẩm.", "Cảnh báo");
                 return false;
@@ -881,7 +883,7 @@ namespace QuanLyHangHoa.ViewModels
             OnPropertyChanged(nameof(CanEdit));
             
             Lines.Clear();
-            DocumentCode = $"IN-{DateTime.Now:yyyyMMddHHmmss}";
+            DocumentCode = string.Empty;
         }
 
         public void RefreshData()

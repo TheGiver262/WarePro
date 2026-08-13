@@ -602,7 +602,7 @@ namespace QuanLyHangHoa.ViewModels
             _editingInvoice = null;
             IsViewMode = false;
             IsEditMode = false;
-            InvoiceCode = $"SINV-{DateTime.Now:yyyyMMddHHmmss}";
+            InvoiceCode = string.Empty;
             SelectedCustomer = null;
             InvoiceDate = DateTime.Now;
             DueDate = DateTime.Now.AddDays(7);

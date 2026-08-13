@@ -176,6 +176,18 @@ namespace QuanLyHangHoa.Services
         {
             ArgumentNullException.ThrowIfNull(stockIn);
             ArgumentNullException.ThrowIfNull(lines);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (stockIn.Id == 0 && string.IsNullOrWhiteSpace(stockIn.DocumentCode))
+            {
+                await using var numberingDb = _contextFactory();
+                AuthorizationService.RequireFreshActor(numberingDb, userId, PermissionAction.PostStockIn);
+                stockIn.DocumentCode = await DocumentNumberAllocator.AllocateAsync(
+                    numberingDb,
+                    "StockIn",
+                    "IN",
+                    DateOnly.FromDateTime((stockIn.ImportDate ?? DateTime.Today).Date),
+                    cancellationToken);
+            }
             // chụp dữ liệu đầu vào thành giá trị thuần để mỗi lần retry dựng entity mới, không dùng lại object đang bị UI giữ và thay đổi.
             var snapshot = StockInDraftSnapshot.Create(stockIn, lines, userId);
             if (snapshot.Id > 0 && snapshot.RowVersion.Length == 0)
@@ -789,12 +801,9 @@ namespace QuanLyHangHoa.Services
                 int userId)
             {
                 var timestamp = DateTime.Now;
-                var documentCode = string.IsNullOrWhiteSpace(source.DocumentCode)
-                    ? $"SI-{timestamp:yyyyMMddHHmmss}"
-                    : source.DocumentCode;
                 return new StockInDraftSnapshot(
                     source.Id,
-                    documentCode,
+                    source.DocumentCode,
                     source.SupplierId,
                     source.WarehouseId,
                     source.PurposeCode,
