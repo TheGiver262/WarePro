@@ -73,6 +73,12 @@ public static class DatabaseWriteUi
             showError(RetryExhaustedMessage);
             return false;
         }
+        catch (StaleEntityException ex)
+        {
+            reload();
+            showError(ex.Message);
+            return false;
+        }
         catch (InventoryDomainException ex)
         {
             showError(ex.Message);

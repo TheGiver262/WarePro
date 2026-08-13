@@ -94,6 +94,24 @@ public sealed class DatabaseWriteUiTests
 
         Assert.Equal(new[] { "Sản phẩm không đủ tồn kho." }, messages);
     }
+
+    [Fact]
+    public async Task Stale_entity_reloads_once_before_showing_business_message()
+    {
+        var events = new List<string>();
+        var state = new TestState();
+
+        await DatabaseWriteUi.ExecuteAsync(
+            _ => Task.FromException(new StaleEntityException("Dữ liệu đã bị xóa. Vui lòng tải lại.")),
+            () => state.IsWriting,
+            value => state.IsWriting = value,
+            value => state.Statuses.Add(value),
+            () => events.Add("reload"),
+            message => events.Add($"message:{message}"),
+            CancellationToken.None);
+
+        Assert.Equal(new[] { "reload", "message:Dữ liệu đã bị xóa. Vui lòng tải lại." }, events);
+    }
     [Fact]
     public async Task Technical_error_hides_provider_details()
     {

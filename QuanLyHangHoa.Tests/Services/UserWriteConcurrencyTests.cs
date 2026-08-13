@@ -81,7 +81,7 @@ public sealed class UserWriteConcurrencyTests
         }
 
         var service = new AppUserService(() => CreateContext(connection));
-        await Assert.ThrowsAsync<QuanLyHangHoa.Inventory.InventoryDomainException>(() => service.UpdateUserAsync(
+        await Assert.ThrowsAsync<QuanLyHangHoa.Inventory.StaleEntityException>(() => service.UpdateUserAsync(
             stale.Id,
             new AppUser
             {
@@ -115,7 +115,7 @@ public sealed class UserWriteConcurrencyTests
         }
 
         var service = new AppUserService(() => CreateContext(connection));
-        await Assert.ThrowsAsync<QuanLyHangHoa.Inventory.InventoryDomainException>(() => service.ToggleUserStatusAsync(
+        await Assert.ThrowsAsync<QuanLyHangHoa.Inventory.StaleEntityException>(() => service.ToggleUserStatusAsync(
             stale.Id,
             stale.RowVersion,
             performedByUserId: 1,

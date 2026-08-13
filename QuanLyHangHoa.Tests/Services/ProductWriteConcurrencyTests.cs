@@ -61,7 +61,7 @@ public sealed class ProductWriteConcurrencyTests
         var service = new ProductService(() => CreateContext(connection));
 
         // Client A gọi Update với dữ liệu cũ — phải fail rõ ràng, không silent success
-        await Assert.ThrowsAsync<QuanLyHangHoa.Inventory.InventoryDomainException>(() => service.UpdateProductAsync(
+        await Assert.ThrowsAsync<QuanLyHangHoa.Inventory.StaleEntityException>(() => service.UpdateProductAsync(
             stale.Id,
             new Product
             {

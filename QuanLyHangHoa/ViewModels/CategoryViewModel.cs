@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
+using QuanLyHangHoa.Inventory;
 using QuanLyHangHoa.Views;
 using System;
 using System.Threading.Tasks;
@@ -119,12 +120,18 @@ namespace QuanLyHangHoa.ViewModels
             var window = new CategoryEditWindow { DataContext = vm };
             if (window.ShowDialog() == true)
             {
-                vm.ApplyTo(category);
+                var updated = new Category { Id = category.Id };
+                vm.ApplyTo(updated);
                 try
                 {
-    await _service.UpdateAsync(category.Id, category, expectedRowVersion, _currentUser.Id, Guid.NewGuid());
+                    await _service.UpdateAsync(category.Id, updated, expectedRowVersion, _currentUser.Id, Guid.NewGuid());
                 }
                 catch (DatabaseWriteConflictException)
+                {
+                    LoadCategories();
+                    return;
+                }
+                catch (StaleEntityException)
                 {
                     LoadCategories();
                     return;

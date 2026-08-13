@@ -142,7 +142,7 @@ namespace QuanLyHangHoa.Services
                         token);
                     if (existing is null)
                     {
-                        throw new InventoryDomainException("Tài khoản đã bị xóa hoặc không còn tồn tại. Vui lòng tải lại dữ liệu.");
+                        throw new StaleEntityException("Tài khoản đã bị xóa hoặc không còn tồn tại. Vui lòng tải lại dữ liệu.");
                     }
 
                     db.Entry(existing).Property(item => item.RowVersion).OriginalValue = rowVersion;
@@ -222,7 +222,7 @@ namespace QuanLyHangHoa.Services
                     var user = await db.AppUsers.SingleOrDefaultAsync(item => item.Id == userId, token);
                     if (user is null)
                     {
-                        throw new InventoryDomainException("Tài khoản đã bị xóa hoặc không còn tồn tại. Vui lòng tải lại dữ liệu.");
+                        throw new StaleEntityException("Tài khoản đã bị xóa hoặc không còn tồn tại. Vui lòng tải lại dữ liệu.");
                     }
 
                     db.Entry(user).Property(item => item.RowVersion).OriginalValue = rowVersion;

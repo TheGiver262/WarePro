@@ -9,6 +9,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.EntityFrameworkCore;
 using QuanLyHangHoa.Data;
 using QuanLyHangHoa.Models;
+using QuanLyHangHoa.Inventory;
 using QuanLyHangHoa.Services;
 using ClosedXML.Excel;
 
@@ -176,12 +177,16 @@ namespace QuanLyHangHoa.ViewModels
                 else // Update
                 {
                     var expectedRowVersion = SelectedBrand.RowVersion.ToArray();
-                    SelectedBrand.BrandCode = EditBrandCode;
-                    SelectedBrand.DisplayName = EditDisplayName;
-                    SelectedBrand.OriginCountry = EditOriginCountry;
-                    SelectedBrand.IsActive = EditIsActive;
+                    var updated = new Brand
+                    {
+                        Id = SelectedBrand.Id,
+                        BrandCode = EditBrandCode,
+                        DisplayName = EditDisplayName,
+                        OriginCountry = EditOriginCountry,
+                        IsActive = EditIsActive
+                    };
 
-                    await _service.UpdateAsync(SelectedBrand.Id, SelectedBrand, expectedRowVersion, _currentUser.Id, Guid.NewGuid());
+                    await _service.UpdateAsync(SelectedBrand.Id, updated, expectedRowVersion, _currentUser.Id, Guid.NewGuid());
                 }
 
                 IsEditing = false;
@@ -189,6 +194,12 @@ namespace QuanLyHangHoa.ViewModels
                 LoadBrands();
             }
             catch (DatabaseWriteConflictException)
+            {
+                IsEditing = false;
+                LoadOrigins();
+                LoadBrands();
+            }
+            catch (StaleEntityException)
             {
                 IsEditing = false;
                 LoadOrigins();

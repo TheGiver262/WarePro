@@ -153,7 +153,7 @@ public sealed class MasterDataWriteConcurrencyTests
         }
 
         var service = new BrandService(() => CreateContext(connection));
-        await Assert.ThrowsAsync<QuanLyHangHoa.Inventory.InventoryDomainException>(() => service.UpdateAsync(
+        await Assert.ThrowsAsync<QuanLyHangHoa.Inventory.StaleEntityException>(() => service.UpdateAsync(
             stale.Id,
             new Brand { BrandCode = stale.BrandCode, DisplayName = "Stale brand", OriginCountry = null, IsActive = true },
             stale.RowVersion,
@@ -180,7 +180,7 @@ public sealed class MasterDataWriteConcurrencyTests
         }
 
         var service = new CategoryService(() => CreateContext(connection));
-        await Assert.ThrowsAsync<QuanLyHangHoa.Inventory.InventoryDomainException>(() => service.UpdateAsync(
+        await Assert.ThrowsAsync<QuanLyHangHoa.Inventory.StaleEntityException>(() => service.UpdateAsync(
             stale.Id,
             new Category { CategoryCode = stale.CategoryCode, DisplayName = "Stale category", IsActive = true },
             stale.RowVersion,
@@ -207,7 +207,7 @@ public sealed class MasterDataWriteConcurrencyTests
         }
 
         var service = new UnitService(() => CreateContext(connection));
-        await Assert.ThrowsAsync<QuanLyHangHoa.Inventory.InventoryDomainException>(() => service.UpdateAsync(
+        await Assert.ThrowsAsync<QuanLyHangHoa.Inventory.StaleEntityException>(() => service.UpdateAsync(
             stale.Id,
             new Unit { UnitCode = stale.UnitCode, DisplayName = "Stale unit", IsActive = true },
             stale.RowVersion,
@@ -234,7 +234,7 @@ public sealed class MasterDataWriteConcurrencyTests
         }
 
         var service = new CustomerService(() => CreateContext(connection));
-        await Assert.ThrowsAsync<QuanLyHangHoa.Inventory.InventoryDomainException>(() => service.UpdateAsync(
+        await Assert.ThrowsAsync<QuanLyHangHoa.Inventory.StaleEntityException>(() => service.UpdateAsync(
             stale.Id,
             new Customer { CustomerCode = stale.CustomerCode, DisplayName = "Stale customer", IsActive = true },
             stale.RowVersion,
@@ -261,7 +261,7 @@ public sealed class MasterDataWriteConcurrencyTests
         }
 
         var service = new SupplierService(() => CreateContext(connection));
-        await Assert.ThrowsAsync<QuanLyHangHoa.Inventory.InventoryDomainException>(() => service.UpdateAsync(
+        await Assert.ThrowsAsync<QuanLyHangHoa.Inventory.StaleEntityException>(() => service.UpdateAsync(
             stale.Id,
             new Supplier { SupplierCode = stale.SupplierCode, DisplayName = "Stale supplier", IsActive = true },
             stale.RowVersion,

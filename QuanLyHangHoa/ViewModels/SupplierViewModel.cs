@@ -4,6 +4,7 @@ using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using QuanLyHangHoa.Models;
+using QuanLyHangHoa.Inventory;
 using QuanLyHangHoa.Views;
 using QuanLyHangHoa.Data;
 using System;
@@ -130,12 +131,18 @@ namespace QuanLyHangHoa.ViewModels
             var window = new SupplierEditWindow { DataContext = vm };
             if (window.ShowDialog() == true)
             {
-                vm.ApplyTo(supplier);
+                var updated = new Supplier { Id = supplier.Id };
+                vm.ApplyTo(updated);
                 try
                 {
-    await _service.UpdateAsync(supplier.Id, supplier, expectedRowVersion, _currentUser.Id, Guid.NewGuid());
+                    await _service.UpdateAsync(supplier.Id, updated, expectedRowVersion, _currentUser.Id, Guid.NewGuid());
                 }
                 catch (DatabaseWriteConflictException)
+                {
+                    LoadData();
+                    return;
+                }
+                catch (StaleEntityException)
                 {
                     LoadData();
                     return;
