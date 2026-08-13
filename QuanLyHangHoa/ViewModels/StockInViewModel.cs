@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using QuanLyHangHoa.Data;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -145,6 +146,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _notes = string.Empty;
         [ObservableProperty] private bool _isWriting;
         [ObservableProperty] private string _writeStatus = string.Empty;
+        [ObservableProperty] private string? _loadErrorMessage;
 
         // List view properties
         [ObservableProperty] private ObservableCollection<StockIn> _stockInList = new();
@@ -286,19 +288,13 @@ namespace QuanLyHangHoa.ViewModels
             _isLoading = true;
             try
             {
-                if (reset)
-                {
-                    _skip = 0;
-                    StockInList.Clear();
-                }
-
                 var code = SearchDocumentCode;
                 var supplierName = SearchSupplierName;
                 var fromDate = FilterFromDate;
                 var toDate = FilterToDate;
                 int? warehouseId = SelectedWarehouseFilter?.Id > 0 ? SelectedWarehouseFilter.Id : null;
                 var status = SelectedStatusFilter;
-                var skip = _skip;
+                var skip = reset ? 0 : _skip;
 
                 var dataTask = Task.Run(() => _stockInService.GetStockInPaged(
                     code, supplierName, fromDate, toDate, warehouseId, status, skip, PageSize));
@@ -309,18 +305,28 @@ namespace QuanLyHangHoa.ViewModels
                 var data = await dataTask;
                 var stats = await statsTask;
 
+                if (reset)
+                {
+                    StockInList.Clear();
+                }
                 foreach (var item in data)
                 {
                     StockInList.Add(item);
                 }
-                _skip += data.Count;
+                _skip = skip + data.Count;
 
                 TotalCount = stats.TotalCount;
                 DraftCount = stats.DraftCount;
                 PostedCount = stats.PostedCount;
+                LoadErrorMessage = null;
             }
-            catch (Exception)
+            catch (Exception ex) when (IsCancellation(ex))
             {
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex);
+                LoadErrorMessage = DatabaseWriteUi.TechnicalErrorMessage;
             }
             finally
             {
@@ -332,6 +338,11 @@ namespace QuanLyHangHoa.ViewModels
                 }
             }
         }
+
+        private static bool IsCancellation(Exception exception) =>
+            exception is OperationCanceledException ||
+            exception is AggregateException aggregate &&
+            aggregate.Flatten().InnerExceptions.All(inner => inner is OperationCanceledException);
 
         [RelayCommand]
         private async Task LoadMore()

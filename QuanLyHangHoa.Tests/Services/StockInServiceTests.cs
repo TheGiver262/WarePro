@@ -385,6 +385,41 @@ public class StockInServiceTests
         return counter.Count;
     }
 
+    [Fact]
+    public void Paged_results_are_stable_when_dates_and_created_times_match()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        var timestamp = new DateTime(2026, 8, 13, 8, 30, 0, DateTimeKind.Utc);
+        using (var db = CreateContext(connection))
+        {
+            DatabaseHelper.SeedBasicData(db);
+            db.StockIns.AddRange(Enumerable.Range(1, 205).Select(index => new StockIn
+            {
+                DocumentCode = $"PAGE-IN-{index:D3}",
+                SupplierId = 1,
+                WarehouseId = 1,
+                PurposeCode = "Purchase",
+                Status = DocumentStatus.Draft,
+                ImportDate = timestamp,
+                CreatedBy = 1,
+                CreatedAt = timestamp
+            }));
+            db.SaveChanges();
+        }
+        var service = new StockInService(() => CreateContext(connection));
+
+        var ids = service.GetStockInPaged("", "", null, null, null, "", 0, 100)
+            .Concat(service.GetStockInPaged("", "", null, null, null, "", 100, 100))
+            .Concat(service.GetStockInPaged("", "", null, null, null, "", 200, 100))
+            .Select(item => item.Id)
+            .ToList();
+
+        Assert.Equal(205, ids.Count);
+        Assert.Equal(205, ids.Distinct().Count());
+        Assert.Equal(ids.OrderByDescending(id => id), ids);
+    }
+
     private static void ApproveForPosting(StockInService service, SqliteConnection connection, int stockInId)
     {
         using (var db = CreateContext(connection))

@@ -420,6 +420,41 @@ public class StockOutServiceTests
         return counter.Count;
     }
 
+    [Fact]
+    public void Paged_results_are_stable_when_dates_and_created_times_match()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        var timestamp = new DateTime(2026, 8, 13, 8, 30, 0, DateTimeKind.Utc);
+        using (var db = DatabaseHelper.CreateContext(connection))
+        {
+            DatabaseHelper.SeedBasicData(db);
+            db.StockOuts.AddRange(Enumerable.Range(1, 205).Select(index => new StockOut
+            {
+                DocumentCode = $"PAGE-OUT-{index:D3}",
+                CustomerId = 1,
+                WarehouseId = 1,
+                PurposeCode = "Sale",
+                Status = DocumentStatus.Draft,
+                ExportDate = timestamp,
+                CreatedBy = 1,
+                CreatedAt = timestamp
+            }));
+            db.SaveChanges();
+        }
+        var service = new StockOutService(() => DatabaseHelper.CreateContext(connection));
+
+        var ids = service.GetStockOutPaged("", "", null, null, null, "", 0, 100)
+            .Concat(service.GetStockOutPaged("", "", null, null, null, "", 100, 100))
+            .Concat(service.GetStockOutPaged("", "", null, null, null, "", 200, 100))
+            .Select(item => item.Id)
+            .ToList();
+
+        Assert.Equal(205, ids.Count);
+        Assert.Equal(205, ids.Distinct().Count());
+        Assert.Equal(ids.OrderByDescending(id => id), ids);
+    }
+
     private static void GrantApprovalPermission(SqliteConnection connection)
     {
         using var db = DatabaseHelper.CreateContext(connection);

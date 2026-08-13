@@ -62,6 +62,7 @@ namespace QuanLyHangHoa.Services
             return query
                 .OrderByDescending(s => s.ExportDate)
                 .ThenByDescending(s => s.CreatedAt)
+                .ThenByDescending(s => s.Id)
                 .Skip(skip)
                 .Take(take)
                 .ToList();

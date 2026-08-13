@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -29,6 +30,7 @@ namespace QuanLyHangHoa.ViewModels
         [ObservableProperty] private string _searchName = string.Empty;
         [ObservableProperty] private int _lowStockCount;
         [ObservableProperty] private decimal _totalInventoryValue;
+        [ObservableProperty] private string? _loadErrorMessage;
 
         [ObservableProperty] private ObservableCollection<Category> _categories = new();
         [ObservableProperty] private Category? _selectedCategoryFilter;
@@ -111,17 +113,11 @@ namespace QuanLyHangHoa.ViewModels
             _isLoading = true;
             try
             {
-                if (reset)
-                {
-                    _skip = 0;
-                    InventoryItems.Clear();
-                }
-
                 var searchCode = SearchCode;
                 var searchName = SearchName;
                 int? categoryId = SelectedCategoryFilter?.Id > 0 ? SelectedCategoryFilter.Id : null;
                 var searchStatus = SearchStatus;
-                var skip = _skip;
+                var skip = reset ? 0 : _skip;
 
                 // danh sách và thống kê chạy song song nhưng dùng context riêng do service tự tạo
                 var listTask = Task.Run(() => _productService.GetInventoryProductsPaged(
@@ -133,18 +129,27 @@ namespace QuanLyHangHoa.ViewModels
                 var list = await listTask;
                 var stats = await statsTask;
 
+                if (reset)
+                {
+                    InventoryItems.Clear();
+                }
                 foreach (var p in list)
                 {
                     InventoryItems.Add(p);
                 }
-                _skip += list.Count;
+                _skip = skip + list.Count;
 
                 LowStockCount = stats.lowStockCount;
                 TotalInventoryValue = stats.totalValue;
+                LoadErrorMessage = null;
             }
-            catch (Exception)
+            catch (Exception ex) when (IsCancellation(ex))
             {
-                // Silence or handle
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex);
+                LoadErrorMessage = DatabaseWriteUi.TechnicalErrorMessage;
             }
             finally
             {
@@ -157,6 +162,11 @@ namespace QuanLyHangHoa.ViewModels
                 }
             }
         }
+
+        private static bool IsCancellation(Exception exception) =>
+            exception is OperationCanceledException ||
+            exception is AggregateException aggregate &&
+            aggregate.Flatten().InnerExceptions.All(inner => inner is OperationCanceledException);
 
         [RelayCommand]
         private async Task LoadMore()

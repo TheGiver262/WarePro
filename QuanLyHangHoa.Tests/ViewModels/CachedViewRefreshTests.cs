@@ -110,6 +110,131 @@ public class CachedViewRefreshTests
     }
 
     [Fact]
+    public async Task Inventory_refresh_failure_preserves_rows_stats_and_paging()
+    {
+        var databasePath = Path.Combine(Path.GetTempPath(), $"inventory-list-refresh-{Guid.NewGuid():N}.db");
+        try
+        {
+            using (var db = CreateFileContext(databasePath))
+            {
+                db.Database.EnsureCreated();
+                DatabaseHelper.SeedBasicData(db);
+            }
+            var failRefresh = false;
+            var viewModel = new InventoryViewModel(() => failRefresh
+                ? throw new InvalidOperationException("inventory database unavailable")
+                : CreateFileContext(databasePath));
+            await WaitForPrivateLoadingAsync(viewModel);
+            var existing = new Product { Id = 81, ProductCode = "OLD", DisplayName = "Old row" };
+            viewModel.InventoryItems.Add(existing);
+            viewModel.LowStockCount = 7;
+            viewModel.TotalInventoryValue = 123m;
+            viewModel.LoadErrorMessage = null;
+            SetPrivateSkip(viewModel, 9);
+
+            failRefresh = true;
+            viewModel.RefreshData();
+            await WaitUntilAsync(() => viewModel.LoadErrorMessage != null);
+
+            Assert.Same(existing, Assert.Single(viewModel.InventoryItems));
+            Assert.Equal(7, viewModel.LowStockCount);
+            Assert.Equal(123m, viewModel.TotalInventoryValue);
+            Assert.Equal(9, GetPrivateSkip(viewModel));
+            Assert.Equal(DatabaseWriteUi.TechnicalErrorMessage, viewModel.LoadErrorMessage);
+        }
+        finally
+        {
+            await DeleteFileWhenUnlockedAsync(databasePath);
+        }
+    }
+
+    [Theory]
+    [InlineData(typeof(StockInViewModel))]
+    [InlineData(typeof(StockOutViewModel))]
+    public async Task Stock_document_refresh_failure_preserves_rows_stats_and_paging(Type viewModelType)
+    {
+        var databasePath = Path.Combine(Path.GetTempPath(), $"stock-list-refresh-{Guid.NewGuid():N}.db");
+        try
+        {
+            using (var db = CreateFileContext(databasePath))
+            {
+                db.Database.EnsureCreated();
+                DatabaseHelper.SeedBasicData(db);
+            }
+            var failRefresh = false;
+            Func<AppDbContext> factory = () => failRefresh
+                ? throw new InvalidOperationException("stock database unavailable")
+                : CreateFileContext(databasePath);
+            var user = new AppUser { Id = 1, Username = "admin", FullName = "Admin", RoleCode = "Admin", IsActive = true };
+            var viewModel = Activator.CreateInstance(viewModelType, user, factory)!;
+            await (Task)viewModelType.GetProperty("InitializationTask")!.GetValue(viewModel)!;
+            var listProperty = viewModelType.GetProperty(
+                viewModelType == typeof(StockInViewModel) ? "StockInList" : "StockOutList")!;
+            var rows = (IList)listProperty.GetValue(viewModel)!;
+            object existing = viewModelType == typeof(StockInViewModel)
+                ? new StockIn { Id = 82 }
+                : new StockOut { Id = 83 };
+            rows.Add(existing);
+            viewModelType.GetProperty("TotalCount")!.SetValue(viewModel, 11);
+            viewModelType.GetProperty("DraftCount")!.SetValue(viewModel, 5);
+            viewModelType.GetProperty("PostedCount")!.SetValue(viewModel, 6);
+            viewModelType.GetProperty("LoadErrorMessage")!.SetValue(viewModel, null);
+            SetPrivateSkip(viewModel, 12);
+
+            failRefresh = true;
+            ((IRefreshable)viewModel).RefreshData();
+            await WaitUntilAsync(() => viewModelType.GetProperty("LoadErrorMessage")!.GetValue(viewModel) != null);
+
+            Assert.Same(existing, Assert.Single(rows.Cast<object>()));
+            Assert.Equal(11, viewModelType.GetProperty("TotalCount")!.GetValue(viewModel));
+            Assert.Equal(5, viewModelType.GetProperty("DraftCount")!.GetValue(viewModel));
+            Assert.Equal(6, viewModelType.GetProperty("PostedCount")!.GetValue(viewModel));
+            Assert.Equal(12, GetPrivateSkip(viewModel));
+            Assert.Equal(DatabaseWriteUi.TechnicalErrorMessage,
+                viewModelType.GetProperty("LoadErrorMessage")!.GetValue(viewModel));
+        }
+        finally
+        {
+            await DeleteFileWhenUnlockedAsync(databasePath);
+        }
+    }
+
+    [Fact]
+    public async Task Inventory_cancelled_refresh_preserves_rows_without_technical_error()
+    {
+        var databasePath = Path.Combine(Path.GetTempPath(), $"inventory-list-cancel-{Guid.NewGuid():N}.db");
+        try
+        {
+            using (var db = CreateFileContext(databasePath))
+            {
+                db.Database.EnsureCreated();
+                DatabaseHelper.SeedBasicData(db);
+            }
+            var cancelRefresh = false;
+            var viewModel = new InventoryViewModel(() => cancelRefresh
+                ? throw new OperationCanceledException()
+                : CreateFileContext(databasePath));
+            await WaitForPrivateLoadingAsync(viewModel);
+            viewModel.LoadErrorMessage = null;
+            var existing = new Product { Id = 84, ProductCode = "OLD-CANCEL", DisplayName = "Old cancel row" };
+            viewModel.InventoryItems.Add(existing);
+            SetPrivateSkip(viewModel, 13);
+
+            cancelRefresh = true;
+            viewModel.RefreshData();
+            await WaitForPrivateLoadingAsync(viewModel);
+
+            Assert.Same(existing, Assert.Single(viewModel.InventoryItems));
+            Assert.Equal(13, GetPrivateSkip(viewModel));
+            Assert.Null(viewModel.LoadErrorMessage);
+        }
+        finally
+        {
+            await DeleteFileWhenUnlockedAsync(databasePath);
+        }
+    }
+
+    [Fact]
     public void Report_requires_an_injected_context_factory()
     {
         Assert.DoesNotContain(
@@ -578,4 +703,16 @@ public class CachedViewRefreshTests
 
         Assert.True(condition(), "Expected asynchronous refresh result was not observed.");
     }
+
+    private static async Task WaitForPrivateLoadingAsync(object viewModel)
+    {
+        var field = viewModel.GetType().GetField("_isLoading", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        await WaitUntilAsync(() => !(bool)field.GetValue(viewModel)!);
+    }
+
+    private static int GetPrivateSkip(object viewModel) =>
+        (int)viewModel.GetType().GetField("_skip", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(viewModel)!;
+
+    private static void SetPrivateSkip(object viewModel, int value) =>
+        viewModel.GetType().GetField("_skip", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(viewModel, value);
 }
